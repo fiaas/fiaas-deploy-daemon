@@ -1,0 +1,20 @@
+---
+namespace: "default" # the namespace to use
+admin_access: null # What access the pod has to the k8s api server
+has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
+replicas: 1 # The number of instances to run.
+resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
+  limits:
+    memory: null # app will be killed if exceeding these limits
+    cpu: null # app will have its cpu usage throttled if exceeding this limit
+  requests: # app will be scheduled on nodes with at least this amount resources available
+    memory: null # for java apps set this to -xmx * 1.1
+    cpu: null #
+services: # A list of services, as below. The first service will be used for smoketest and healthcheck.
+  - type: http # Type of service (http|thrift).
+    service_port: 80 # Port to expose to the world. For thrift services the lowest port that can be exposed is 7000
+    exposed_port: 80 # Exposed port in the docker container.
+    ingress: / # The root path of your application (if http).
+    readiness: / # For http-services only. Must respond with 200 OK when instance is ready. (smoketest)
+    liveness: / # For http-services only. Must respond with 200 OK to keep instance running. (healthcheck)
+    probe_delay: 10 # How long to wait before starting probes.

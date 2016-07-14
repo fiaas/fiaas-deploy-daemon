@@ -1,0 +1,31 @@
+interactions:
+- request:
+    body: '{"metadata": {"labels": {"test": "true"}, "namespace": "my-namespace", "name":
+      "my-name"}, "spec": {"replicas": 2, "template": {"spec": {"dnsPolicy": "ClusterFirst",
+      "serviceAccountName": "default", "restartPolicy": "Always", "volumes": [], "imagePullSecrets":
+      [{"name": "image_pull_secret"}], "containers": [{"livenessProbe": {"initialDelaySeconds":
+      5, "httpGet": {"path": "/", "scheme": "HTTP", "port": "http5000"}}, "name":
+      "container", "image": "dummy_image", "volumeMounts": [], "env": [], "imagePullPolicy":
+      "IfNotPresent", "readinessProbe": {"initialDelaySeconds": 5, "tcpSocket": {"port":
+      5000}}, "ports": [{"protocol": "TCP", "containerPort": 5000, "name": "http5000"}]}]},
+      "metadata": {"labels": {"test": "true"}, "namespace": "my-namespace", "name": "my-name"}},
+      "selector": {"matchLabels": {"test": "true"}}}, "strategy": "RollingUpdate"}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['840']
+      Content-Type: [application/json]
+      User-Agent: [python-requests/2.9.1]
+    method: POST
+    uri: https://10.0.0.1/apis/extensions/v1beta1/namespaces/my-namespace/deployments/
+  response:
+      body: {string: !!python/unicode '{"kind":"Deployment","apiVersion":"extensions/v1beta1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/apis/extensions/v1beta1/namespaces/my-namespace/deployments/test","uid":"045a57f1-3c58-11e6-8d19-06013af40d54","resourceVersion":"24703704","generation":7,"creationTimestamp":"2016-06-27T11:12:20Z","labels":{"app":"test"},"annotations":{"deployment.kubernetes.io/revision":"3","fiaas/deployed_by":"test","fiaas/version":"\u003cunknown\u003e"}},"spec":{"replicas":1,"selector":{"matchLabels":{"app":"test"}},"template":{"metadata":{"name":"test","namespace":"my-namespace","creationTimestamp":null,"labels":{"app":"test"},"annotations":{"fiaas/deployed_by":"test","fiaas/version":"\u003cunknown\u003e","prometheus.io/path":"/internal-backstage/prometheus","prometheus.io/port":"8080","prometheus.io/scrape":"true"}},"spec":{"volumes":[{"name":"test","secret":{"secretName":"test"}}],"containers":[{"name":"test","image":"image","ports":[{"name":"http8080","containerPort":8080,"protocol":"TCP"}],"env":[{"name":"ARTIFACT_NAME","value":"test"},{"name":"LOG_STDOUT","value":"true"},{"name":"CONSTRETTO_TAGS","value":"kubernetes,test"},{"name":"LOG_FORMAT","value":"json"},{"name":"FINN_ENV","value":"test"},{"name":"IMAGE","value":"image"},{"name":"VERSION","value":"\u003cunknown\u003e"}],"resources":{},"volumeMounts":[{"name":"test","readOnly":true,"mountPath":"/var/run/secrets/fiaas/"}],"livenessProbe":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"initialDelaySeconds":5,"timeoutSeconds":1,"periodSeconds":10,"successThreshold":1,"failureThreshold":3},"readinessProbe":{"httpGet":{"path":"/","port":8080,"scheme":"HTTP"},"initialDelaySeconds":5,"timeoutSeconds":1,"periodSeconds":10,"successThreshold":1,"failureThreshold":3},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"Always"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","serviceAccountName":"fiaas-no-access","serviceAccount":"fiaas-no-access","securityContext":{}}},"strategy":{"type":"RollingUpdate","rollingUpdate":{"maxUnavailable":1,"maxSurge":1}}},"status":{"observedGeneration":6,"replicas":3,"updatedReplicas":2,"unavailableReplicas":3}}
+
+  '}
+      headers:
+        content-type: [application/json]
+        date: ['Mon, 27 Jun 2016 11:52:50 GMT']
+      status: {code: 200, message: OK}
+  version: 1

@@ -1,0 +1,17 @@
+# The fiaas.yml file format is documented in the README.md of the fiaas-deploy-daemon repo.
+# See here for default values: http://fiaas-deploy-daemon.dev-k8s.finntech.no/defaults
+# (or use it as a reference)
+---
+services:
+  - type: thrift # "http" or "thrift"
+    service_port: 7755
+    exposed_port: 7755
+    probe_delay: 30 # Number of seconds before the app is supposed to be ready (and health checks will begin)
+    readiness:
+    liveness:
+  - type: http # prometheus metrics port
+    service_port: 9779
+    exposed_port: 9779
+    ingress: /
+    probe_delay: 10
+has_secrets: true

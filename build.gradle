@@ -1,0 +1,122 @@
+import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.bmuschko:gradle-docker-plugin:2.6.5'
+        classpath 'com.tkruse.gradle:gradle-groovysh-plugin:1.0.7'
+        gradleApi()
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+apply plugin: 'com.bmuschko.docker-remote-api'
+apply plugin: 'com.github.tkruse.groovysh'
+apply plugin: 'maven-publish'
+apply plugin: 'publishing'
+
+apply from: "$rootDir/gradle/python.gradle"
+apply from: "$rootDir/gradle/idea.gradle"
+
+/*****************
+ * Set project details
+ */
+
+description = 'fiaas-deploy-daemon'
+group = 'no.finntech'
+version = getDate()
+
+/*****************
+ * Configure publishing for fiaas-artifact
+ */
+
+publishing {
+    publications {
+        fiaas(MavenPublication) {
+            artifact('fiaas.yml') {
+                classifier 'fiaas'
+            }
+            groupId = 'no.finntech'
+            artifactId = 'fiaas-deploy-daemon'
+            version = '1.0-SNAPSHOT'
+        }
+    }
+
+    repositories {
+        maven {
+            url 'http://mavenproxy.finntech.no/finntech-internal-snapshot/'
+        }
+    }
+}
+
+/*****************
+ * Docker tasks
+ */
+
+docker {
+    if (System.env.DOCKER_HOST) {
+        url = "$System.env.DOCKER_HOST".replace("tcp", "https")
+        if (System.env.DOCKER_CERT_PATH) {
+            certPath = new File(System.env.DOCKER_CERT_PATH)
+        }
+    } else {
+        url = 'unix:///var/run/docker.sock'
+    }
+}
+
+def image_tag = "finntech/${project.description}:${project.version}"
+
+task bakeImage(type: DockerBuildImage) {
+    description 'Build docker image'
+    dependsOn build
+    inputs.source 'Dockerfile'
+    inputs.files build.outputs
+    inputDir projectDir
+    tag image_tag
+}
+
+// Ideally we would use DockerPushImage here, but it doesn't support reading the docker config,
+// or even authenticating with a token. So, we have to fall back to executing the docker client.
+task publishImage(type: Exec) {
+    description 'Publish docker image to docker registry'
+    group 'publishing'
+    dependsOn bakeImage
+    executable = 'docker'
+    args = ['push', image_tag]
+    doLast {
+        logger.lifecycle("Pushed image ${image_tag}")
+    }
+}
+publish.dependsOn(publishImage)
+
+/*****************
+ * Misc tasks
+ */
+
+task clean(type: Delete) {
+    delete fileTree(dir: 'fiaas_deploy_daemon', include: '**/*.pyc')
+    delete fileTree(dir: 'k8s', include: '**/*.pyc')
+    delete fileTree(dir: 'tests', include: '**/*.pyc')
+    delete build.outputs
+    delete test.outputs
+}
+
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.11'
+}
+
+/*****************
+ * Helpers
+ */
+
+def getDate() {
+    def date = new Date()
+    def formattedDate = date.format('yyyyMMddHHmmss')
+    return formattedDate
+}

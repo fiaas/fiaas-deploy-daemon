@@ -1,0 +1,51 @@
+interactions:
+- request:
+    body: '{"spec": {"replicas": 2, "template": {"spec": {"dnsPolicy": "ClusterFirst",
+      "serviceAccountName": "default", "restartPolicy": "Always", "volumes": [], "imagePullSecrets":
+      [{"name": "image_pull_secret"}], "containers": [{"livenessProbe": {"initialDelaySeconds":
+      5, "httpGet": {"path": "/", "scheme": "HTTP", "port": "http5000"}}, "name":
+      "container", "image": "dummy_image", "volumeMounts": [], "env": [], "imagePullPolicy":
+      "IfNotPresent", "readinessProbe": {"initialDelaySeconds": 5, "tcpSocket": {"port":
+      5000}}, "ports": [{"protocol": "TCP", "containerPort": 5000, "name": "http5000"}]}]},
+      "metadata": {"labels": {"test": "true"}, "namespace": "my-namespace", "name":
+      "my-name"}}, "selector": {"test": "true"}}, "metadata": {"labels": {"test":
+      "true"}, "namespace": "my-namespace", "name": "my-name"}}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['804']
+      Content-Type: [application/json]
+      User-Agent: [python-requests/2.9.1]
+    method: POST
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/replicationcontrollers/
+  response:
+    body: {string: !!python/unicode '{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/api/v1/namespaces/my-namespace/replicationcontrollers/my-name","uid":"69a8d52f-cf70-11e5-b89f-247703d2e388","resourceVersion":"129","generation":1,"creationTimestamp":"2016-02-09T21:02:22Z","labels":{"test":"true"}},"spec":{"replicas":2,"selector":{"test":"true"},"template":{"metadata":{"name":"my-name","namespace":"my-namespace","creationTimestamp":null,"labels":{"test":"true"}},"spec":{"containers":[{"name":"container","image":"dummy_image","ports":[{"name":"http5000","containerPort":5000,"protocol":"TCP"}],"resources":{},"livenessProbe":{"httpGet":{"path":"/","port":"http5000","scheme":"HTTP"},"initialDelaySeconds":5,"timeoutSeconds":1},"readinessProbe":{"tcpSocket":{"port":5000},"initialDelaySeconds":5,"timeoutSeconds":1},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","serviceAccountName":"fiaas-no-access","serviceAccount":"default","imagePullSecrets":[{"name":"image_pull_secret"}]}}},"status":{"replicas":0}}
+
+'}
+    headers:
+      content-length: ['1161']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 21:02:22 GMT']
+    status: {code: 201, message: Created}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/replicationcontrollers/my-name
+  response:
+    body: {string: !!python/unicode '{"kind":"ReplicationController","apiVersion":"v1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/api/v1/namespaces/my-namespace/replicationcontrollers/my-name","uid":"69a8d52f-cf70-11e5-b89f-247703d2e388","resourceVersion":"129","generation":1,"creationTimestamp":"2016-02-09T21:02:22Z","labels":{"test":"true"}},"spec":{"replicas":2,"selector":{"test":"true"},"template":{"metadata":{"name":"my-name","namespace":"my-namespace","creationTimestamp":null,"labels":{"test":"true"}},"spec":{"containers":[{"name":"container","image":"dummy_image","ports":[{"name":"http5000","containerPort":5000,"protocol":"TCP"}],"resources":{},"livenessProbe":{"httpGet":{"path":"/","port":"http5000","scheme":"HTTP"},"initialDelaySeconds":5,"timeoutSeconds":1},"readinessProbe":{"tcpSocket":{"port":5000},"initialDelaySeconds":5,"timeoutSeconds":1},"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","serviceAccountName":"fiaas-no-access","serviceAccount":"default","imagePullSecrets":[{"name":"image_pull_secret"}]}}},"status":{"replicas":0}}
+
+'}
+    headers:
+      content-length: ['1161']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 21:02:22 GMT']
+    status: {code: 200, message: OK}
+version: 1

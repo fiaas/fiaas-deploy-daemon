@@ -1,0 +1,84 @@
+interactions:
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['0']
+      User-Agent: [python-requests/2.9.1]
+    method: DELETE
+    uri: https://10.0.0.1/api/v1/namespaces/default/replicationcontrollers/my-name
+  response:
+    body: {string: !!python/unicode "{\n  \"kind\": \"Status\",\n  \"apiVersion\":
+        \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"replicationControllers
+        \\\"my-name\\\" not found\",\n  \"reason\": \"NotFound\",\n  \"details\":
+        {\n    \"name\": \"my-name\",\n    \"kind\": \"replicationControllers\"\n
+        \ },\n  \"code\": 404\n}\n"}
+    headers:
+      content-length: ['266']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 20:34:27 GMT']
+    status: {code: 404, message: Not Found}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['0']
+      User-Agent: [python-requests/2.9.1]
+    method: DELETE
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/replicationcontrollers/my-name
+  response:
+    body: {string: !!python/unicode "{\n  \"kind\": \"Status\",\n  \"apiVersion\":
+        \"v1\",\n  \"metadata\": {},\n  \"status\": \"Success\",\n  \"code\": 200\n}\n"}
+    headers:
+      content-length: ['101']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 20:34:28 GMT']
+    status: {code: 200, message: OK}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['0']
+      User-Agent: [python-requests/2.9.1]
+    method: DELETE
+    uri: https://10.0.0.1/api/v1/namespaces/default/replicationcontrollers/my-name
+  response:
+    body: {string: !!python/unicode "{\n  \"kind\": \"Status\",\n  \"apiVersion\":
+        \"v1\",\n  \"metadata\": {},\n  \"status\": \"Failure\",\n  \"message\": \"replicationControllers
+        \\\"my-name\\\" not found\",\n  \"reason\": \"NotFound\",\n  \"details\":
+        {\n    \"name\": \"my-name\",\n    \"kind\": \"replicationControllers\"\n
+        \ },\n  \"code\": 404\n}\n"}
+    headers:
+      content-length: ['266']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 20:34:28 GMT']
+    status: {code: 404, message: Not Found}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['0']
+      User-Agent: [python-requests/2.9.1]
+    method: DELETE
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/replicationcontrollers/my-name
+  response:
+    body: {string: !!python/unicode "{\n  \"kind\": \"Status\",\n  \"apiVersion\":
+        \"v1\",\n  \"metadata\": {},\n  \"status\": \"Success\",\n  \"code\": 200\n}\n"}
+    headers:
+      content-length: ['101']
+      content-type: [application/json]
+      date: ['Tue, 09 Feb 2016 20:34:28 GMT']
+    status: {code: 200, message: OK}
+version: 1

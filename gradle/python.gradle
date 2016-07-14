@@ -1,0 +1,213 @@
+
+class PewTask extends Exec {
+    PewHelper helper = null
+
+    @Override
+    protected void exec() {
+        if (!PewHelper.isInsideVirtualEnv()) {
+            args = ['in', 'fiaas-deploy-daemon', executable] + args
+            executable = helper.pew
+        }
+        super.exec()
+    }
+}
+
+class PewHelper {
+    File pew
+    def logger
+    def project
+
+    PewHelper(logger, project) {
+        this.logger = logger
+        this.project = project
+        resetPew()
+    }
+
+    def resetPew() {
+        pew = findPew()
+    }
+
+    def getExecPath() {
+        return pew.parent
+    }
+
+    def findPew() {
+        if (isInsideVirtualEnv()) {
+            return null
+        }
+        def output = new ByteArrayOutputStream()
+        try {
+            project.exec {
+                executable 'pip'
+                args 'show', '--files', 'pew'
+                standardOutput = output
+                errorOutput = DevNull.out
+            }
+        } catch(all) {
+            logger.debug("Error calling pip: ${all}")
+            return null
+        }
+        def text = output.toString()
+        def segments = []
+        def foundBin = false
+        logger.debug("Text from pip: ${text}")
+        text.eachLine { line ->
+            def location = line =~ /^Location: (.*)$/
+            if (location) {
+                segments.add(location.group(1))
+            }
+            def bin = line =~ /^  (.*[\/\\]pew(.exe)?)$/
+            if (bin) {
+                segments.add(bin.group(1))
+                foundBin = true
+            }
+        }
+        if (foundBin) {
+            def path = segments.join(File.separator)
+            logger.debug("Path to pew: ${path}")
+            return new File(path).canonicalFile
+        }
+        return null
+    }
+
+    def hasPew() {
+        return pew != null
+    }
+
+    static def isInsideVirtualEnv() {
+        return System.getenv('VIRTUAL_ENV') != null
+    }
+
+    def virtualEnvExists() {
+        try {
+            project.exec {
+                executable = pew
+                args = ['in', 'fiaas-deploy-daemon', 'echo', 'yey']
+                standardOutput = DevNull.out
+                errorOutput = DevNull.out
+            }
+        } catch(all) {
+            logger.debug("Error when calling pew: ${all}")
+            return false;
+        }
+        return true;
+    }
+}
+def pewHelper = new PewHelper(logger, project)
+
+class DevNull extends OutputStream {
+    static out = new DevNull()
+    @Override
+    void write(int i) throws IOException {
+    }
+}
+
+/*****************
+ * Some sets of files
+ */
+
+project.ext {
+    excludes = ['**/*.pyc', '**/__pycache__/**']
+
+    source_files = fileTree(dir: 'fiaas_deploy_daemon', exclude: excludes) +
+            fileTree(dir: 'k8s', exclude: excludes)
+    test_files = fileTree(dir: 'tests', exclude: excludes)
+    setup_files = files('setup.py', 'setup.cfg')
+    all_sources = source_files + test_files + setup_files
+}
+
+/*****************
+ * Setup tasks
+ */
+
+task getPew(type: Exec) {
+    description 'Install pew'
+    group 'setup'
+    executable = 'pip'
+    args = ['install', 'pew', '--user']
+    onlyIf {
+        !PewHelper.isInsideVirtualEnv() && !pewHelper.hasPew()
+    }
+    doLast {
+        pewHelper.resetPew()
+        if (!pewHelper.hasPew()) {
+            throw new GroovyRuntimeException('Unable to find pew in your python installation after installing!')
+        }
+    }
+}
+
+task configurePath {
+    doLast {
+        if (!PewHelper.isInsideVirtualEnv()) {
+            def newPath = System.getenv('PATH') + File.pathSeparator + pewHelper.getExecPath()
+            logger.info("PATH=${newPath}")
+            tasks.withType(Exec) {
+                logger.debug("Configuring task: ${it}")
+                environment = System.getenv()
+                environment['PATH'] = newPath
+                if (it.name == 'createVirtualEnv') {
+                    it.executable = pewHelper.pew
+                }
+            }
+        }
+    }
+    dependsOn getPew
+}
+
+task createVirtualEnv(type: Exec) {
+    description 'Create virtualenv'
+    group 'setup'
+    executable = pewHelper.pew
+    args = ['new', '-d', 'fiaas-deploy-daemon']
+    onlyIf {
+        !PewHelper.isInsideVirtualEnv() && !pewHelper.virtualEnvExists()
+    }
+    dependsOn configurePath
+}
+
+task setup(type: PewTask) {
+    description 'Install dependencies in virtualenv'
+    group 'setup'
+    helper = pewHelper
+    executable = 'python'
+    args = [file('setup.py'), 'develop']
+    dependsOn createVirtualEnv
+}
+
+/*****************
+ * Python tasks
+ */
+
+
+task codestyle(type: PewTask) {
+    description 'Run flake8 code-style checks'
+    group 'python'
+    helper = pewHelper
+    executable = 'flake8'
+    args = ['--format=%(path)-50s: [%(code)s] %(text)s [line:%(row)d, column:%(col)d]']
+    inputs.source project.ext.all_sources
+    dependsOn setup
+}
+
+task test(type: PewTask) {
+    description 'Execute tests'
+    group 'python'
+    helper = pewHelper
+    executable = 'python'
+    args = [file('setup.py'), 'test', '--addopts=-p no:sugar --cov=k8s --cov=fiaas_deploy_daemon --cov-report html --cov-report term']
+    inputs.source project.ext.all_sources
+    outputs.dir 'build/reports'
+    dependsOn codestyle
+}
+
+task build(type: PewTask) {
+    description 'Create wheel for the application'
+    group 'python'
+    helper = pewHelper
+    executable = 'python'
+    args = [file('setup.py'), 'bdist_wheel']
+    inputs.source project.ext.source_files + project.ext.setup_files
+    outputs.files fileTree(dir:'dist')
+    outputs.files fileTree(dir:'build', include:['lib*/**', 'bdist*/**'])
+    dependsOn test
+}

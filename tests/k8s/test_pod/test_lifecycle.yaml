@@ -1,0 +1,49 @@
+interactions:
+- request:
+    body: '{"spec": {"dnsPolicy": "ClusterFirst", "serviceAccountName": "default",
+      "restartPolicy": "Always", "volumes": [{"secret": {"secretName": "my-name"},
+      "name": "my-name"}], "imagePullSecrets": [{"name": "image_pull_secret"}], "containers":
+      [{"name": "container", "image": "dummy_image", "volumeMounts": [{"readOnly":
+      true, "mountPath": "/var/run/secrets/kubernetes.io/kubernetes-secrets", "name":
+      "my-name"}], "env": [], "imagePullPolicy": "IfNotPresent", "ports": [{"protocol":
+      "TCP", "containerPort": 5000, "name": "http5000"}]}]}, "metadata": {"labels":
+      {"test": "true", "app": "my-name"}, "namespace": "my-namespace", "name": "my-name"}}'
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      Content-Length: ['638']
+      Content-Type: [application/json]
+      User-Agent: [python-requests/2.9.1]
+    method: POST
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/pods/
+  response:
+    body: {string: !!python/unicode '{"kind":"Pod","apiVersion":"v1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/api/v1/namespaces/my-namespace/pods/my-name","uid":"65e65cac-f800-11e5-bba2-247703d2e388","resourceVersion":"194","creationTimestamp":"2016-04-01T11:53:49Z","labels":{"app":"my-name","test":"true"}},"spec":{"volumes":[{"name":"my-name","secret":{"secretName":"my-name"}}],"containers":[{"name":"container","image":"dummy_image","ports":[{"name":"http5000","containerPort":5000,"protocol":"TCP"}],"resources":{},"volumeMounts":[{"name":"my-name","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/kubernetes-secrets"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","serviceAccountName":"default","serviceAccount":"default","imagePullSecrets":[{"name":"image_pull_secret"}]},"status":{"phase":"Pending"}}
+
+'}
+    headers:
+      content-length: ['937']
+      content-type: [application/json]
+      date: ['Fri, 01 Apr 2016 11:53:49 GMT']
+    status: {code: 201, message: Created}
+- request:
+    body: null
+    headers:
+      Accept: ['*/*']
+      Accept-Encoding: ['gzip, deflate']
+      Authorization: [Bearer password]
+      Connection: [keep-alive]
+      User-Agent: [python-requests/2.9.1]
+    method: GET
+    uri: https://10.0.0.1/api/v1/namespaces/my-namespace/pods/?labelSelector=app%3Dmy-name
+  response:
+    body: {string: !!python/unicode '{"kind":"PodList","apiVersion":"v1","metadata":{"selfLink":"/api/v1/namespaces/my-namespace/pods/","resourceVersion":"195"},"items":[{"metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/api/v1/namespaces/my-namespace/pods/my-name","uid":"65e65cac-f800-11e5-bba2-247703d2e388","resourceVersion":"195","creationTimestamp":"2016-04-01T11:53:49Z","labels":{"app":"my-name","test":"true"}},"spec":{"volumes":[{"name":"my-name","secret":{"secretName":"my-name"}}],"containers":[{"name":"container","image":"dummy_image","ports":[{"name":"http5000","containerPort":5000,"protocol":"TCP"}],"resources":{},"volumeMounts":[{"name":"my-name","readOnly":true,"mountPath":"/var/run/secrets/kubernetes.io/kubernetes-secrets"}],"terminationMessagePath":"/dev/termination-log","imagePullPolicy":"IfNotPresent"}],"restartPolicy":"Always","terminationGracePeriodSeconds":30,"dnsPolicy":"ClusterFirst","serviceAccountName":"default","serviceAccount":"default","nodeName":"127.0.0.1","imagePullSecrets":[{"name":"image_pull_secret"}]},"status":{"phase":"Pending"}}]}
+
+'}
+    headers:
+      content-length: ['1064']
+      content-type: [application/json]
+      date: ['Fri, 01 Apr 2016 11:53:49 GMT']
+    status: {code: 200, message: OK}
+version: 1

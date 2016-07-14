@@ -1,0 +1,57 @@
+{
+  "links": {
+    "build": "https://bamboo.finn.no/browse/FIAAS-DEPLOYDAEMON",
+    "repository": "https://git.finn.no/projects/TOOL/repos/fiaas-deploy-daemon/browse"
+  },
+  "versions": {
+    "jdk": "1.8",
+    "mvn": "3"
+  },
+  "env": {
+    "KAFKA_PIPELINE_SERVICE_HOST": "adm-internalmod1.finntech.no",
+    "KAFKA_PIPELINE_SERVICE_PORT": "7794"
+  },
+  "tasks": {
+    "default": [
+      {"command": "./gradlew test"}
+    ],
+    "test": [
+      {"command": "./gradlew test"}
+    ],
+    "setup": [
+      {"command": "./gradlew setup"}
+    ],
+    "build": [
+      {"command": "./gradlew build"}
+    ],
+    "bake": [
+      {"command": "./gradlew bake"}
+    ],
+    "deploy": [
+      {
+        "command": "./gradlew --console=plain --no-daemon clean publish",
+        "test-pattern": "build/reports/xunit.xml",
+        "pipelines": [
+          {
+            "name": "fiaas-deploy-daemon",
+            "pattern": "Pushed image (.+/.+:.+)",
+            "type": "docker",
+            "related-artifacts": [
+              {
+                "type": "fiaas",
+                "pattern": "Upload (http:.+/fiaas-deploy-daemon-.+-fiaas.yml)"
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "run": [
+      {"command": "./gradlew setup"},
+      {"command": "pew in fiaas-deploy-daemon fiaas-deploy-daemon --debug"}
+    ],
+    "run-docker": [
+      {"command": "docker run -p 5000:5000 -e KAFKA_PIPELINE_SERVICE_HOST -e KAFKA_PIPELINE_SERVICE_PORT finntech/fiaas-deploy-daemon"}
+    ]
+  }
+}

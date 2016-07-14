@@ -1,0 +1,12 @@
+apply plugin: 'idea'
+
+idea {
+    project {
+        vcs = 'Git'
+    }
+    module {
+        sourceDirs += file('fiaas_deploy_daemon')
+        sourceDirs += file('k8s')
+        testSourceDirs += file('tests')
+    }
+}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Fiaas Deploy Daemon{% endblock %}
+{% block content %}
+
+{% macro render_field(field) %}
+<div class="formelement {% if field.errors %}invalid{% endif %} {% if field.flags.required %}required{% endif %}">
+    {{ field.label }}
+    <div class="fancyinput">
+        {{ field()|safe }}
+        {% if field.errors %}
+            {% for error in field.errors %}
+              <span class="help-inline">{{ error }}</span>
+            {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endmacro %}
+
+{{ block_header() }}
+    <p>Welcome to the FIAAS deploy daemon. From here you can deploy applications into the cluster.</p>
+    <dl class="multicol">
+        <dt>Log format</dt><dd>{{ config.log_format }}</dd>
+        <dt>API server</dt><dd>{{ config.api_server }}</dd>
+        <dt>Target cluster</dt><dd>{{ config.target_cluster }}</dd>
+        <dt>Debug</dt><dd>{{ config.debug }}</dd>
+        <dt>Image</dt><dd>{{ config.image }}</dd>
+    </dl>
+{{ block_footer() }}
+
+{{ block_header() }}
+<div class="line">
+    <div class="unit size1of2">
+        <h4>Deploy manually</h4>
+        <form method="post" action="{{ url_for('web.manual') }}">
+            <fieldset>
+                {{ render_field(manual.name) }}
+                {{ render_field(manual.image) }}
+                {{ render_field(manual.replicas) }}
+                {{ render_field(manual.type) }}
+                {{ render_field(manual.exposed_port) }}
+                {{ render_field(manual.service_port) }}
+                {{ render_field(manual.ingress) }}
+                {{ render_field(manual.readiness) }}
+                {{ render_field(manual.liveness) }}
+                <div class="formelement">
+                    <div class="fancyinput">
+                        <input type="submit" value="Deploy manually"/>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+    <div class="unit size1of2">
+        <h4>Deploy from FIAAS-config</h4>
+        <form method="post" action="{{ url_for('web.fiaas') }}">
+            <fieldset>
+                {{ render_field(fiaas.name) }}
+                {{ render_field(fiaas.image) }}
+                {{ render_field(fiaas.fiaas) }}
+                <div class="formelement">
+                    <div class="fancyinput">
+                        <input type="submit" value="Deploy from FIAAS-config"/>
+                    </div>
+                </div>
+            </fieldset>
+        </form>
+    </div>
+</div>
+{{ block_footer() }}
+
+{% endblock %}

@@ -1,0 +1,9 @@
+---
+replicas: 2
+resources:
+  limits:
+    cpu: 1
+    memory: 1
+  requests:
+    cpu: 2
+    memory: 2

@@ -1,0 +1,17 @@
+---
+replicas: 2
+resources:
+  limits:
+    cpu: 1
+    memory: 1
+  requests:
+    cpu: 500m
+    memory: 1024m
+services:
+  - type: https
+    exposed_port: 5000
+    service_port: 8080
+    ingress: /ingress
+    readiness: /ingress/smoketest
+    liveness: /ingress/health
+    probe_delay: 100

@@ -1,0 +1,9 @@
+---
+admin_access: read-write
+resources:
+  requests:
+    memory: 128m
+services:
+  - exposed_port: 5000
+    readiness: /healthz
+    liveness: /healthz

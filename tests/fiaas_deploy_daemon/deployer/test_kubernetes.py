@@ -12,6 +12,11 @@ def test_make_selector():
                        admin_access=None, has_secrets=None)
     assert K8s._make_selector(app_spec) == {'app': name}
 
+def test_resolve_finn_env_default():
+    assert K8s._resolve_cluster_env("default_cluster") == "default_cluster"
+
+def test_resolve_finn_env_cluster_match():
+    assert K8s._resolve_cluster_env("prod1") == "prod"
 
 class TestK8s(object):
 

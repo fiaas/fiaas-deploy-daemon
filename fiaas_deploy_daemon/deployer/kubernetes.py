@@ -23,6 +23,10 @@ INGRESS_SUFFIX = {
     "prod1": "k8s1-prod1.z01.finn.no",
 }
 
+CLUSTER_ENV_MAPPING = {
+    "prod1": "prod"
+}
+
 
 class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
@@ -38,10 +42,10 @@ class K8s(object):
         k8s_config.debug = config.debug
         self.target_cluster = config.target_cluster
         self.version = config.version
-        _target_cluster = re.sub("\d+", "", self.target_cluster)
+        _cluster_env = self._resolve_cluster_env(self.target_cluster)
         self._env = {
-            "FINN_ENV": self.target_cluster,
-            "CONSTRETTO_TAGS": ",".join(("kubernetes", _target_cluster, "kubernetes" + "-" + _target_cluster)),
+            "FINN_ENV": _cluster_env,
+            "CONSTRETTO_TAGS": ",".join(("kubernetes", _cluster_env, "kubernetes" + "-" + _cluster_env)),
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }
@@ -216,3 +220,12 @@ class K8s(object):
         else:
             action = TCPSocketAction(port=probe_spec.name)
             return Probe(tcpSocket=action, initialDelaySeconds=probe_delay)
+
+    @staticmethod
+    def _resolve_cluster_env(target_cluster):
+        if target_cluster in CLUSTER_ENV_MAPPING:
+            return CLUSTER_ENV_MAPPING[target_cluster]
+        else:
+            return target_cluster
+
+

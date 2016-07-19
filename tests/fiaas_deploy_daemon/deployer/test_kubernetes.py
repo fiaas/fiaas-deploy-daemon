@@ -1,7 +1,6 @@
 from fiaas_deploy_daemon.specs.models import AppSpec, ServiceSpec, ProbeSpec, ResourceRequirementSpec, ResourcesSpec
 from fiaas_deploy_daemon.deployer.kubernetes import K8s
 from k8s.client import NotFound
-
 import mock
 import pytest
 
@@ -12,14 +11,16 @@ def test_make_selector():
                        admin_access=None, has_secrets=None)
     assert K8s._make_selector(app_spec) == {'app': name}
 
+
 def test_resolve_finn_env_default():
     assert K8s._resolve_cluster_env("default_cluster") == "default_cluster"
 
+
 def test_resolve_finn_env_cluster_match():
-    assert K8s._resolve_cluster_env("prod1") == "prod"
+    assert K8s._resolve_cluster_env("prod1") == "prod1"
+
 
 class TestK8s(object):
-
     @pytest.fixture
     def k8s(self):
         # Configuration.__init__ interrogates the environment and filesystem, and we don't care about that, so use a mock
@@ -105,8 +106,10 @@ class TestK8s(object):
             }
         }
 
-        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/', expected_ingress)
-        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/', dev_k8s_ingress)
+        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/',
+                                                  expected_ingress)
+        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/',
+                                                  dev_k8s_ingress)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -164,7 +167,8 @@ class TestK8s(object):
                             'livenessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http', path='/internal-backstage/health/services'),
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
                                     'scheme': 'HTTP',
                                     'port': 8080}
                             },
@@ -184,7 +188,8 @@ class TestK8s(object):
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http', path='/internal-backstage/health/services'),
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
                                     'scheme': 'HTTP',
                                     'port': 8080
                                 }
@@ -218,12 +223,15 @@ def assert_any_call_with_useful_error_message(mockk, uri, *args):
     If an AssertionError is raised in the assert, find any other calls on mock where the first parameter is uri and
     append those calls to the AssertionErrors message to more easily find the cause of the test failure.
     """
+
     def format_call(call):
         return 'call({}, {})'.format(call[0], call[1])
+
     try:
         mockk.assert_any_call(uri, *args)
     except AssertionError as ae:
         other_calls = [call[0] for call in mockk.call_args_list if call[0][0] == uri]
         if other_calls:
-            extra_info = '\n\nURI {} got the following other calls:\n{}'.format(uri, '\n'.join(format_call(call) for call in other_calls))
+            extra_info = '\n\nURI {} got the following other calls:\n{}'.format(uri, '\n'.join(
+                format_call(call) for call in other_calls))
         raise AssertionError(ae.message + extra_info)

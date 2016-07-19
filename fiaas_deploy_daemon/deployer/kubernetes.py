@@ -2,7 +2,6 @@
 # -*- coding: utf-8
 
 import logging
-import re
 
 from k8s import config as k8s_config
 from k8s.models.common import ObjectMeta
@@ -227,5 +226,3 @@ class K8s(object):
             return CLUSTER_ENV_MAPPING[target_cluster]
         else:
             return target_cluster
-
-

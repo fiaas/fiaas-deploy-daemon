@@ -17,7 +17,7 @@ def test_resolve_finn_env_default():
 
 
 def test_resolve_finn_env_cluster_match():
-    assert K8s._resolve_cluster_env("prod1") == "prod1"
+    assert K8s._resolve_cluster_env("prod1") == "prod"
 
 
 class TestK8s(object):

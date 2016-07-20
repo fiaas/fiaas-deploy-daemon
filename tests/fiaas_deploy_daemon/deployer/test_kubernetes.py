@@ -234,4 +234,6 @@ def assert_any_call_with_useful_error_message(mockk, uri, *args):
         if other_calls:
             extra_info = '\n\nURI {} got the following other calls:\n{}'.format(uri, '\n'.join(
                 format_call(call) for call in other_calls))
-        raise AssertionError(ae.message + extra_info)
+            raise AssertionError(ae.message + extra_info)
+        else:
+            raise

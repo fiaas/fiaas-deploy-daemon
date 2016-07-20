@@ -407,6 +407,81 @@ class TestK8s(object):
 
         assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
 
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_deployment_to_gke(self, get, post, k8s_gke, app_spec):
+        get.side_effect = NotFound()
+        k8s_gke.deploy(app_spec)
+
+        expected_deployment = {
+            'metadata': {
+                'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
+                'namespace': 'default',
+                'name': 'testapp'
+            },
+            'spec': {
+                'selector': {'matchLabels': {'app': 'testapp'}},
+                'template': {
+                    'spec': {
+                        'dnsPolicy': 'ClusterFirst',
+                        'serviceAccountName': 'fiaas-no-access',
+                        'restartPolicy': 'Always',
+                        'volumes': [],
+                        'imagePullSecrets': [],
+                        'containers': [{
+                            'livenessProbe': {
+                                'initialDelaySeconds': 60,
+                                'httpGet': {
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
+                                    'scheme': 'HTTP',
+                                    'port': 8080}
+                            },
+                            'name': 'testapp',
+                            'image': 'finntech/testimage:version',
+                            'volumeMounts': [],
+                            'env': [
+                                {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
+                                {'name': 'LOG_STDOUT', 'value': 'true'},
+                                {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes,dev,kubernetes-dev'},
+                                {'name': 'LOG_FORMAT', 'value': 'json'},
+                                {'name': 'FINN_ENV', 'value': 'dev'},
+                                {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
+                                {'name': 'VERSION', 'value': 'version'}
+                            ],
+                            'imagePullPolicy': 'IfNotPresent',
+                            'readinessProbe': {
+                                'initialDelaySeconds': 60,
+                                'httpGet': {
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
+                                    'scheme': 'HTTP',
+                                    'port': 8080
+                                }
+                            },
+                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http8080'}],
+                            'resources': {}
+                        }]
+                    },
+                    'metadata': {
+                        'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
+                        'namespace': 'default',
+                        'name': 'testapp',
+                        'annotations': {
+                            'prometheus.io/port': '8080',
+                            'prometheus.io/path': '/internal-backstage/prometheus',
+                            'prometheus.io/scrape': 'true'
+                        }
+                    }
+                },
+                'replicas': 3
+            },
+            'strategy': 'RollingUpdate'
+        }
+
+        uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
+        assert_any_call_with_useful_error_message(post, uri, expected_deployment)
+
 
 def assert_any_call_with_useful_error_message(mockk, uri, *args):
     """

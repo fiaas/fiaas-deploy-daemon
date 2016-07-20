@@ -64,9 +64,9 @@ class K8s(object):
                 old_ingress_suffix = 'dev-k8s.finntech.no'
                 self._deploy_ingress(app_spec, name='{}-{}'.format(app_spec.name, old_ingress_suffix),
                                      host='{}.{}'.format(app_spec.name, old_ingress_suffix))
-            self._deploy_deployment(app_spec)
         else:
             raise ValueError("{} is not a valid infrastructure".format(self.infrastructure))
+        self._deploy_deployment(app_spec)
 
     def _deploy_services(self, app_spec):
         LOG.info("Creating/updating services for %s", app_spec.name)

@@ -21,12 +21,23 @@ def test_resolve_finn_env_cluster_match():
 
 
 class TestK8s(object):
+
     @pytest.fixture
-    def k8s(self):
+    def k8s_diy(self):
         # Configuration.__init__ interrogates the environment and filesystem, and we don't care about that, so use a mock
         config = mock.Mock(return_value="")
         config.version = "1"
         config.target_cluster = "dev"
+        config.infrastructure = "diy"
+        return K8s(config)
+
+    @pytest.fixture
+    def k8s_gke(self):
+        # Configuration.__init__ interrogates the environment and filesystem, and we don't care about that, so use a mock
+        config = mock.Mock(return_value="")
+        config.version = "1"
+        config.target_cluster = "dev"
+        config.infrastructure = "gke"
         return K8s(config)
 
     @pytest.fixture
@@ -51,12 +62,61 @@ class TestK8s(object):
                        resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                                limits=ResourceRequirementSpec(cpu=None, memory=None)))
 
+    @pytest.fixture
+    def app_spec_trift_and_http(self):
+        return AppSpec(
+            admin_access=None,
+            name="testapp",
+            replicas=3,
+            image="finntech/testimage:version",
+            namespace="default",
+            services=[
+                ServiceSpec(readiness=ProbeSpec(name="8080",
+                                                type='http',
+                                                path='/internal-backstage/health/services'),
+                            ingress="/",
+                            exposed_port=8080,
+                            probe_delay=60,
+                            service_port=80,
+                            liveness=ProbeSpec(name="8080",
+                                               type='http',
+                                               path='/internal-backstage/health/services'),
+                            type="http"),
+                ServiceSpec(readiness=ProbeSpec(name="7999",
+                                                type='thrift',
+                                                path="/"),
+                            exposed_port=7999,
+                            probe_delay=60,
+                            service_port=7999,
+                            liveness=ProbeSpec(name="7999",
+                                               type='thrift',
+                                               path="/"),
+                            type="thrift")
+            ],
+            has_secrets=False,
+            resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
+                                    limits=ResourceRequirementSpec(cpu=None, memory=None)))
+
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_ingress(self, get, post, k8s, app_spec):
+    def test_deploy_to_invalid_infrastructure_should_fail(self, get, post):
         get.side_effect = NotFound()
 
-        k8s.deploy(app_spec)
+        config = mock.Mock(return_value="")
+        config.version = "1"
+        config.target_cluster = "dev"
+        config.infrastructure = "invalid"
+        k8s = K8s(config)
+
+        with pytest.raises(ValueError):
+            k8s.deploy(mock.MagicMock())
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_ingress(self, get, post, k8s_diy, app_spec):
+        get.side_effect = NotFound()
+
+        k8s_diy.deploy(app_spec)
 
         expected_ingress = {
             'spec': {
@@ -113,9 +173,9 @@ class TestK8s(object):
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service(self, get, post, k8s, app_spec):
+    def test_deploy_new_service(self, get, post, k8s_diy, app_spec):
         get.side_effect = NotFound()
-        k8s.deploy(app_spec)
+        k8s_diy.deploy(app_spec)
 
         expected_service = {
             'spec': {
@@ -144,9 +204,69 @@ class TestK8s(object):
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_deployment(self, get, post, k8s, app_spec):
+    def test_deploy_new_service_with_multiple_ports(self, get, post, k8s_diy, app_spec_trift_and_http):
         get.side_effect = NotFound()
-        k8s.deploy(app_spec)
+        k8s_diy.deploy(app_spec_trift_and_http)
+
+        expected_http_service = {
+            'spec': {
+                'selector': {'app': 'testapp'},
+                'type': 'ClusterIP',
+                'ports': [
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 8080,
+                        'name': 'http8080',
+                        'port': 80
+                    },
+                ],
+                'sessionAffinity': 'None'
+            },
+            'metadata': {
+                'labels': {
+                    'fiaas/version': 'version',
+                    'app': 'testapp',
+                    'fiaas/deployed_by': '1'
+                },
+                'namespace': 'default',
+                'name': 'testapp'
+            }
+        }
+
+        expected_thrift_service = {
+            'spec': {
+                'selector': {'app': 'testapp'},
+                'type': 'NodePort',
+                'ports': [
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 7999,
+                        'name': 'thrift7999-thrift',
+                        'port': 7999,
+                        'nodePort': 7999
+                    },
+                ],
+                'sessionAffinity': 'None'
+            },
+            'metadata': {
+                'labels': {
+                    'fiaas/version': 'version',
+                    'app': 'testapp',
+                    'fiaas/deployed_by': '1'
+                },
+                'namespace': 'default',
+                'name': 'testapp-thrift'
+            }
+        }
+
+        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_http_service)
+        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_thrift_service)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_deployment(self, get, post, k8s_diy, app_spec):
+        get.side_effect = NotFound()
+        k8s_diy.deploy(app_spec)
 
         expected_deployment = {
             'metadata': {
@@ -216,6 +336,76 @@ class TestK8s(object):
 
         uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
         assert_any_call_with_useful_error_message(post, uri, expected_deployment)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_service_to_gke(self, get, post, k8s_gke, app_spec):
+        get.side_effect = NotFound()
+        k8s_gke.deploy(app_spec)
+
+        expected_service = {
+            'spec': {
+                'selector': {'app': 'testapp'},
+                'type': 'LoadBalancer',
+                'ports': [{
+                    'protocol': 'TCP',
+                    'targetPort': 8080,
+                    'name': 'http8080',
+                    'port': 80
+                }],
+                'sessionAffinity': 'None'
+            },
+            'metadata': {
+                'labels': {
+                    'fiaas/version': 'version',
+                    'app': 'testapp',
+                    'fiaas/deployed_by': '1'
+                },
+                'namespace': 'default',
+                'name': 'testapp'
+            }
+        }
+
+        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, k8s_gke, app_spec_trift_and_http):
+        get.side_effect = NotFound()
+        k8s_gke.deploy(app_spec_trift_and_http)
+
+        expected_service = {
+            'spec': {
+                'selector': {'app': 'testapp'},
+                'type': 'LoadBalancer',
+                'ports': [
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 8080,
+                        'name': 'http8080',
+                        'port': 80
+                    },
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 7999,
+                        'name': 'thrift7999',
+                        'port': 7999
+                    }
+                ],
+                'sessionAffinity': 'None'
+            },
+            'metadata': {
+                'labels': {
+                    'fiaas/version': 'version',
+                    'app': 'testapp',
+                    'fiaas/deployed_by': '1'
+                },
+                'namespace': 'default',
+                'name': 'testapp'
+            }
+        }
+
+        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
 
 
 def assert_any_call_with_useful_error_message(mockk, uri, *args):

@@ -12,7 +12,7 @@ resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resourc
     cpu: null #
 services: # A list of services, as below. The first service will be used for smoketest and healthcheck.
   - type: http # Type of service (http|thrift).
-    service_port: 80 # Port to expose to the world. For thrift services the lowest port that can be exposed is 7000
+    service_port: 80 # Port to expose to the world. For type=thrift, the available port range is (1024-32767).
     exposed_port: 80 # Exposed port in the docker container.
     ingress: / # The root path of your application (if http).
     readiness: / # For http-services only. Must respond with 200 OK when instance is ready. (smoketest)

@@ -87,6 +87,16 @@ class TestConfig(object):
         assert host == "host"
         assert port == 1234
 
+    @pytest.mark.parametrize("service_exists", [True, False])
+    def test_has_service(self, monkeypatch, service_exists):
+        service = "service"
+        if service_exists:
+            monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
+            monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
+        config = Configuration([])
+
+        assert service_exists == config.has_service(service)
+
     def test_new_secret_key_every_time(self):
         cfg1 = Configuration([])
         cfg2 = Configuration([])

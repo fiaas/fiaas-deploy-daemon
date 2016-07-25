@@ -60,6 +60,13 @@ class Configuration(Namespace):
         if self.no_proxy:
             self.proxy = ""
 
+    def has_service(self, service):
+        try:
+            self.resolve_service(service)
+        except InvalidConfigurationException:
+            return False
+        return True
+
     def resolve_service(self, service):
         host = self._resolve_required_variable("{}_SERVICE_HOST".format(service.upper()), service)
         port_key = "{}_SERVICE_PORT".format(service.upper())

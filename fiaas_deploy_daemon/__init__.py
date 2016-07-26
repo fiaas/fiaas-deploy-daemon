@@ -14,6 +14,7 @@ from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .specs import SpecBindings
 from .web import WebBindings
+from .fake_consumer import FakeConsumerBindings
 
 
 class MainBindings(pinject.BindingSpec):
@@ -64,11 +65,14 @@ def main():
     log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
     binding_specs = [
         MainBindings(cfg),
-        PipelineBindings(),
         DeployerBindings(),
         WebBindings(),
         SpecBindings()
     ]
+    if cfg.has_service("kafka_pipeline"):
+        binding_specs.append(PipelineBindings)
+    else:
+        binding_specs.append(FakeConsumerBindings())
     obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
     obj_graph.provide(Main).run()
 

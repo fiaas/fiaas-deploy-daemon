@@ -70,7 +70,7 @@ def main():
         SpecBindings()
     ]
     if cfg.has_service("kafka_pipeline"):
-        binding_specs.append(PipelineBindings)
+        binding_specs.append(PipelineBindings())
     else:
         binding_specs.append(FakeConsumerBindings())
     obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)

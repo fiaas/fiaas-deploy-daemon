@@ -91,3 +91,4 @@ This configuration is a YAML file. If any field is missing, a default value will
 The default values, and explanation of their meaning are available at `/defaults` on any running instance.
 
 <http://fiaas-deploy-daemon.dev-k8s.finntech.no/defaults>
+

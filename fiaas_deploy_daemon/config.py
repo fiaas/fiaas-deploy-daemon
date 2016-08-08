@@ -40,6 +40,7 @@ class Configuration(Namespace):
                             action="store_true")
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. Must be either diy or gke. (default: diy).",
+                            env_var="FIAAS_INFRASTRUCTURE",
                             choices=("diy", "gke"), default="diy")
         parser.parse_args(args, namespace=self)
 

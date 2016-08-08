@@ -30,6 +30,7 @@ PIPELINE_REQ = [
 
 DEPLOY_REQ = [
     "requests == 2.9.1",
+    "google-api-python-client == 1.5.1",
 ]
 
 FLAKE8_REQ = [

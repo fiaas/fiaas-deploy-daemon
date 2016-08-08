@@ -21,6 +21,7 @@ class ServiceSpec(Model):
     ports = ListField(ServicePort)
     selector = Field(dict)
     clusterIP = OnceField(six.text_type)
+    loadBalancerIP = OnceField(six.text_type)
     type = Field(six.text_type, "ClusterIP")
     sessionAffinity = Field(six.text_type, "None")
 

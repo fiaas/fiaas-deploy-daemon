@@ -1,8 +1,11 @@
 from fiaas_deploy_daemon.specs.models import AppSpec, ServiceSpec, ProbeSpec, ResourceRequirementSpec, ResourcesSpec
 from fiaas_deploy_daemon.deployer.kubernetes import K8s
 from k8s.client import NotFound
+
 import mock
 import pytest
+
+SOME_RANDOM_IP = '192.0.2.0'
 
 
 def test_make_selector():
@@ -338,15 +341,19 @@ class TestK8s(object):
         uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
         assert_any_call_with_useful_error_message(post, uri, expected_deployment)
 
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_to_gke(self, get, post, k8s_gke, app_spec):
+    def test_deploy_new_service_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns, k8s_gke, app_spec):
         get.side_effect = NotFound()
+        get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 
         expected_service = {
             'spec': {
                 'selector': {'app': 'testapp'},
+                'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
                 'ports': [{
                     'protocol': 'TCP',
@@ -369,15 +376,20 @@ class TestK8s(object):
 
         assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
 
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, k8s_gke, app_spec_trift_and_http):
+    def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns,
+                                                           k8s_gke, app_spec_trift_and_http):
         get.side_effect = NotFound()
+        get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec_trift_and_http)
 
         expected_service = {
             'spec': {
                 'selector': {'app': 'testapp'},
+                'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
                 'ports': [
                     {
@@ -408,10 +420,13 @@ class TestK8s(object):
 
         assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
 
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_deployment_to_gke(self, get, post, k8s_gke, app_spec):
+    def test_deploy_new_deployment_to_gke(self, get, post, get_or_create_dns, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
+        get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 
         expected_deployment = {

@@ -11,6 +11,7 @@ from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelsSelector
 from k8s.models.service import Service, ServicePort, ServiceSpec
 
+from gke import Gke
 
 DEFAULT_NAMESPACE = "default"
 LOG = logging.getLogger(__name__)
@@ -52,10 +53,14 @@ class K8s(object):
             "LOG_FORMAT": "json"
         }
         self.infrastructure = config.infrastructure
+        self.gke = Gke(_cluster_env) if self.infrastructure == INFRASTRUCTURE_GKE else None
 
     def deploy(self, app_spec):
         if self.infrastructure == INFRASTRUCTURE_GKE:
-            self._deploy_loadbalancer_service(app_spec)
+            ip = self.gke.get_or_create_static_ip(app_spec.name)
+            self._deploy_loadbalancer_service(app_spec, ip)
+            self.gke.get_or_create_dns(app_spec.name, ip)
+
         elif self.infrastructure == INFRASTRUCTURE_DIY:
             self._deploy_services(app_spec)
             self._deploy_ingress(app_spec)
@@ -82,18 +87,17 @@ class K8s(object):
         if thrift_service_ports:
             self._deploy_service(app_spec, "thrift", thrift_service_ports)
 
-    def _deploy_loadbalancer_service(self, app_spec):
+    def _deploy_loadbalancer_service(self, app_spec, ip):
         ports = [self._make_service_port(service) for service in app_spec.services]
         service_name = app_spec.name
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        spec = ServiceSpec(selector=selector, ports=ports, type="LoadBalancer")
+        spec = ServiceSpec(selector=selector, ports=ports, loadBalancerIP=ip, type="LoadBalancer")
         svc = Service.get_or_create(name=service_name, metadata=metadata, spec=spec)
         svc.save()
 
     def _deploy_service(self, app_spec, protocol, ports):
-
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
         service_name = app_spec.name

@@ -15,7 +15,6 @@ class Configuration(Namespace):
         self.image = ""
         self.version = ""
         self.SECRET_KEY = os.urandom(24)
-
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()
@@ -39,6 +38,10 @@ class Configuration(Namespace):
                             action="store_true")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
+        parser.add_argument("--infrastructure",
+                            help="The underlying infrastructure of the cluster to deploy to. Must be either diy or gke. (default: diy).",
+                            env_var="FIAAS_INFRASTRUCTURE",
+                            choices=("diy", "gke"), default="diy")
         parser.parse_args(args, namespace=self)
 
     def _resolve_api_config(self):

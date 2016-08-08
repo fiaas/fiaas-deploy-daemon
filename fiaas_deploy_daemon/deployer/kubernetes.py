@@ -21,6 +21,8 @@ INGRESS_SUFFIX = {
     "test": "127.0.0.1.xip.io",
     "prod": "k8s1-prod1.z01.finn.no",
 }
+INFRASTRUCTURE_GKE = "gke"
+INFRASTRUCTURE_DIY = "diy"
 
 CLUSTER_ENV_MAPPING = {
     "prod1": "prod"
@@ -44,20 +46,27 @@ class K8s(object):
         _cluster_env = self._resolve_cluster_env(self.target_cluster)
         self._env = {
             "FINN_ENV": _cluster_env,
+            "FIAAS_INFRASTRUCTURE": config.infrastructure,
             "CONSTRETTO_TAGS": ",".join(("kubernetes", _cluster_env, "kubernetes" + "-" + _cluster_env)),
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }
+        self.infrastructure = config.infrastructure
 
     def deploy(self, app_spec):
-        self._deploy_services(app_spec)
-        self._deploy_ingress(app_spec)
-        # TODO: Remove this
-        # in dev: Deploy ingress for dev-k8s.finntech.no as well as for k8s.dev.finn.no while migrating off dev-k8s.finntech.no
-        if self.target_cluster == "dev":
-            old_ingress_suffix = 'dev-k8s.finntech.no'
-            self._deploy_ingress(app_spec, name='{}-{}'.format(app_spec.name, old_ingress_suffix),
-                                 host='{}.{}'.format(app_spec.name, old_ingress_suffix))
+        if self.infrastructure == INFRASTRUCTURE_GKE:
+            self._deploy_loadbalancer_service(app_spec)
+        elif self.infrastructure == INFRASTRUCTURE_DIY:
+            self._deploy_services(app_spec)
+            self._deploy_ingress(app_spec)
+            # TODO: Remove this
+            # in dev: Deploy ingress for dev-k8s.finntech.no as well as for k8s.dev.finn.no while migrating off dev-k8s.finntech.no
+            if self.target_cluster == "dev":
+                old_ingress_suffix = 'dev-k8s.finntech.no'
+                self._deploy_ingress(app_spec, name='{}-{}'.format(app_spec.name, old_ingress_suffix),
+                                     host='{}.{}'.format(app_spec.name, old_ingress_suffix))
+        else:
+            raise ValueError("{} is not a valid infrastructure".format(self.infrastructure))
         self._deploy_deployment(app_spec)
 
     def _deploy_services(self, app_spec):
@@ -72,6 +81,16 @@ class K8s(object):
             [self._make_node_port(service) for service in app_spec.services if service.type == "thrift"]
         if thrift_service_ports:
             self._deploy_service(app_spec, "thrift", thrift_service_ports)
+
+    def _deploy_loadbalancer_service(self, app_spec):
+        ports = [self._make_service_port(service) for service in app_spec.services]
+        service_name = app_spec.name
+        selector = self._make_selector(app_spec)
+        labels = self._make_labels(app_spec)
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
+        spec = ServiceSpec(selector=selector, ports=ports, type="LoadBalancer")
+        svc = Service.get_or_create(name=service_name, metadata=metadata, spec=spec)
+        svc.save()
 
     def _deploy_service(self, app_spec, protocol, ports):
 

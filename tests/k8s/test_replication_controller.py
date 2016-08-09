@@ -27,8 +27,9 @@ class TestRc(object):
                 pass
 
     def test_create_blank_rc(self):
-        rc = ReplicationController(name=NAME)
-        assert rc.name == NAME
+        object_meta = ObjectMeta(name=NAME, namespace=NAMESPACE, labels={"test": "true"})
+        rc = ReplicationController(metadata=object_meta)
+        assert rc.metadata.name == NAME
         assert rc.as_dict()[u"metadata"][u"name"] == NAME
 
     @vcr.use_cassette()
@@ -50,10 +51,10 @@ class TestRc(object):
         pod_spec = PodSpec(containers=[container], imagePullSecrets=[image_pull_secret], serviceAccountName="default")
         pod_template_spec = PodTemplateSpec(metadata=object_meta, spec=pod_spec)
         rc_spec = ReplicationControllerSpec(replicas=2, selector={"test": "true"}, template=pod_template_spec)
-        first = ReplicationController(name=NAME, metadata=object_meta, spec=rc_spec)
+        first = ReplicationController(metadata=object_meta, spec=rc_spec)
         logger.debug(pformat(first.as_dict()))
         first.save()
 
         second = ReplicationController.get(NAME, NAMESPACE)
-        assert first.name == second.name
-        assert first.namespace == second.namespace
+        assert first.metadata.name == second.metadata.name
+        assert first.metadata.namespace == second.metadata.namespace

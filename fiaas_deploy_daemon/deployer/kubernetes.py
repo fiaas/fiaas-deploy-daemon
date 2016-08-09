@@ -89,12 +89,11 @@ class K8s(object):
 
     def _deploy_loadbalancer_service(self, app_spec, ip):
         ports = [self._make_service_port(service) for service in app_spec.services]
-        service_name = app_spec.name
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
         spec = ServiceSpec(selector=selector, ports=ports, loadBalancerIP=ip, type="LoadBalancer")
-        svc = Service.get_or_create(name=service_name, metadata=metadata, spec=spec)
+        svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 
     def _deploy_service(self, app_spec, protocol, ports):
@@ -110,7 +109,7 @@ class K8s(object):
 
         metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels)
         spec = ServiceSpec(selector=selector, ports=ports, type=service_type)
-        svc = Service.get_or_create(name=service_name, metadata=metadata, spec=spec)
+        svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 
     def _deploy_deployment(self, app_spec):
@@ -156,7 +155,7 @@ class K8s(object):
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels, annotations=prom_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
         spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelsSelector(matchLabels=selector_labels), template=pod_template_spec)
-        deployment = Deployment.get_or_create(name=app_spec.name, metadata=metadata, spec=spec)
+        deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
 
         return deployment
 
@@ -187,7 +186,7 @@ class K8s(object):
         http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
         ingress_rule = IngressRule(host=host, http=http_ingress_rule)
         ingress_spec = IngressSpec(rules=[ingress_rule])
-        ingress = Ingress.get_or_create(name=name, metadata=metadata, spec=ingress_spec)
+        ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
         ingress.save()
 
     def _make_env(self, app_spec):

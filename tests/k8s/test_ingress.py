@@ -26,22 +26,22 @@ class TestIngress(object):
                 pass
 
     def test_create_blank(self):
-        ingress = Ingress(name=NAME)
-        assert ingress.name == NAME
+        object_meta = ObjectMeta(name=NAME, namespace=NAMESPACE, labels={"test": "true"})
+        ingress = Ingress(metadata=object_meta)
         assert ingress.metadata.name == NAME
 
     @vcr.use_cassette()
     def test_lifecylce(self, logger):
-        object_meta = ObjectMeta(namespace=NAMESPACE, labels={"test": "true"})
+        object_meta = ObjectMeta(name=NAME, namespace=NAMESPACE, labels={"test": "true"})
         ingress_backend = IngressBackend(serviceName="dummy", servicePort="http")
         http_ingress_path = HTTPIngressPath(path="/", backend=ingress_backend)
         http_ingress_rule = HTTPIngressRuleValue(paths=[http_ingress_path])
         ingress_rule = IngressRule(host="dummy.example.com", http=http_ingress_rule)
         ingress_spec = IngressSpec(rules=[ingress_rule])
-        first = Ingress(name=NAME, metadata=object_meta, spec=ingress_spec)
+        first = Ingress(metadata=object_meta, spec=ingress_spec)
         logger.debug(pformat(first.as_dict()))
         first.save()
 
         second = Ingress.get(NAME, NAMESPACE)
-        assert first.name == second.name
+        assert first.metadata.name == second.metadata.name
         assert first.spec == second.spec

@@ -105,16 +105,18 @@ class TestModel(object):
             ModelTest(unknown=3)
 
     def test_change(self, mock_response):
+        metadata = ObjectMeta(name="my-name", namespace="my-namespace")
         mock_response.json.return_value = {"field": 1, "list_field": [1], "once_field": 1, "read_only_field": 1}
-        instance = ModelTest.get_or_create(field=2, list_field=[2], once_field=2, read_only_field=2)
+        instance = ModelTest.get_or_create(metadata=metadata, field=2, list_field=[2], once_field=2, read_only_field=2)
         assert instance.field == 2
         assert instance.list_field == [2]
         assert instance.once_field == 1
         assert instance.read_only_field == 1
 
     def test_set_dict_field_to_none(self, mock_response):
+        metadata = ObjectMeta(name="my-name", namespace="my-namespace")
         mock_response.json.return_value = {'dict_field': {'thing': 'otherthing'}}
-        instance = ModelTest.get_or_create(dict_field=None)
+        instance = ModelTest.get_or_create(metadata=metadata, dict_field=None)
         assert instance.dict_field is None
 
     def test_annotations_merge(self, mock_response):
@@ -126,7 +128,7 @@ class TestModel(object):
                 }
             }
         }
-        metadata = ObjectMeta(annotations={u"will_overwrite": u"that"})
+        metadata = ObjectMeta(name="my-name", namespace="my-namespace", annotations={u"will_overwrite": u"that"})
         instance = ModelTest.get_or_create(metadata=metadata)
         assert instance.metadata.annotations[u"will_overwrite"] == u"that"
         assert instance.metadata.annotations[u"must_keep"] == u"this"

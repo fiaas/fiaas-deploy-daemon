@@ -31,7 +31,7 @@ class Configuration(Namespace):
         parser.add_argument("--log-format", help="Set logformat",
                             choices=self.VALID_LOG_FORMAT, default="plain")
         parser.add_argument("--target-cluster", help="Logical name of cluster to deploy to",
-                            env_var="FINN_ENV", default=None)
+                            env_var="FINN_ENV", default="")
         parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
                             env_var="HTTP_PROXY", default="http://puppetproxy.finntech.no:42042")
         parser.add_argument("--no-proxy", help="Disable the use of a proxy",

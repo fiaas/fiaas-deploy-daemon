@@ -93,7 +93,8 @@ class K8s(object):
         labels = self._make_labels(app_spec)
         lb_source_ranges = self._make_loadbalancer_source_ranges(app_spec)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        spec = ServiceSpec(selector=selector, ports=ports, loadBalancerIP=ip, type="LoadBalancer", loadBalancerSourceRanges=lb_source_ranges)
+        spec = ServiceSpec(selector=selector, ports=ports,
+                           loadBalancerIP=ip, type="LoadBalancer", loadBalancerSourceRanges=lb_source_ranges)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 

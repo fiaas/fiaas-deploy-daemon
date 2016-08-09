@@ -16,7 +16,6 @@ deployments_uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
 ingresses_uri = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
 
-
 def test_make_selector():
     name = 'app-name'
     app_spec = AppSpec(namespace=None, name=name, image=None, services=None, replicas=None, resources=None,
@@ -269,23 +268,23 @@ class TestK8s(object):
         }
         assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
 
-    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns, k8s_gke, app_spec):
+    def test_deploy_new_service_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
-        expected_service = create_simple_http_service('testapp', 'LoadBalancer', loadBalancerIp=SOME_RANDOM_IP)
+        expected_service = create_simple_http_service('testapp', 'LoadBalancer', loadbalancer_ip=SOME_RANDOM_IP)
 
         assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
-    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns,
+    def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, get_or_create_static_ip,
                                                            k8s_gke, app_spec_thrift_and_http):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
@@ -318,11 +317,11 @@ class TestK8s(object):
         }
         assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
-    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_deployment_to_gke(self, get, post, get_or_create_dns, get_or_create_static_ip, k8s_gke, app_spec):
+    def test_deploy_new_deployment_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
@@ -382,15 +381,20 @@ class TestK8s(object):
         }
         assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
 
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_service_with_multiple_whitelist_ips_to_gke(self, get, post, k8s_gke, app_spec_thrift_and_http):
+    def test_deploy_service_with_multiple_whitelist_ips_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec_thrift_and_http):
         get.side_effect = NotFound()
         app_spec_thrift_and_http.services[0].whitelist = whitelist_ips
+        get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec_thrift_and_http)
+
         expected_service = {
             'spec': {
                 'selector': {'app': 'testapp'},
+                'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
                 "loadBalancerSourceRanges": [
                     whitelist_ip_detailed,
@@ -416,15 +420,18 @@ class TestK8s(object):
         }
         assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
+    @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_service_with_whitelist_to_gke(self, get, post, k8s_gke, app_spec):
+    def test_deploy_service_with_whitelist_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
         app_spec.services[0].whitelist = whitelist_ips
+        get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 
         expected_service = create_simple_http_service(
-            'testapp', 'LoadBalancer', lb_source_range=[whitelist_ip_detailed, whitelist_ip_not_detailed])
+            'testapp', 'LoadBalancer', lb_source_range=[whitelist_ip_detailed, whitelist_ip_not_detailed], loadbalancer_ip=SOME_RANDOM_IP)
 
         assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
@@ -448,7 +455,7 @@ def create_empty_resource_spec():
                          limits=ResourceRequirementSpec(cpu=None, memory=None))
 
 
-def create_simple_http_service(app_name, type, lb_source_range=[], loadBalancerIp=None):
+def create_simple_http_service(app_name, type, lb_source_range=[], loadbalancer_ip=None):
     simple_http_service = {
         'spec': {
             'selector': {'app': app_name},
@@ -466,8 +473,8 @@ def create_simple_http_service(app_name, type, lb_source_range=[], loadBalancerI
         },
         'metadata': create_metadata(app_name)
     }
-    if loadBalancerIp is not None:
-        simple_http_service['loadBalancerIP'] = loadBalancerIp
+    if loadbalancer_ip is not None:
+        simple_http_service['spec']['loadBalancerIP'] = loadbalancer_ip
     return simple_http_service
 
 

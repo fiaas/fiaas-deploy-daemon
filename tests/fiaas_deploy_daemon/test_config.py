@@ -43,7 +43,7 @@ class TestConfig(object):
         assert not config.debug
         assert config.api_server == 'https://kubernetes.default.svc.cluster.local'
         assert config.api_token is None
-        assert config.target_cluster is None
+        assert config.target_cluster == ""
         assert config.log_format == "plain"
         assert config.image == ""
 

@@ -341,15 +341,12 @@ class TestK8s(object):
         uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
         assert_any_call_with_useful_error_message(post, uri, expected_deployment)
 
-    @mock.patch('oauth2client.client.GoogleCredentials.get_application_default')
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns,
-                                       get_application_default, k8s_gke, app_spec):
+    def test_deploy_new_service_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns, k8s_gke, app_spec):
         get.side_effect = NotFound()
-        get_application_default.return_value = None
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 

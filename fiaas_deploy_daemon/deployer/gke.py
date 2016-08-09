@@ -18,10 +18,6 @@ class Gke(object):
         self.dns_managed_zone = self._get_gc_project_id() + "-" + env
         self.dns_suffix = "k8s-gke." + env + ".finn.no"
 
-        credentials = GoogleCredentials.get_application_default()
-        self.dns_service = discovery.build('dns', 'v1', credentials=credentials)
-        self.gce_service = discovery.build('compute', 'v1', credentials=credentials)
-
     @staticmethod
     def _get_gc_project_id():
         return os.getenv('GCE_PROJECT_ID', GCE_PROJECT_ID)
@@ -40,15 +36,15 @@ class Gke(object):
 
     def _reserve_ip_address(self, app_name):
         address_name = self._address_name(app_name)
-        operation = self.gce_service.addresses().insert(project=self._get_gc_project_id(),
-                                                        region=self._get_gc_region(), body={"name": address_name}).execute()
+        operation = self._get_gce_service().addresses().insert(project=self._get_gc_project_id(),
+                                                               region=self._get_gc_region(), body={"name": address_name}).execute()
         self._wait_for_result(operation[u'name'])
 
     def _get_existing_static_ip(self,  app_name):
         address_name = self._address_name(app_name)
         try:
-            result = self.gce_service.addresses().get(project=self._get_gc_project_id(),
-                                                      region=self._get_gc_region(), address=address_name).execute()
+            result = self._get_gce_service().addresses().get(project=self._get_gc_project_id(),
+                                                             region=self._get_gc_region(), address=address_name).execute()
             return result[u'address'] if result is not None else None
         except HttpError as e:
             if e.resp.status == http_client.NOT_FOUND:
@@ -69,9 +65,9 @@ class Gke(object):
 
     def _get_resource_record_set(self, a_name):
         try:
-            result = self.dns_service.resourceRecordSets().list(project=self._get_gc_project_id(),
-                                                                managedZone=self.dns_managed_zone,
-                                                                name=a_name).execute()
+            result = self._get_dns_service().resourceRecordSets().list(project=self._get_gc_project_id(),
+                                                                       managedZone=self.dns_managed_zone,
+                                                                       name=a_name).execute()
             return result[u'rrsets'] if len(result[u'rrsets']) > 0 else None
         except HttpError as e:
             if e.resp.status == http_client.NOT_FOUND:
@@ -88,9 +84,9 @@ class Gke(object):
         }]
 
         body = {"additions": additions, "type": "A", "name": a_name}
-        self.dns_service.changes().create(project=self._get_gc_project_id(),
-                                          managedZone=self.dns_managed_zone,
-                                          body=body).execute()
+        self._get_dns_service().changes().create(project=self._get_gc_project_id(),
+                                                 managedZone=self.dns_managed_zone,
+                                                 body=body).execute()
 
     def _update_dns_record(self, a_name, old_ip, ip):
         deletions = [{
@@ -107,12 +103,28 @@ class Gke(object):
         }]
 
         body = {"deletions": deletions, "additions": additions, "type": "A", "name": a_name}
-        self.dns_service.changes().create(project=self._get_gc_project_id(),
-                                          managedZone=self.dns_managed_zone,
-                                          body=body).execute()
+        self._get_dns_service().changes().create(project=self._get_gc_project_id(),
+                                                 managedZone=self.dns_managed_zone,
+                                                 body=body).execute()
 
     def _get_ip_from_dns(self, rrset):
         return rrset[0][u'rrdatas'][0] if rrset is not None and len(rrset) == 1 else None
+
+    def _get_dns_service(self):
+        if self.dns_service is not None:
+            return self.dns_service
+
+        credentials = GoogleCredentials.get_application_default()
+        self.dns_service = discovery.build('dns', 'v1', credentials=credentials)
+        return self.dns_service
+
+    def _get_gce_service(self):
+        if self.gce_service is not None:
+            return self.gce_service
+
+        credentials = GoogleCredentials.get_application_default()
+        gce_service = discovery.build('compute', 'v1', credentials=credentials)
+        return gce_service
 
     def _wait_for_result(self, operation):
         while True:

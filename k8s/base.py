@@ -112,6 +112,13 @@ class Model(six.with_metaclass(MetaModel)):
             field.set(self, kwargs)
         if kwarg_names:
             raise TypeError("{}() got unexpected keyword-arguments: {}".format(self.__class__.__name__, ", ".join(kwarg_names)))
+        if self._new:
+            self._validate_fields()
+
+    def _validate_fields(self):
+        for field in self._meta.fields:
+            if not field.is_valid(self):
+                raise TypeError("Value of field {} is not valid on {}".format(field.name, self))
 
     def as_dict(self):
         if all(getattr(self, field.name) == field.default_value for field in self._meta.fields):
@@ -123,11 +130,16 @@ class Model(six.with_metaclass(MetaModel)):
                 d[field.name] = value
         return d
 
+    def update(self, other):
+        for field in self._meta.fields:
+            setattr(self, field.name, getattr(other, field.name))
+
     @classmethod
     def from_dict(cls, d):
         instance = cls(new=False)
         for field in cls._meta.fields:
             field.load(instance, d.get(field.name))
+        instance._validate_fields()
         return instance
 
     def __repr__(self):
@@ -135,4 +147,7 @@ class Model(six.with_metaclass(MetaModel)):
                                ", ".join("{}={}".format(key, getattr(self, key)) for key in self._meta.field_names))
 
     def __eq__(self, other):
-        return self.as_dict() == other.as_dict()
+        try:
+            return self.as_dict() == other.as_dict()
+        except AttributeError:
+            return False

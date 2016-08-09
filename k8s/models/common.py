@@ -5,11 +5,11 @@ from __future__ import absolute_import
 import six
 
 from ..base import Model
-from ..fields import Field, ReadOnlyField
+from ..fields import Field, ReadOnlyField, RequiredField
 
 
 class ObjectMeta(Model):
-    name = Field(six.text_type)
+    name = RequiredField(six.text_type)
     namespace = Field(six.text_type, "default")
     resourceVersion = ReadOnlyField(six.text_type)
     labels = Field(dict)

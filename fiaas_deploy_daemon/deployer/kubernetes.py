@@ -6,8 +6,8 @@ import logging
 from k8s import config as k8s_config
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
-from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, Probe, Container, PodSpec, VolumeMount, Volume, \
-    SecretVolumeSource, ResourceRequirements
+from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, Probe, Container, PodSpec, \
+    VolumeMount, Volume, SecretVolumeSource, ResourceRequirements
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelsSelector
 from k8s.models.service import Service, ServicePort, ServiceSpec
 
@@ -91,8 +91,9 @@ class K8s(object):
         ports = [self._make_service_port(service) for service in app_spec.services]
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
+        lb_source_ranges = self._make_loadbalancer_source_ranges(app_spec)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        spec = ServiceSpec(selector=selector, ports=ports, loadBalancerIP=ip, type="LoadBalancer")
+        spec = ServiceSpec(selector=selector, ports=ports, loadBalancerIP=ip, type="LoadBalancer", loadBalancerSourceRanges=lb_source_ranges)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 
@@ -212,6 +213,15 @@ class K8s(object):
     def _make_selector(app_spec):
         return {'app': app_spec.name}
 
+    def _make_loadbalancer_source_ranges(self, app_spec):
+        return flatten_list(filter(None, [self._make_service_loadbalancer_source_range(service) for service in app_spec.services]))
+
+    @staticmethod
+    def _make_service_loadbalancer_source_range(service):
+        whitelist = service.whitelist
+        if whitelist:
+            return [ip_range.strip() for ip_range in whitelist.split(',')]
+
     @staticmethod
     def _make_service_port(service):
         return ServicePort(name=service.name, port=service.service_port, targetPort=service.exposed_port)
@@ -248,3 +258,10 @@ class K8s(object):
             return CLUSTER_ENV_MAPPING[target_cluster]
         else:
             return target_cluster
+
+
+def flatten_list(list):
+    '''
+    flattens many lists to one list.
+    '''
+    return [item for sublist in list for item in sublist]

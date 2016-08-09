@@ -4,8 +4,17 @@ from k8s.client import NotFound
 
 import mock
 import pytest
+from util import assert_any_call_with_useful_error_message
 
 SOME_RANDOM_IP = '192.0.2.0'
+whitelist_ip_detailed = '192.0.0.1/32'
+whitelist_ip_not_detailed = '192.0.0.1/24'
+whitelist_ips = whitelist_ip_detailed + ', ' + whitelist_ip_not_detailed
+
+services_uri = '/api/v1/namespaces/default/services/'
+deployments_uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
+ingresses_uri = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
+
 
 
 def test_make_selector():
@@ -13,6 +22,17 @@ def test_make_selector():
     app_spec = AppSpec(namespace=None, name=name, image=None, services=None, replicas=None, resources=None,
                        admin_access=None, has_secrets=None)
     assert K8s._make_selector(app_spec) == {'app': name}
+
+
+def test_make_loadbalancer_source_ranges():
+    service = ServiceSpec(80, 8080, whitelist=whitelist_ip_detailed)
+    assert K8s._make_service_loadbalancer_source_range(service) == [whitelist_ip_detailed]
+    service = ServiceSpec(80, 8080, whitelist='')
+    assert K8s._make_service_loadbalancer_source_range(service) is None
+    service = ServiceSpec(80, 8080, whitelist='weCopyWhatWeGetKubernetesGetsError')
+    assert K8s._make_service_loadbalancer_source_range(service) == ['weCopyWhatWeGetKubernetesGetsError']
+    service = ServiceSpec(80, 8080, whitelist='jo,ho, tretti, to, ko')
+    assert len(K8s._make_service_loadbalancer_source_range(service)) is 5
 
 
 def test_resolve_finn_env_default():
@@ -50,23 +70,12 @@ class TestK8s(object):
                        replicas=3,
                        image="finntech/testimage:version",
                        namespace="default",
-                       services=[ServiceSpec(readiness=ProbeSpec(name="8080",
-                                                                 type='http',
-                                                                 path='/internal-backstage/health/services'),
-                                             ingress="/",
-                                             exposed_port=8080,
-                                             probe_delay=60,
-                                             service_port=80,
-                                             liveness=ProbeSpec(name="8080",
-                                                                type='http',
-                                                                path='/internal-backstage/health/services'),
-                                             type="http")],
+                       services=[create_simple_http_service_spec()],
                        has_secrets=False,
-                       resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
-                                               limits=ResourceRequirementSpec(cpu=None, memory=None)))
+                       resources=create_empty_resource_spec())
 
     @pytest.fixture
-    def app_spec_trift_and_http(self):
+    def app_spec_thrift_and_http(self):
         return AppSpec(
             admin_access=None,
             name="testapp",
@@ -74,17 +83,7 @@ class TestK8s(object):
             image="finntech/testimage:version",
             namespace="default",
             services=[
-                ServiceSpec(readiness=ProbeSpec(name="8080",
-                                                type='http',
-                                                path='/internal-backstage/health/services'),
-                            ingress="/",
-                            exposed_port=8080,
-                            probe_delay=60,
-                            service_port=80,
-                            liveness=ProbeSpec(name="8080",
-                                               type='http',
-                                               path='/internal-backstage/health/services'),
-                            type="http"),
+                create_simple_http_service_spec(),
                 ServiceSpec(readiness=ProbeSpec(name="7999",
                                                 type='thrift',
                                                 path="/"),
@@ -97,12 +96,10 @@ class TestK8s(object):
                             type="thrift")
             ],
             has_secrets=False,
-            resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
-                                    limits=ResourceRequirementSpec(cpu=None, memory=None)))
+            resources=create_empty_resource_spec())
 
-    @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_to_invalid_infrastructure_should_fail(self, get, post):
+    def test_deploy_to_invalid_infrastructure_should_fail(self, get):
         get.side_effect = NotFound()
 
         config = mock.Mock(return_value="")
@@ -134,15 +131,7 @@ class TestK8s(object):
                     }
                 }]
             },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp'
-            }
+            'metadata': create_metadata('testapp')
         }
         dev_k8s_ingress = {
             'spec': {
@@ -158,21 +147,11 @@ class TestK8s(object):
                     }
                 }]
             },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp-dev-k8s.finntech.no'
-            }
+            'metadata': create_metadata('testapp-dev-k8s.finntech.no', app_name='testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/',
-                                                  expected_ingress)
-        assert_any_call_with_useful_error_message(post, '/apis/extensions/v1beta1/namespaces/default/ingresses/',
-                                                  dev_k8s_ingress)
+        assert_any_call_with_useful_error_message(post, ingresses_uri, expected_ingress)
+        assert_any_call_with_useful_error_message(post, ingresses_uri, dev_k8s_ingress)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -184,6 +163,8 @@ class TestK8s(object):
             'spec': {
                 'selector': {'app': 'testapp'},
                 'type': 'ClusterIP',
+                "loadBalancerSourceRanges": [
+                ],
                 'ports': [{
                     'protocol': 'TCP',
                     'targetPort': 8080,
@@ -192,54 +173,25 @@ class TestK8s(object):
                 }],
                 'sessionAffinity': 'None'
             },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp'
-            }
+            'metadata': create_metadata('testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
+        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_service_with_multiple_ports(self, get, post, k8s_diy, app_spec_trift_and_http):
+    def test_deploy_new_service_with_multiple_ports(self, get, post, k8s_diy, app_spec_thrift_and_http):
         get.side_effect = NotFound()
-        k8s_diy.deploy(app_spec_trift_and_http)
+        k8s_diy.deploy(app_spec_thrift_and_http)
 
-        expected_http_service = {
-            'spec': {
-                'selector': {'app': 'testapp'},
-                'type': 'ClusterIP',
-                'ports': [
-                    {
-                        'protocol': 'TCP',
-                        'targetPort': 8080,
-                        'name': 'http8080',
-                        'port': 80
-                    },
-                ],
-                'sessionAffinity': 'None'
-            },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp'
-            }
-        }
+        expected_http_service = create_simple_http_service('testapp', 'ClusterIP')
 
         expected_thrift_service = {
             'spec': {
                 'selector': {'app': 'testapp'},
                 'type': 'NodePort',
+                "loadBalancerSourceRanges": [
+                ],
                 'ports': [
                     {
                         'protocol': 'TCP',
@@ -251,19 +203,10 @@ class TestK8s(object):
                 ],
                 'sessionAffinity': 'None'
             },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp-thrift'
-            }
+            'metadata': create_metadata('testapp-thrift', app_name='testapp')
         }
-
-        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_http_service)
-        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_thrift_service)
+        assert_any_call_with_useful_error_message(post, services_uri, expected_http_service)
+        assert_any_call_with_useful_error_message(post, services_uri, expected_thrift_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -272,11 +215,7 @@ class TestK8s(object):
         k8s_diy.deploy(app_spec)
 
         expected_deployment = {
-            'metadata': {
-                'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
-                'namespace': 'default',
-                'name': 'testapp'
-            },
+            'metadata': create_metadata('testapp'),
             'spec': {
                 'selector': {'matchLabels': {'app': 'testapp'}},
                 'template': {
@@ -322,24 +261,13 @@ class TestK8s(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': {
-                        'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
-                        'namespace': 'default',
-                        'name': 'testapp',
-                        'annotations': {
-                            'prometheus.io/port': '8080',
-                            'prometheus.io/path': '/internal-backstage/prometheus',
-                            'prometheus.io/scrape': 'true'
-                        }
-                    }
+                    'metadata': create_metadata('testapp', annotations=True)
                 },
                 'replicas': 3
             },
             'strategy': 'RollingUpdate'
         }
-
-        uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
-        assert_any_call_with_useful_error_message(post, uri, expected_deployment)
+        assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -349,48 +277,27 @@ class TestK8s(object):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
+        expected_service = create_simple_http_service('testapp', 'LoadBalancer', loadBalancerIp=SOME_RANDOM_IP)
 
-        expected_service = {
-            'spec': {
-                'selector': {'app': 'testapp'},
-                'loadBalancerIP': SOME_RANDOM_IP,
-                'type': 'LoadBalancer',
-                'ports': [{
-                    'protocol': 'TCP',
-                    'targetPort': 8080,
-                    'name': 'http8080',
-                    'port': 80
-                }],
-                'sessionAffinity': 'None'
-            },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp'
-            }
-        }
-
-        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
+        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
     def test_deploy_new_service_with_multiple_ports_to_gke(self, get, post, get_or_create_static_ip, get_or_create_dns,
-                                                           k8s_gke, app_spec_trift_and_http):
+                                                           k8s_gke, app_spec_thrift_and_http):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
-        k8s_gke.deploy(app_spec_trift_and_http)
+        k8s_gke.deploy(app_spec_thrift_and_http)
 
         expected_service = {
             'spec': {
                 'selector': {'app': 'testapp'},
                 'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
+                "loadBalancerSourceRanges": [
+                ],
                 'ports': [
                     {
                         'protocol': 'TCP',
@@ -407,18 +314,9 @@ class TestK8s(object):
                 ],
                 'sessionAffinity': 'None'
             },
-            'metadata': {
-                'labels': {
-                    'fiaas/version': 'version',
-                    'app': 'testapp',
-                    'fiaas/deployed_by': '1'
-                },
-                'namespace': 'default',
-                'name': 'testapp'
-            }
+            'metadata': create_metadata('testapp')
         }
-
-        assert_any_call_with_useful_error_message(post, '/api/v1/namespaces/default/services/', expected_service)
+        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns')
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -430,11 +328,7 @@ class TestK8s(object):
         k8s_gke.deploy(app_spec)
 
         expected_deployment = {
-            'metadata': {
-                'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
-                'namespace': 'default',
-                'name': 'testapp'
-            },
+            'metadata': create_metadata('testapp'),
             'spec': {
                 'selector': {'matchLabels': {'app': 'testapp'}},
                 'template': {
@@ -480,42 +374,119 @@ class TestK8s(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': {
-                        'labels': {'fiaas/version': 'version', 'app': 'testapp', 'fiaas/deployed_by': '1'},
-                        'namespace': 'default',
-                        'name': 'testapp',
-                        'annotations': {
-                            'prometheus.io/port': '8080',
-                            'prometheus.io/path': '/internal-backstage/prometheus',
-                            'prometheus.io/scrape': 'true'
-                        }
-                    }
+                    'metadata': create_metadata('testapp', annotations=True)
                 },
                 'replicas': 3
             },
             'strategy': 'RollingUpdate'
         }
+        assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
 
-        uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
-        assert_any_call_with_useful_error_message(post, uri, expected_deployment)
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_service_with_multiple_whitelist_ips_to_gke(self, get, post, k8s_gke, app_spec_thrift_and_http):
+        get.side_effect = NotFound()
+        app_spec_thrift_and_http.services[0].whitelist = whitelist_ips
+        k8s_gke.deploy(app_spec_thrift_and_http)
+        expected_service = {
+            'spec': {
+                'selector': {'app': 'testapp'},
+                'type': 'LoadBalancer',
+                "loadBalancerSourceRanges": [
+                    whitelist_ip_detailed,
+                    whitelist_ip_not_detailed
+                ],
+                'ports': [
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 8080,
+                        'name': 'http8080',
+                        'port': 80
+                    },
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 7999,
+                        'name': 'thrift7999',
+                        'port': 7999
+                    }
+                ],
+                'sessionAffinity': 'None'
+            },
+            'metadata': create_metadata('testapp')
+        }
+        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_service_with_whitelist_to_gke(self, get, post, k8s_gke, app_spec):
+        get.side_effect = NotFound()
+        app_spec.services[0].whitelist = whitelist_ips
+        k8s_gke.deploy(app_spec)
+
+        expected_service = create_simple_http_service(
+            'testapp', 'LoadBalancer', lb_source_range=[whitelist_ip_detailed, whitelist_ip_not_detailed])
+
+        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
 
 
-def assert_any_call_with_useful_error_message(mockk, uri, *args):
-    """
-    If an AssertionError is raised in the assert, find any other calls on mock where the first parameter is uri and
-    append those calls to the AssertionErrors message to more easily find the cause of the test failure.
-    """
+def create_simple_http_service_spec():
+    return ServiceSpec(readiness=ProbeSpec(name="8080",
+                                           type='http',
+                                           path='/internal-backstage/health/services'),
+                       ingress="/",
+                       exposed_port=8080,
+                       probe_delay=60,
+                       service_port=80,
+                       liveness=ProbeSpec(name="8080",
+                                          type='http',
+                                          path='/internal-backstage/health/services'),
+                       type="http")
 
-    def format_call(call):
-        return 'call({}, {})'.format(call[0], call[1])
 
-    try:
-        mockk.assert_any_call(uri, *args)
-    except AssertionError as ae:
-        other_calls = [call[0] for call in mockk.call_args_list if call[0][0] == uri]
-        if other_calls:
-            extra_info = '\n\nURI {} got the following other calls:\n{}'.format(uri, '\n'.join(
-                format_call(call) for call in other_calls))
-            raise AssertionError(ae.message + extra_info)
-        else:
-            raise
+def create_empty_resource_spec():
+    return ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
+                         limits=ResourceRequirementSpec(cpu=None, memory=None))
+
+
+def create_simple_http_service(app_name, type, lb_source_range=[], loadBalancerIp=None):
+    simple_http_service = {
+        'spec': {
+            'selector': {'app': app_name},
+            'type': type,
+            "loadBalancerSourceRanges": lb_source_range,
+            'ports': [
+                {
+                    'protocol': 'TCP',
+                    'targetPort': 8080,
+                    'name': 'http8080',
+                    'port': 80
+                }
+            ],
+            'sessionAffinity': 'None'
+        },
+        'metadata': create_metadata(app_name)
+    }
+    if loadBalancerIp is not None:
+        simple_http_service['loadBalancerIP'] = loadBalancerIp
+    return simple_http_service
+
+
+def create_metadata(resource_name, app_name=None, namespace='default', annotations=False):
+    if app_name is None:
+        app_name = resource_name
+    metadata = {
+        'labels': {
+            'fiaas/version': 'version',
+            'app': app_name,
+            'fiaas/deployed_by': '1'
+        },
+        'namespace': namespace,
+        'name': resource_name
+    }
+    if annotations:
+        metadata['annotations'] = {
+            'prometheus.io/port': '8080',
+            'prometheus.io/path': '/internal-backstage/prometheus',
+            'prometheus.io/scrape': 'true'
+        }
+    return metadata

@@ -24,6 +24,7 @@ class ServiceSpec(Model):
     loadBalancerIP = OnceField(six.text_type)
     type = Field(six.text_type, "ClusterIP")
     sessionAffinity = Field(six.text_type, "None")
+    loadBalancerSourceRanges = ListField(six.text_type)
 
 
 class Service(Model):

@@ -53,6 +53,8 @@ class TestFields(object):
         assert model.list_field == [1]
         model.list_field = [1, 2]
         assert model.list_field == [1, 2]
+        model.list_field = []
+        assert model.list_field == []
 
     def test_once_field_new(self):
         model = ModelTest(new=True, once_field=1)

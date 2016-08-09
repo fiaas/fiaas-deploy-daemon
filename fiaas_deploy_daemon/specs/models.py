@@ -49,7 +49,7 @@ class AppSpec(BaseSpec):
 class ServiceSpec(BaseSpec):
     """Specify a service"""
 
-    def __init__(self, exposed_port, service_port, type="http", ingress=u"/", readiness=u"/", liveness=u"/", probe_delay=5):
+    def __init__(self, exposed_port, service_port, type="http", ingress=u"/", readiness=u"/", liveness=u"/", probe_delay=5, whitelist=None):
         """
         :param ingress:
         :param exposed_port: Exposed port in container
@@ -59,6 +59,7 @@ class ServiceSpec(BaseSpec):
         :param readiness: Path for readiness-probe (only for http) (Default: /)
         :param liveness: Path for liveness-probe (only for http) (Default: /)
         :param probe_delay: How long to wait before starting probes (Default: 10s)
+        :param whitelist: IPs to whitelist on a GKE LoadBalancer-service. (A comma-separated list of ip-ranges (ex 192.0.0.2/32, ))
         """
         self.name = "{}{}".format(type, exposed_port)
         self.exposed_port = exposed_port
@@ -68,6 +69,7 @@ class ServiceSpec(BaseSpec):
         self.readiness = ProbeSpec(self.exposed_port, type, readiness)
         self.liveness = ProbeSpec(self.exposed_port, type, liveness)
         self.probe_delay = probe_delay
+        self.whitelist = whitelist
 
 
 class ResourceRequirementSpec(BaseSpec):

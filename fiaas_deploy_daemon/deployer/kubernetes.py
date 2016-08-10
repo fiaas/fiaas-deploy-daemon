@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 
 import logging
+from itertools import chain
 
 from k8s import config as k8s_config
 from k8s.models.common import ObjectMeta
@@ -214,14 +215,11 @@ class K8s(object):
     def _make_selector(app_spec):
         return {'app': app_spec.name}
 
-    def _make_loadbalancer_source_ranges(self, app_spec):
-        return flatten_list(filter(None, [self._make_service_loadbalancer_source_range(service) for service in app_spec.services]))
-
     @staticmethod
-    def _make_service_loadbalancer_source_range(service):
-        whitelist = service.whitelist
-        if whitelist:
-            return [ip_range.strip() for ip_range in whitelist.split(',')]
+    def _make_loadbalancer_source_ranges(app_spec):
+        return list(chain.from_iterable(
+            [ip_range.strip() for ip_range in service.whitelist.split(",") if ip_range.strip()]
+            for service in app_spec.services if service.whitelist))
 
     @staticmethod
     def _make_service_port(service):
@@ -259,10 +257,3 @@ class K8s(object):
             return CLUSTER_ENV_MAPPING[target_cluster]
         else:
             return target_cluster
-
-
-def flatten_list(list):
-    '''
-    flattens many lists to one list.
-    '''
-    return [item for sublist in list for item in sublist]

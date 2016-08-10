@@ -23,18 +23,6 @@ def test_make_selector():
     assert K8s._make_selector(app_spec) == {'app': name}
 
 
-def test_make_loadbalancer_source_ranges():
-    assert_gets_correct_lb_correct_output(ServiceSpec(80, 8080, whitelist=WHITELIST_IP_DETAILED), [WHITELIST_IP_DETAILED])
-    assert_gets_correct_lb_correct_output(ServiceSpec(80, 8080, whitelist=''), None)
-    assert_gets_correct_lb_correct_output(
-        ServiceSpec(80, 8080, whitelist='weCopyWhatWeGetKubernetesGetsError'), ['weCopyWhatWeGetKubernetesGetsError'])
-    assert len(K8s._make_service_loadbalancer_source_range(ServiceSpec(80, 8080, whitelist='jo,ho,tretti,to,ko'))) is 5
-
-
-def assert_gets_correct_lb_correct_output(service, ip_array):
-    assert K8s._make_service_loadbalancer_source_range(service) == ip_array
-
-
 def test_resolve_finn_env_default():
     assert K8s._resolve_cluster_env("default_cluster") == "default_cluster"
 
@@ -97,6 +85,13 @@ class TestK8s(object):
             ],
             has_secrets=False,
             resources=create_empty_resource_spec())
+
+    def test_make_loadbalancer_source_ranges(self, app_spec_thrift_and_http):
+        assert_lb_sourceranges_output(app_spec_thrift_and_http, [])
+        app_spec_thrift_and_http.services[0].whitelist = WHITELIST_IPS
+        assert_lb_sourceranges_output(app_spec_thrift_and_http, [WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED])
+        app_spec_thrift_and_http.services[0].whitelist = 'joke, output, we, copy'
+        assert_lb_sourceranges_output(app_spec_thrift_and_http, ['joke', 'output', 'we', 'copy'])
 
     @mock.patch('k8s.client.Client.get')
     def test_deploy_to_invalid_infrastructure_should_fail(self, get):
@@ -435,6 +430,16 @@ class TestK8s(object):
             'testapp', 'LoadBalancer', lb_source_range=[WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED], loadbalancer_ip=SOME_RANDOM_IP)
 
         assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+
+
+def assert_lb_sourceranges_output(app_spec, expected_output_array):
+    source_ranges_array = K8s._make_loadbalancer_source_ranges(app_spec)
+    if len(expected_output_array) > 1:
+        for expected_output in expected_output_array:
+            assert expected_output in source_ranges_array
+        assert len(source_ranges_array) is len(expected_output_array)
+    else:
+        assert source_ranges_array == expected_output_array
 
 
 def create_simple_http_service_spec():

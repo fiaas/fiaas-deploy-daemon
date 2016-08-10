@@ -17,6 +17,8 @@ class Gke(object):
         self.env = env
         self.dns_managed_zone = self._get_gc_project_id() + "-" + env
         self.dns_suffix = "k8s-gke." + env + ".finn.no"
+        self.gce_service = None
+        self.dns_service = None
 
     @staticmethod
     def _get_gc_project_id():
@@ -123,8 +125,8 @@ class Gke(object):
             return self.gce_service
 
         credentials = GoogleCredentials.get_application_default()
-        gce_service = discovery.build('compute', 'v1', credentials=credentials)
-        return gce_service
+        self.gce_service = discovery.build('compute', 'v1', credentials=credentials)
+        return self.gce_service
 
     def _wait_for_result(self, operation):
         while True:

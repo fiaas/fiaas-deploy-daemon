@@ -7,13 +7,13 @@ import pytest
 from util import assert_any_call_with_useful_error_message
 
 SOME_RANDOM_IP = '192.0.2.0'
-whitelist_ip_detailed = '192.0.0.1/32'
-whitelist_ip_not_detailed = '192.0.0.1/24'
-whitelist_ips = whitelist_ip_detailed + ', ' + whitelist_ip_not_detailed
+WHITELIST_IP_DETAILED = '192.0.0.1/32'
+WHITELIST_IP_UNDETAILED = '192.0.0.1/24'
+WHITELIST_IPS = WHITELIST_IP_DETAILED + ', ' + WHITELIST_IP_UNDETAILED
 
-services_uri = '/api/v1/namespaces/default/services/'
-deployments_uri = '/apis/extensions/v1beta1/namespaces/default/deployments/'
-ingresses_uri = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
+SERVICES_URI = '/api/v1/namespaces/default/services/'
+DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
+INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
 
 def test_make_selector():
@@ -24,14 +24,15 @@ def test_make_selector():
 
 
 def test_make_loadbalancer_source_ranges():
-    service = ServiceSpec(80, 8080, whitelist=whitelist_ip_detailed)
-    assert K8s._make_service_loadbalancer_source_range(service) == [whitelist_ip_detailed]
-    service = ServiceSpec(80, 8080, whitelist='')
-    assert K8s._make_service_loadbalancer_source_range(service) is None
-    service = ServiceSpec(80, 8080, whitelist='weCopyWhatWeGetKubernetesGetsError')
-    assert K8s._make_service_loadbalancer_source_range(service) == ['weCopyWhatWeGetKubernetesGetsError']
-    service = ServiceSpec(80, 8080, whitelist='jo,ho, tretti, to, ko')
-    assert len(K8s._make_service_loadbalancer_source_range(service)) is 5
+    assert_gets_correct_lb_correct_output(ServiceSpec(80, 8080, whitelist=WHITELIST_IP_DETAILED), [WHITELIST_IP_DETAILED])
+    assert_gets_correct_lb_correct_output(ServiceSpec(80, 8080, whitelist=''), None)
+    assert_gets_correct_lb_correct_output(
+        ServiceSpec(80, 8080, whitelist='weCopyWhatWeGetKubernetesGetsError'), ['weCopyWhatWeGetKubernetesGetsError'])
+    assert len(K8s._make_service_loadbalancer_source_range(ServiceSpec(80, 8080, whitelist='jo,ho,tretti,to,ko'))) is 5
+
+
+def assert_gets_correct_lb_correct_output(service, ip_array):
+    assert K8s._make_service_loadbalancer_source_range(service) == ip_array
 
 
 def test_resolve_finn_env_default():
@@ -149,8 +150,8 @@ class TestK8s(object):
             'metadata': create_metadata('testapp-dev-k8s.finntech.no', app_name='testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, ingresses_uri, expected_ingress)
-        assert_any_call_with_useful_error_message(post, ingresses_uri, dev_k8s_ingress)
+        assert_any_call_with_useful_error_message(post, INGRESSES_URI, expected_ingress)
+        assert_any_call_with_useful_error_message(post, INGRESSES_URI, dev_k8s_ingress)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -175,7 +176,7 @@ class TestK8s(object):
             'metadata': create_metadata('testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -204,8 +205,8 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp-thrift', app_name='testapp')
         }
-        assert_any_call_with_useful_error_message(post, services_uri, expected_http_service)
-        assert_any_call_with_useful_error_message(post, services_uri, expected_thrift_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_http_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_thrift_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -266,7 +267,7 @@ class TestK8s(object):
             },
             'strategy': 'RollingUpdate'
         }
-        assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
+        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -278,7 +279,7 @@ class TestK8s(object):
         k8s_gke.deploy(app_spec)
         expected_service = create_simple_http_service('testapp', 'LoadBalancer', loadbalancer_ip=SOME_RANDOM_IP)
 
-        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -315,7 +316,7 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp')
         }
-        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -379,7 +380,7 @@ class TestK8s(object):
             },
             'strategy': 'RollingUpdate'
         }
-        assert_any_call_with_useful_error_message(post, deployments_uri, expected_deployment)
+        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -387,7 +388,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_service_with_multiple_whitelist_ips_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec_thrift_and_http):
         get.side_effect = NotFound()
-        app_spec_thrift_and_http.services[0].whitelist = whitelist_ips
+        app_spec_thrift_and_http.services[0].whitelist = WHITELIST_IPS
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec_thrift_and_http)
 
@@ -397,8 +398,8 @@ class TestK8s(object):
                 'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
                 "loadBalancerSourceRanges": [
-                    whitelist_ip_detailed,
-                    whitelist_ip_not_detailed
+                    WHITELIST_IP_DETAILED,
+                    WHITELIST_IP_UNDETAILED
                 ],
                 'ports': [
                     {
@@ -418,7 +419,7 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp')
         }
-        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -426,14 +427,14 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_service_with_whitelist_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
-        app_spec.services[0].whitelist = whitelist_ips
+        app_spec.services[0].whitelist = WHITELIST_IPS
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 
         expected_service = create_simple_http_service(
-            'testapp', 'LoadBalancer', lb_source_range=[whitelist_ip_detailed, whitelist_ip_not_detailed], loadbalancer_ip=SOME_RANDOM_IP)
+            'testapp', 'LoadBalancer', lb_source_range=[WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED], loadbalancer_ip=SOME_RANDOM_IP)
 
-        assert_any_call_with_useful_error_message(post, services_uri, expected_service)
+        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
 
 def create_simple_http_service_spec():

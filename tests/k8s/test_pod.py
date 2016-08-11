@@ -39,8 +39,8 @@ class TestPod(object):
         logger.debug(pformat(first.as_dict()))
         first.save()
 
-        pods = Pod.find(name=NAME, namespace=NAMESPACE)
+        pods = Pod.find(NAME, NAMESPACE)
         assert len(pods) == 1
         second = pods[0]
-        assert first.name == second.name
-        assert first.namespace == second.namespace
+        assert first.metadata.name == second.metadata.name
+        assert first.metadata.namespace == second.metadata.namespace

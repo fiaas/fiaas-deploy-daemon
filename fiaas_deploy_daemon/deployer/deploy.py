@@ -30,6 +30,7 @@ class Deployer(DaemonThread):
                 with self._bookkeeper.time(app_spec):
                     self._adapter.deploy(app_spec)
                 self._bookkeeper.success(app_spec)
+                LOG.info("Completed deployment of %r", app_spec)
             except Exception:
                 self._bookkeeper.failed(app_spec)
                 LOG.exception("Error while deploying: ")

@@ -43,11 +43,6 @@ class MetaModel(type):
                 fields.append(v)
         Meta = namedtuple("Meta", meta.keys())
         attrs["_meta"] = Meta(**meta)
-        if "metadata" in field_names:
-            if "name" not in field_names:
-                attrs["name"] = property(lambda self: self.metadata.name)
-            if "namespace" not in field_names:
-                attrs["namespace"] = property(lambda self: self.metadata.namespace)
         return super(MetaModel, mcs).__new__(mcs, cls, bases, attrs)
 
 
@@ -73,21 +68,15 @@ class ApiMixIn(object):
         """Get from API server if it exists"""
         url = cls._build_url(name=name, namespace=namespace)
         resp = cls._client.get(url)
-        instance = cls.from_dict(resp.json(), name)
+        instance = cls.from_dict(resp.json())
         return instance
 
     @classmethod
     def get_or_create(cls, **kwargs):
         """If exists, get from API, else create new instance"""
         try:
-            name = kwargs.get("name")
-            if "namespace" in kwargs:
-                namespace = kwargs.get("namespace")
-            elif "metadata" in kwargs:
-                namespace = kwargs.get("metadata").namespace
-            else:
-                namespace = "default"
-            instance = cls.get(name, namespace)
+            metadata = kwargs.get("metadata")
+            instance = cls.get(metadata.name, metadata.namespace)
             for field in cls._meta.fields:
                 field.set(instance, kwargs)
             return instance
@@ -102,10 +91,10 @@ class ApiMixIn(object):
     def save(self):
         """Save to API server, either update if existing, or create if new"""
         if self._new:
-            url = self._build_url(name="", namespace=self.namespace)
+            url = self._build_url(name="", namespace=self.metadata.namespace)
             self._client.post(url, self.as_dict())
         else:
-            url = self._build_url(name=self.name, namespace=self.namespace)
+            url = self._build_url(name=self.metadata.name, namespace=self.metadata.namespace)
             self._client.put(url, self.as_dict())
 
 
@@ -121,11 +110,15 @@ class Model(six.with_metaclass(MetaModel)):
         for field in self._meta.fields:
             kwarg_names.discard(field.name)
             field.set(self, kwargs)
-        if "metadata" in self._meta.field_names and "name" in kwargs:
-            self.metadata.name = kwargs.get("name")
-            kwarg_names.discard("name")
         if kwarg_names:
             raise TypeError("{}() got unexpected keyword-arguments: {}".format(self.__class__.__name__, ", ".join(kwarg_names)))
+        if self._new:
+            self._validate_fields()
+
+    def _validate_fields(self):
+        for field in self._meta.fields:
+            if not field.is_valid(self):
+                raise TypeError("Value of field {} is not valid on {}".format(field.name, self))
 
     def as_dict(self):
         if all(getattr(self, field.name) == field.default_value for field in self._meta.fields):
@@ -137,14 +130,16 @@ class Model(six.with_metaclass(MetaModel)):
                 d[field.name] = value
         return d
 
+    def update(self, other):
+        for field in self._meta.fields:
+            setattr(self, field.name, getattr(other, field.name))
+
     @classmethod
-    def from_dict(cls, d, name=None):
-        if name:
-            instance = cls(new=False, name=name)
-        else:
-            instance = cls(new=False)
+    def from_dict(cls, d):
+        instance = cls(new=False)
         for field in cls._meta.fields:
             field.load(instance, d.get(field.name))
+        instance._validate_fields()
         return instance
 
     def __repr__(self):
@@ -152,4 +147,7 @@ class Model(six.with_metaclass(MetaModel)):
                                ", ".join("{}={}".format(key, getattr(self, key)) for key in self._meta.field_names))
 
     def __eq__(self, other):
-        return self.as_dict() == other.as_dict()
+        try:
+            return self.as_dict() == other.as_dict()
+        except AttributeError:
+            return False

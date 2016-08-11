@@ -27,8 +27,8 @@ class TestRc(object):
                 pass
 
     def test_create_blank_deployment(self):
-        deployment = Deployment(name=NAME)
-        assert deployment.name == NAME
+        object_meta = ObjectMeta(name=NAME, namespace=NAMESPACE)
+        deployment = Deployment(metadata=object_meta)
         assert deployment.as_dict()[u"metadata"][u"name"] == NAME
 
     @vcr.use_cassette()
@@ -51,6 +51,6 @@ class TestRc(object):
         pod_spec = PodSpec(containers=[container], imagePullSecrets=[image_pull_secret], serviceAccountName="default")
         pod_template_spec = PodTemplateSpec(metadata=object_meta, spec=pod_spec)
         deployer_spec = DeploymentSpec(replicas=2, selector=LabelsSelector(matchLabels=labels), template=pod_template_spec)
-        first = Deployment(name=NAME, metadata=object_meta, spec=deployer_spec)
+        first = Deployment(metadata=object_meta, spec=deployer_spec)
         logger.debug(pformat(first.as_dict()))
         first.save()

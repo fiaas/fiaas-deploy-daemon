@@ -218,7 +218,7 @@ class K8s(object):
     @staticmethod
     def _make_loadbalancer_source_ranges(app_spec):
         return list(chain.from_iterable(
-            [ip_range.strip() for ip_range in service.whitelist.split(",") if ip_range.strip()]
+            (ip_range.strip() for ip_range in service.whitelist.split(",") if ip_range.strip())
             for service in app_spec.services if service.whitelist))
 
     @staticmethod

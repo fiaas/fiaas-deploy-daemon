@@ -9,7 +9,6 @@ from util import assert_any_call_with_useful_error_message
 SOME_RANDOM_IP = '192.0.2.0'
 WHITELIST_IP_DETAILED = '192.0.0.1/32'
 WHITELIST_IP_UNDETAILED = '192.0.0.1/24'
-WHITELIST_IPS = WHITELIST_IP_DETAILED + ', ' + WHITELIST_IP_UNDETAILED
 
 SERVICES_URI = '/api/v1/namespaces/default/services/'
 DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
@@ -88,7 +87,7 @@ class TestK8s(object):
 
     def test_make_loadbalancer_source_ranges(self, app_spec_thrift_and_http):
         assert_lb_sourceranges_output(app_spec_thrift_and_http, [])
-        app_spec_thrift_and_http.services[0].whitelist = WHITELIST_IPS
+        app_spec_thrift_and_http.services[0].whitelist = "{}, {}".format(WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED)
         assert_lb_sourceranges_output(app_spec_thrift_and_http, [WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED])
         app_spec_thrift_and_http.services[0].whitelist = 'joke, output, we, copy'
         assert_lb_sourceranges_output(app_spec_thrift_and_http, ['joke', 'output', 'we', 'copy'])
@@ -383,7 +382,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_service_with_multiple_whitelist_ips_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec_thrift_and_http):
         get.side_effect = NotFound()
-        app_spec_thrift_and_http.services[0].whitelist = WHITELIST_IPS
+        app_spec_thrift_and_http.services[0].whitelist = "{}, {}".format(WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED)
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec_thrift_and_http)
 
@@ -422,7 +421,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_service_with_whitelist_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
-        app_spec.services[0].whitelist = WHITELIST_IPS
+        app_spec.services[0].whitelist = "{}, {}".format(WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED)
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
 

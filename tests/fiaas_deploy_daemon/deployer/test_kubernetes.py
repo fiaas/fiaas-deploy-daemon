@@ -9,6 +9,7 @@ from util import assert_any_call_with_useful_error_message
 SOME_RANDOM_IP = '192.0.2.0'
 WHITELIST_IP_DETAILED = '192.0.0.1/32'
 WHITELIST_IP_UNDETAILED = '192.0.0.1/24'
+DEFAULT_SERVICE_WHITELIST_COPY = ['80.91.33.141/32', '80.91.33.151/32', '80.91.33.147/32']
 
 SERVICES_URI = '/api/v1/namespaces/default/services/'
 DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
@@ -184,8 +185,7 @@ class TestK8s(object):
             'spec': {
                 'selector': {'app': 'testapp'},
                 'type': 'NodePort',
-                "loadBalancerSourceRanges": [
-                ],
+                "loadBalancerSourceRanges": [],
                 'ports': [
                     {
                         'protocol': 'TCP',
@@ -231,16 +231,7 @@ class TestK8s(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': [],
-                            'env': [
-                                {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
-                                {'name': 'LOG_STDOUT', 'value': 'true'},
-                                {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes,dev,kubernetes-dev'},
-                                {'name': 'FIAAS_INFRASTRUCTURE', 'value': 'diy'},
-                                {'name': 'LOG_FORMAT', 'value': 'json'},
-                                {'name': 'FINN_ENV', 'value': 'dev'},
-                                {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
-                                {'name': 'VERSION', 'value': 'version'}
-                            ],
+                            'env': create_environment_variables('diy'),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
@@ -271,7 +262,8 @@ class TestK8s(object):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
         k8s_gke.deploy(app_spec)
-        expected_service = create_simple_http_service('testapp', 'LoadBalancer', loadbalancer_ip=SOME_RANDOM_IP)
+        expected_service = create_simple_http_service(
+            'testapp', 'LoadBalancer', lb_source_range=DEFAULT_SERVICE_WHITELIST_COPY, loadbalancer_ip=SOME_RANDOM_IP)
 
         assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
@@ -290,8 +282,7 @@ class TestK8s(object):
                 'selector': {'app': 'testapp'},
                 'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
-                "loadBalancerSourceRanges": [
-                ],
+                "loadBalancerSourceRanges": DEFAULT_SERVICE_WHITELIST_COPY,
                 'ports': [
                     {
                         'protocol': 'TCP',
@@ -344,16 +335,7 @@ class TestK8s(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': [],
-                            'env': [
-                                {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
-                                {'name': 'LOG_STDOUT', 'value': 'true'},
-                                {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes,dev,kubernetes-dev'},
-                                {'name': 'FIAAS_INFRASTRUCTURE', 'value': 'gke'},
-                                {'name': 'LOG_FORMAT', 'value': 'json'},
-                                {'name': 'FINN_ENV', 'value': 'dev'},
-                                {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
-                                {'name': 'VERSION', 'value': 'version'}
-                            ],
+                            'env': create_environment_variables('gke'),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
@@ -391,10 +373,8 @@ class TestK8s(object):
                 'selector': {'app': 'testapp'},
                 'loadBalancerIP': SOME_RANDOM_IP,
                 'type': 'LoadBalancer',
-                "loadBalancerSourceRanges": [
-                    WHITELIST_IP_DETAILED,
-                    WHITELIST_IP_UNDETAILED
-                ],
+                "loadBalancerSourceRanges":
+                    [WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED] + DEFAULT_SERVICE_WHITELIST_COPY,
                 'ports': [
                     {
                         'protocol': 'TCP',
@@ -426,7 +406,10 @@ class TestK8s(object):
         k8s_gke.deploy(app_spec)
 
         expected_service = create_simple_http_service(
-            'testapp', 'LoadBalancer', lb_source_range=[WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED], loadbalancer_ip=SOME_RANDOM_IP)
+            'testapp',
+            'LoadBalancer',
+            lb_source_range=[WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED] + DEFAULT_SERVICE_WHITELIST_COPY,
+            loadbalancer_ip=SOME_RANDOM_IP)
 
         assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
@@ -484,12 +467,10 @@ def create_simple_http_service(app_name, type, lb_source_range=[], loadbalancer_
 
 
 def create_metadata(resource_name, app_name=None, namespace='default', annotations=False):
-    if app_name is None:
-        app_name = resource_name
     metadata = {
         'labels': {
             'fiaas/version': 'version',
-            'app': app_name,
+            'app': app_name if app_name else resource_name,
             'fiaas/deployed_by': '1'
         },
         'namespace': namespace,
@@ -502,3 +483,16 @@ def create_metadata(resource_name, app_name=None, namespace='default', annotatio
             'prometheus.io/scrape': 'true'
         }
     return metadata
+
+
+def create_environment_variables(infrastructure, appname='testapp'):
+    return [
+        {'name': 'ARTIFACT_NAME', 'value': appname},
+        {'name': 'LOG_STDOUT', 'value': 'true'},
+        {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes,dev,kubernetes-dev'},
+        {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
+        {'name': 'LOG_FORMAT', 'value': 'json'},
+        {'name': 'FINN_ENV', 'value': 'dev'},
+        {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
+        {'name': 'VERSION', 'value': 'version'}
+    ]

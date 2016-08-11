@@ -26,6 +26,8 @@ INGRESS_SUFFIX = {
 INFRASTRUCTURE_GKE = "gke"
 INFRASTRUCTURE_DIY = "diy"
 
+DEFAULT_SERVICE_WHITELIST = ['80.91.33.141/32', '80.91.33.151/32', '80.91.33.147/32']
+
 CLUSTER_ENV_MAPPING = {
     "prod1": "prod"
 }
@@ -93,6 +95,8 @@ class K8s(object):
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
         lb_source_ranges = self._make_loadbalancer_source_ranges(app_spec)
+        # add default whitelist to ensure loadBalancer firewall is not 0.0.0.0/0
+        lb_source_ranges += DEFAULT_SERVICE_WHITELIST
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
         spec = ServiceSpec(selector=selector, ports=ports,
                            loadBalancerIP=ip, type="LoadBalancer", loadBalancerSourceRanges=lb_source_ranges)

@@ -76,7 +76,7 @@ class TestService(object):
         }
         get.return_value = mock_response
 
-        metadata = ObjectMeta(namespace=SERVICE_NAMESPACE, labels={"app": "test"})
+        metadata = ObjectMeta(name=SERVICE_NAME, namespace=SERVICE_NAMESPACE, labels={"app": "test"})
         port = ServicePort(name="my-port", port=80, targetPort="name")
         spec = ServiceSpec(ports=[port])
 

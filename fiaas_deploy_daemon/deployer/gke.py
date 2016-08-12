@@ -5,6 +5,7 @@ from oauth2client.client import GoogleCredentials
 from six.moves import http_client
 import time
 import os
+import configargparse
 
 GCE_PROJECT_ID = "fiaas-gke"
 GCE_REGION = "europe-west1"
@@ -139,3 +140,16 @@ class Gke(object):
                 return result
             else:
                 time.sleep(1)
+
+
+if __name__ == '__main__':
+    parser = configargparse.ArgParser()
+    parser.add_argument('--env', help="the environment (dev|ci|prod)", default=None)
+    parser.add_argument('--app', help="name of the app, will be the first part of the dns entry", default=None)
+
+    options = parser.parse_args()
+
+    gke = Gke(options.env)
+    ip = gke.get_or_create_static_ip(options.app)
+    gke.get_or_create_dns(options.app, ip)
+    print ip

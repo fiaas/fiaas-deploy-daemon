@@ -1,11 +1,10 @@
-import logging
-
 from googleapiclient import discovery
 from googleapiclient.errors import HttpError
 from oauth2client.client import GoogleCredentials
 from six.moves import http_client
 import time
 import os
+import sys
 import configargparse
 
 GCE_PROJECT_ID = "fiaas-gke"
@@ -153,8 +152,9 @@ class Gke(object):
         gke = Gke(options.env)
         ip = gke.get_or_create_static_ip(options.app)
         gke.get_or_create_dns(options.app, ip)
-        logging.basicConfig(format='%(message)s', level=logging.INFO)
-        logging.info("%s", ip)
+        return ip
 
 if __name__ == '__main__':
-    Gke.create_dns_with_static_ip()
+    ip = Gke.create_dns_with_static_ip()
+    sys.stdout.write(ip)
+    sys.exit(os.EX_OK)

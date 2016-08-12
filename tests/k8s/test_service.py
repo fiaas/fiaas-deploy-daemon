@@ -47,7 +47,7 @@ class TestService(object):
     @mock.patch('k8s.client.Client.get')
     @mock.patch('k8s.client.Client.put')
     def test_get_or_create_service_not_new(self, put, get):
-        # service = create_default_service()
+        service = create_default_service()
 
         mock_response = mock.Mock()
         mock_response.json.return_value = {
@@ -83,11 +83,9 @@ class TestService(object):
         from_api = Service.get_or_create(metadata=metadata, spec=spec)
         assert not from_api._new
         assert from_api.metadata.labels
-        #       comment in tests after MetaData-object has gotten name-fix which makes it obligatory.
-        #       assert from_api.metadata.name == service.metadata.name
+        assert from_api.metadata.name == service.metadata.name
         from_api.save()
-
-    #       assert_any_call_with_useful_error_message(put, services_uri + service_name, from_api.as_dict())
+        assert_any_call_with_useful_error_message(put, SERVICES_URI + SERVICE_NAME, from_api.as_dict())
 
     @mock.patch('k8s.client.Client.delete')
     def test_service_deleted(self, delete):

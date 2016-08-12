@@ -61,7 +61,8 @@ setup(
         # Entrypoints
         entry_points={
             "console_scripts": [
-                "fiaas-deploy-daemon = fiaas_deploy_daemon:main"
+                "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
+                "create-dns-with-static-ip = fiaas_deploy_daemon.deployer.gke:create_dns_with_static_ip"
             ]
         }
 )

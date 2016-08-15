@@ -32,8 +32,7 @@ class Configuration(Namespace):
                             choices=self.VALID_LOG_FORMAT, default="plain")
         parser.add_argument("--target-cluster", help="Logical name of cluster to deploy to",
                             env_var="FINN_ENV", default="")
-        parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
-                            env_var="HTTP_PROXY", default="http://puppetproxy.finntech.no:42042")
+        parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts", env_var="HTTP_PROXY")
         parser.add_argument("--no-proxy", help="Disable the use of a proxy",
                             action="store_true")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
@@ -62,6 +61,8 @@ class Configuration(Namespace):
     def _resolve_proxy(self):
         if self.no_proxy:
             self.proxy = ""
+        elif not self.proxy:
+            self.proxy = "http://puppetproxy.finntech.no:42042" if self.infrastructure == "diy" else "http://puppetproxy.zt.finn.no:42042"
 
     def has_service(self, service):
         try:

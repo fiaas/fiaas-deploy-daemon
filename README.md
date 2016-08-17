@@ -7,6 +7,12 @@ When you first run gradle, it will install `pew`, and use it to create a virtual
 named 'fiaas-deploy-daemon'. If you wish, you can install pew and/or create the
 virtualenv before you run gradle, in which case gradle will use the ones you provide.
 
+On OSX there may be some problems with pew and you get something like "Python locale error: unsupported locale setting"
+Setting the following solved this for us 
+
+`export LC_ALL=$LANG`
+
+
 Supported use-cases
 -------------------
 

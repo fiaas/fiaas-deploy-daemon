@@ -106,7 +106,7 @@ class TestConsumer(object):
         self.mock_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(self.consumer._config, "infrastructure", "gke")
 
-        with pytest.raises(consumer.NotWhiteListeApplicationException):
+        with pytest.raises(consumer.NotWhiteListedApplicationException):
             self.consumer()
 
     def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch):

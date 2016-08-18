@@ -16,8 +16,8 @@ from ..base_thread import DaemonThread
 
 
 ENV_PATTERN = re.compile("^(.+?)\d*$")
-GKE_PROD_WHITELIST = ['travel-lms-integration', "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
-                      "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud"]
+GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
+                      "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon"]
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 
 
@@ -56,7 +56,7 @@ class Consumer(DaemonThread):
                     if self._config.target_cluster == "prod" \
                             and self._config.infrastructure == "gke" \
                             and app_spec.name not in GKE_PROD_WHITELIST:
-                        raise NotWhiteListeApplicationException(
+                        raise NotWhiteListedApplicationException(
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
 
                     self._deploy_queue.put(app_spec)
@@ -114,5 +114,5 @@ class NoFiaasArtifactException(Exception):
     pass
 
 
-class NotWhiteListeApplicationException(Exception):
+class NotWhiteListedApplicationException(Exception):
     pass

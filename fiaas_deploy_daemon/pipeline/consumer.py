@@ -52,9 +52,7 @@ class Consumer(DaemonThread):
             self._logger.debug("Got event: %r", event)
             if event[u"environment"] == self._environment:
                 try:
-                    print event
                     app_spec = self._create_spec(event)
-                    print app_spec
                     if self._config.target_cluster == "prod" \
                             and self._config.infrastructure == "gke" \
                             and app_spec.name not in GKE_PROD_WHITELIST:

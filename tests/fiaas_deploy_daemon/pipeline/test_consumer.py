@@ -33,6 +33,7 @@ EVENT = {
 }
 MESSAGE = DummyMessage(json.dumps(EVENT))
 APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', None, 1, None, None, None)
+APP_SPEC_TRAVEL = models.AppSpec(None, u"travel", u'finntech/tp-api:1452002819', None, 1, None, None, None)
 
 
 class TestConsumer(object):
@@ -101,6 +102,25 @@ class TestConsumer(object):
 
         self.mock_reporter.register.assert_called_with(APP_SPEC.image, EVENT[u"callback_url"])
 
+    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch):
+        self.mock_consumer.__iter__.return_value = [MESSAGE]
+        monkeypatch.setattr(self.consumer._config, "infrastructure", "gke")
+
+        with pytest.raises(consumer.NotWhiteListeApplicationException):
+            self.consumer()
+
+    def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch):
+
+        self.mock_consumer.__iter__.return_value = [MESSAGE]
+
+        monkeypatch.setattr(self.consumer._config, "infrastructure", "gke")
+        self.mock_factory.return_value = APP_SPEC_TRAVEL
+
+        self.consumer()
+
+        app_spec = self.deploy_queue.get_nowait()
+        assert app_spec is APP_SPEC_TRAVEL
+
     @pytest.mark.parametrize("target_cluster", ("prod", "prod1", "prod2", "prod999"))
     def test_set_correct_environment(self, target_cluster):
         config = _FakeConfig(cluster=target_cluster)
@@ -110,8 +130,9 @@ class TestConsumer(object):
 
 
 class _FakeConfig(object):
-    def __init__(self, cluster="prod"):
+    def __init__(self, cluster="prod", infrastructure="diy"):
         self.target_cluster = cluster
+        self.infrastructure = infrastructure
 
     def resolve_service(self, service):
         raise config.InvalidConfigurationException("FakeConfig")

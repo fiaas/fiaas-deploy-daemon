@@ -1,4 +1,4 @@
-from fiaas_deploy_daemon.specs.models import AppSpec, ServiceSpec, ProbeSpec, ResourceRequirementSpec, ResourcesSpec
+from fiaas_deploy_daemon.specs.models import AppSpec, ServiceSpec, ProbeSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec
 from fiaas_deploy_daemon.deployer.kubernetes import K8s
 from k8s.client import NotFound
 
@@ -19,7 +19,7 @@ INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 def test_make_selector():
     name = 'app-name'
     app_spec = AppSpec(namespace=None, name=name, image=None, services=None, replicas=None, resources=None,
-                       admin_access=None, has_secrets=None)
+                       admin_access=None, has_secrets=None, prometheus=None)
     assert K8s._make_selector(app_spec) == {'app': name}
 
 
@@ -60,7 +60,8 @@ class TestK8s(object):
                        namespace="default",
                        services=[create_simple_http_service_spec()],
                        has_secrets=False,
-                       resources=create_empty_resource_spec())
+                       resources=create_empty_resource_spec(),
+                       prometheus=None)
 
     @pytest.fixture
     def app_spec_thrift_and_http(self):
@@ -84,7 +85,8 @@ class TestK8s(object):
                             type="thrift")
             ],
             has_secrets=False,
-            resources=create_empty_resource_spec())
+            resources=create_empty_resource_spec(),
+            prometheus=None)
 
     def test_make_loadbalancer_source_ranges(self, app_spec_thrift_and_http):
         assert_lb_sourceranges_output(app_spec_thrift_and_http, [])
@@ -247,6 +249,60 @@ class TestK8s(object):
                         }]
                     },
                     'metadata': create_metadata('testapp', annotations=True)
+                },
+                'replicas': 3
+            },
+            'strategy': 'RollingUpdate'
+        }
+        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    def test_deploy_new_deployment_without_prometheus_scraping(self, get, post, k8s_diy, app_spec):
+        get.side_effect = NotFound()
+
+        app_spec.prometheus = PrometheusSpec(False)
+        k8s_diy.deploy(app_spec)
+
+        expected_deployment = {
+            'metadata': create_metadata('testapp'),
+            'spec': {
+                'selector': {'matchLabels': {'app': 'testapp'}},
+                'template': {
+                    'spec': {
+                        'dnsPolicy': 'ClusterFirst',
+                        'serviceAccountName': 'fiaas-no-access',
+                        'restartPolicy': 'Always',
+                        'volumes': [],
+                        'imagePullSecrets': [],
+                        'containers': [{
+                            'livenessProbe': {
+                                'initialDelaySeconds': 60,
+                                'httpGet': {
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
+                                    'scheme': 'HTTP',
+                                    'port': 8080}
+                            },
+                            'name': 'testapp',
+                            'image': 'finntech/testimage:version',
+                            'volumeMounts': [],
+                            'env': create_environment_variables('diy'),
+                            'imagePullPolicy': 'IfNotPresent',
+                            'readinessProbe': {
+                                'initialDelaySeconds': 60,
+                                'httpGet': {
+                                    'path': ProbeSpec(name='8080', type='http',
+                                                      path='/internal-backstage/health/services'),
+                                    'scheme': 'HTTP',
+                                    'port': 8080
+                                }
+                            },
+                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http8080'}],
+                            'resources': {}
+                        }]
+                    },
+                    'metadata': create_metadata('testapp', annotations=False)
                 },
                 'replicas': 3
             },

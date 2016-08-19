@@ -175,3 +175,12 @@ class TestFactory(object):
     def test_no_namespace(self, factory, filename, namespace):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
         assert app_spec.namespace == "default"
+
+    @pytest.mark.parametrize("filename,value",  [
+        ("default_service", True),
+        ("prometheus_disabled", False),
+        ("prometheus_enabled", True),
+    ])
+    def test_prometheus_enabled(self, factory, filename, value):
+        app_spec = factory(NAME, IMAGE, self._make_url(filename))
+        assert app_spec.prometheus.enabled == value

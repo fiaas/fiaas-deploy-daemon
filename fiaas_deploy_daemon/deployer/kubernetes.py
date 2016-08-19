@@ -156,7 +156,10 @@ class K8s(object):
         pod_spec = PodSpec(containers=[container],
                            volumes=secrets_volumes,
                            serviceAccountName=service_account_name)
-        prom_annotations = self._make_prometheus_annotations(main_service)
+
+        prom_annotations = self._make_prometheus_annotations(main_service) \
+            if not app_spec.prometheus or app_spec.prometheus.enabled else None
+
         pod_labels = self._add_status_label(labels)
         selector_labels = self._add_status_label(self._make_selector(app_spec))
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels, annotations=prom_annotations)

@@ -3,6 +3,8 @@ namespace: "default" # the namespace to use
 admin_access: null # What access the pod has to the k8s api server
 has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
 replicas: 1 # The number of instances to run.
+prometheus:
+  enabled: true # if false the pod will not be scraped for metrics by prometheus
 resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
   limits:
     memory: null # app will be killed if exceeding these limits

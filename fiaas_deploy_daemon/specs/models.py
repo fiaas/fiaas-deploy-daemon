@@ -17,7 +17,7 @@ ProbeSpec = namedtuple("ProbeSpec", ["name", "type", "path"])
 class AppSpec(BaseSpec):
     """Specify the necessary details for deploying an app"""
 
-    def __init__(self, namespace, name, image, services, replicas, resources, admin_access, has_secrets):
+    def __init__(self, namespace, name, image, services, replicas, resources, admin_access, has_secrets, prometheus):
         """
         :param namespace: Name space of application
         :param name: Name of application
@@ -38,6 +38,7 @@ class AppSpec(BaseSpec):
         self.resources = resources
         self.admin_access = admin_access
         self.has_secrets = has_secrets
+        self.prometheus = prometheus
 
     @property
     def version(self):
@@ -84,3 +85,10 @@ class ResourcesSpec(BaseSpec):
     def __init__(self, limits=None, requests=None):
         self.limits = limits
         self.requests = requests
+
+
+class PrometheusSpec(BaseSpec):
+    "Specify if  the pod should be scraped by prometheus"
+
+    def __init__(self, enabled=None):
+        self.enabled = enabled

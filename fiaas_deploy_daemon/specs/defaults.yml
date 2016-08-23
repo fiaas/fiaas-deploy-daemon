@@ -1,7 +1,7 @@
 ---
 namespace: "default" # the namespace to use
 admin_access: null # What access the pod has to the k8s api server
-has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
+has_secrets: false # if true, the application will get secrets as defined for the application on ops1 and exported to kubernetes
 replicas: 1 # The number of instances to run.
 prometheus:
   enabled: true # if false the pod will not be scraped for metrics by prometheus

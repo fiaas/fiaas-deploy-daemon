@@ -1,0 +1,55 @@
+---
+namespace: "default" # the namespace to use
+admin_access: null # What access the pod has to the k8s api server
+has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
+replicas: 2 # The number of instances to run.
+host: # External hostname to be exposed on
+prometheus:
+  enabled: true # if false the pod will not be scraped for metrics by prometheus
+  port: http # Name of HTTP port prometheus is served on
+  path: /internal-backstage/prometheus # Path to prometheus-metrics
+resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
+  limits:
+    memory: null # app will be killed if exceeding these limits
+    cpu: null # app will have its cpu usage throttled if exceeding this limit
+  requests: # app will be scheduled on nodes with at least this amount resources available
+    memory: null # for java apps set this to -xmx * 1.1
+    cpu: null #
+ports: # A list of ports the application listens on
+  - protocol: http # [http|tcp]
+    name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)
+    port: 80 # port number that will be exposed. For protocol=tcp, the available port range is (1024-32767).
+    target_port: 80 # the port number which is exposed by the container and should receive traffic routed to `port`
+    path: / # only valid for protocol=http
+healthchecks:
+  liveness:
+    # Valid configuration requires exactly one of execute|http|tcp
+    execute:
+      command: # Command to execute.
+    http:
+      path: / # Path to GET
+      port: 80 # port to connect to on the container. Must either be port number or name
+      http_headers: # optional http headers (free form map)
+    tcp:
+      port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
+    # these fields should have a default setting that ensures that we don't need to explicitly specify them most of the time
+    initial_delay_seconds: 10 # optional.
+    period_seconds: 10 # optional
+    success_threshold: 1 # optional
+    timeout_seconds: 1 # optional
+  readiness:
+    # Valid configuration requires exactly one of execute|http|tcp
+    execute:
+      command: # Command to execute.
+    http:
+      path: / # Path to GET
+      port: 80 # port to connect to on the container. Must either be port number or name
+      http_headers: # optional http headers
+      - name: # header name
+        value: # header value
+    tcp:
+      port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
+    initial_delay_seconds: 10 # optional
+    period_seconds: 10 # optional
+    success_threshold: 1 # optional
+    timeout_seconds: 1 # optional

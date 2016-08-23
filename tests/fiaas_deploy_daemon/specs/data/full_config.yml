@@ -10,7 +10,7 @@ resources:
     cpu: 2
     memory: 2
 services:
-  - type: https
+  - type: http
     exposed_port: 5000
     service_port: 8080
     ingress: /ingress

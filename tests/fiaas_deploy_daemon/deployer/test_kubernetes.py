@@ -1,9 +1,8 @@
-from fiaas_deploy_daemon.specs.models import AppSpec, ServiceSpec, ProbeSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec
-from fiaas_deploy_daemon.deployer.kubernetes import K8s
-from k8s.client import NotFound
-
 import mock
 import pytest
+from fiaas_deploy_daemon.deployer.kubernetes import K8s
+from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec
+from k8s.client import NotFound
 from util import assert_any_call_with_useful_error_message
 
 SOME_RANDOM_IP = '192.0.2.0'
@@ -18,8 +17,8 @@ INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
 def test_make_selector():
     name = 'app-name'
-    app_spec = AppSpec(namespace=None, name=name, image=None, services=None, replicas=None, resources=None,
-                       admin_access=None, has_secrets=None, prometheus=None)
+    app_spec = AppSpec(namespace=None, name=name, image=None, replicas=None, host=None, resources=None,
+                       admin_access=None, has_secrets=None, prometheus=None, ports=None, health_checks=None)
     assert K8s._make_selector(app_spec) == {'app': name}
 
 
@@ -32,7 +31,6 @@ def test_resolve_finn_env_cluster_match():
 
 
 class TestK8s(object):
-
     @pytest.fixture
     def k8s_diy(self):
         # Configuration.__init__ interrogates the environment and filesystem, and we don't care about that, so use a mock
@@ -58,8 +56,8 @@ class TestK8s(object):
                        replicas=3,
                        image="finntech/testimage:version",
                        namespace="default",
-                       services=[create_simple_http_service_spec()],
                        has_secrets=False,
+                       host=None,
                        resources=create_empty_resource_spec(),
                        prometheus=None)
 
@@ -71,20 +69,8 @@ class TestK8s(object):
             replicas=3,
             image="finntech/testimage:version",
             namespace="default",
-            services=[
-                create_simple_http_service_spec(),
-                ServiceSpec(readiness=ProbeSpec(name="7999",
-                                                type='thrift',
-                                                path="/"),
-                            exposed_port=7999,
-                            probe_delay=60,
-                            service_port=7999,
-                            liveness=ProbeSpec(name="7999",
-                                               type='thrift',
-                                               path="/"),
-                            type="thrift")
-            ],
             has_secrets=False,
+            host=None,
             resources=create_empty_resource_spec(),
             prometheus=None)
 
@@ -225,8 +211,7 @@ class TestK8s(object):
                             'livenessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080}
                             },
@@ -238,8 +223,7 @@ class TestK8s(object):
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080
                                 }
@@ -279,8 +263,7 @@ class TestK8s(object):
                             'livenessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080}
                             },
@@ -292,8 +275,7 @@ class TestK8s(object):
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080
                                 }
@@ -383,8 +365,7 @@ class TestK8s(object):
                             'livenessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080}
                             },
@@ -396,8 +377,7 @@ class TestK8s(object):
                             'readinessProbe': {
                                 'initialDelaySeconds': 60,
                                 'httpGet': {
-                                    'path': ProbeSpec(name='8080', type='http',
-                                                      path='/internal-backstage/health/services'),
+                                    'path': '/internal-backstage/health/services',
                                     'scheme': 'HTTP',
                                     'port': 8080
                                 }
@@ -478,20 +458,6 @@ def assert_lb_sourceranges_output(app_spec, expected_output_array):
         assert len(source_ranges_array) is len(expected_output_array)
     else:
         assert source_ranges_array == expected_output_array
-
-
-def create_simple_http_service_spec():
-    return ServiceSpec(readiness=ProbeSpec(name="8080",
-                                           type='http',
-                                           path='/internal-backstage/health/services'),
-                       ingress="/",
-                       exposed_port=8080,
-                       probe_delay=60,
-                       service_port=80,
-                       liveness=ProbeSpec(name="8080",
-                                          type='http',
-                                          path='/internal-backstage/health/services'),
-                       type="http")
 
 
 def create_empty_resource_spec():

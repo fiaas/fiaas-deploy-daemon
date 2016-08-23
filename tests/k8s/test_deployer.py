@@ -4,10 +4,9 @@
 from pprint import pformat
 
 import pytest
-
 from k8s.models.common import ObjectMeta
-from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction
 from k8s.models.deployment import Deployment, DeploymentSpec, LabelsSelector, PodTemplateSpec, PodSpec
+from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction
 from util import get_vcr
 
 vcr = get_vcr(__file__)

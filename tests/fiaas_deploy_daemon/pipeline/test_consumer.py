@@ -32,8 +32,8 @@ EVENT = {
     u'user': u'fikameva'
 }
 MESSAGE = DummyMessage(json.dumps(EVENT))
-APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', None, 1, None, None, None, None)
-APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', None, 1, None, None, None, None)
+APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
+APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
 
 
 class TestConsumer(object):

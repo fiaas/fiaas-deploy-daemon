@@ -4,7 +4,6 @@
 from pprint import pformat
 
 import pytest
-
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, IngressBackend, HTTPIngressPath, HTTPIngressRuleValue
 from util import get_vcr

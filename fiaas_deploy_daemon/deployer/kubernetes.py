@@ -266,3 +266,9 @@ class K8s(object):
             return CLUSTER_ENV_MAPPING[target_cluster]
         else:
             return target_cluster
+
+    @staticmethod
+    def _app_version(app_spec):
+        if ":" not in app_spec.image:
+            return "<unknown>"
+        return app_spec.image.split(":")[-1]

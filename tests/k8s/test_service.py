@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import pytest
 import mock
-
+import pytest
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.service import Service, ServicePort, ServiceSpec
-from k8s.client import NotFound
 from util import assert_any_call_with_useful_error_message
 
 SERVICE_NAMESPACE = 'my-namespace'

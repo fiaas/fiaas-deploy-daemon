@@ -4,7 +4,6 @@
 from pprint import pformat
 
 import pytest
-
 from k8s.models.common import ObjectMeta
 from k8s.models.pod import Pod, ContainerPort, Container, LocalObjectReference, PodSpec, Volume, VolumeMount, SecretVolumeSource
 from util import get_vcr

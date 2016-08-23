@@ -2,10 +2,10 @@
 # -*- coding: utf-8
 import os
 import pytest
+from fiaas_deploy_daemon.specs.factory import SpecFactory
+from fiaas_deploy_daemon.specs.v1 import Factory
 from requests import Session, HTTPError
 from requests_file import FileAdapter
-
-from fiaas_deploy_daemon.specs.factory import SpecFactory
 
 IMAGE = u"finntech/docker-image:some-version"
 NAME = u"application-name"
@@ -20,12 +20,12 @@ class TestFactory(object):
 
     @pytest.fixture()
     def factory(self, session):
-        return SpecFactory(session)
+        return SpecFactory(session, {1: Factory()})
 
     @staticmethod
     def _make_url(filename):
         test_dir = os.path.abspath(os.path.dirname(__file__))
-        path = os.path.join(test_dir, "data", filename)
+        path = os.path.join(test_dir, "..", "data", filename)
         return "file://{}.yml".format(path)
 
     def test_failed_request_raises_exception(self, factory):
@@ -87,9 +87,9 @@ class TestFactory(object):
     ])
     def test_service_ports(self, factory, filename, exposed_port, service_port):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        service_spec = app_spec.services[0]
-        assert service_spec.exposed_port == exposed_port
-        assert service_spec.service_port == service_port
+        port_spec = app_spec.ports[0]
+        assert port_spec.target_port == exposed_port
+        assert port_spec.port == service_port
 
     @pytest.mark.parametrize("filename,ingress,readiness,liveness", [
         ("default_service", u"/", u"/", u"/"),
@@ -101,33 +101,34 @@ class TestFactory(object):
     ])
     def test_service_paths(self, factory, filename, ingress, readiness, liveness):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        service_spec = app_spec.services[0]
-        assert service_spec.ingress == ingress
-        assert service_spec.readiness.path == readiness
-        assert service_spec.liveness.path == liveness
+        port_spec = app_spec.ports[0]
+        assert port_spec.path == ingress
+        assert app_spec.health_checks.readiness.http.path == readiness
+        assert app_spec.health_checks.liveness.http.path == liveness
 
-    @pytest.mark.parametrize("filename,typ,probe_delay", [
+    @pytest.mark.parametrize("filename,protocol,probe_delay", [
         ("default_service", u"http", 10),
-        ("full_config", u"https", 100),
-        ("old_service", u"https", 100),
+        ("full_config", u"http", 100),
+        ("old_service", u"http", 100),
     ])
-    def test_service_fields(self, factory, filename, typ, probe_delay):
+    def test_service_fields(self, factory, filename, protocol, probe_delay):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        service_spec = app_spec.services[0]
-        assert service_spec.type == typ
-        assert service_spec.probe_delay == probe_delay
+        port_spec = app_spec.ports[0]
+        assert port_spec.protocol == protocol
+        assert app_spec.health_checks.liveness.initial_delay_seconds == probe_delay
+        assert app_spec.health_checks.readiness.initial_delay_seconds == probe_delay
 
     @pytest.mark.parametrize("filename,protocols", [
         ("default_service", [u"http"]),
-        ("full_config", [u"https"]),
-        ("old_service", [u"https"]),
-        ("thrift_http_service", [u"thrift", u"http"]),
+        ("full_config", [u"http"]),
+        ("old_service", [u"http"]),
+        ("thrift_http_service", [u"tcp", u"http"]),
     ])
     def test_multi_service_proto(self, factory, filename, protocols):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        for i, service_spec in enumerate(app_spec.services):
+        for i, port_spec in enumerate(app_spec.ports):
             protocol = protocols[i]
-            assert service_spec.type == protocol
+            assert port_spec.protocol == protocol
 
     @pytest.mark.parametrize("filename,ports", [
         ("default_service", [80]),
@@ -137,9 +138,9 @@ class TestFactory(object):
     ])
     def test_multi_service_service_port(self, factory, filename, ports):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        for i, service_spec in enumerate(app_spec.services):
+        for i, port_spec in enumerate(app_spec.ports):
             port = ports[i]
-            assert service_spec.service_port == port
+            assert port_spec.port == port
 
     @pytest.mark.parametrize("filename,ports", [
         ("default_service", [80]),
@@ -149,9 +150,9 @@ class TestFactory(object):
     ])
     def test_multi_service_exposed_port(self, factory, filename, ports):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
-        for i, service_spec in enumerate(app_spec.services):
+        for i, port_spec in enumerate(app_spec.ports):
             port = ports[i]
-            assert service_spec.exposed_port == port
+            assert port_spec.target_port == port
 
     @pytest.mark.parametrize("filename,admin_access", [
         ("default_service", None),
@@ -176,7 +177,7 @@ class TestFactory(object):
         app_spec = factory(NAME, IMAGE, self._make_url(filename))
         assert app_spec.namespace == "default"
 
-    @pytest.mark.parametrize("filename,value",  [
+    @pytest.mark.parametrize("filename,value", [
         ("default_service", True),
         ("prometheus_disabled", False),
         ("prometheus_enabled", True),

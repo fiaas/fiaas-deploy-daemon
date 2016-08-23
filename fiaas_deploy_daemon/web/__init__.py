@@ -11,7 +11,7 @@ from flask import Flask, Blueprint, current_app, render_template, request, flash
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 from .forms import FiaasForm, ManualForm
-from ..specs.models import AppSpec, ServiceSpec
+from ..specs.models import AppSpec
 from ..specs.models import ResourcesSpec, ResourceRequirementSpec
 
 """Web app that provides metrics and other ways to inspect the action.
@@ -67,17 +67,11 @@ def manual():
     form = ManualForm(request.form)
     if form.validate_on_submit():
         app_spec = AppSpec(
+            "default",
             form.name.data,
             form.image.data,
-            [ServiceSpec(
-                form.exposed_port.data,
-                form.service_port.data,
-                form.type.data,
-                form.ingress.data,
-                form.readiness.data,
-                form.liveness.data
-            )],
             form.replicas.data,
+            None,
             ResourcesSpec(ResourceRequirementSpec(form.limits_cpu, form.limits_memory),
                           ResourceRequirementSpec(form.requests_cpu, form.requests_memory))
         )
@@ -101,7 +95,7 @@ def metrics():
 
 @web.route("/defaults")
 def defaults():
-    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs", "defaults.yml"))
+    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
     resp.mimetype = "text/vnd.yaml; charset=utf-8"
     return resp
 

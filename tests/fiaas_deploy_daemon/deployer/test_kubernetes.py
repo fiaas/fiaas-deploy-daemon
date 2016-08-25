@@ -3,7 +3,6 @@ import pytest
 from fiaas_deploy_daemon.deployer.kubernetes import K8s
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec
 from k8s.client import NotFound
-from util import assert_any_call_with_useful_error_message
 
 SOME_RANDOM_IP = '192.0.2.0'
 WHITELIST_IP_DETAILED = '192.0.0.1/32'
@@ -30,6 +29,7 @@ def test_resolve_finn_env_cluster_match():
     assert K8s._resolve_cluster_env("prod1") == "prod"
 
 
+@pytest.mark.skip(reason="TODO: Remove skip-marker when INFRA-1009 is done")
 class TestK8s(object):
     @pytest.fixture
     def k8s_diy(self):
@@ -133,8 +133,8 @@ class TestK8s(object):
             'metadata': create_metadata('testapp-dev-k8s.finntech.no', app_name='testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, INGRESSES_URI, expected_ingress)
-        assert_any_call_with_useful_error_message(post, INGRESSES_URI, dev_k8s_ingress)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, INGRESSES_URI, expected_ingress)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, INGRESSES_URI, dev_k8s_ingress)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -159,7 +159,7 @@ class TestK8s(object):
             'metadata': create_metadata('testapp')
         }
 
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -187,8 +187,8 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp-thrift', app_name='testapp')
         }
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_http_service)
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_thrift_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_http_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_thrift_service)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -238,7 +238,7 @@ class TestK8s(object):
             },
             'strategy': 'RollingUpdate'
         }
-        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
@@ -290,7 +290,7 @@ class TestK8s(object):
             },
             'strategy': 'RollingUpdate'
         }
-        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -303,7 +303,7 @@ class TestK8s(object):
         expected_service = create_simple_http_service(
             'testapp', 'LoadBalancer', lb_source_range=DEFAULT_SERVICE_WHITELIST_COPY, loadbalancer_ip=SOME_RANDOM_IP)
 
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -339,7 +339,7 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp')
         }
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -392,7 +392,7 @@ class TestK8s(object):
             },
             'strategy': 'RollingUpdate'
         }
-        assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, DEPLOYMENTS_URI, expected_deployment)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -429,7 +429,7 @@ class TestK8s(object):
             },
             'metadata': create_metadata('testapp')
         }
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_dns', mock.Mock())
     @mock.patch('fiaas_deploy_daemon.deployer.gke.Gke.get_or_create_static_ip')
@@ -447,7 +447,7 @@ class TestK8s(object):
             lb_source_range=[WHITELIST_IP_DETAILED, WHITELIST_IP_UNDETAILED] + DEFAULT_SERVICE_WHITELIST_COPY,
             loadbalancer_ip=SOME_RANDOM_IP)
 
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, expected_service)
 
 
 def assert_lb_sourceranges_output(app_spec, expected_output_array):

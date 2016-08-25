@@ -6,7 +6,6 @@ import pytest
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.service import Service, ServicePort, ServiceSpec
-from util import assert_any_call_with_useful_error_message
 
 SERVICE_NAMESPACE = 'my-namespace'
 SERVICE_NAME = 'my_name'
@@ -41,7 +40,7 @@ class TestService(object):
         service = create_default_service()
         service.save()
         assert service._new
-        assert_any_call_with_useful_error_message(post, SERVICES_URI, service.as_dict())
+        pytest.helpers.assert_any_call_with_useful_error_message(post, SERVICES_URI, service.as_dict())
 
     @mock.patch('k8s.client.Client.get')
     @mock.patch('k8s.client.Client.put')
@@ -84,14 +83,14 @@ class TestService(object):
         assert from_api.metadata.labels
         assert from_api.metadata.name == service.metadata.name
         from_api.save()
-        assert_any_call_with_useful_error_message(put, SERVICES_URI + SERVICE_NAME, from_api.as_dict())
+        pytest.helpers.assert_any_call_with_useful_error_message(put, SERVICES_URI + SERVICE_NAME, from_api.as_dict())
 
     @mock.patch('k8s.client.Client.delete')
     def test_service_deleted(self, delete):
         Service.delete(SERVICE_NAME, SERVICE_NAMESPACE)
 
         # call delete with service_name
-        assert_any_call_with_useful_error_message(delete, (SERVICES_URI + SERVICE_NAME))
+        pytest.helpers.assert_any_call_with_useful_error_message(delete, (SERVICES_URI + SERVICE_NAME))
 
 
 def create_default_service():

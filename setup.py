@@ -52,29 +52,29 @@ TESTS_REQ = [
 ]
 
 setup(
-        name="fiaas-deploy-daemon",
-        author="FINN Team Infrastructure",
-        author_email="FINN-TechteamInfrastruktur@finn.no",
-        version="1.0",
-        packages=find_packages(exclude=("tests",)),
-        zip_safe=True,
-        include_package_data=True,
+    name="fiaas-deploy-daemon",
+    author="FINN Team Infrastructure",
+    author_email="FINN-TechteamInfrastruktur@finn.no",
+    version="1.0",
+    packages=find_packages(exclude=("tests",)),
+    zip_safe=True,
+    include_package_data=True,
 
-        # Requirements
-        install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
-        setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
-        tests_require=TESTS_REQ,
+    # Requirements
+    install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
+    setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
+    tests_require=TESTS_REQ,
 
-        # Metadata
-        description="Deploy docker containers to kubernetes when notified by pipeline",
-        long_description=read("README.md"),
-        url="https://git.finn.no/projects/TOOL/repos/fiaas-deploy-daemon",
+    # Metadata
+    description="Deploy docker containers to kubernetes when notified by pipeline",
+    long_description=read("README.md"),
+    url="https://git.finn.no/projects/TOOL/repos/fiaas-deploy-daemon",
 
-        # Entrypoints
-        entry_points={
-            "console_scripts": [
-                "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
-                "create-dns-with-static-ip = fiaas_deploy_daemon.deployer.gke:create_dns_with_static_ip"
-            ]
-        }
+    # Entrypoints
+    entry_points={
+        "console_scripts": [
+            "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
+            "create-dns-with-static-ip = fiaas_deploy_daemon.deployer.gke:create_dns_with_static_ip"
+        ]
+    }
 )

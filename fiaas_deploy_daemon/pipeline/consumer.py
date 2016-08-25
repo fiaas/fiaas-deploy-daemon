@@ -53,8 +53,7 @@ class Consumer(DaemonThread):
             if event[u"environment"] == self._environment:
                 try:
                     app_spec = self._create_spec(event)
-                    if self._config.target_cluster == "prod" \
-                            and self._config.infrastructure == "gke" \
+                    if  self._config.infrastructure == "gke" \
                             and app_spec.name not in GKE_PROD_WHITELIST:
                         raise NotWhiteListedApplicationException(
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))

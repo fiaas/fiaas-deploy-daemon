@@ -1,0 +1,9 @@
+---
+version: 2
+healthchecks:
+  liveness:
+    execute:
+      command: liveness
+  readiness:
+    execute:
+      command: readiness

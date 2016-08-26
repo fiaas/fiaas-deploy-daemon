@@ -1,0 +1,8 @@
+---
+version: 2
+ports:
+  - protocol: http
+    name: main_port
+    port: 8080
+    target_port: 5000
+    path: /

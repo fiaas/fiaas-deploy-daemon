@@ -1,0 +1,9 @@
+---
+version: 2
+healthchecks:
+  liveness:
+    tcp:
+      port: 1111
+  readiness:
+    tcp:
+      port: 2222

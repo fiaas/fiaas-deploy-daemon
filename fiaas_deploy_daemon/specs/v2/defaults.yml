@@ -1,6 +1,7 @@
 ---
-namespace: "default" # the namespace to use
-admin_access: # What access the pod has to the k8s api server
+version: 2
+namespace: default # the namespace to use
+admin_access: false # What access the pod has to the k8s api server
 has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
 replicas: 2 # The number of instances to run.
 host: # External hostname to be exposed on
@@ -28,8 +29,8 @@ healthchecks:
       command: # Command to execute.
     http:
       path: / # Path to GET
-      port: 80 # port to connect to on the container. Must either be port number or name
-      http_headers: # optional http headers (free form map)
+      port: http # port to connect to on the container. Must either be port number or name
+      http_headers: {} # optional http headers (free form map)
     tcp:
       port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
     # these fields should have a default setting that ensures that we don't need to explicitly specify them most of the time
@@ -43,10 +44,8 @@ healthchecks:
       command: # Command to execute.
     http:
       path: / # Path to GET
-      port: 80 # port to connect to on the container. Must either be port number or name
-      http_headers: # optional http headers
-      - name: # header name
-        value: # header value
+      port: http # port to connect to on the container. Must either be port number or name
+      http_headers: {} # optional http headers
     tcp:
       port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
     initial_delay_seconds: 10 # Number of seconds after the container has started before readiness probes are initiated.

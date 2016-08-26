@@ -1,0 +1,12 @@
+---
+version: 2
+ports:
+  - protocol: http
+    name: main_port
+    port: 8080
+    target_port: 5000
+  - protocol: http
+    name: prom_port
+    port: 8081
+    target_port: 5001
+    path: /prometheus

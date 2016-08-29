@@ -29,28 +29,7 @@
 
 {{ block_header() }}
 <div class="line">
-    <div class="unit size1of2">
-        <h4>Deploy manually</h4>
-        <form method="post" action="{{ url_for('web.manual') }}">
-            <fieldset>
-                {{ render_field(manual.name) }}
-                {{ render_field(manual.image) }}
-                {{ render_field(manual.replicas) }}
-                {{ render_field(manual.type) }}
-                {{ render_field(manual.exposed_port) }}
-                {{ render_field(manual.service_port) }}
-                {{ render_field(manual.ingress) }}
-                {{ render_field(manual.readiness) }}
-                {{ render_field(manual.liveness) }}
-                <div class="formelement">
-                    <div class="fancyinput">
-                        <input type="submit" value="Deploy manually"/>
-                    </div>
-                </div>
-            </fieldset>
-        </form>
-    </div>
-    <div class="unit size1of2">
+    <div class="unit size1of1">
         <h4>Deploy from FIAAS-config</h4>
         <form method="post" action="{{ url_for('web.fiaas') }}">
             <fieldset>

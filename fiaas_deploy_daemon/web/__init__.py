@@ -10,22 +10,18 @@ from flask import Flask, Blueprint, current_app, render_template, request, flash
     request_started, request_finished, got_request_exception
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
-from .forms import FiaasForm, ManualForm
-from ..specs.models import AppSpec
-from ..specs.models import ResourcesSpec, ResourceRequirementSpec
+from .forms import DeployForm
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
 """
 
 web = Blueprint("web", __name__, template_folder="templates")
-manual_counter = Counter("web_manual_deploy", "Manual App deploy requested through web")
 fiaas_counter = Counter("web_fiaas_deploy", "Fiaas App deploy requested through web")
 
 request_histogram = Histogram("web_request_latency", "Request latency in seconds", ["page"])
 frontpage_histogram = request_histogram.labels("frontpage")
 fiaas_histogram = request_histogram.labels("fiaas")
-manual_histogram = request_histogram.labels("manual")
 metrics_histogram = request_histogram.labels("metrics")
 
 LOG = logging.getLogger(__name__)
@@ -34,18 +30,16 @@ LOG = logging.getLogger(__name__)
 @web.route("/")
 @frontpage_histogram.time()
 def frontpage():
-    fiaas = FiaasForm(request.form)
-    manual = ManualForm(request.form)
+    fiaas = DeployForm(request.form)
     return render_template("frontpage.html",
                            config=current_app.cfg,
-                           fiaas=fiaas,
-                           manual=manual)
+                           fiaas=fiaas)
 
 
 @web.route("/fiaas", methods=["POST"])
 @fiaas_histogram.time()
 def fiaas():
-    form = FiaasForm(request.form)
+    form = DeployForm(request.form)
     if form.validate_on_submit():
         app_spec = current_app.spec_factory(form.name.data, form.image.data, form.fiaas.data)
         current_app.deploy_queue.put(app_spec)
@@ -57,32 +51,7 @@ def fiaas():
         LOG.error("Invalid form data")
     return render_template("frontpage.html",
                            config=current_app.cfg,
-                           fiaas=form,
-                           manual=ManualForm(request.form))
-
-
-@web.route("/manual", methods=["POST"])
-@manual_histogram.time()
-def manual():
-    form = ManualForm(request.form)
-    if form.validate_on_submit():
-        app_spec = AppSpec(
-            "default",
-            form.name.data,
-            form.image.data,
-            form.replicas.data,
-            None,
-            ResourcesSpec(ResourceRequirementSpec(form.limits_cpu, form.limits_memory),
-                          ResourceRequirementSpec(form.requests_cpu, form.requests_memory))
-        )
-        current_app.deploy_queue.put(app_spec)
-        flash("Deployment request sent...")
-        manual_counter.inc()
-        return redirect(url_for("web.frontpage"))
-    return render_template("frontpage.html",
-                           config=current_app.cfg,
-                           fiaas=FiaasForm(request.form),
-                           manual=form)
+                           fiaas=form)
 
 
 @web.route("/internal-backstage/prometheus")

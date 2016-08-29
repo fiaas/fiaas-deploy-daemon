@@ -29,7 +29,6 @@ def test_resolve_finn_env_cluster_match():
     assert K8s._resolve_cluster_env("prod1") == "prod"
 
 
-@pytest.mark.skip(reason="TODO: Remove skip-marker when INFRA-1009 is done")
 class TestK8s(object):
     @pytest.fixture
     def k8s_diy(self):

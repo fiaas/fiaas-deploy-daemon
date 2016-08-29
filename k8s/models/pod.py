@@ -48,9 +48,14 @@ class TCPSocketAction(Model):
     port = Field(six.text_type, alt_type=int)
 
 
+class ExecAction(Model):
+    command = Field(list)
+
+
 class Probe(Model):
     httpGet = Field(HTTPGetAction)
     tcpSocket = Field(TCPSocketAction)
+    # _exec = Field(ExecAction) # TODO: Fix _exec -> exec in Model.to/from_dict
     initialDelaySeconds = Field(int, 5)
     timeoutSeconds = Field(int)
     successThreshold = Field(int)

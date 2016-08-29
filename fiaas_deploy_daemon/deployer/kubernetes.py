@@ -2,17 +2,16 @@
 # -*- coding: utf-8
 
 import logging
-from itertools import chain
-
-from k8s import config as k8s_config
-from k8s.models.common import ObjectMeta
-from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
-from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, Probe, Container, PodSpec, \
-    VolumeMount, Volume, SecretVolumeSource, ResourceRequirements
-from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelsSelector
-from k8s.models.service import Service, ServicePort, ServiceSpec
+import shlex
 
 from gke import Gke
+from k8s import config as k8s_config
+from k8s.models.common import ObjectMeta
+from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelsSelector
+from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
+from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
+    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe
+from k8s.models.service import Service, ServicePort, ServiceSpec
 
 DEFAULT_NAMESPACE = "default"
 LOG = logging.getLogger(__name__)
@@ -25,8 +24,6 @@ INGRESS_SUFFIX = {
 }
 INFRASTRUCTURE_GKE = "gke"
 INFRASTRUCTURE_DIY = "diy"
-
-DEFAULT_SERVICE_WHITELIST = ['80.91.33.141/32', '80.91.33.151/32', '80.91.33.147/32']
 
 CLUSTER_ENV_MAPPING = {
     "prod1": "prod"
@@ -53,7 +50,7 @@ class K8s(object):
         self._env = {
             "FINN_ENV": _cluster_env,
             "FIAAS_INFRASTRUCTURE": config.infrastructure,
-            "CONSTRETTO_TAGS": ",".join(("kubernetes-" + _cluster_env, "kubernetes", _cluster_env)),
+            "CONSTRETTO_TAGS": ",".join(("kubernetes" + "-" + _cluster_env, "kubernetes", _cluster_env)),
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }
@@ -61,77 +58,34 @@ class K8s(object):
         self.gke = Gke(_cluster_env) if self.infrastructure == INFRASTRUCTURE_GKE else None
 
     def deploy(self, app_spec):
-        if self.infrastructure == INFRASTRUCTURE_GKE:
-            ip = self.gke.get_or_create_static_ip(app_spec.name)
-            self._deploy_loadbalancer_service(app_spec, ip)
-            self.gke.get_or_create_dns(app_spec.name, ip)
-
-        elif self.infrastructure == INFRASTRUCTURE_DIY:
-            self._deploy_services(app_spec)
-            self._deploy_ingress(app_spec)
-            # TODO: Remove this
-            # in dev: Deploy ingress for dev-k8s.finntech.no as well as for k8s.dev.finn.no while migrating off dev-k8s.finntech.no
-            if self.target_cluster == "dev":
-                old_ingress_suffix = 'dev-k8s.finntech.no'
-                self._deploy_ingress(app_spec, name='{}-{}'.format(app_spec.name, old_ingress_suffix),
-                                     host='{}.{}'.format(app_spec.name, old_ingress_suffix))
-        else:
-            raise ValueError("{} is not a valid infrastructure".format(self.infrastructure))
+        self._deploy_service(app_spec)
         self._deploy_deployment(app_spec)
+        self._deploy_ingress(app_spec)
 
-    def _deploy_services(self, app_spec):
-        LOG.info("Creating/updating services for %s", app_spec.name)
-
-        http_service_ports = \
-            [self._make_service_port(service) for service in app_spec.services if service.type == "http"]
-        if http_service_ports:
-            self._deploy_service(app_spec, "http", http_service_ports)
-
-        thrift_service_ports = \
-            [self._make_node_port(service) for service in app_spec.services if service.type == "thrift"]
-        if thrift_service_ports:
-            self._deploy_service(app_spec, "thrift", thrift_service_ports)
-
-    def _deploy_loadbalancer_service(self, app_spec, ip):
-        ports = [self._make_service_port(service) for service in app_spec.services]
-        selector = self._make_selector(app_spec)
-        labels = self._make_labels(app_spec)
-        lb_source_ranges = self._make_loadbalancer_source_ranges(app_spec)
-        # add default whitelist to ensure loadBalancer firewall is not 0.0.0.0/0
-        lb_source_ranges += DEFAULT_SERVICE_WHITELIST
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        spec = ServiceSpec(selector=selector, ports=ports,
-                           loadBalancerIP=ip, type="LoadBalancer", loadBalancerSourceRanges=lb_source_ranges)
-        svc = Service.get_or_create(metadata=metadata, spec=spec)
-        svc.save()
-
-    def _deploy_service(self, app_spec, protocol, ports):
+    def _deploy_service(self, app_spec):
+        LOG.info("Creating/updating service for %s", app_spec.name)
+        ports = [self._make_service_port(port_spec) for port_spec in app_spec.ports]
         selector = self._make_selector(app_spec)
         labels = self._make_labels(app_spec)
         service_name = app_spec.name
-
-        if protocol == "http":
-            service_type = "ClusterIP"
-        else:
-            service_name += "-" + protocol
-            service_type = "NodePort"
-
         metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels)
-        spec = ServiceSpec(selector=selector, ports=ports, type=service_type)
+        spec = ServiceSpec(selector=selector, ports=ports, type="ClusterIP")
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 
-    def _deploy_deployment(self, app_spec):
-        deployment = self._create_new_deployment(app_spec)
-        deployment.save()
+    @staticmethod
+    def _make_service_port(port_spec):
+        return ServicePort(
+            protocol='TCP',
+            name=port_spec.name,
+            port=port_spec.port,
+            targetPort=port_spec.target_port)
 
-    def _create_new_deployment(self, app_spec):
+    def _deploy_deployment(self, app_spec):
         LOG.info("Creating new deployment for %s", app_spec.name)
         labels = self._make_labels(app_spec)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        container_ports = [ContainerPort(name=service.name, containerPort=service.exposed_port) for service in app_spec.services]
-        main_service = app_spec.services[0]
-
+        container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in app_spec.ports]
         env = self._make_env(app_spec)
         env.append(EnvVar(name="IMAGE", value=app_spec.image))
         env.append(EnvVar(name="VERSION", value=app_spec.version))
@@ -144,8 +98,8 @@ class K8s(object):
                               image=app_spec.image,
                               ports=container_ports,
                               env=env,
-                              livenessProbe=self._make_probe(main_service.liveness, main_service.probe_delay),
-                              readinessProbe=self._make_probe(main_service.readiness, main_service.probe_delay),
+                              livenessProbe=self._make_probe(app_spec.health_checks.liveness),
+                              readinessProbe=self._make_probe(app_spec.health_checks.readiness),
                               imagePullPolicy=pull_policy,
                               volumeMounts=secrets_volume_mounts,
                               resources=self._make_resource_requirements(app_spec.resources))
@@ -159,8 +113,8 @@ class K8s(object):
                            volumes=secrets_volumes,
                            serviceAccountName=service_account_name)
 
-        prom_annotations = self._make_prometheus_annotations(main_service) \
-            if not app_spec.prometheus or app_spec.prometheus.enabled else None
+        prom_annotations = self._make_prometheus_annotations(app_spec.prometheus) \
+            if app_spec.prometheus and app_spec.prometheus.enabled else None
 
         pod_labels = self._add_status_label(labels)
         selector_labels = self._add_status_label(self._make_selector(app_spec))
@@ -168,8 +122,7 @@ class K8s(object):
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
         spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelsSelector(matchLabels=selector_labels), template=pod_template_spec)
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
-
-        return deployment
+        deployment.save()
 
     @staticmethod
     def _add_status_label(labels):
@@ -180,37 +133,36 @@ class K8s(object):
         return labels
 
     @staticmethod
-    def _make_prometheus_annotations(main_service):
+    def _make_prometheus_annotations(prometheus_spec):
         return {
-                "prometheus.io/scrape": "true",
-                "prometheus.io/port": str(main_service.exposed_port),
-                "prometheus.io/path": "/internal-backstage/prometheus"
-            }
+            "prometheus.io/scrape": str(prometheus_spec.enabled).lower(),
+            "prometheus.io/port": str(prometheus_spec.port),
+            "prometheus.io/path": prometheus_spec.path
+        }
 
-    def _deploy_ingress(self, app_spec, name=None, host=None):
-        name = app_spec.name if name is None else name
-        host = self._make_ingress_host(app_spec) if host is None else host
-
-        LOG.info("Creating/updating ingress for %s", name)
-        labels = self._make_labels(app_spec)
-        metadata = ObjectMeta(name=name, namespace=app_spec.namespace, labels=labels)
-        http_ingress_paths = [self._make_http_ingress_path(app_spec, service) for service in app_spec.services if service.type == "http"]
-        http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
-        ingress_rule = IngressRule(host=host, http=http_ingress_rule)
-        ingress_spec = IngressSpec(rules=[ingress_rule])
-        ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
-        ingress.save()
+    def _deploy_ingress(self, app_spec):
+        if app_spec.host:
+            LOG.info("Creating/updating ingress for %s", app_spec.name)
+            labels = self._make_labels(app_spec)
+            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
+            http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if
+                                  port_spec.protocol == u"http"]
+            http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
+            ingress_rule = IngressRule(host=self._make_ingress_host(app_spec.host), http=http_ingress_rule)
+            ingress_spec = IngressSpec(rules=[ingress_rule])
+            ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
+            ingress.save()
+            # TODO: Remove previously existing ingress if no host specified
 
     def _make_env(self, app_spec):
         env = self._env.copy()
         env["ARTIFACT_NAME"] = app_spec.name
-        if any(service.type == "thrift" for service in app_spec.services):
-            env["THRIFT_HTTP_PORT"] = "8080"
-
         return [EnvVar(name=name, value=value) for name, value in env.iteritems()]
 
-    def _make_ingress_host(self, app_spec):
-        return "{}.{}".format(app_spec.name, INGRESS_SUFFIX[self.target_cluster])
+    def _make_ingress_host(self, host):
+        if host == "www.finn.no":
+            return "{}.finn.no".format(self.target_cluster)
+        return "{}.{}".format(self.target_cluster, host)
 
     def _make_labels(self, app_spec):
         labels = {
@@ -225,40 +177,34 @@ class K8s(object):
         return {'app': app_spec.name}
 
     @staticmethod
-    def _make_loadbalancer_source_ranges(app_spec):
-        return list(chain.from_iterable(
-            (ip_range.strip() for ip_range in service.whitelist.split(",") if ip_range.strip())
-            for service in app_spec.services if service.whitelist))
-
-    @staticmethod
-    def _make_service_port(service):
-        return ServicePort(name=service.name, port=service.service_port, targetPort=service.exposed_port)
-
-    @staticmethod
-    def _make_node_port(service):
-        return ServicePort(name=service.name + "-thrift", port=service.service_port,
-                           nodePort=service.service_port, targetPort=service.exposed_port)
-
-    @staticmethod
-    def _make_http_ingress_path(app_spec, service):
-        backend = IngressBackend(serviceName=app_spec.name, servicePort=service.service_port)
-        http_ingress_path = HTTPIngressPath(path=service.ingress, backend=backend)
+    def _make_http_ingress_path(app_spec, port_spec):
+        backend = IngressBackend(serviceName=app_spec.name, servicePort=port_spec.port)
+        http_ingress_path = HTTPIngressPath(path=port_spec.path, backend=backend)
         return http_ingress_path
 
     @staticmethod
     def _make_resource_requirements(resources_spec):
         def as_dict(resource_requirement_spec):
             return {"cpu": resource_requirement_spec.cpu, "memory": resource_requirement_spec.memory}
+
         return ResourceRequirements(limits=as_dict(resources_spec.limits), requests=as_dict(resources_spec.requests))
 
     @staticmethod
-    def _make_probe(probe_spec, probe_delay):
-        if probe_spec.type == "http":
-            action = HTTPGetAction(port=probe_spec.name, path=probe_spec.path)
-            return Probe(httpGet=action, initialDelaySeconds=probe_delay)
+    def _make_probe(check_spec):
+        probe = Probe(initialDelaySeconds=check_spec.initial_delay_seconds, timeoutSeconds=check_spec.timeout_seconds,
+                      successThreshold=check_spec.success_threshold, periodSeconds=check_spec.period_seconds)
+        if check_spec.http:
+            probe.httpGet = HTTPGetAction(path=check_spec.http.path, port=check_spec.http.port,
+                                          httpHeaders=[HTTPHeader(name=name, value=value)
+                                                       for name, value in check_spec.http.http_headers.items()])
+        elif check_spec.tcp:
+            probe.tcpSocket = TCPSocketAction(port=check_spec.tcp.port)
+        elif check_spec.execute:  # TODO: Fix _exec -> exec in Model.to/from_dict
+            thing = ExecAction(command=shlex.split(check_spec.execute.command))  # noqa: F841
         else:
-            action = TCPSocketAction(port=probe_spec.name)
-            return Probe(tcpSocket=action, initialDelaySeconds=probe_delay)
+            raise RuntimeError("AppSpec must have exactly one healthcheck, none was defined.")
+
+        return probe
 
     @staticmethod
     def _resolve_cluster_env(target_cluster):

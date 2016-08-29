@@ -17,6 +17,8 @@ from k8s.models.service import Service
 NAME = "application-name"
 IMAGE = "finntech/application-name:123"
 
+# TODO: More variations (with/without host, all supported versions)
+
 
 def _has_minikube():
     try:
@@ -72,7 +74,7 @@ class TestE2E(object):
         httpd = subprocess.Popen(["python", "-m", "SimpleHTTPServer", str(port)],
                                  cwd=data_dir.strpath)
         time.sleep(1)
-        yield "http://127.0.0.1:{}/has_secrets.yml".format(port)
+        yield "http://localhost:{}/v2minimal.yml".format(port)
         self._end_popen(httpd)
 
     @staticmethod
@@ -90,14 +92,13 @@ class TestE2E(object):
 
     def test_post_to_web(self, fdd, fiaas_yml):
         data = {
-            "fiaas-name": NAME,
-            "fiaas-image": IMAGE,
-            "fiaas-fiaas": fiaas_yml
+            "name": NAME,
+            "image": IMAGE,
+            "fiaas": fiaas_yml
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()
 
         time.sleep(5)
         Service.get(NAME)
-        Ingress.get(NAME)
         Deployment.get(NAME)

@@ -53,6 +53,9 @@ class Probe(Model):
     tcpSocket = Field(TCPSocketAction)
     initialDelaySeconds = Field(int, 5)
     timeoutSeconds = Field(int)
+    successThreshold = Field(int)
+    failureThreshold = Field(int)
+    periodSeconds = Field(int)
 
 
 class Container(Model):

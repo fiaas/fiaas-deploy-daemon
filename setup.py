@@ -35,6 +35,7 @@ DEPLOY_REQ = [
 
 FLAKE8_REQ = [
     'flake8-print',
+    'flake8-comprehensions',
     'pep8-naming',
     'flake8'
 ]

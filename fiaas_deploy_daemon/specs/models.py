@@ -3,18 +3,25 @@
 
 from collections import namedtuple
 
-AppSpec = namedtuple("AppSpec", [
-    "namespace",
-    "name",
-    "image",
-    "replicas",
-    "host",
-    "resources",
-    "admin_access",
-    "has_secrets",
-    "prometheus",
-    "ports",
-    "health_checks"])
+
+class AppSpec(namedtuple("AppSpec", [
+        "namespace",
+        "name",
+        "image",
+        "replicas",
+        "host",
+        "resources",
+        "admin_access",
+        "has_secrets",
+        "prometheus",
+        "ports",
+        "health_checks"])):
+
+    __slots__ = ()
+
+    @property
+    def version(self):
+        return self.image.split(":")[-1] if ":" in self.image else "<unknown>"
 
 ResourceRequirementSpec = namedtuple("ResourceRequirementSpec", [
     "cpu",

@@ -62,7 +62,7 @@ class Factory(object):
         http_check = tcp_check = None
         if protocol == u"http":
             path = self._get_service(check_type, service_config)
-            http_check = HttpCheckSpec(path, port, None)
+            http_check = HttpCheckSpec(path, port, {})
         else:
             tcp_check = TcpCheckSpec(port)
         return CheckSpec(None, http_check, tcp_check, probe_delay, 10, 1, 1)

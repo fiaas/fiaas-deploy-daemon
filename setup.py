@@ -39,6 +39,18 @@ FLAKE8_REQ = [
     'flake8'
 ]
 
+TESTS_REQ = [
+    'vcrpy',
+    'mock',
+    'pytest',
+    'pytest-sugar',
+    'pytest-html',
+    'pytest-cov',
+    'pytest-xdist',
+    'pytest-helpers-namespace',
+    'requests-file',
+]
+
 setup(
         name="fiaas-deploy-daemon",
         author="FINN Team Infrastructure",
@@ -51,7 +63,7 @@ setup(
         # Requirements
         install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
         setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
-        tests_require=['mock', 'vcrpy', 'pytest-sugar', 'pytest-html', 'pytest-cov', 'pytest', 'requests-file'],
+        tests_require=TESTS_REQ,
 
         # Metadata
         description="Deploy docker containers to kubernetes when notified by pipeline",

@@ -46,7 +46,6 @@ TESTS_REQ = [
     'pytest-sugar',
     'pytest-html',
     'pytest-cov',
-    'pytest-xdist',
     'pytest-helpers-namespace',
     'pytest',
     'requests-file',

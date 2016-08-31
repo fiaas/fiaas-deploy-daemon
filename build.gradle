@@ -69,7 +69,7 @@ docker {
     }
 }
 
-def image_tag = "finntech/${project.description}:${project.version}"
+def image_tag = "containers.schibsted.io/finntech/${project.description}:${project.version}"
 
 task bakeImage(type: DockerBuildImage) {
     description 'Build docker image'

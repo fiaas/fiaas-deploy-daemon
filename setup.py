@@ -43,12 +43,12 @@ FLAKE8_REQ = [
 TESTS_REQ = [
     'vcrpy',
     'mock',
-    'pytest',
     'pytest-sugar',
     'pytest-html',
     'pytest-cov',
     'pytest-xdist',
     'pytest-helpers-namespace',
+    'pytest',
     'requests-file',
 ]
 

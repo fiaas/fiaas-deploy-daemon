@@ -194,10 +194,41 @@ task test(type: PewTask) {
     group 'python'
     helper = pewHelper
     executable = 'python'
-    args = [file('setup.py'), 'test', '--addopts=-p no:sugar --cov=k8s --cov=fiaas_deploy_daemon --cov-report html --cov-report term']
+    args = [
+        file('setup.py'),
+        'test',
+        '--addopts=' +
+            '-m "not integration_test" ' +
+            '-p no:sugar ' +
+            '--cov=k8s ' +
+            '--cov=fiaas_deploy_daemon ' +
+            '--cov-report html ' +
+            '--cov-report term ' +
+            '--junit-xml=build/reports/tests.xml ' +
+            '--html=build/reports/tests.html'
+    ]
     inputs.source project.ext.all_sources
     outputs.dir 'build/reports'
     dependsOn codestyle
+}
+
+task integrationTest(type: PewTask) {
+    description 'Execute integration tests'
+    group 'python'
+    helper = pewHelper
+    executable = 'python'
+    args = [
+        file('setup.py'),
+        'test',
+        '--addopts=' +
+            '-m integration_test ' +
+            '-p no:sugar ' +
+            '--junit-xml=build/reports/integration_tests.xml ' +
+            '--html=build/reports/integration_tests.html'
+    ]
+    inputs.source project.ext.all_sources
+    outputs.dir 'build/reports'
+    dependsOn test
 }
 
 task build(type: PewTask) {
@@ -209,5 +240,5 @@ task build(type: PewTask) {
     inputs.source project.ext.source_files + project.ext.setup_files
     outputs.files fileTree(dir:'dist')
     outputs.files fileTree(dir:'build', include:['lib*/**', 'bdist*/**'])
-    dependsOn test
+    dependsOn integrationTest
 }

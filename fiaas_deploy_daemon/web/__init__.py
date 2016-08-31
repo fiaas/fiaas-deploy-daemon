@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
+import logging
 import pkgutil
 
 import pinject
@@ -27,6 +28,8 @@ fiaas_histogram = request_histogram.labels("fiaas")
 manual_histogram = request_histogram.labels("manual")
 metrics_histogram = request_histogram.labels("metrics")
 
+LOG = logging.getLogger(__name__)
+
 
 @web.route("/")
 @frontpage_histogram.time()
@@ -47,8 +50,11 @@ def fiaas():
         app_spec = current_app.spec_factory(form.name.data, form.image.data, form.fiaas.data)
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")
+        LOG.info("Deployment request sent...")
         fiaas_counter.inc()
         return redirect(url_for("web.frontpage"))
+    else:
+        LOG.error("Invalid form data")
     return render_template("frontpage.html",
                            config=current_app.cfg,
                            fiaas=form,
@@ -61,19 +67,19 @@ def manual():
     form = ManualForm(request.form)
     if form.validate_on_submit():
         app_spec = AppSpec(
-                form.name.data,
-                form.image.data,
-                [ServiceSpec(
-                        form.exposed_port.data,
-                        form.service_port.data,
-                        form.type.data,
-                        form.ingress.data,
-                        form.readiness.data,
-                        form.liveness.data
-                )],
-                form.replicas.data,
-                ResourcesSpec(ResourceRequirementSpec(form.limits_cpu, form.limits_memory),
-                              ResourceRequirementSpec(form.requests_cpu, form.requests_memory))
+            form.name.data,
+            form.image.data,
+            [ServiceSpec(
+                form.exposed_port.data,
+                form.service_port.data,
+                form.type.data,
+                form.ingress.data,
+                form.readiness.data,
+                form.liveness.data
+            )],
+            form.replicas.data,
+            ResourcesSpec(ResourceRequirementSpec(form.limits_cpu, form.limits_memory),
+                          ResourceRequirementSpec(form.requests_cpu, form.requests_memory))
         )
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")

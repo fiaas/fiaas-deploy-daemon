@@ -28,7 +28,11 @@ class Configuration(Namespace):
                             default=None)
         parser.add_argument("--api-cert", help="SSL certificate to use (default: lookup from service account)",
                             default=None)
-        parser.add_argument("--log-format", help="Set logformat",
+        parser.add_argument("--client-cert", help="Client certificate to use",
+                            default=None)
+        parser.add_argument("--client-key", help="Client certificate key to use",
+                            default=None)
+        parser.add_argument("--log-format", help="Set logformat (default: %(default)s)",
                             choices=self.VALID_LOG_FORMAT, default="plain")
         parser.add_argument("--target-cluster", help="Logical name of cluster to deploy to",
                             env_var="FINN_ENV", default="")
@@ -38,9 +42,10 @@ class Configuration(Namespace):
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
         parser.add_argument("--infrastructure",
-                            help="The underlying infrastructure of the cluster to deploy to. Must be either diy or gke. (default: diy).",
+                            help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
                             env_var="FIAAS_INFRASTRUCTURE",
                             choices=("diy", "gke"), default="diy")
+        parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int, default=5000)
         parser.parse_args(args, namespace=self)
 
     def _resolve_api_config(self):

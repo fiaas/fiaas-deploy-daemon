@@ -13,10 +13,10 @@
   },
   "tasks": {
     "default": [
-      {"command": "./gradlew test"}
+      {"command": "./gradlew integrationTest"}
     ],
     "test": [
-      {"command": "./gradlew test"}
+      {"command": "./gradlew integrationTest"}
     ],
     "setup": [
       {"command": "./gradlew setup"}
@@ -30,7 +30,7 @@
     "deploy": [
       {
         "command": "./gradlew --console=plain --no-daemon clean publish",
-        "test-pattern": "build/reports/xunit.xml",
+        "test-pattern": "build/reports/*tests.xml",
         "pipelines": [
           {
             "name": "fiaas-deploy-daemon",

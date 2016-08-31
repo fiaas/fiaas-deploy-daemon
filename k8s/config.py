@@ -5,5 +5,6 @@
 
 api_server = "https://kubernetes.default.svc.cluster.local"
 api_token = ""
+cert = None
 verify_ssl = True
 debug = False

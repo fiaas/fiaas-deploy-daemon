@@ -36,9 +36,11 @@ class Client(object):
 
     @classmethod
     def init_session(cls):
-        if "Authorization" not in cls._session.headers:
+        if "Authorization" not in cls._session.headers and config.api_token:
             cls._session.headers.update({"Authorization": "Bearer {}".format(config.api_token)})
-            cls._session.verify = config.verify_ssl
+        if cls._session.cert is None and config.cert:
+            cls._session.cert = config.cert
+        cls._session.verify = config.verify_ssl
 
     def get(self, url, **kwargs):
         return self._call("GET", url, **kwargs)
@@ -63,13 +65,17 @@ class Client(object):
         if resp.status_code == 404:
             raise NotFound(response=resp)
         elif 400 <= resp.status_code < 500:
-            json_response = resp.json()
-            LOG.debug("Client error request: %s", Client._format_request(resp.request))
-            LOG.debug("Client error response: %s", pformat(json_response))
-            causes = json_response.get(u"details", {}).get(u"causes", {})
-            lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
-            http_error_msg = '{0:d} Client Error: {1:s} for url: {2:s}\nCauses: \n\t{3:s}'.format(
-                    resp.status_code, resp.reason, resp.url, "\n\t".join(lines))
+            http_error_msg = '{0:d} Client Error: {1:s} for url: {2:s}'.format(
+                    resp.status_code, resp.reason, resp.url)
+            try:
+                json_response = resp.json()
+                LOG.debug("Client error request: %s", Client._format_request(resp.request))
+                LOG.debug("Client error response: %s", pformat(json_response))
+                causes = json_response.get(u"details", {}).get(u"causes", {})
+                lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
+                http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
+            except Exception as e:
+                LOG.debug("Exception when dealing with client error response: %s", e)
             raise ClientError(http_error_msg, response=resp)
 
         elif 500 <= resp.status_code < 600:

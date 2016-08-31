@@ -44,6 +44,8 @@ class K8s(object):
             k8s_config.verify_ssl = config.api_cert
         else:
             k8s_config.verify_ssl = not config.debug
+        if config.client_cert:
+            k8s_config.cert = (config.client_cert, config.client_key)
         k8s_config.debug = config.debug
         self.target_cluster = config.target_cluster
         self.version = config.version

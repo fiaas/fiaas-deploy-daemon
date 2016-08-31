@@ -48,14 +48,14 @@ class HealthCheck(object):
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, webapp):
+    def __init__(self, deployer, consumer, webapp, config):
         pass
 
     def run(self):
         self._deployer.start()
         self._consumer.start()
         # Run web-app in main thread
-        self._webapp.run("0.0.0.0")
+        self._webapp.run("0.0.0.0", self._config.port)
 
 
 def main():

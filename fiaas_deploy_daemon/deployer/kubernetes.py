@@ -53,7 +53,7 @@ class K8s(object):
         self._env = {
             "FINN_ENV": _cluster_env,
             "FIAAS_INFRASTRUCTURE": config.infrastructure,
-            "CONSTRETTO_TAGS": ",".join(("kubernetes", _cluster_env, "kubernetes" + "-" + _cluster_env)),
+            "CONSTRETTO_TAGS": ",".join(("kubernetes", "kubernetes-" + _cluster_env, _cluster_env)),
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }

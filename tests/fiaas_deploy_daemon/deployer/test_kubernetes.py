@@ -545,7 +545,7 @@ def create_environment_variables(infrastructure, appname='testapp'):
     return [
         {'name': 'ARTIFACT_NAME', 'value': appname},
         {'name': 'LOG_STDOUT', 'value': 'true'},
-        {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes,dev,kubernetes-dev'},
+        {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-dev,kubernetes,dev'},
         {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
         {'name': 'LOG_FORMAT', 'value': 'json'},
         {'name': 'FINN_ENV', 'value': 'dev'},

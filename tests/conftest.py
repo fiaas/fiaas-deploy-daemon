@@ -21,7 +21,7 @@ def assert_no_calls(mockk):
     __tracebackhide__ = True
 
     def _assertion():
-        assert mockk.call_count != 0
+        assert mockk.call_count == 0
 
     _add_useful_error_message(_assertion, mockk, None, None)
 

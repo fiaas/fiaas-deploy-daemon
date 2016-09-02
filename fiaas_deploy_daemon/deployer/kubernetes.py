@@ -152,7 +152,8 @@ class K8s(object):
             ingress_spec = IngressSpec(rules=[ingress_rule])
             ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
             ingress.save()
-            # TODO: Remove previously existing ingress if no host specified
+        else:
+            Ingress.delete(app_spec.name, app_spec.namespace)
 
     def _make_env(self, app_spec):
         env = self._env.copy()

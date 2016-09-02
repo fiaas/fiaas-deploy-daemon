@@ -159,10 +159,11 @@ class TestK8s(object):
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_deploy_new_ingress(self, get, post, k8s_diy, app_spec_with_host):
+    @mock.patch('k8s.client.Client.delete')
+    def test_deploy_new_ingress(self, delete, get, post, k8s_diy, app_spec_with_host):
         get.side_effect = NotFound()
 
-        k8s_diy.deploy(app_spec_with_host)
+        k8s_diy._deploy_ingress(app_spec_with_host)
 
         expected_ingress = {
             'spec': {
@@ -184,12 +185,40 @@ class TestK8s(object):
 
     @mock.patch('k8s.client.Client.post')
     @mock.patch('k8s.client.Client.get')
-    def test_no_host_no_ingress(self, get, post, k8s_diy, app_spec):
+    @mock.patch('k8s.client.Client.delete')
+    def test_no_host_no_ingress(self, delete, get, post, k8s_diy, app_spec):
         get.side_effect = NotFound()
 
-        k8s_diy.deploy(app_spec)
+        k8s_diy._deploy_ingress(app_spec)
 
         pytest.helpers.assert_no_calls(post)
+
+    @mock.patch('k8s.client.Client.post')
+    @mock.patch('k8s.client.Client.get')
+    @mock.patch('k8s.client.Client.delete')
+    def test_remove_existing_ingress_if_no_host(self, delete, get, post, k8s_diy, app_spec):
+        resp = mock.MagicMock()
+        get.return_value = resp
+        resp.json.return_value = {
+            'spec': {
+                'rules': [{
+                    'host': 'test.finn.no',
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }]
+            },
+            'metadata': create_metadata('testapp')
+        }
+
+        k8s_diy._deploy_ingress(app_spec)
+
+        pytest.helpers.assert_no_calls(post)
+        pytest.helpers.assert_any_call_with_useful_error_message(delete, INGRESSES_URI+"testapp")
 
     @pytest.mark.parametrize("host,expected", [
         ("www.finn.no", "test.finn.no"),
@@ -203,7 +232,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_new_service(self, get, post, k8s_diy, app_spec):
         get.side_effect = NotFound()
-        k8s_diy.deploy(app_spec)
+        k8s_diy._deploy_service(app_spec)
 
         expected_service = {
             'spec': {
@@ -228,7 +257,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_new_service_with_multiple_ports(self, get, post, k8s_diy, app_spec_thrift_and_http):
         get.side_effect = NotFound()
-        k8s_diy.deploy(app_spec_thrift_and_http)
+        k8s_diy._deploy_service(app_spec_thrift_and_http)
 
         expected_service = {
             'spec': {
@@ -259,7 +288,7 @@ class TestK8s(object):
     @mock.patch('k8s.client.Client.get')
     def test_deploy_new_deployment(self, get, post, k8s_diy, app_spec):
         get.side_effect = NotFound()
-        k8s_diy.deploy(app_spec)
+        k8s_diy._deploy_deployment(app_spec)
 
         expected_deployment = {
             'metadata': create_metadata('testapp'),
@@ -317,7 +346,7 @@ class TestK8s(object):
         get.side_effect = NotFound()
 
         app_spec = app_spec._replace(prometheus=PrometheusSpec(False, None, None))
-        k8s_diy.deploy(app_spec)
+        k8s_diy._deploy_deployment(app_spec)
 
         expected_deployment = {
             'metadata': create_metadata('testapp'),
@@ -376,7 +405,7 @@ class TestK8s(object):
     def test_deploy_new_deployment_to_gke(self, get, post, get_or_create_static_ip, k8s_gke, app_spec):
         get.side_effect = NotFound()
         get_or_create_static_ip.return_value = SOME_RANDOM_IP
-        k8s_gke.deploy(app_spec)
+        k8s_gke._deploy_deployment(app_spec)
 
         expected_deployment = {
             'metadata': create_metadata('testapp'),

@@ -62,25 +62,27 @@ class Client(object):
 
     @staticmethod
     def _raise_on_status(resp):
-        if resp.status_code == 404:
-            raise NotFound(response=resp)
+        if resp.status_code < 400:
+            return
+        elif resp.status_code == 404:
+            exc = NotFound
         elif 400 <= resp.status_code < 500:
-            http_error_msg = '{0:d} Client Error: {1:s} for url: {2:s}'.format(
-                    resp.status_code, resp.reason, resp.url)
-            try:
-                json_response = resp.json()
-                LOG.debug("Client error request: %s", Client._format_request(resp.request))
-                LOG.debug("Client error response: %s", pformat(json_response))
-                causes = json_response.get(u"details", {}).get(u"causes", {})
-                lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
-                http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
-            except Exception as e:
-                LOG.debug("Exception when dealing with client error response: %s", e)
-            raise ClientError(http_error_msg, response=resp)
-
-        elif 500 <= resp.status_code < 600:
-            http_error_msg = '%s Server Error: %s for url: %s' % (resp.status_code, resp.reason, resp.url)
-            raise ServerError(http_error_msg, response=resp)
+            exc = ClientError
+        else:
+            exc = ServerError
+        http_error_msg = '{:d} {:s}: {:s} for url: {:s}'.format(
+                resp.status_code, exc.__name__, resp.reason, resp.url)
+        LOG.debug("Request: %s", Client._format_request(resp.request))
+        try:
+            json_response = resp.json()
+            LOG.debug("Response: %s", pformat(json_response))
+            causes = json_response.get(u"details", {}).get(u"causes", {})
+            lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
+            http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
+        except Exception as e:
+            LOG.debug("Exception when dealing with client error response: %s", e)
+            LOG.debug("Response: %r", resp.text)
+        raise exc(http_error_msg, response=resp)
 
     @staticmethod
     def _format_request(request):

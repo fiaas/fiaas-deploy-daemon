@@ -70,7 +70,7 @@ class TestE2E(object):
     @pytest.fixture(params=(
             "data/v1minimal.yml",
             "data/v2minimal.yml",
-            # "v2/data/full_config.yml",
+            "v2/data/host.yml",
             "v2/data/exec_config.yml"
     ))
     def fiaas_yml(self, request):
@@ -113,5 +113,5 @@ class TestE2E(object):
         time.sleep(5)
         Service.get(name)
         Deployment.get(name)
-        if "full" in name:
+        if "host" in name:
             Ingress.get(name)

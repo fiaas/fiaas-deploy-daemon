@@ -131,6 +131,9 @@ TEST_DATA = {
         u"health_checks.readiness.http.port": u"main_port",
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
+    },
+    u"host": {
+        u"host": u"some.host.no",
     }
 }
 

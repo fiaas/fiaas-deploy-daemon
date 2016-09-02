@@ -199,8 +199,8 @@ class K8s(object):
                                                        for name, value in check_spec.http.http_headers.items()])
         elif check_spec.tcp:
             probe.tcpSocket = TCPSocketAction(port=check_spec.tcp.port)
-        elif check_spec.execute:  # TODO: Fix _exec -> exec in Model.to/from_dict
-            thing = ExecAction(command=shlex.split(check_spec.execute.command))  # noqa: F841
+        elif check_spec.execute:
+            probe._exec = ExecAction(command=shlex.split(check_spec.execute.command))
         else:
             raise RuntimeError("AppSpec must have exactly one healthcheck, none was defined.")
 

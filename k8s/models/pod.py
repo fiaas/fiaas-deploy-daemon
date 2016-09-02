@@ -55,7 +55,7 @@ class ExecAction(Model):
 class Probe(Model):
     httpGet = Field(HTTPGetAction)
     tcpSocket = Field(TCPSocketAction)
-    # _exec = Field(ExecAction) # TODO: Fix _exec -> exec in Model.to/from_dict
+    _exec = Field(ExecAction)
     initialDelaySeconds = Field(int, 5)
     timeoutSeconds = Field(int)
     successThreshold = Field(int)

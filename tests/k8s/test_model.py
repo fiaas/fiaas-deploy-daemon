@@ -2,14 +2,13 @@
 # -*- coding: utf-8
 import pytest
 import six
-from mock import create_autospec
-from requests import Response
-
 from k8s import config
 from k8s.base import Model
 from k8s.client import Client
 from k8s.fields import Field, ReadOnlyField, OnceField, ListField, RequiredField
 from k8s.models.common import ObjectMeta
+from mock import create_autospec
+from requests import Response
 
 
 class ModelTest(Model):
@@ -23,6 +22,7 @@ class ModelTest(Model):
     read_only_field = ReadOnlyField(int)
     alt_type_field = Field(int, alt_type=six.text_type)
     dict_field = Field(dict)
+    _exec = Field(int)
 
 
 class TestFields(object):
@@ -30,43 +30,41 @@ class TestFields(object):
     def set_config_debug(self, monkeypatch):
         monkeypatch.setattr(config, "debug", True)
 
-    def test_field_new(self):
-        model = ModelTest(new=True, field=1)
-        assert model.field == 1
-        model.field = 2
-        assert model.field == 2
+    @pytest.mark.parametrize("field_name,initial_value,other_value", (
+            ("field", 1, 2),
+            ("list_field", [1], [1, 2]),
+            ("once_field", 1, 2),
+            ("_exec", 1, 2)
+    ))
+    def test_field_new(self, field_name, initial_value, other_value):
+        kwargs = {"new": True, field_name: initial_value}
+        model = ModelTest(**kwargs)
+        assert getattr(model, field_name) == initial_value
+        setattr(model, field_name, other_value)
+        assert getattr(model, field_name) == other_value
 
-    def test_field_old(self):
-        model = ModelTest.from_dict({"field": 1})
-        assert model.field == 1
-        model.field = 2
-        assert model.field == 2
-
-    def test_list_field_new(self):
-        model = ModelTest(new=True, list_field=[1])
-        assert model.list_field == [1]
-        model.list_field = [1, 2]
-        assert model.list_field == [1, 2]
-
-    def test_list_field_old(self):
-        model = ModelTest.from_dict({"list_field": [1]})
-        assert model.list_field == [1]
-        model.list_field = [1, 2]
-        assert model.list_field == [1, 2]
-        model.list_field = []
-        assert model.list_field == []
-
-    def test_once_field_new(self):
-        model = ModelTest(new=True, once_field=1)
-        assert model.once_field == 1
-        model.once_field = 2
-        assert model.once_field == 2
+    @pytest.mark.parametrize("field_name,initial_value,other_value", (
+            ("field", 1, 2),
+            ("list_field", [1], [1, 2]),
+    ))
+    def test_field_old(self, field_name, initial_value, other_value):
+        model = ModelTest.from_dict({field_name: initial_value})
+        assert getattr(model, field_name) == initial_value
+        setattr(model, field_name, other_value)
+        assert getattr(model, field_name) == other_value
 
     def test_once_field_old(self):
         model = ModelTest.from_dict({"once_field": 1})
         assert model.once_field == 1
         model.once_field = 2
         assert model.once_field == 1
+
+    def test_exec_field_old(self):
+        model = ModelTest.from_dict({"exec": 1})
+        assert model._exec == 1
+        model._exec = 2
+        assert model._exec == 2
+        assert model.as_dict()[u"exec"] == 2
 
     def test_read_only_field_new(self):
         model = ModelTest(new=True, read_only_field=1)
@@ -81,7 +79,7 @@ class TestFields(object):
         assert model.read_only_field == 1
 
     @pytest.mark.parametrize("value,modifier", [
-        (1, lambda x: x+1),
+        (1, lambda x: x + 1),
         (u"string", lambda x: x.upper())
     ])
     def test_alt_type_field(self, value, modifier):

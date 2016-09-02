@@ -127,7 +127,7 @@ class Model(six.with_metaclass(MetaModel)):
         for field in self._meta.fields:
             value = field.dump(self)
             if value is not None:
-                d[field.name] = value
+                d[_api_name(field.name)] = value
         return d
 
     def update(self, other):
@@ -138,7 +138,7 @@ class Model(six.with_metaclass(MetaModel)):
     def from_dict(cls, d):
         instance = cls(new=False)
         for field in cls._meta.fields:
-            field.load(instance, d.get(field.name))
+            field.load(instance, d.get(_api_name(field.name)))
         instance._validate_fields()
         return instance
 
@@ -151,3 +151,7 @@ class Model(six.with_metaclass(MetaModel)):
             return self.as_dict() == other.as_dict()
         except AttributeError:
             return False
+
+
+def _api_name(name):
+    return name[1:] if name.startswith("_") else name

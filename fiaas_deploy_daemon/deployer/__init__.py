@@ -5,12 +5,11 @@ from __future__ import absolute_import
 import pinject
 
 from .deploy import Deployer
-from .kubernetes import K8s
 
 
 class DeployerBindings(pinject.BindingSpec):
     def configure(self, bind, require):
         require("config")
         require("deploy_queue")
-        bind("adapter", to_class=K8s)
+        require("adapter")
         bind("deployer", to_class=Deployer)

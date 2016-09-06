@@ -4,9 +4,8 @@
 from Queue import Queue
 
 import mock
-
+from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
 from fiaas_deploy_daemon.deployer.deploy import Deployer
-from fiaas_deploy_daemon.deployer.kubernetes import K8s
 from fiaas_deploy_daemon.specs.models import AppSpec
 
 APP_SPEC = AppSpec(None, u"name", u"image", None, None, None, None, None, None, None, None)

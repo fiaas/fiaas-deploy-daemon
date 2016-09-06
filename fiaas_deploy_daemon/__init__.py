@@ -10,6 +10,7 @@ import requests
 
 from .config import Configuration
 from .deployer import DeployerBindings
+from .deployer.kubernetes import K8sAdapterBindings
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .specs import SpecBindings
@@ -66,6 +67,7 @@ def main():
     binding_specs = [
         MainBindings(cfg),
         DeployerBindings(),
+        K8sAdapterBindings(),
         WebBindings(),
         SpecBindings()
     ]

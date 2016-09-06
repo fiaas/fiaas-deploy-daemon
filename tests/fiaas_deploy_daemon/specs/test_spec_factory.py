@@ -19,10 +19,6 @@ class TestSpecFactory(object):
     def v2(self):
         return MagicMock()
 
-    @pytest.fixture(params=[v1, v2])
-    def mock_to_call(self, request):
-        return request.getfuncargvalue(request.param)
-
     @pytest.fixture()
     def factory(self, session, v1, v2):
         return SpecFactory(session, {1: v1, 2: v2})

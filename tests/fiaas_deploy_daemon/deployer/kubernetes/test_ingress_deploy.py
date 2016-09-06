@@ -24,6 +24,17 @@ class TestIngressDeployer(object):
     def test_make_ingress_host(self, deployer, host, expected):
         assert deployer._make_ingress_host(host) == expected
 
+    @pytest.mark.parametrize("host", [
+        "www.finn.no",
+        "m.finn.no",
+        "kart.finn.no",
+    ])
+    def test_make_ingress_host_prod(self, host):
+        config = mock.NonCallableMagicMock()
+        config.target_cluster = "prod1"
+        deployer = IngressDeployer(config)
+        assert deployer._make_ingress_host(host) == host
+
     def test_deploy_new_ingress(self, post, deployer, app_spec_with_host):
         deployer.deploy(app_spec_with_host, LABELS)
 

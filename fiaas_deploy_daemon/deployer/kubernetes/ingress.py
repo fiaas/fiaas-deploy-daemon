@@ -29,6 +29,8 @@ class IngressDeployer(object):
             Ingress.delete(app_spec.name, app_spec.namespace)
 
     def _make_ingress_host(self, host):
+        if "prod" in self._target_cluster:
+            return host
         if host == "www.finn.no":
             return "{}.finn.no".format(self._target_cluster)
         return "{}.{}".format(self._target_cluster, host)

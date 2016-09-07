@@ -4,7 +4,7 @@ namespace: default # the namespace to use
 admin_access: false # What access the pod has to the k8s api server
 has_secrets: false # if true, the application will get secrets (database passwords, api keys etc.) as defined in the kubernetes-secrets repo
 replicas: 2 # The number of instances to run.
-host: # External hostname to be exposed on
+host: # Optional. External hostname to be exposed on. If defined, Ingresses for {host}/{ports.path} is created. See http://kubernetes.io/docs/user-guide/ingress/
 prometheus:
   enabled: true # if false the pod will not be scraped for metrics by prometheus
   port: http # Name of HTTP port prometheus is served on
@@ -21,19 +21,18 @@ ports: # A list of ports the application listens on
     name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)
     port: 80 # port number that will be exposed. For protocol=tcp, the available port range is (1024-32767).
     target_port: 80 # the port number which is exposed by the container and should receive traffic routed to `port`
-    path: / # only valid for protocol=http
+    path: / # Only for http. Used together with <host> (see above)
 healthchecks:
   liveness:
     # Valid configuration requires exactly one of execute|http|tcp
     execute:
-      command: # Command to execute.
+      command: # Command to execute inside the container.
     http:
       path: / # Path to GET
       port: http # port to connect to on the container. Must either be port number or name
       http_headers: {} # optional http headers (free form map)
     tcp:
       port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
-    # these fields should have a default setting that ensures that we don't need to explicitly specify them most of the time
     initial_delay_seconds: 10 # Number of seconds after the container has started before liveness probes are initiated.
     period_seconds: 10 # How often (in seconds) to perform the probe.
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
@@ -41,7 +40,7 @@ healthchecks:
   readiness:
     # Valid configuration requires exactly one of execute|http|tcp
     execute:
-      command: # Command to execute.
+      command: # Command to execute inside the container.
     http:
       path: / # Path to GET
       port: http # port to connect to on the container. Must either be port number or name

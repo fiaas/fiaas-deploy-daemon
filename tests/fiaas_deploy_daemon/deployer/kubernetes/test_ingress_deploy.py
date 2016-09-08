@@ -19,29 +19,36 @@ class TestIngressDeployer(object):
     @pytest.mark.parametrize("host,expected", [
         ("www.finn.no", "test.finn.no"),
         ("m.finn.no", "test.m.finn.no"),
-        ("kart.finn.no", "test.kart.finn.no")
+        ("kart.finn.no", "test.kart.finn.no"),
+        (None, "testapp.127.0.0.1.xip.io")
     ])
-    def test_make_ingress_host(self, deployer, host, expected):
-        assert deployer._make_ingress_host(host) == expected
+    def test_make_ingress_host(self, deployer, app_spec, host, expected):
+        assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 
-    @pytest.mark.parametrize("host", [
-        "www.finn.no",
-        "m.finn.no",
-        "kart.finn.no",
+    @pytest.mark.parametrize("host,expected", [
+        ("www.finn.no", "www.finn.no"),
+        ("m.finn.no", "m.finn.no"),
+        ("kart.finn.no", "kart.finn.no"),
+        (None, "testapp.k8s1-prod1.z01.finn.no"),
     ])
-    def test_make_ingress_host_prod(self, host):
+    def test_make_ingress_host_prod(self, app_spec, host, expected):
         config = mock.NonCallableMagicMock()
         config.target_cluster = "prod1"
         deployer = IngressDeployer(config)
-        assert deployer._make_ingress_host(host) == host
+        assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 
-    def test_deploy_new_ingress(self, post, deployer, app_spec_with_host):
-        deployer.deploy(app_spec_with_host, LABELS)
+    @pytest.mark.parametrize("spec_name,host,external", (
+            ("app_spec_with_host", "test.finn.no", True),
+            ("app_spec", "testapp.127.0.0.1.xip.io", False)
+    ))
+    def test_deploy_new_ingress(self, request, post, deployer, spec_name, host, external):
+        app_spec = request.getfuncargvalue(spec_name)
+        deployer.deploy(app_spec, LABELS)
 
         expected_ingress = {
             'spec': {
                 'rules': [{
-                    'host': 'test.finn.no',
+                    'host': host,
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -51,17 +58,17 @@ class TestIngressDeployer(object):
                     }
                 }]
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=external)
         }
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
 
-    def test_no_host_no_ingress(self, post, deployer, app_spec):
-        deployer.deploy(app_spec, {})
-
-        pytest.helpers.assert_no_calls(post, INGRESSES_URI)
-
-    def test_remove_existing_ingress_if_no_host(self, delete, get, post, deployer, app_spec):
+    @pytest.mark.parametrize("spec_name", (
+            "app_spec_thrift_with_host",
+            "app_spec_thrift"
+    ))
+    def test_remove_existing_ingress_if_not_needed(self, request, delete, get, post, deployer, spec_name):
+        app_spec = request.getfuncargvalue(spec_name)
         resp = mock.MagicMock()
         get.return_value = resp
         resp.json.return_value = {

@@ -8,7 +8,6 @@ from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, R
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec
 from k8s.client import NotFound
 
-
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port=8080, path='/internal-backstage/prometheus')
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
@@ -64,6 +63,35 @@ def app_spec_with_host(app_spec):
 
 
 @pytest.fixture
+def app_spec_thrift():
+    return AppSpec(
+        admin_access=None,
+        name="testapp",
+        replicas=3,
+        image="finntech/testimage:version",
+        namespace="default",
+        has_secrets=False,
+        host=None,
+        resources=EMPTY_RESOURCE_SPEC,
+        prometheus=PROMETHEUS_SPEC,
+        ports=[
+            PortSpec(protocol="tcp", name="thrift", port=7999, target_port=7999, path=None),
+        ],
+        health_checks=HealthCheckSpec(
+            liveness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None, initial_delay_seconds=10,
+                               period_seconds=10, success_threshold=1, timeout_seconds=1),
+            readiness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None,
+                                initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                                timeout_seconds=1)
+        ))
+
+
+@pytest.fixture
+def app_spec_thrift_with_host(app_spec_thrift):
+    return app_spec_thrift._replace(host="www.finn.no")
+
+
+@pytest.fixture
 def app_spec_thrift_and_http():
     return AppSpec(
         admin_access=None,
@@ -89,7 +117,7 @@ def app_spec_thrift_and_http():
 
 
 @pytest.helpers.register
-def create_metadata(app_name, namespace='default', prometheus=False, labels=None):
+def create_metadata(app_name, namespace='default', prometheus=False, labels=None, external=None):
     if not labels:
         labels = {
             'app': app_name,
@@ -99,12 +127,20 @@ def create_metadata(app_name, namespace='default', prometheus=False, labels=None
     metadata = {
         'labels': labels,
         'namespace': namespace,
-        'name': app_name
+        'name': app_name,
     }
-    if prometheus:
+    if external is not None:
         metadata['annotations'] = {
+            'fiaas/expose': str(external).lower()
+        }
+    if prometheus:
+        prom_annotations = {
             'prometheus.io/port': '8080',
             'prometheus.io/path': '/internal-backstage/prometheus',
             'prometheus.io/scrape': 'true'
         }
+        if 'annotations' in metadata:
+            metadata['annotations'].update(prom_annotations)
+        else:
+            metadata['annotations'] = prom_annotations
     return metadata

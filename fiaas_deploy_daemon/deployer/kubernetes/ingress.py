@@ -13,7 +13,7 @@ INGRESS_SUFFIX = {
     "dev": "k8s.dev.finn.no",
     "local": "127.0.0.1.xip.io",
     "test": "127.0.0.1.xip.io",
-    "prod1": "k8s1-prod1.z01.finn.no",
+    "prod": "k8s1-prod1.z01.finn.no",
     # TODO: GKE-prod needs an entry here, but what is it called, and what should the value be?
 }
 

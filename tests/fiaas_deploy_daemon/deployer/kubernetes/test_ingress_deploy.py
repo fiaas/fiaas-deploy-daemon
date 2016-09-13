@@ -33,7 +33,7 @@ class TestIngressDeployer(object):
     ])
     def test_make_ingress_host_prod(self, app_spec, host, expected):
         config = mock.NonCallableMagicMock()
-        config.target_cluster = "prod1"
+        config.target_cluster = "prod"
         deployer = IngressDeployer(config)
         assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 

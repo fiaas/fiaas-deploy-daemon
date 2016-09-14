@@ -17,7 +17,7 @@ from ..base_thread import DaemonThread
 
 ENV_PATTERN = re.compile("^(.+?)\d*$")
 GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
-                      "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon"]
+                      "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 
 

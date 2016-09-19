@@ -185,7 +185,7 @@ task codestyle(type: PewTask) {
     helper = pewHelper
     executable = 'flake8'
     args = ['--format=%(path)-50s: [%(code)s] %(text)s [line:%(row)d, column:%(col)d]']
-    inputs.source project.ext.all_sources
+    inputs.file project.ext.all_sources
     dependsOn setup
 }
 
@@ -207,7 +207,7 @@ task test(type: PewTask) {
             '--junit-xml=build/reports/tests.xml ' +
             '--html=build/reports/tests.html'
     ]
-    inputs.source project.ext.all_sources
+    inputs.file project.ext.all_sources
     outputs.dir 'build/reports'
     dependsOn codestyle
 }
@@ -226,7 +226,7 @@ task integrationTest(type: PewTask) {
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html'
     ]
-    inputs.source project.ext.all_sources
+    inputs.file project.ext.all_sources
     outputs.dir 'build/reports'
     dependsOn test
 }
@@ -237,7 +237,7 @@ task build(type: PewTask) {
     helper = pewHelper
     executable = 'python'
     args = [file('setup.py'), 'bdist_wheel']
-    inputs.source project.ext.source_files + project.ext.setup_files
+    inputs.file project.ext.source_files + project.ext.setup_files
     outputs.files fileTree(dir:'dist')
     outputs.files fileTree(dir:'build', include:['lib*/**', 'bdist*/**'])
     dependsOn integrationTest

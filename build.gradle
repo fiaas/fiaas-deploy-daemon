@@ -74,7 +74,7 @@ def image_tag = "containers.schibsted.io/finntech/${project.description}:${proje
 task bakeImage(type: DockerBuildImage) {
     description 'Build docker image'
     dependsOn build
-    inputs.source 'Dockerfile'
+    inputs.file 'Dockerfile'
     inputs.files build.outputs
     inputDir projectDir
     tag image_tag
@@ -108,7 +108,7 @@ task clean(type: Delete) {
 
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '2.11'
+    gradleVersion = '3.1'
 }
 
 /*****************

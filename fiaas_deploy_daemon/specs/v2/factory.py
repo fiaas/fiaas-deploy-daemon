@@ -5,10 +5,11 @@ from __future__ import absolute_import
 import pkgutil
 
 import yaml
+
+from .lookup import LookupMapping
 from .. import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, CheckSpec, \
     HttpCheckSpec, TcpCheckSpec, ExecCheckSpec
-from .lookup import LookupMapping
 
 
 class Factory(object):
@@ -55,10 +56,12 @@ class Factory(object):
             l[u"path"]) for l in lookup]
 
     def _health_checks_spec(self, lookup, ports):
-        return HealthCheckSpec(
-            self._check_spec(lookup[u"liveness"], ports),
-            self._check_spec(lookup[u"readiness"], ports)
-        )
+        liveness = self._check_spec(lookup[u"liveness"], ports)
+        if not lookup.get_c_value(u"readiness"):
+            readiness = liveness
+        else:
+            readiness = self._check_spec(lookup[u"readiness"], ports)
+        return HealthCheckSpec(liveness, readiness)
 
     def _check_spec(self, lookup, ports):
         first_port = ports[0]

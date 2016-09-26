@@ -134,6 +134,26 @@ TEST_DATA = {
     },
     u"host": {
         u"host": u"some.host.no",
+    },
+    u"only_liveness": {
+        u"health_checks.liveness.http.path": u"/liveness",
+        u"health_checks.liveness.http.port": 1111,
+        u"health_checks.liveness.http.http_headers": {u"key": u"value"},
+        u"health_checks.liveness.initial_delay_seconds": 100,
+        u"health_checks.liveness.period_seconds": 100,
+        u"health_checks.liveness.success_threshold": 10,
+        u"health_checks.liveness.timeout_seconds": 10,
+        u"health_checks.liveness.execute": None,
+        u"health_checks.liveness.tcp": None,
+        u"health_checks.readiness.http.path": u"/liveness",
+        u"health_checks.readiness.http.port": 1111,
+        u"health_checks.readiness.http.http_headers": {u"key": u"value"},
+        u"health_checks.readiness.initial_delay_seconds": 100,
+        u"health_checks.readiness.period_seconds": 100,
+        u"health_checks.readiness.success_threshold": 10,
+        u"health_checks.readiness.timeout_seconds": 10,
+        u"health_checks.readiness.execute": None,
+        u"health_checks.readiness.tcp": None,
     }
 }
 

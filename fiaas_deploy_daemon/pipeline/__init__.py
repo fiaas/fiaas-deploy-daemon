@@ -17,9 +17,6 @@ class PipelineBindings(pinject.BindingSpec):
         bind("reporter", to_class=Reporter)
         bind("consumer", to_class=Consumer)
 
-    def provide_environment(self, config):
-        return config.environment
-
     def provide_kafka_consumer(self, config):
         host, port = config.resolve_service("kafka_pipeline")
         connect = ",".join("{}:{}".format(host, port) for host in host.split(","))

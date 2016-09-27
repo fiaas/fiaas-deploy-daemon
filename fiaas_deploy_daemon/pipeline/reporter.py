@@ -8,8 +8,9 @@ from blinker import signal
 
 class Reporter(object):
     """Report results of deployments to pipeline"""
-    def __init__(self, environment, session):
-        self._environment = environment
+    def __init__(self, config, session):
+        self._environment = config.environment
+        self._infrastructure = config.infrastructure
         self._session = session
         self._callback_urls = {}
         signal("deploy_started").connect(self._handle_started)
@@ -31,6 +32,6 @@ class Reporter(object):
     def _handle_signal(self, event_name, image, status=u"success"):
         base_url = self._callback_urls.get(image)
         if base_url:
-            task_name = u"fiaas_{}_{}".format(self._environment, event_name)
+            task_name = u"fiaas_{}-{}_{}".format(self._environment, self._infrastructure, event_name)
             url = posixpath.join(base_url, task_name, status)
             self._session.post(url, json={u"description": u"From fiaas-deploy-daemon"})

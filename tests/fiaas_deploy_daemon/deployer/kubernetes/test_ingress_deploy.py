@@ -4,6 +4,7 @@ import mock
 import pytest
 
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+from fiaas_deploy_daemon.config import Configuration
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -12,8 +13,9 @@ INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 class TestIngressDeployer(object):
     @pytest.fixture
     def deployer(self):
-        config = mock.NonCallableMagicMock()
-        config.target_cluster = "test"
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.infrastructure = "diy"
+        config.environment = "test"
         return IngressDeployer(config)
 
     @pytest.mark.parametrize("host,expected", [
@@ -32,8 +34,9 @@ class TestIngressDeployer(object):
         (None, "testapp.k8s1-prod1.z01.finn.no"),
     ])
     def test_make_ingress_host_prod(self, app_spec, host, expected):
-        config = mock.NonCallableMagicMock()
-        config.target_cluster = "prod"
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.infrastructure = "diy"
+        config.environment = "prod"
         deployer = IngressDeployer(config)
         assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 

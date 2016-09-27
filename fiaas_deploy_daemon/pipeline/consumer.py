@@ -2,20 +2,17 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
-import time
-import os
-import re
 import json
 import logging
+import time
 
+import os
 from kafka import KafkaConsumer
 from prometheus_client import Counter
 from requests import HTTPError
 
 from ..base_thread import DaemonThread
 
-
-ENV_PATTERN = re.compile("^(.+?)\d*$")
 GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
                       "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
@@ -35,7 +32,7 @@ class Consumer(DaemonThread):
         self._deploy_queue = deploy_queue
         self._consumer = None
         self._config = config
-        self._environment = self._extract_env(config)
+        self._environment = config.environment
         self._reporter = reporter
         self._spec_factory = spec_factory
         self._last_message_timestamp = int(time.time())
@@ -53,12 +50,12 @@ class Consumer(DaemonThread):
             if event[u"environment"] == self._environment:
                 try:
                     app_spec = self._create_spec(event)
-                    if self._config.target_cluster == "prod" \
+                    if self._config.environment == "prod" \
                             and self._config.infrastructure == "gke" \
                             and app_spec.name not in GKE_PROD_WHITELIST:
                         raise NotWhiteListedApplicationException(
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
-                    if self._config.target_cluster == "dev" \
+                    if self._config.environment == "dev" \
                             and self._config.infrastructure == "diy" \
                             and app_spec.name.startswith('travel'):
                         raise NotWhiteListedApplicationException(
@@ -74,8 +71,8 @@ class Consumer(DaemonThread):
 
     def _connect_kafka(self):
         self._consumer = KafkaConsumer(
-                "internal.pipeline.deployment",
-                bootstrap_servers=self._build_connect_string("kafka_pipeline")
+            "internal.pipeline.deployment",
+            bootstrap_servers=self._build_connect_string("kafka_pipeline")
         )
 
     def _create_spec(self, event):
@@ -99,16 +96,9 @@ class Consumer(DaemonThread):
         return connect
 
     def _is_recieving_messages(self):
-        # TODO: this is a hack to handle the fact that we sometimes seems to loose contact with kafka
+        # TODO: this is a hack to handle the fact that we sometimes seem to loose contact with kafka
         self._logger.debug("No message for %r seconds", int(time.time()) - self._last_message_timestamp)
         return self._last_message_timestamp > int(time.time()) - ALLOW_WITHOUT_MESSAGES_S
-
-    @staticmethod
-    def _extract_env(config):
-        m = ENV_PATTERN.match(config.target_cluster)
-        if m:
-            return m.group(1)
-        return config.target_cluster
 
 
 class NoDockerArtifactException(Exception):

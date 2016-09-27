@@ -1,8 +1,10 @@
 import mock
 import pytest
+
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s, _make_selector
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+from fiaas_deploy_daemon.config import Configuration
 
 FIAAS_VERSION = "1"
 
@@ -23,7 +25,7 @@ class TestK8s(object):
 
     @pytest.fixture
     def k8s(self, deployment_deployer, ingress_deployer):
-        config = mock.NonCallableMagicMock()
+        config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
         return K8s(config, deployment_deployer, ingress_deployer)
 
@@ -52,9 +54,9 @@ class TestK8s(object):
         pytest.helpers.assert_any_call(ingress_deployer.deploy, app_spec, labels)
 
     def test_pass_to_service(self, app_spec, k8s, deploy_service):
-            selector = _make_selector(app_spec)
-            labels = k8s._make_labels(app_spec)
+        selector = _make_selector(app_spec)
+        labels = k8s._make_labels(app_spec)
 
-            k8s.deploy(app_spec)
+        k8s.deploy(app_spec)
 
-            pytest.helpers.assert_any_call(deploy_service, app_spec, selector, labels)
+        pytest.helpers.assert_any_call(deploy_service, app_spec, selector, labels)

@@ -2,21 +2,13 @@
 # -*- coding: utf-8
 import mock
 import pytest
-
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import _resolve_cluster_env, _make_probe, DeploymentDeployer
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
 DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
-
-
-def test_resolve_finn_env_default():
-    assert _resolve_cluster_env("default_cluster") == "default_cluster"
-
-
-def test_resolve_finn_env_cluster_match():
-    assert _resolve_cluster_env("prod1") == "prod"
 
 
 def test_make_http_probe():
@@ -62,9 +54,9 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def deployer(self, infra):
-        config = mock.NonCallableMagicMock()
-        config.target_cluster = "test"
+        config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
+        config.environment = "test"
         return DeploymentDeployer(config)
 
     def test_deploy_new_deployment(self, infra, post, deployer, app_spec):
@@ -181,6 +173,7 @@ def create_environment_variables(infrastructure, appname='testapp'):
         {'name': 'LOG_STDOUT', 'value': 'true'},
         {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-test,kubernetes,test'},
         {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
+        {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
         {'name': 'LOG_FORMAT', 'value': 'json'},
         {'name': 'FINN_ENV', 'value': 'test'},
         {'name': 'IMAGE', 'value': 'finntech/testimage:version'},

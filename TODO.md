@@ -1,7 +1,6 @@
 TODO
 ====
 
-* Event-log-page in web-service to show what has happened recently
 * Switch to newer kafka
     * Balanced consumer for multi-instance support
     * Commit offset after deploy success

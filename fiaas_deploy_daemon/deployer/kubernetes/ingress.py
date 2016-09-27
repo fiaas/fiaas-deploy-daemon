@@ -10,17 +10,23 @@ from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRul
 LOG = logging.getLogger(__name__)
 
 INGRESS_SUFFIX = {
-    "dev": "k8s.dev.finn.no",
-    "local": "127.0.0.1.xip.io",
-    "test": "127.0.0.1.xip.io",
-    "prod": "k8s1-prod1.z01.finn.no",
-    # TODO: GKE-prod needs an entry here, but what is it called, and what should the value be?
+    u"diy": {
+        u"local": u"127.0.0.1.xip.io",
+        u"test": u"127.0.0.1.xip.io",
+        u"dev": u"k8s.dev.finn.no",
+        u"prod": u"k8s1-prod1.z01.finn.no",
+    },
+    u"gke": {
+        u"dev": u"k8s-gke.dev.finn.no",
+        u"prod": u"k8s-gke.prod.finn.no"
+    }
 }
 
 
 class IngressDeployer(object):
     def __init__(self, config):
-        self._target_cluster = config.target_cluster
+        self._environment = config.environment
+        self._infrastructure = config.infrastructure
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -41,13 +47,13 @@ class IngressDeployer(object):
 
     def _make_ingress_host(self, app_spec):
         if app_spec.host is None:
-            return u"{}.{}".format(app_spec.name, INGRESS_SUFFIX[self._target_cluster])
+            return u"{}.{}".format(app_spec.name, INGRESS_SUFFIX[self._infrastructure][self._environment])
         host = app_spec.host
-        if u"prod" in self._target_cluster:
+        if u"prod" == self._environment:
             return host
         if host == u"www.finn.no":
-            return u"{}.finn.no".format(self._target_cluster)
-        return u"{}.{}".format(self._target_cluster, host)
+            return u"{}.finn.no".format(self._environment)
+        return u"{}.{}".format(self._environment, host)
 
     @staticmethod
     def _should_have_ingress(app_spec):

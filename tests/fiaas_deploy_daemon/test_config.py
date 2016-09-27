@@ -7,13 +7,6 @@ from fiaas_deploy_daemon.config import Configuration
 
 
 class TestConfig(object):
-    def test_resolve_finn_env(self, monkeypatch):
-        environment = "Some environment"
-        monkeypatch.setenv("FINN_ENV", environment)
-        config = Configuration([])
-
-        assert config.target_cluster == environment
-
     @pytest.mark.parametrize("format", ["plain", "json"])
     def test_resolve_log_format_env(self, monkeypatch, format):
         monkeypatch.setenv("LOG_FORMAT", format)
@@ -43,7 +36,8 @@ class TestConfig(object):
         assert not config.debug
         assert config.api_server == 'https://kubernetes.default.svc.cluster.local'
         assert config.api_token is None
-        assert config.target_cluster == ""
+        assert config.environment == ""
+        assert config.infrastructure == "diy"
         assert config.log_format == "plain"
         assert config.image == ""
 
@@ -51,7 +45,7 @@ class TestConfig(object):
         ("--api-server", "api_server"),
         ("--api-token", "api_token"),
         ("--api-cert", "api_cert"),
-        ("--target-cluster", "target_cluster"),
+        ("--environment", "environment"),
         ("--proxy", "proxy")
     ])
     def test_parameters(self, arg, key):
@@ -59,11 +53,16 @@ class TestConfig(object):
 
         assert getattr(config, key) == "value"
 
+    def test_infrastructure_param(self):
+        config = Configuration(["--infrastructure", "gke"])
+
+        assert config.infrastructure == "gke"
+
     @pytest.mark.parametrize("env,key", [
         ("API_SERVER", "api_server"),
         ("API_TOKEN", "api_token"),
         ("API_CERT", "api_cert"),
-        ("FINN_ENV", "target_cluster"),
+        ("FIAAS_ENVIRONMENT", "environment"),
         ("IMAGE", "image")
     ])
     def test_env(self, monkeypatch, env, key):
@@ -71,6 +70,12 @@ class TestConfig(object):
         config = Configuration([])
 
         assert getattr(config, key) == "value"
+
+    def test_infrastructure_env(self, monkeypatch):
+        monkeypatch.setenv("FIAAS_INFRASTRUCTURE", "gke")
+        config = Configuration([])
+
+        assert config.infrastructure == "gke"
 
     def test_debug(self):
         config = Configuration(["--debug"])
@@ -105,7 +110,9 @@ class TestConfig(object):
 
     @pytest.mark.parametrize("cmdline,envvar,expected", [
         ([], "", "http://puppetproxy.finntech.no:42042"),
+        (["--infrastructure", "gke"], "", "http://puppetproxy.zt.finn.no:42042"),
         ([], "http://proxy.example.com", "http://proxy.example.com"),
+        (["--infrastructure", "gke"], "http://proxy.example.com", "http://proxy.example.com"),
         (["--no-proxy"], "", ""),
         (["--no-proxy"], "http://proxy.example.com", "")
     ])

@@ -28,7 +28,7 @@ def _has_utilities():
     return True
 
 
-@pytest.mark.skipif(not _has_utilities(), reason="E2E test requires minikube installed on the PATH")
+@pytest.mark.skipif(not _has_utilities(), reason="E2E test requires minikube and kubectl installed on the PATH")
 @pytest.mark.integration_test
 class TestE2E(object):
     @pytest.fixture(scope="module")
@@ -61,7 +61,7 @@ class TestE2E(object):
                                 "--api-server", kubernetes["server"],
                                 "--client-cert", kubernetes["client-cert"],
                                 "--client-key", kubernetes["client-key"],
-                                "--target-cluster", "test"
+                                "--environment", "test"
                                 ])
         time.sleep(1)
         yield "http://localhost:{}/fiaas".format(port)

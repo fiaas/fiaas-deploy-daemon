@@ -12,18 +12,14 @@ from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction
 
 LOG = logging.getLogger(__name__)
 
-CLUSTER_ENV_MAPPING = {
-    "prod1": "prod"
-}
-
 
 class DeploymentDeployer(object):
     def __init__(self, config):
-        _cluster_env = _resolve_cluster_env(config.target_cluster)
         self._env = {
-            "FINN_ENV": _cluster_env,
+            "FINN_ENV": config.environment,  # DEPRECATED. Remove in the future.
             "FIAAS_INFRASTRUCTURE": config.infrastructure,
-            "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(_cluster_env), "kubernetes", _cluster_env)),
+            "FIAAS_ENVIRONMENT": config.environment,
+            "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }
@@ -111,13 +107,6 @@ def _make_probe(check_spec):
     elif check_spec.execute:
         probe._exec = ExecAction(command=shlex.split(check_spec.execute.command))
     else:
-        raise RuntimeError("AppSpec must have exactly one healthcheck, none was defined.")
+        raise RuntimeError("AppSpec must have exactly one health check, none was defined.")
 
     return probe
-
-
-def _resolve_cluster_env(target_cluster):
-    if target_cluster in CLUSTER_ENV_MAPPING:
-        return CLUSTER_ENV_MAPPING[target_cluster]
-    else:
-        return target_cluster

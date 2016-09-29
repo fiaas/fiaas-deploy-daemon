@@ -124,12 +124,13 @@ class TestConsumer(object):
 
         reporter.register.assert_called_with(APP_SPEC.image, EVENT[u"callback_url"])
 
-    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch, kafka_consumer, consumer):
+    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(consumer._config, "infrastructure", "gke")
-
-        with pytest.raises(pipeline_consumer.NotWhiteListedApplicationException):
-            consumer()
+        factory.return_value = APP_SPEC
+        consumer()
+        with pytest.raises(Empty):
+            queue.get_nowait()
 
     def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]

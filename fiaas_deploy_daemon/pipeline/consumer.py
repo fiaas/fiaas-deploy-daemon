@@ -68,6 +68,8 @@ class Consumer(DaemonThread):
                     self._logger.debug("Ignoring event %r with missing artifacts", event)
                 except HTTPError:
                     self._logger.exception("Failure when downloading FIAAS-config")
+                except NotWhiteListedApplicationException as e:
+                    self._logger.warn("App not deployed. %s", str(e))
 
     def _connect_kafka(self):
         self._consumer = KafkaConsumer(

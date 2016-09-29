@@ -41,7 +41,7 @@ def app_spec():
         replicas=3,
         host=None,
         resources=EMPTY_RESOURCE_SPEC,
-        admin_access=None,
+        admin_access=False,
         has_secrets=False,
         prometheus=PROMETHEUS_SPEC,
         ports=[
@@ -63,9 +63,14 @@ def app_spec_with_host(app_spec):
 
 
 @pytest.fixture
+def app_spec_with_admin_access(app_spec):
+    return app_spec._replace(admin_access=True)
+
+
+@pytest.fixture
 def app_spec_thrift():
     return AppSpec(
-        admin_access=None,
+        admin_access=False,
         name="testapp",
         replicas=3,
         image="finntech/testimage:version",
@@ -94,7 +99,7 @@ def app_spec_thrift_with_host(app_spec_thrift):
 @pytest.fixture
 def app_spec_thrift_and_http():
     return AppSpec(
-        admin_access=None,
+        admin_access=False,
         name="testapp",
         replicas=3,
         image="finntech/testimage:version",

@@ -27,7 +27,7 @@ class Factory(object):
             port = self._create_port(new_service_config)
             ports.append(port)
             health_checks.append(self._create_health_checks(port.protocol, new_service_config))
-        admin_access = self._get_app(u"admin_access", app_config)
+        admin_access = self._get_app(u"admin_access", app_config) == u"read-write"
         has_secrets = self._get_app(u"has_secrets", app_config)
 
         resources = self._get_app(u"resources", app_config)

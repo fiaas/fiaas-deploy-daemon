@@ -48,8 +48,7 @@ class DeploymentDeployer(object):
         secrets_volumes = [Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name))] \
             if app_spec.has_secrets else []
 
-        # currently only supports read and no access
-        service_account_name = "default" if app_spec.admin_access == "read-write" else "fiaas-no-access"
+        service_account_name = "default" if app_spec.admin_access else "fiaas-no-access"
 
         pod_spec = PodSpec(containers=[container],
                            volumes=secrets_volumes,

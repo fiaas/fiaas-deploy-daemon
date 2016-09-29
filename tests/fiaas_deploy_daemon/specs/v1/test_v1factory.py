@@ -141,8 +141,8 @@ class TestFactory(object):
             assert port_spec.target_port == port
 
     @pytest.mark.parametrize("filename,admin_access", [
-        ("default_service", None),
-        ("admin_access", "read-write")
+        ("default_service", False),
+        ("admin_access", True)
     ])
     def test_admin_access(self, make_url, factory, filename, admin_access):
         app_spec = factory(NAME, IMAGE, make_url(filename))

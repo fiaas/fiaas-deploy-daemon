@@ -112,6 +112,59 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
+    def test_deploy_new_admin_deployment(self, infra, post, deployer, app_spec_with_admin_access):
+        deployer.deploy(app_spec_with_admin_access, SELECTOR, LABELS)
+
+        expected_deployment = {
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
+            'spec': {
+                'selector': {'matchLabels': SELECTOR},
+                'template': {
+                    'spec': {
+                        'dnsPolicy': 'ClusterFirst',
+                        'serviceAccountName': 'default',
+                        'restartPolicy': 'Always',
+                        'volumes': [],
+                        'imagePullSecrets': [],
+                        'containers': [{
+                            'livenessProbe': {
+                                'initialDelaySeconds': 10,
+                                'periodSeconds': 10,
+                                'successThreshold': 1,
+                                'timeoutSeconds': 1,
+                                'tcpSocket': {
+                                    'port': 8080
+                                }
+                            },
+                            'name': 'testapp',
+                            'image': 'finntech/testimage:version',
+                            'volumeMounts': [],
+                            'env': create_environment_variables(infra),
+                            'imagePullPolicy': 'IfNotPresent',
+                            'readinessProbe': {
+                                'initialDelaySeconds': 10,
+                                'periodSeconds': 10,
+                                'successThreshold': 1,
+                                'timeoutSeconds': 1,
+                                'httpGet': {
+                                    'path': '/',
+                                    'scheme': 'HTTP',
+                                    'port': 8080,
+                                    'httpHeaders': []
+                                }
+                            },
+                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
+                            'resources': {}
+                        }]
+                    },
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
+                },
+                'replicas': 3
+            },
+            'strategy': 'RollingUpdate'
+        }
+        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
+
     def test_deploy_new_deployment_without_prometheus_scraping(self, infra, post, deployer, app_spec):
         app_spec = app_spec._replace(prometheus=PrometheusSpec(False, None, None))
         deployer.deploy(app_spec, SELECTOR, LABELS)

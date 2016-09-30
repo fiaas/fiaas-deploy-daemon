@@ -16,7 +16,7 @@ def test_deploy_new_service(post, app_spec):
     expected_service = {
         'spec': {
             'selector': SELECTOR,
-            'type': 'ClusterIP',
+            'type': 'NodePort',
             "loadBalancerSourceRanges": [
             ],
             'ports': [{
@@ -39,7 +39,7 @@ def test_deploy_new_service_with_multiple_ports(post, app_spec_thrift_and_http):
     expected_service = {
         'spec': {
             'selector': SELECTOR,
-            'type': 'ClusterIP',
+            'type': 'NodePort',
             "loadBalancerSourceRanges": [],
             'ports': [
                 {

@@ -38,7 +38,7 @@ class Deployer(DaemonThread):
 
 class _Bookkeeper(object):
     """Trigger signals and counters"""
-    deploy_counter = Counter("deployer_requests", "Request to depoy an app")
+    deploy_counter = Counter("deployer_requests", "Request to deploy an app")
     deploy_signal = signal("deploy_started", "Signals start of deployment")
     error_counter = Counter("deployer_errors", "Deploy failed")
     error_signal = signal("deploy_failed", "Signals a failed deployment")

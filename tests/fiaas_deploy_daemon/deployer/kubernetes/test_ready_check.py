@@ -26,7 +26,7 @@ class TestReadyCheck(object):
             return deployment
 
     def test_deployment_complete(self, get, app_spec, bookkeeper):
-        self._create_response(get, REPLICAS)
+        self._create_response(get)
 
         ready = ReadyCheck(app_spec, bookkeeper)
 
@@ -34,8 +34,14 @@ class TestReadyCheck(object):
         bookkeeper.success.assert_called_with(app_spec)
         bookkeeper.failed.assert_not_called()
 
-    def test_deployment_incomplete(self, get, app_spec, bookkeeper):
-        self._create_response(get, 1)
+    @pytest.mark.parametrize("requested,replicas,available,updated", (
+            (8, 9, 7, 2),
+            (2, 2, 1, 2),
+            (2, 2, 2, 1),
+            (2, 1, 1, 1)
+    ))
+    def test_deployment_incomplete(self, get, app_spec, bookkeeper, requested, replicas, available, updated):
+        self._create_response(get, requested, replicas, available, updated)
 
         ready = ReadyCheck(app_spec, bookkeeper)
 
@@ -43,8 +49,14 @@ class TestReadyCheck(object):
         bookkeeper.success.assert_not_called()
         bookkeeper.failed.assert_not_called()
 
-    def test_deployment_failed(self, get, app_spec, bookkeeper):
-        self._create_response(get, 1)
+    @pytest.mark.parametrize("requested,replicas,available,updated", (
+            (8, 9, 7, 2),
+            (2, 2, 1, 2),
+            (2, 2, 2, 1),
+            (2, 1, 1, 1)
+    ))
+    def test_deployment_failed(self, get, app_spec, bookkeeper, requested, replicas, available, updated):
+        self._create_response(get, requested, replicas, available, updated)
 
         ready = ReadyCheck(app_spec, bookkeeper)
         ready._fail_after = time.time()
@@ -54,7 +66,7 @@ class TestReadyCheck(object):
         bookkeeper.failed.assert_called_with(app_spec)
 
     @staticmethod
-    def _create_response(get, updated):
+    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS):
         get.side_effect = None
         resp = mock.MagicMock()
         get.return_value = resp
@@ -71,9 +83,12 @@ class TestReadyCheck(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp')
                 },
-                'replicas': REPLICAS
+                'replicas': requested
             },
             'status': {
+                'replicas': replicas,
+                'availableReplicas': available,
+                'unavailableReplicas': replicas - available,
                 'updatedReplicas': updated
             }
         }

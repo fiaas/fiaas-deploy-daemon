@@ -28,7 +28,8 @@ class ReadyCheck(object):
             dep = Deployment.get(self._app_spec.name, self._app_spec.namespace)
         except NotFound:
             return False
-        return dep.status.updatedReplicas >= dep.spec.replicas
+        return (dep.status.updatedReplicas >= dep.spec.replicas and
+                dep.status.availableReplicas >= dep.spec.replicas)
 
     def __eq__(self, other):
         return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper

@@ -55,11 +55,10 @@ class Consumer(DaemonThread):
                             and app_spec.name not in GKE_PROD_WHITELIST:
                         raise NotWhiteListedApplicationException(
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
-                    if self._config.environment == "dev" \
-                            and self._config.infrastructure == "diy" \
+                    if self._config.infrastructure == "diy" \
                             and app_spec.name.startswith('travel'):
                         raise NotWhiteListedApplicationException(
-                            "{} is banned from diy dev".format(app_spec.name))
+                            "{} is banned from diy clusters".format(app_spec.name))
 
                     self._deploy_queue.put(app_spec)
                     self._reporter.register(app_spec.image, event[u"callback_url"])

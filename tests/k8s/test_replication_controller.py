@@ -5,8 +5,8 @@ from pprint import pformat
 
 import pytest
 from k8s.models.common import ObjectMeta
-from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction
-from k8s.models.replication_controller import ReplicationController, ReplicationControllerSpec, PodTemplateSpec, PodSpec
+from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction, PodTemplateSpec, PodSpec
+from k8s.models.replication_controller import ReplicationController, ReplicationControllerSpec
 from util import get_vcr
 
 vcr = get_vcr(__file__)
@@ -40,11 +40,11 @@ class TestRc(object):
         tcp = TCPSocketAction(port=5000)
         readiness = Probe(tcpSocket=tcp)
         container = Container(
-                name="container",
-                image="dummy_image",
-                ports=[container_port],
-                livenessProbe=liveness,
-                readinessProbe=readiness
+            name="container",
+            image="dummy_image",
+            ports=[container_port],
+            livenessProbe=liveness,
+            readinessProbe=readiness
         )
         image_pull_secret = LocalObjectReference(name="image_pull_secret")
         pod_spec = PodSpec(containers=[container], imagePullSecrets=[image_pull_secret], serviceAccountName="default")

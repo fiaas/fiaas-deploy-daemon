@@ -6,7 +6,7 @@ import logging
 import shlex
 
 from k8s.models.common import ObjectMeta
-from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelsSelector
+from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe
 
@@ -61,7 +61,7 @@ class DeploymentDeployer(object):
         selector_labels = _add_status_label(selector)
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels, annotations=prom_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
-        spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelsSelector(matchLabels=selector_labels), template=pod_template_spec)
+        spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelSelector(matchLabels=selector_labels), template=pod_template_spec)
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()
 

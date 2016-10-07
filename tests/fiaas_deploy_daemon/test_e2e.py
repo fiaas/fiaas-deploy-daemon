@@ -11,12 +11,14 @@ import re
 import requests
 import yaml
 from k8s import config
+from k8s.client import NotFound
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
 NAME = "application-name"
-IMAGE = "finntech/application-name:123"
+IMAGE1 = "finntech/application-name:123"
+IMAGE2 = "finntech/application-name:321"
 
 
 def _has_utilities():
@@ -100,18 +102,44 @@ class TestE2E(object):
             s.bind(("", 0))
             return s.getsockname()[1]
 
+    @staticmethod
+    def _select_kinds(name):
+        kinds = [Service, Deployment]
+        if "host" in name:
+            kinds.append(Ingress)
+        return kinds
+
     def test_post_to_web(self, fdd, fiaas_yml):
         name, url = fiaas_yml
+        kinds = self._select_kinds(name)
+        for kind in kinds:
+            with pytest.raises(NotFound):
+                kind.get(name)
+
+        # First deploy
         data = {
             "name": name,
-            "image": IMAGE,
+            "image": IMAGE1,
             "fiaas": url
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()
 
+        # Check deploy success
         time.sleep(5)
-        Service.get(name)
-        Deployment.get(name)
-        if "host" in name:
-            Ingress.get(name)
+        for kind in kinds:
+            assert kind.get(name)
+        dep = Deployment.get(name)
+        assert dep.spec.template.spec.containers[0].image == IMAGE1
+
+        # Redeploy, new image
+        data["image"] = IMAGE2
+        resp = requests.post(fdd, data)
+        resp.raise_for_status()
+
+        # Check success
+        time.sleep(5)
+        for kind in kinds:
+            assert kind.get(name)
+        dep = Deployment.get(name)
+        assert dep.spec.template.spec.containers[0].image == IMAGE2

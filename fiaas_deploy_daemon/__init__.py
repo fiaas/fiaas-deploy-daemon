@@ -11,11 +11,11 @@ import requests
 from .config import Configuration
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
+from .fake_consumer import FakeConsumerBindings
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .specs import SpecBindings
 from .web import WebBindings
-from .fake_consumer import FakeConsumerBindings
 
 
 class MainBindings(pinject.BindingSpec):
@@ -40,21 +40,25 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer):
+    def __init__(self, deployer, consumer, scheduler):
         pass
 
     def is_healthy(self):
-        return self._deployer.is_alive() and self._consumer.is_alive() and self._consumer._is_recieving_messages()
+        return (self._deployer.is_alive() and
+                self._consumer.is_alive() and
+                self._scheduler.is_alive() and
+                self._consumer.is_recieving_messages())
 
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, webapp, config):
+    def __init__(self, deployer, consumer, scheduler, webapp, config):
         pass
 
     def run(self):
         self._deployer.start()
         self._consumer.start()
+        self._scheduler.start()
         # Run web-app in main thread
         self._webapp.run("0.0.0.0", self._config.port)
 
@@ -77,6 +81,7 @@ def main():
         binding_specs.append(FakeConsumerBindings())
     obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
     obj_graph.provide(Main).run()
+
 
 if __name__ == "__main__":
     main()

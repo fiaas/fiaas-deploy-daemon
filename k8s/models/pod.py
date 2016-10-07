@@ -101,6 +101,11 @@ class PodSpec(Model):
     imagePullSecrets = ListField(LocalObjectReference)
 
 
+class PodTemplateSpec(Model):
+    metadata = Field(ObjectMeta)
+    spec = Field(PodSpec)
+
+
 class Pod(Model):
     class Meta:
         url_template = "/api/v1/namespaces/{namespace}/pods/{name}"

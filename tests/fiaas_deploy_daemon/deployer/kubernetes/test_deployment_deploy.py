@@ -107,8 +107,7 @@ class TestDeploymentDeployer(object):
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
                 'replicas': 3
-            },
-            'strategy': 'RollingUpdate'
+            }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
@@ -160,8 +159,7 @@ class TestDeploymentDeployer(object):
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
                 'replicas': 3
-            },
-            'strategy': 'RollingUpdate'
+            }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
@@ -214,8 +212,7 @@ class TestDeploymentDeployer(object):
                     'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
                 },
                 'replicas': 3
-            },
-            'strategy': 'RollingUpdate'
+            }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 

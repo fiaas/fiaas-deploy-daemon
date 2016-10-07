@@ -3,14 +3,9 @@
 from __future__ import absolute_import
 
 from .common import ObjectMeta
-from .pod import PodSpec
+from .pod import PodTemplateSpec
 from ..base import Model
 from ..fields import Field
-
-
-class PodTemplateSpec(Model):
-    metadata = Field(ObjectMeta)
-    spec = Field(PodSpec)
 
 
 class ReplicationControllerSpec(Model):

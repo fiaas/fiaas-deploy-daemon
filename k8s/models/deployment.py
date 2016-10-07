@@ -2,34 +2,44 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
+import six
+
 from .common import ObjectMeta
-from .pod import PodSpec
+from .pod import PodTemplateSpec
 from ..base import Model
 from ..fields import Field
 
-import six
 
-
-class PodTemplateSpec(Model):
-    metadata = Field(ObjectMeta)
-    spec = Field(PodSpec)
-
-
-class LabelsSelector(Model):
+class LabelSelector(Model):
     matchLabels = Field(dict)
 
 
-class RollbackConfig(Model):
-    revision = Field(dict)
+class RollingUpdateDeployment(Model):
+    maxUnavailable = Field(six.text_type)
+    maxSurge = Field(six.text_type)
+
+
+class DeploymentStrategy(Model):
+    type = Field(six.text_type, "RollingUpdate")
+    rollingUpdate = Field(RollingUpdateDeployment)
 
 
 class DeploymentSpec(Model):
     replicas = Field(int, 1)
-    selector = Field(LabelsSelector)
+    selector = Field(LabelSelector)
     template = Field(PodTemplateSpec)
+    strategy = Field(DeploymentStrategy)
     minReadySeconds = Field(six.text_type, alt_type=int)
     revisionHistoryLimit = Field(six.text_type, alt_type=int)
     paused = Field(six.text_type)
+
+
+class DeploymentStatus(Model):
+    observedGeneration = Field(int)
+    replicas = Field(int)
+    updatedReplicas = Field(int)
+    availableReplicas = Field(int)
+    unavailableReplicas = Field(int)
 
 
 class Deployment(Model):
@@ -38,4 +48,4 @@ class Deployment(Model):
 
     metadata = Field(ObjectMeta)
     spec = Field(DeploymentSpec)
-    strategy = Field(six.text_type, "RollingUpdate")
+    status = Field(DeploymentStatus)

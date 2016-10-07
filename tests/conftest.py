@@ -28,6 +28,16 @@ def assert_no_calls(mockk, uri=None):
     _add_useful_error_message(_assertion, mockk, None, None)
 
 
+@pytest.helpers.register
+def assert_dicts(actual, expected):
+    __tracebackhide__ = True
+
+    try:
+        assert actual == expected
+    except AssertionError as ae:
+        raise AssertionError(ae.message + _add_argument_diff(actual, expected))
+
+
 def _add_useful_error_message(assertion, mockk, first, args):
     """
     If an AssertionError is raised in the assert, find any other calls on mock where the first parameter is uri and

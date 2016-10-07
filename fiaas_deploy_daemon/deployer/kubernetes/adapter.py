@@ -33,8 +33,8 @@ class K8s(object):
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
         deploy_service(app_spec, selector, labels)
-        self._deployment_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
+        self._deployment_deployer.deploy(app_spec, selector, labels)
 
     def _make_labels(self, app_spec):
         labels = {

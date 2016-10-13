@@ -29,7 +29,10 @@ class Deployer(DaemonThread):
             try:
                 with self._bookkeeper.time(app_spec):
                     self._adapter.deploy(app_spec)
-                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper))
+                if app_spec.name != "fiaas-deploy-daemon":
+                    self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper))
+                else:
+                    self._bookkeeper.success(app_spec)
                 LOG.info("Completed deployment of %r", app_spec)
             except Exception:
                 self._bookkeeper.failed(app_spec)

@@ -2,7 +2,6 @@
 # -*- coding: utf-8
 import mock
 import pytest
-
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.config import Configuration
 
@@ -62,6 +61,42 @@ class TestIngressDeployer(object):
                 }]
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=external)
+        }
+
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
+
+    def test_deploy_new_ingress_dev_gke(self, request, delete, get, post):
+        app_spec = request.getfuncargvalue("app_spec")
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.infrastructure = "gke"
+        config.environment = "dev"
+        deployer = IngressDeployer(config)
+        deployer.deploy(app_spec, LABELS)
+
+        expected_ingress = {
+            'spec': {
+                'rules': [{
+                    'host': 'testapp.k8s-gke.dev.finn.no',
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }, {
+                    'host': 'testapp.k8s.dev.finn.no',
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }
+                ]
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=False)
         }
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)

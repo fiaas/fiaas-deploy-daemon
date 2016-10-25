@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 from __future__ import absolute_import
-
 import logging
-
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
 
@@ -34,12 +32,17 @@ class IngressDeployer(object):
             annotations = {
                 u"fiaas/expose": u"true" if app_spec.host else u"false"
             }
-            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
+            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels,
+                                  annotations=annotations)
             http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if
                                   port_spec.protocol == u"http"]
             http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
             ingress_rule = IngressRule(host=self._make_ingress_host(app_spec), http=http_ingress_rule)
-            ingress_spec = IngressSpec(rules=[ingress_rule])
+            ingress_rules = [ingress_rule]
+            if self._infrastructure == 'gke' and self._environment == 'dev' and app_spec.host is None:
+                ingress_rules.append(IngressRule(host=u"{}.{}".format(app_spec.name, INGRESS_SUFFIX['diy']['dev']),
+                                                 http=http_ingress_rule))
+            ingress_spec = IngressSpec(rules=ingress_rules)
             ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
             ingress.save()
         else:

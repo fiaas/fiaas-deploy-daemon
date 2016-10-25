@@ -6,7 +6,7 @@ import time
 from k8s.models.deployment import Deployment
 from k8s.client import NotFound
 
-FAIL_LIMIT_MULTIPLIER = 1.5
+FAIL_LIMIT_MULTIPLIER = 10
 
 
 class ReadyCheck(object):

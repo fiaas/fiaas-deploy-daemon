@@ -41,9 +41,13 @@ class K8s(object):
             "app": app_spec.name,
             "fiaas/version": app_spec.version,
             "fiaas/deployed_by": self._version,
+            "fiaas/teams": app_spec.teams,
+            "fiaas/tags": app_spec.tags,
         }
         return labels
 
 
 def _make_selector(app_spec):
-    return {'app': app_spec.name}
+    return {
+        'app': app_spec.name,
+    }

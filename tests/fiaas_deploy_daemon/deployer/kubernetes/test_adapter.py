@@ -7,6 +7,8 @@ from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.config import Configuration
 
 FIAAS_VERSION = "1"
+TEAMS = "foo"
+TAGS = "bar"
 
 
 class TestK8s(object):
@@ -34,6 +36,8 @@ class TestK8s(object):
         assert actual["app"] == app_spec.name
         assert actual["fiaas/version"] == app_spec.version
         assert actual["fiaas/deployed_by"] == FIAAS_VERSION
+        assert actual["fiaas/teams"] == TEAMS
+        assert actual["fiaas/tags"] == TAGS
 
     def test_make_selector(self, app_spec):
         assert _make_selector(app_spec) == {'app': app_spec.name}

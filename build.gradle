@@ -49,7 +49,7 @@ publishing {
 
     repositories {
         maven {
-            url 'http://mavenproxy.finntech.no/finntech-internal-snapshot/'
+            url 'https://mavenproxy.finntech.no/finntech-internal-snapshot/'
         }
     }
 }

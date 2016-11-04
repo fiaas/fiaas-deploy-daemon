@@ -28,8 +28,8 @@ EVENT = {
     u'environment': u'prod',
     u'project_name': u'tp-api',
     u'puppet_name': u'tp-api',
-    u'teams': u'Foo Bar',
-    u'tags': u'what ever',
+    u'teams': u'IO',
+    u'tags': u'cloud',
     u'timestamp': u'2016-01-05T15:20:26+01:00',
     u'user': u'fikameva'
 }
@@ -76,7 +76,7 @@ class TestConsumer(object):
         return create_autospec(kafka.KafkaConsumer, instance=True)
 
     @pytest.fixture
-    def consumer(self, queue, config, reporter, teams, tags, factory, kafka_consumer):
+    def consumer(self, queue, config, reporter, factory, kafka_consumer):
         c = pipeline_consumer.Consumer(queue, config, reporter, None, None, factory)
         c._consumer = kafka_consumer
         return c
@@ -112,7 +112,7 @@ class TestConsumer(object):
 
         assert event == EVENT
 
-    def test_consume_message_in_correct_cluster(self, kafka_consumer, queue, consumer, teams, tags):
+    def test_consume_message_in_correct_cluster(self, kafka_consumer, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
 
         consumer()
@@ -120,7 +120,7 @@ class TestConsumer(object):
         app_spec = queue.get_nowait()
         assert app_spec is APP_SPEC
 
-    def test_skip_message_if_wrong_cluster(self, monkeypatch, kafka_consumer, consumer, queue, teams, tags):
+    def test_skip_message_if_wrong_cluster(self, monkeypatch, kafka_consumer, consumer, queue):
         kafka_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(consumer, "_environment", "dev")
 
@@ -136,7 +136,7 @@ class TestConsumer(object):
 
         reporter.register.assert_called_with(APP_SPEC.image, EVENT[u"callback_url"])
 
-    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer, teams, tags):
+    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(consumer._config, "infrastructure", "gke")
         factory.return_value = APP_SPEC
@@ -144,7 +144,7 @@ class TestConsumer(object):
         with pytest.raises(Empty):
             queue.get_nowait()
 
-    def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer, teams, tags):
+    def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(consumer._config, "infrastructure", "gke")
         factory.return_value = APP_SPEC_TRAVEL

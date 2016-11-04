@@ -106,3 +106,22 @@ def app_spec_thrift_and_http():
         teams="foo",
         tags="bar"
     )
+
+
+@pytest.fixture
+def app_spec_teams_and_tags():
+    return AppSpec(
+            admin_access=False,
+            name="testapp",
+            replicas=3,
+            image="finntech/testimage:version",
+            namespace="default",
+            has_secrets=False,
+            host=None,
+            resources=EMPTY_RESOURCE_SPEC,
+            prometheus=PROMETHEUS_SPEC,
+            ports=None,
+            health_checks=None,
+            teams="Order Produkt Betaling",
+            tags="høyt-i-stacken ad-in Anonnseinnlegging"
+    )

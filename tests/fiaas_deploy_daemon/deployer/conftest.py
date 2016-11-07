@@ -32,9 +32,7 @@ def app_spec():
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)
-        ),
-        teams="foo",
-        tags="bar"
+        )
     )
 
 
@@ -69,10 +67,7 @@ def app_spec_thrift():
             readiness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)
-        ),
-        teams="foo",
-        tags="bar"
-    )
+        ))
 
 
 @pytest.fixture
@@ -102,26 +97,4 @@ def app_spec_thrift_and_http():
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)
-        ),
-        teams="foo",
-        tags="bar"
-    )
-
-
-@pytest.fixture
-def app_spec_teams_and_tags():
-    return AppSpec(
-            admin_access=False,
-            name="testapp",
-            replicas=3,
-            image="finntech/testimage:version",
-            namespace="default",
-            has_secrets=False,
-            host=None,
-            resources=EMPTY_RESOURCE_SPEC,
-            prometheus=PROMETHEUS_SPEC,
-            ports=None,
-            health_checks=None,
-            teams="Order Produkt Betaling",
-            tags="høyt-i-stacken ad-in Anonnseinnlegging"
-    )
+        ))

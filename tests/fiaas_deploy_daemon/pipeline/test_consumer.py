@@ -28,15 +28,12 @@ EVENT = {
     u'environment': u'prod',
     u'project_name': u'tp-api',
     u'puppet_name': u'tp-api',
-    u'teams': u'IO',
-    u'tags': u'cloud',
     u'timestamp': u'2016-01-05T15:20:26+01:00',
     u'user': u'fikameva'
 }
 MESSAGE = DummyMessage(json.dumps(EVENT))
-APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None, None, None)
-APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1,
-                                 None, None, None, None, None, None, None, None, None)
+APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
+APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
 
 
 class TestConsumer(object):
@@ -46,16 +43,7 @@ class TestConsumer(object):
         mock.resolve_service.side_effect = config.InvalidConfigurationException("FakeConfig")
         mock.environment = "prod"
         mock.infrastructure = "diy"
-
         return mock
-
-    @pytest.fixture
-    def teams(self):
-        return "IO"
-
-    @pytest.fixture
-    def tags(self):
-        return "cloud"
 
     @pytest.fixture
     def queue(self):
@@ -77,7 +65,7 @@ class TestConsumer(object):
 
     @pytest.fixture
     def consumer(self, queue, config, reporter, factory, kafka_consumer):
-        c = pipeline_consumer.Consumer(queue, config, reporter, None, None, factory)
+        c = pipeline_consumer.Consumer(queue, config, reporter, factory)
         c._consumer = kafka_consumer
         return c
 
@@ -129,7 +117,7 @@ class TestConsumer(object):
         with pytest.raises(Empty):
             queue.get_nowait()
 
-    def test_registers_callback(self, kafka_consumer, consumer, reporter, teams, tags):
+    def test_registers_callback(self, kafka_consumer, consumer, reporter):
         kafka_consumer.__iter__.return_value = [MESSAGE]
 
         consumer()

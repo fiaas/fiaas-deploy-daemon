@@ -8,8 +8,6 @@ from fiaas_deploy_daemon.specs.factory import SpecFactory
 
 IMAGE = u"finntech/docker-image:some-version"
 NAME = u"application-name"
-TEAMS = "IO"
-TAGS = "Foo"
 
 
 class TestSpecFactory(object):
@@ -30,6 +28,6 @@ class TestSpecFactory(object):
         ("v2minimal", "v2")
     ])
     def test_dispatch_to_correct_version(self, request, make_url, factory, filename, mock_to_call):
-        factory(NAME, IMAGE, make_url(filename), TEAMS, TAGS)
+        factory(NAME, IMAGE, make_url(filename))
         mock_factory = request.getfuncargvalue(mock_to_call)
-        mock_factory.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY)
+        mock_factory.assert_called_with(NAME, IMAGE, ANY)

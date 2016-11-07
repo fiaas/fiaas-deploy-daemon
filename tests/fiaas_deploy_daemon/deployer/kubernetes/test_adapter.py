@@ -7,8 +7,6 @@ from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.config import Configuration
 
 FIAAS_VERSION = "1"
-TEAMS = u"foo"
-TAGS = u"bar"
 
 
 class TestK8s(object):
@@ -36,15 +34,6 @@ class TestK8s(object):
         assert actual["app"] == app_spec.name
         assert actual["fiaas/version"] == app_spec.version
         assert actual["fiaas/deployed_by"] == FIAAS_VERSION
-        assert actual["fiaas/teams"] == TEAMS
-        assert actual["fiaas/tags"] == TAGS
-
-    def test_make_labels_with_spaces(self, k8s, app_spec_teams_and_tags):
-        actual = k8s._make_labels(app_spec_teams_and_tags)
-        assert actual["fiaas/teams"] == "order-produkt-betaling"
-        assert actual["fiaas/tags"] == "hoeyt-i-stacken"
-        assert actual["fiaas/tags_1"] == "ad-in"
-        assert actual["fiaas/tags_2"] == "anonnseinnlegging"
 
     def test_make_selector(self, app_spec):
         assert _make_selector(app_spec) == {'app': app_spec.name}

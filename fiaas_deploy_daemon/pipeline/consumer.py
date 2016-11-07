@@ -86,7 +86,9 @@ class Consumer(DaemonThread):
         artifacts = event[u"artifacts_by_type"]
         image = artifacts[u"docker"]
         fiaas_url = artifacts[u"fiaas"]
-        return self._spec_factory(name, image, fiaas_url)
+        teams = artifacts[u"teams"].lower() if u"teams" in artifacts else None
+        tags = artifacts[u"tags"].lower() if u"tags" in artifacts else None
+        return self._spec_factory(name, image, fiaas_url, teams, tags)
 
     def _deserialize(self, message):
         return json.loads(message.value)

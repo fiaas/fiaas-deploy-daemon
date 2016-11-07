@@ -16,7 +16,7 @@ class Factory(object):
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
 
-    def __call__(self, name, image, app_config):
+    def __call__(self, name, image, teams, tags, app_config):
         lookup = LookupMapping(app_config, self._defaults)
         ports = self._ports(lookup[u"ports"])
         return AppSpec(
@@ -30,7 +30,8 @@ class Factory(object):
             lookup[u"has_secrets"],
             self._prometheus_spec(lookup[u"prometheus"]),
             ports,
-            self._health_checks_spec(lookup[u"healthchecks"], ports))
+            self._health_checks_spec(lookup[u"healthchecks"], ports),
+            teams, tags)
 
     @staticmethod
     def _prometheus_spec(lookup):

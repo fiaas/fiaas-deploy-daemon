@@ -41,7 +41,7 @@ def frontpage():
 def fiaas():
     form = DeployForm(request.form)
     if form.validate_on_submit():
-        app_spec = current_app.spec_factory(form.name.data, form.image.data, form.fiaas.data)
+        app_spec = current_app.spec_factory(form.name.data, form.image.data, form.fiaas.data, form.teams.data, form.tags.data)
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")

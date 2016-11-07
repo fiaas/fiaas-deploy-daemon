@@ -42,7 +42,24 @@ class K8s(object):
             "fiaas/version": app_spec.version,
             "fiaas/deployed_by": self._version,
         }
+
+        _add_labels("fiaas/teams", labels, app_spec.teams)
+        _add_labels("fiaas/tags", labels, app_spec.tags),
         return labels
+
+
+# The value of labels can only be of the format (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
+def _add_labels(prefix, labels, values):
+    if values:
+        counter = 0
+        for value in values:
+            post_fix = "_" + str(counter) if (counter > 0) else ""
+            labels[prefix + post_fix] = _to_valid_label_value(value)
+            counter = counter + 1
+
+
+def _to_valid_label_value(value):
+    return value.encode('utf-8').lower().replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae")
 
 
 def _make_selector(app_spec):

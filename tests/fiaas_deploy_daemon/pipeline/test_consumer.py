@@ -28,12 +28,15 @@ EVENT = {
     u'environment': u'prod',
     u'project_name': u'tp-api',
     u'puppet_name': u'tp-api',
+    u'teams': [u'IO'],
+    u'tags': [u'cloud'],
     u'timestamp': u'2016-01-05T15:20:26+01:00',
     u'user': u'fikameva'
 }
 MESSAGE = DummyMessage(json.dumps(EVENT))
-APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
-APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None)
+APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None, None, None, None, None, None)
+APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1,
+                                 None, None, None, None, None, None, None, None, None)
 
 
 class TestConsumer(object):

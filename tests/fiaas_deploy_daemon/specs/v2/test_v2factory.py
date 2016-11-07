@@ -178,16 +178,16 @@ class TestFactory(object):
             "full_config"
     ))
     def test_name_and_image(self, make_url, factory, filename):
-        app_spec = factory(NAME, IMAGE, make_url(filename))
+        app_spec = factory(NAME, IMAGE, make_url(filename), "IO", "foo")
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
     def test_no_health_check(self, make_url, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, make_url("no_health_check_defined"))
+            factory(NAME, IMAGE, make_url("no_health_check_defined"), "IO", "foo")
 
     def test(self, make_url, factory, filename, attribute, value):
-        app_spec = factory(NAME, IMAGE, make_url(filename))
+        app_spec = factory(NAME, IMAGE, make_url(filename), "IO", "foo")
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)

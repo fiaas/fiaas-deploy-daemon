@@ -26,7 +26,7 @@ class Consumer(DaemonThread):
     - KAFKA_PIPELINE_SERVICE_PORT: Port kafka listens on
     """
 
-    def __init__(self, deploy_queue, config, reporter, spec_factory):
+    def __init__(self, deploy_queue, config, reporter, teams, tags, spec_factory):
         super(Consumer, self).__init__()
         self._logger = logging.getLogger(__name__)
         self._deploy_queue = deploy_queue
@@ -34,6 +34,8 @@ class Consumer(DaemonThread):
         self._config = config
         self._environment = config.environment
         self._reporter = reporter
+        self._teams = teams
+        self._tags = tags
         self._spec_factory = spec_factory
         self._last_message_timestamp = int(time.time())
 
@@ -86,7 +88,9 @@ class Consumer(DaemonThread):
         artifacts = event[u"artifacts_by_type"]
         image = artifacts[u"docker"]
         fiaas_url = artifacts[u"fiaas"]
-        return self._spec_factory(name, image, fiaas_url)
+        teams = artifacts[u"teams"].lower() if u"teams" in artifacts else None
+        tags = artifacts[u"tags"].lower() if u"tags" in artifacts else None
+        return self._spec_factory(name, image, fiaas_url, teams, tags)
 
     def _deserialize(self, message):
         return json.loads(message.value)

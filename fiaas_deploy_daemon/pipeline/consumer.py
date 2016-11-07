@@ -86,8 +86,8 @@ class Consumer(DaemonThread):
         artifacts = event[u"artifacts_by_type"]
         image = artifacts[u"docker"]
         fiaas_url = artifacts[u"fiaas"]
-        teams = artifacts[u"teams"].lower() if u"teams" in artifacts else None
-        tags = artifacts[u"tags"].lower() if u"tags" in artifacts else None
+        teams = event[u"teams"]
+        tags = event[u"tags"]
         return self._spec_factory(name, image, fiaas_url, teams, tags)
 
     def _deserialize(self, message):

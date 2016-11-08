@@ -59,7 +59,9 @@ def _add_labels(prefix, labels, values):
 
 
 def _to_valid_label_value(value):
-    return value.encode('utf-8').lower().replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae")
+    return value.encode('utf-8').lower()\
+        .replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae") \
+        .replace(":", "-")
 
 
 def _make_selector(app_spec):

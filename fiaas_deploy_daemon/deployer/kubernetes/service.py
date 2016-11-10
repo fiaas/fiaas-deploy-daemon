@@ -11,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 def deploy_service(app_spec, selector, labels):
-    LOG.info("Creating/updating service for %s", app_spec.name)
+    LOG.info("Creating/updating service for %s with labels: %s", app_spec.name, labels)
     ports = [_make_service_port(port_spec) for port_spec in app_spec.ports]
     service_name = app_spec.name
     metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels)

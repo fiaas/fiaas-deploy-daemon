@@ -23,7 +23,10 @@ class AppSpec(namedtuple("AppSpec", [
 
     @property
     def version(self):
-        return self.image.split(":")[-1] if ":" in self.image else "<unknown>"
+        if ":" in self.image:
+            return self.image.split(":")[-1]
+        else:
+            raise RuntimeError('Version must be specified for docker image aka image:version')
 
 ResourceRequirementSpec = namedtuple("ResourceRequirementSpec", [
     "cpu",

@@ -43,8 +43,8 @@ class K8s(object):
             "fiaas/deployed_by": self._version,
         }
 
-        _add_labels("fiaas/teams", labels, app_spec.teams)
-        _add_labels("fiaas/tags", labels, app_spec.tags),
+        # _add_labels("fiaas/teams", labels, app_spec.teams)
+        # _add_labels("fiaas/tags", labels, app_spec.tags),
         return labels
 
 

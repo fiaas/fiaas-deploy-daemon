@@ -7,6 +7,9 @@ from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRul
 
 LOG = logging.getLogger(__name__)
 
+# These are infrastructure suffixes, those should only be used in the
+# unusual case that you care about exactly what infrastructure you are
+# hitting.
 INGRESS_SUFFIX = {
     u"diy": {
         u"local": u"127.0.0.1.xip.io",
@@ -18,6 +21,13 @@ INGRESS_SUFFIX = {
         u"dev": u"k8s-gke.dev.finn.no",
         u"prod": u"k8s-gke.prod.finn.no"
     }
+}
+
+# These are service plane suffixes, they should be the preferred names
+# for consumers of various services.
+SVC_INGRESS_SUFFIX = {
+    u"dev": u"svc.dev.finn.no",
+    u"prod": u"svc.finn.no",
 }
 
 
@@ -37,8 +47,11 @@ class IngressDeployer(object):
             http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if
                                   port_spec.protocol == u"http"]
             http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
-            ingress_rule = IngressRule(host=self._make_ingress_host(app_spec), http=http_ingress_rule)
-            ingress_rules = [ingress_rule]
+            ingress_rule_infra = IngressRule(host=self._make_ingress_host(app_spec), http=http_ingress_rule)
+            ingress_rules = [ingress_rule_infra]
+            ingress_rule_service_host = self._make_ingress_service_host(app_spec)
+            if ingress_rule_service_host is not None:
+                ingress_rules.append(IngressRule(host=ingress_rule_service_host, http=http_ingress_rule))
             if self._infrastructure == 'gke' and self._environment == 'dev' and app_spec.host is None:
                 ingress_rules.append(IngressRule(host=u"{}.{}".format(app_spec.name, INGRESS_SUFFIX['diy']['dev']),
                                                  http=http_ingress_rule))
@@ -57,6 +70,11 @@ class IngressDeployer(object):
         if host == u"www.finn.no":
             return u"{}.finn.no".format(self._environment)
         return u"{}.{}".format(self._environment, host)
+
+    def _make_ingress_service_host(self, app_spec):
+        if app_spec.host is None and self._environment in SVC_INGRESS_SUFFIX:
+            return u"{}.{}".format(app_spec.name, SVC_INGRESS_SUFFIX[self._environment])
+        return None
 
     @staticmethod
     def _should_have_ingress(app_spec):

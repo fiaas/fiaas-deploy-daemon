@@ -28,6 +28,7 @@ class AppSpec(namedtuple("AppSpec", [
         else:
             raise RuntimeError('Version must be specified for docker image aka image:version')
 
+
 ResourceRequirementSpec = namedtuple("ResourceRequirementSpec", [
     "cpu",
     "memory"])

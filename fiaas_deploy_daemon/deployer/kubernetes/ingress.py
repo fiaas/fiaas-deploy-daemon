@@ -27,7 +27,7 @@ INGRESS_SUFFIX = {
 # for consumers of various services.
 SVC_INGRESS_SUFFIX = {
     u"dev": u"svc.dev.finn.no",
-    u"prod": u"svc.finn.no",
+    u"prod": u"svc.prod.finn.no",
 }
 
 

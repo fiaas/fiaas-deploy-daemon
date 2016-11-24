@@ -33,7 +33,8 @@ class MainBindings(pinject.BindingSpec):
         if config.proxy:
             session.proxies = {host: config.proxy for host in (
                 "http://pipeline.finntech.no",
-                "http://mavenproxy.finntech.no"
+                "http://mavenproxy.finntech.no",
+                "https://mavenproxy.finntech.no"
             )}
         return session
 

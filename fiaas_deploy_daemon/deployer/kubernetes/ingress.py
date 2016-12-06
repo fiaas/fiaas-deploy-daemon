@@ -4,6 +4,8 @@ from __future__ import absolute_import
 import logging
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
+from k8s.client import NotFound
+
 
 LOG = logging.getLogger(__name__)
 
@@ -59,7 +61,10 @@ class IngressDeployer(object):
             ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
             ingress.save()
         else:
-            Ingress.delete(app_spec.name, app_spec.namespace)
+            try:
+                Ingress.delete(app_spec.name, app_spec.namespace)
+            except NotFound:
+                pass
 
     def _make_ingress_host(self, app_spec):
         if app_spec.host is None:

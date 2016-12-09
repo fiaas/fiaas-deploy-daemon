@@ -15,6 +15,15 @@ from ..base_thread import DaemonThread
 
 GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
                       "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
+DIY_PROD_BLACKLIST = ["travel-config-solr", "travel-cruise-web", "travel-currency-web",
+                      "travel-flight-api", "travel-flight-solr", "travel-flight-integration", "travel-flight-lowfare",
+                      "travel-flight-solr", "travel-flight-solr-autocomplete", "travel-flight-supplier-integrations", "travel-flight-web",
+                      "travel-frontpage-web"
+                      "travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web",
+                      "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud",
+                      "travel-storage-solr-import",
+                      "travel-theme-web"]
+
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 
 
@@ -56,7 +65,7 @@ class Consumer(DaemonThread):
                         raise NotWhiteListedApplicationException(
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
                     if self._config.infrastructure == "diy" \
-                            and app_spec.name.startswith('travel'):
+                            and app_spec.name in DIY_PROD_BLACKLIST:
                         raise NotWhiteListedApplicationException(
                             "{} is banned from diy clusters".format(app_spec.name))
 

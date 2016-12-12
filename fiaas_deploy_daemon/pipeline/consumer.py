@@ -66,7 +66,7 @@ class Consumer(DaemonThread):
                             "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
                     if self._config.infrastructure == "diy" \
                             and app_spec.name in DIY_PROD_BLACKLIST:
-                        raise NotWhiteListedApplicationException(
+                        raise BlackListedApplicationException(
                             "{} is banned from diy clusters".format(app_spec.name))
 
                     self._deploy_queue.put(app_spec)
@@ -76,7 +76,7 @@ class Consumer(DaemonThread):
                     self._logger.debug("Ignoring event %r with missing artifacts", event)
                 except HTTPError:
                     self._logger.exception("Failure when downloading FIAAS-config")
-                except NotWhiteListedApplicationException as e:
+                except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
                     self._logger.warn("App not deployed. %s", str(e))
 
     def _connect_kafka(self):
@@ -122,4 +122,8 @@ class NoFiaasArtifactException(Exception):
 
 
 class NotWhiteListedApplicationException(Exception):
+    pass
+
+
+class BlackListedApplicationException(Exception):
     pass

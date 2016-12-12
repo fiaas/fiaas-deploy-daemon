@@ -143,6 +143,16 @@ class TestConsumer(object):
         app_spec = queue.get_nowait()
         assert app_spec is APP_SPEC_TRAVEL
 
+    def test_should_not_deploy_apps_to_dyi_prod_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+        kafka_consumer.__iter__.return_value = [MESSAGE]
+        monkeypatch.setattr(consumer._config, "infrastructure", "diy")
+        factory.return_value = APP_SPEC_TRAVEL
+
+        consumer()
+
+        with pytest.raises(Empty):
+            queue.get_nowait()
+
 
 def _make_env_message(template, env):
     message = deepcopy(template)

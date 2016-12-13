@@ -54,9 +54,16 @@ class IngressDeployer(object):
             ingress_rule_service_host = self._make_ingress_service_host(app_spec)
             if ingress_rule_service_host is not None:
                 ingress_rules.append(IngressRule(host=ingress_rule_service_host, http=http_ingress_rule))
+
             if self._infrastructure == 'gke' and self._environment == 'dev' and app_spec.host is None:
-                ingress_rules.append(IngressRule(host=u"{}.{}".format(app_spec.name, INGRESS_SUFFIX['diy']['dev']),
+                ingress_rules.append(IngressRule(host=u"{}.{}".format(app_spec.name,
+                                     INGRESS_SUFFIX['diy']['dev']),
+                                             http=http_ingress_rule))
+            elif app_spec.host is not None:
+                ingress_rules.append(IngressRule(host=u"{}.{}".format(app_spec.name,
+                                     INGRESS_SUFFIX[self._infrastructure][self._environment]),
                                                  http=http_ingress_rule))
+
             ingress_spec = IngressSpec(rules=ingress_rules)
             ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
             ingress.save()

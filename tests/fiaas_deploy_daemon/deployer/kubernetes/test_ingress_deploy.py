@@ -39,11 +39,44 @@ class TestIngressDeployer(object):
         deployer = IngressDeployer(config)
         assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 
-    @pytest.mark.parametrize("spec_name,host,external", (
-            ("app_spec_with_host", "test.finn.no", True),
-            ("app_spec", "testapp.127.0.0.1.xip.io", False)
-    ))
-    def test_deploy_new_ingress(self, request, post, deployer, spec_name, host, external):
+    def test_deploy_new_ingress_with_host(self, request, post, deployer):
+        spec_name = "app_spec_with_host"
+        host = "test.finn.no"
+        external = True
+        app_spec = request.getfuncargvalue(spec_name)
+        deployer.deploy(app_spec, LABELS)
+
+        expected_ingress = {
+            'spec': {
+                'rules': [{
+                    'host': host,
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }, {
+                    'host': "testapp.127.0.0.1.xip.io",
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }]
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=external)
+        }
+
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
+
+    def test_deploy_new_ingress_without_host(self, request, post, deployer):
+        spec_name = "app_spec"
+        host = "testapp.127.0.0.1.xip.io"
+        external = False
         app_spec = request.getfuncargvalue(spec_name)
         deployer.deploy(app_spec, LABELS)
 
@@ -128,8 +161,16 @@ class TestIngressDeployer(object):
                             'serviceName': 'testapp',
                             'servicePort': 80
                         }}]
-                    }
-                }]
+                    }}, {
+                    'host': 'test.k8s1-prod1.z01.finn.no',
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }}
+                ]
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
         }

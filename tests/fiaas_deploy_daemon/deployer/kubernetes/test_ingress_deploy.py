@@ -126,17 +126,7 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }
-                }, {
-                    'host': 'testapp.k8s.dev.finn.no',
-                    'http': {'paths': [{
-                        'path': '/',
-                        'backend': {
-                            'serviceName': 'testapp',
-                            'servicePort': 80
-                        }}]
-                    }
-                },
-                ]
+                }]
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=False)
         }

@@ -16,7 +16,6 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
-NAME = "application-name"
 IMAGE1 = "finntech/application-name:123"
 IMAGE2 = "finntech/application-name:321"
 
@@ -36,7 +35,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self):
         subprocess.call(["minikube", "delete"])
-        subprocess.check_call(["minikube", "start", "--kubernetes-version=1.3.4"])
+        self._start_minikube()
         subprocess.check_call(["kubectl", "config", "use-context", "minikube"])
         output = subprocess.check_output(["kubectl", "config", "view", "--minify", "-oyaml"])
         kubectl_config = yaml.safe_load(output)
@@ -46,6 +45,17 @@ class TestE2E(object):
             "client-key": kubectl_config[u"users"][0][u"user"][u"client-key"]
         }
         subprocess.check_call(["minikube", "delete"])
+
+    @staticmethod
+    def _start_minikube():
+        running = False
+        start = time.time()
+        while not running and time.time() < (start + 60):
+            subprocess.call(["minikube", "start"])
+            time.sleep(5)
+            running = (subprocess.call(["kubectl", "cluster-info"]) == 0)
+        if not running:
+            raise RuntimeError("Minikube won't start")
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
@@ -120,7 +130,9 @@ class TestE2E(object):
         data = {
             "name": name,
             "image": IMAGE1,
-            "fiaas": url
+            "fiaas": url,
+            "teams": "testteam",
+            "tags": "testtags"
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()

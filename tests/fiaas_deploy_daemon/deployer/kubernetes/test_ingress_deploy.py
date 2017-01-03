@@ -18,19 +18,9 @@ class TestIngressDeployer(object):
         return IngressDeployer(config)
 
     @pytest.mark.parametrize("host,expected", [
-        ("www.finn.no", "test.finn.no"),
-        ("m.finn.no", "test.m.finn.no"),
-        ("kart.finn.no", "test.kart.finn.no"),
-        (None, "testapp.127.0.0.1.xip.io")
-    ])
-    def test_make_ingress_host(self, deployer, app_spec, host, expected):
-        assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
-
-    @pytest.mark.parametrize("host,expected", [
         ("www.finn.no", "www.finn.no"),
         ("m.finn.no", "m.finn.no"),
         ("kart.finn.no", "kart.finn.no"),
-        (None, "testapp.k8s1-prod1.z01.finn.no"),
     ])
     def test_make_ingress_host_prod(self, app_spec, host, expected):
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -39,17 +29,29 @@ class TestIngressDeployer(object):
         deployer = IngressDeployer(config)
         assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 
-    def test_deploy_new_ingress_with_host(self, request, post, deployer):
-        spec_name = "app_spec_with_host"
-        host = "test.finn.no"
-        external = True
-        app_spec = request.getfuncargvalue(spec_name)
-        deployer.deploy(app_spec, LABELS)
+    @pytest.mark.parametrize("host,expected", [
+        ("www.finn.no", "test.finn.no"),
+        ("m.finn.no", "test.m.finn.no"),
+        ("kart.finn.no", "test.kart.finn.no"),
+        (None, "testapp.svc.test.finn.no")
+    ])
+    def test_generate_hosts(self, app_spec, deployer, host, expected):
+        hosts = list(deployer._generate_hosts(app_spec._replace(host=host)))
+        assert hosts == [expected, "testapp.127.0.0.1.xip.io"]
+
+    @pytest.mark.parametrize("host,expected,external", [
+        ("www.finn.no", "test.finn.no", True),
+        ("m.finn.no", "test.m.finn.no", True),
+        ("kart.finn.no", "test.kart.finn.no", True),
+        (None, "testapp.svc.test.finn.no", False)
+    ])
+    def test_deploy_new_ingress(self, host, expected, external, app_spec, post, deployer):
+        deployer.deploy(app_spec._replace(host=host), LABELS)
 
         expected_ingress = {
             'spec': {
                 'rules': [{
-                    'host': host,
+                    'host': expected,
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -59,31 +61,6 @@ class TestIngressDeployer(object):
                     }
                 }, {
                     'host': "testapp.127.0.0.1.xip.io",
-                    'http': {'paths': [{
-                        'path': '/',
-                        'backend': {
-                            'serviceName': 'testapp',
-                            'servicePort': 80
-                        }}]
-                    }
-                }]
-            },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=external)
-        }
-
-        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
-
-    def test_deploy_new_ingress_without_host(self, request, post, deployer):
-        spec_name = "app_spec"
-        host = "testapp.127.0.0.1.xip.io"
-        external = False
-        app_spec = request.getfuncargvalue(spec_name)
-        deployer.deploy(app_spec, LABELS)
-
-        expected_ingress = {
-            'spec': {
-                'rules': [{
-                    'host': host,
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -109,7 +86,7 @@ class TestIngressDeployer(object):
         expected_ingress = {
             'spec': {
                 'rules': [{
-                    'host': 'testapp.k8s-gke.dev.finn.no',
+                    'host': 'testapp.svc.dev.finn.no',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -118,7 +95,7 @@ class TestIngressDeployer(object):
                         }}]
                     }
                 }, {
-                    'host': 'testapp.svc.dev.finn.no',
+                    'host': 'testapp.k8s-gke.dev.finn.no',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {

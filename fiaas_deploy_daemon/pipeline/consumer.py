@@ -21,8 +21,7 @@ DIY_PROD_BLACKLIST = ["travel-config-solr", "travel-cruise-web", "travel-currenc
                       "travel-frontpage-web"
                       "travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web",
                       "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud",
-                      "travel-storage-solr-import",
-                      "travel-theme-web"]
+                      "travel-storage-solr-import"]
 
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 

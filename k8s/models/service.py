@@ -14,7 +14,7 @@ class ServicePort(Model):
     protocol = Field(six.text_type, "TCP")
     port = Field(int)
     targetPort = Field(six.text_type)
-    nodePort = Field(six.text_type)
+    nodePort = Field(int)
 
 
 class ServiceSpec(Model):

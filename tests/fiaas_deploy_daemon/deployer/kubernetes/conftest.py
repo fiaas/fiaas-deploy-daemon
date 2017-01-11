@@ -21,6 +21,12 @@ def post():
 
 
 @pytest.fixture(autouse=True)
+def put():
+    with mock.patch("k8s.client.Client.put") as m:
+        yield m
+
+
+@pytest.fixture(autouse=True)
 def delete():
     with mock.patch("k8s.client.Client.delete") as m:
         yield m

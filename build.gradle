@@ -1,11 +1,12 @@
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage
+import com.bmuschko.gradle.docker.tasks.image.DockerTagImage
 
 buildscript {
     repositories {
         jcenter()
     }
     dependencies {
-        classpath 'com.bmuschko:gradle-docker-plugin:2.6.5'
+        classpath 'com.bmuschko:gradle-docker-plugin:3.0.5'
         classpath 'com.tkruse.gradle:gradle-groovysh-plugin:1.0.7'
         gradleApi()
     }
@@ -69,7 +70,8 @@ docker {
     }
 }
 
-def image_tag = "containers.schibsted.io/finntech/${project.description}:${project.version}"
+def image_name = "containers.schibsted.io/finntech/${project.description}"
+def image_tag = "${image_name}:${project.version}"
 
 task bakeImage(type: DockerBuildImage) {
     description 'Build docker image'
@@ -78,6 +80,14 @@ task bakeImage(type: DockerBuildImage) {
     inputs.files build.outputs
     inputDir projectDir
     tag image_tag
+}
+
+task tagLatestImage(type: DockerTagImage) {
+    dependsOn bakeImage
+    force = true
+    repository image_name
+    targetImageId { bakeImage.getImageId() }
+    tag "latest"
 }
 
 // Ideally we would use DockerPushImage here, but it doesn't support reading the docker config,
@@ -92,7 +102,18 @@ task publishImage(type: Exec) {
         logger.lifecycle("Pushed image ${image_tag}")
     }
 }
+task publishLatestImage(type: Exec) {
+    description 'Publish "latest" docker image to docker registry'
+    group 'publishing'
+    dependsOn tagLatestImage
+    executable = 'docker'
+    args = ['push', "${image_name}:latest"]
+    doLast {
+        logger.lifecycle("Pushed image ${image_name}:latest")
+    }
+}
 publish.dependsOn(publishImage)
+publish.dependsOn(publishLatestImage)
 
 /*****************
  * Misc tasks

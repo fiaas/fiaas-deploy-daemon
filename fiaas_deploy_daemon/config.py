@@ -21,7 +21,13 @@ class Configuration(Namespace):
         self._resolve_proxy()
 
     def _parse_args(self, args):
-        parser = configargparse.ArgParser(auto_env_var_prefix="")
+        parser = configargparse.ArgParser(auto_env_var_prefix="",
+                                          add_config_file_help=True,
+                                          add_env_var_help=True,
+                                          config_file_parser_class=configargparse.YAMLConfigFileParser,
+                                          default_config_files=["/var/run/config/cluster_config.yaml"],
+                                          args_for_setting_config_path=["-c", "--config-file"],
+                                          formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                             default="https://kubernetes.default.svc.cluster.local")
         parser.add_argument("--api-token", help="Token to use (default: lookup from service account)",

@@ -11,7 +11,7 @@ def read(filename):
 
 
 GENERIC_REQ = [
-    "ConfigArgParse == 0.10.0",
+    "ConfigArgParse == 0.11.0",
     "prometheus_client == 0.0.13",
     "PyYAML == 3.11",
     "pinject == 0.10.2",

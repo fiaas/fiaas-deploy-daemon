@@ -25,7 +25,7 @@ class Configuration(Namespace):
                                           add_config_file_help=True,
                                           add_env_var_help=True,
                                           config_file_parser_class=configargparse.YAMLConfigFileParser,
-                                          default_config_files=["/var/run/config/cluster_config.yaml"],
+                                          default_config_files=["/var/run/config/fiaas/cluster_config.yaml"],
                                           args_for_setting_config_path=["-c", "--config-file"],
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",

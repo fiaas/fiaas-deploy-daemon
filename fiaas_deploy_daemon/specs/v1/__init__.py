@@ -6,8 +6,8 @@ import pkgutil
 
 import yaml
 
-from ..models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, PortSpec, HealthCheckSpec, HttpCheckSpec, \
-    TcpCheckSpec, CheckSpec
+from ..models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, PortSpec, HealthCheckSpec, \
+    HttpCheckSpec, TcpCheckSpec, CheckSpec, ConfigMapSpec
 
 
 class Factory(object):
@@ -40,7 +40,7 @@ class Factory(object):
 
         return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config),
                        None, resources_spec, admin_access, has_secrets, prometheus, ports, health_checks[0],
-                       teams, tags)
+                       teams, tags, ConfigMapSpec(False, []))
 
     def _create_port(self, service_config):
         protocol = self._get_service(u"type", service_config)

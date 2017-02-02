@@ -48,6 +48,8 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 1,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
+        u"config.envs": [],
+        u"config.volume": False
     },
     # full_config should test overriding "all" possible values
     u"full_config": {
@@ -86,6 +88,9 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 2,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
+        u"config.envs[0]": u"FIRST_ENV",
+        u"config.envs[1]": u"SECOND_ENV",
+        u"config.volume": True
     },
     u"exec_config": {
         u"health_checks.liveness.execute.command": u"liveness",
@@ -154,6 +159,15 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 10,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
+    },
+    u"config_as_env": {
+        u"config.envs[0]": u"FIRST_ENV",
+        u"config.envs[1]": u"SECOND_ENV",
+        u"config.volume": False
+    },
+    u"config_as_volume": {
+        u"config.envs": [],
+        u"config.volume": True
     }
 }
 

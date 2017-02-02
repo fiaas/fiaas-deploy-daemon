@@ -83,7 +83,9 @@ class TestE2E(object):
             "data/v1minimal.yml",
             "data/v2minimal.yml",
             "v2/data/host.yml",
-            "v2/data/exec_config.yml"
+            "v2/data/exec_config.yml",
+            "v2/data/config_as_env.yml",
+            "v2/data/config_as_volume.yml"
     ))
     def fiaas_yml(self, request):
         port = self._get_open_port()
@@ -131,8 +133,8 @@ class TestE2E(object):
             "name": name,
             "image": IMAGE1,
             "fiaas": url,
-            "teams": "testteam",
-            "tags": "testtags"
+            "teams": ["testteam"],
+            "tags": ["testtags"]
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()

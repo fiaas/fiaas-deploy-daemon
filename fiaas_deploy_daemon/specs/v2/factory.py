@@ -8,8 +8,8 @@ import yaml
 
 from .lookup import LookupMapping
 from .. import InvalidConfiguration
-from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, CheckSpec, \
-    HttpCheckSpec, TcpCheckSpec, ExecCheckSpec
+from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
+    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, ConfigMapSpec
 
 
 class Factory(object):
@@ -31,7 +31,9 @@ class Factory(object):
             self._prometheus_spec(lookup[u"prometheus"]),
             ports,
             self._health_checks_spec(lookup[u"healthchecks"], ports),
-            teams, tags)
+            teams, tags,
+            self._config_map_spec(lookup[u"config"])
+        )
 
     @staticmethod
     def _prometheus_spec(lookup):
@@ -116,3 +118,7 @@ class Factory(object):
     @staticmethod
     def _exec_check_spec(lookup):
         return ExecCheckSpec(lookup[u"command"])
+
+    @staticmethod
+    def _config_map_spec(lookup):
+        return ConfigMapSpec(lookup[u"volume"], lookup[u"envs"].raw())

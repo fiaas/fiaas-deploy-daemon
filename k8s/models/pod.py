@@ -6,7 +6,7 @@ import six
 
 from .common import ObjectMeta
 from ..base import Model
-from ..fields import Field, ListField
+from ..fields import Field, ListField, RequiredField
 
 
 class ContainerPort(Model):
@@ -16,9 +16,38 @@ class ContainerPort(Model):
     protocol = Field(six.text_type, "TCP")
 
 
+class ObjectFieldSelector(Model):
+    apiVersion = Field(six.text_type)
+    fieldPath = RequiredField(six.text_type)
+
+
+class ResourceFieldSelector(Model):
+    containerName = Field(six.text_type)
+    resource = RequiredField(six.text_type)
+    divisor = Field(six.text_type)
+
+
+class ConfigMapKeySelector(Model):
+    name = Field(six.text_type)
+    key = RequiredField(six.text_type)
+
+
+class SecretKeySelector(Model):
+    name = Field(six.text_type)
+    key = RequiredField(six.text_type)
+
+
+class EnvVarSource(Model):
+    fieldRef = Field(ObjectFieldSelector)
+    resourceFieldRef = Field(ResourceFieldSelector)
+    configMapKeyRef = Field(ConfigMapKeySelector)
+    secretKeyRef = Field(SecretKeySelector)
+
+
 class EnvVar(Model):
     name = Field(six.text_type)
     value = Field(six.text_type)
+    valueFrom = Field(EnvVarSource)
 
 
 class ResourceRequirements(Model):
@@ -79,9 +108,19 @@ class SecretVolumeSource(Model):
     secretName = Field(six.text_type)
 
 
+class KeyToPath(Model):
+    key = RequiredField(six.text_type)
+    path = RequiredField(six.text_type)
+
+
+class ConfigMapVolumeSource(Model):
+    name = Field(six.text_type)
+
+
 class Volume(Model):
     name = Field(six.text_type)
     secret = Field(SecretVolumeSource)
+    configMap = Field(ConfigMapVolumeSource)
 
 
 class LocalObjectReference(Model):

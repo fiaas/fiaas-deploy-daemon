@@ -4,11 +4,12 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec
+    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, ConfigMapSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port=8080, path='/internal-backstage/prometheus')
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
+EMPTY_CONFIG_MAP_SPEC = ConfigMapSpec(volume=False, envs=[])
 
 
 @pytest.fixture
@@ -33,7 +34,8 @@ def app_spec():
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)),
         teams=[u'foo'],
-        tags=[u'bar']
+        tags=[u'bar'],
+        config=EMPTY_CONFIG_MAP_SPEC
     )
 
 
@@ -70,7 +72,8 @@ def app_spec_thrift():
                                 timeout_seconds=1)
         ),
         teams=[u'foo'],
-        tags=[u'bar']
+        tags=[u'bar'],
+        config=EMPTY_CONFIG_MAP_SPEC
     )
 
 
@@ -102,24 +105,26 @@ def app_spec_thrift_and_http():
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)),
         teams=[u'foo'],
-        tags=[u'bar']
+        tags=[u'bar'],
+        config=EMPTY_CONFIG_MAP_SPEC
     )
 
 
 @pytest.fixture
 def app_spec_teams_and_tags():
     return AppSpec(
-            admin_access=False,
-            name="testapp",
-            replicas=3,
-            image="finntech/testimage:version",
-            namespace="default",
-            has_secrets=False,
-            host=None,
-            resources=EMPTY_RESOURCE_SPEC,
-            prometheus=PROMETHEUS_SPEC,
-            ports=None,
-            health_checks=None,
-            teams=[u'Order Produkt Betaling'],
-            tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
+        admin_access=False,
+        name="testapp",
+        replicas=3,
+        image="finntech/testimage:version",
+        namespace="default",
+        has_secrets=False,
+        host=None,
+        resources=EMPTY_RESOURCE_SPEC,
+        prometheus=PROMETHEUS_SPEC,
+        ports=None,
+        health_checks=None,
+        teams=[u'Order Produkt Betaling'],
+        tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging'],
+        config=EMPTY_CONFIG_MAP_SPEC
     )

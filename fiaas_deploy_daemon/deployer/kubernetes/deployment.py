@@ -8,7 +8,8 @@ import shlex
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
-    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe
+    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, EnvVarSource, ConfigMapKeySelector, \
+    ConfigMapVolumeSource
 
 LOG = logging.getLogger(__name__)
 
@@ -27,14 +28,10 @@ class DeploymentDeployer(object):
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
-        container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in app_spec.ports]
+        container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in
+                           app_spec.ports]
         env = self._make_env(app_spec)
-        env.append(EnvVar(name="IMAGE", value=app_spec.image))
-        env.append(EnvVar(name="VERSION", value=app_spec.version))
         pull_policy = "IfNotPresent" if (":" in app_spec.image and ":latest" not in app_spec.image) else "Always"
-
-        secrets_volume_mounts = [VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/secrets/fiaas/")] \
-            if app_spec.has_secrets else []
 
         container = Container(name=app_spec.name,
                               image=app_spec.image,
@@ -43,15 +40,12 @@ class DeploymentDeployer(object):
                               livenessProbe=_make_probe(app_spec.health_checks.liveness),
                               readinessProbe=_make_probe(app_spec.health_checks.readiness),
                               imagePullPolicy=pull_policy,
-                              volumeMounts=secrets_volume_mounts,
+                              volumeMounts=self._make_volume_mounts(app_spec),
                               resources=_make_resource_requirements(app_spec.resources))
-        secrets_volumes = [Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name))] \
-            if app_spec.has_secrets else []
-
         service_account_name = "default" if app_spec.admin_access else "fiaas-no-access"
 
         pod_spec = PodSpec(containers=[container],
-                           volumes=secrets_volumes,
+                           volumes=self._make_volumes(app_spec),
                            serviceAccountName=service_account_name)
 
         prom_annotations = _make_prometheus_annotations(app_spec.prometheus) \
@@ -59,16 +53,51 @@ class DeploymentDeployer(object):
 
         pod_labels = _add_status_label(labels)
         selector_labels = _add_status_label(selector)
-        pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels, annotations=prom_annotations)
+        pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
+                                  annotations=prom_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
-        spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelSelector(matchLabels=selector_labels), template=pod_template_spec)
+        spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelSelector(matchLabels=selector_labels),
+                              template=pod_template_spec)
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()
 
+    @staticmethod
+    def _make_volumes(app_spec):
+        volumes = []
+        if app_spec.has_secrets:
+            volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
+        if app_spec.config.volume:
+            volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name)))
+        return volumes
+
+    @staticmethod
+    def _make_volume_mounts(app_spec):
+        volume_mounts = []
+        if app_spec.has_secrets:
+            volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/secrets/fiaas/"))
+        if app_spec.config.volume:
+            volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/config/fiaas/"))
+        return volume_mounts
+
     def _make_env(self, app_spec):
-        env = self._env.copy()
-        env["ARTIFACT_NAME"] = app_spec.name
-        return [EnvVar(name=name, value=value) for name, value in env.iteritems()]
+        constants = self._env.copy()
+        constants["ARTIFACT_NAME"] = app_spec.name
+        constants["IMAGE"] = app_spec.image
+        constants["VERSION"] = app_spec.version
+        env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
+        if app_spec.config.envs:
+            env.extend(
+                EnvVar(
+                    name=name,
+                    valueFrom=EnvVarSource(
+                        configMapKeyRef=ConfigMapKeySelector(
+                            name=app_spec.name,
+                            key=name
+                        )
+                    )
+                ) for name in app_spec.config.envs
+            )
+        return env
 
 
 def _add_status_label(labels):

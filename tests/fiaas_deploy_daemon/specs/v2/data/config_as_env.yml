@@ -1,0 +1,6 @@
+---
+version: 2
+config:
+  envs:
+    - FIRST_ENV
+    - SECOND_ENV

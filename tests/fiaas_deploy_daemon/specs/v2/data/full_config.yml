@@ -43,3 +43,8 @@ healthchecks:
     period_seconds: 20
     success_threshold: 2
     timeout_seconds: 2
+config:
+  envs:
+    - FIRST_ENV
+    - SECOND_ENV
+  volume: true

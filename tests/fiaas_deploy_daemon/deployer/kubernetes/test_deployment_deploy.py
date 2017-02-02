@@ -4,7 +4,7 @@ import mock
 import pytest
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
-from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec
+from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, ConfigMapSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -59,8 +59,29 @@ class TestDeploymentDeployer(object):
         config.environment = "test"
         return DeploymentDeployer(config)
 
-    def test_deploy_new_deployment(self, infra, post, deployer, app_spec):
+    @pytest.mark.parametrize("volume,envs", [
+        (False, False),
+        (True, False),
+        (False, True),
+        (True, True)
+    ])
+    def test_deploy_new_deployment(self, infra, post, deployer, app_spec, volume, envs):
+        app_spec = app_spec._replace(config=ConfigMapSpec(volume, ["ENV"] if envs else []))
         deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        expected_volumes = []
+        expected_volume_mounts = []
+        if volume:
+            expected_volumes = [{
+                'name': app_spec.name,
+                'configMap': {
+                    'name': app_spec.name
+                }}]
+            expected_volume_mounts = [{
+                'name': app_spec.name,
+                'readOnly': True,
+                'mountPath': '/var/run/config/fiaas/'
+            }]
 
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
@@ -71,7 +92,7 @@ class TestDeploymentDeployer(object):
                         'dnsPolicy': 'ClusterFirst',
                         'serviceAccountName': 'fiaas-no-access',
                         'restartPolicy': 'Always',
-                        'volumes': [],
+                        'volumes': expected_volumes,
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -85,8 +106,8 @@ class TestDeploymentDeployer(object):
                             },
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
-                            'volumeMounts': [],
-                            'env': create_environment_variables(infra),
+                            'volumeMounts': expected_volume_mounts,
+                            'env': create_environment_variables(infra, envs),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -217,15 +238,19 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
 
-def create_environment_variables(infrastructure, appname='testapp'):
-    return [
-        {'name': 'ARTIFACT_NAME', 'value': appname},
-        {'name': 'LOG_STDOUT', 'value': 'true'},
-        {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-test,kubernetes,test'},
-        {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
-        {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
-        {'name': 'LOG_FORMAT', 'value': 'json'},
-        {'name': 'FINN_ENV', 'value': 'test'},
-        {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
-        {'name': 'VERSION', 'value': 'version'}
-    ]
+def create_environment_variables(infrastructure, envs=False):
+    environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'}, {'name': 'LOG_STDOUT', 'value': 'true'},
+                   {'name': 'VERSION', 'value': 'version'},
+                   {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-test,kubernetes,test'},
+                   {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
+                   {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
+                   {'name': 'LOG_FORMAT', 'value': 'json'}, {'name': 'IMAGE', 'value': 'finntech/testimage:version'},
+                   {'name': 'FINN_ENV', 'value': 'test'}, ]
+    if envs:
+        environment.append({'name': 'ENV', 'valueFrom': {
+            'configMapKeyRef': {
+                'name': 'testapp',
+                'key': "ENV"
+            }
+        }})
+    return environment

@@ -51,3 +51,6 @@ healthchecks:
     period_seconds: 10 # How often (in seconds) to perform the probe.
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
     timeout_seconds: 1 # Number of seconds after which the probe times out.
+config: # A ConfigMap of the same name must exist, and is made available to the application
+  volume: false # If true, the ConfigMap is mounted at /var/run/config/fiaas/
+  envs: [] # A list of environment variables to set from the ConfigMap. The entry must be named the same in the ConfigMap.

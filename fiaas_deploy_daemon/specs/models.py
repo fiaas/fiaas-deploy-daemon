@@ -17,7 +17,8 @@ class AppSpec(namedtuple("AppSpec", [
         "ports",
         "health_checks",
         "teams",
-        "tags"])):
+        "tags",
+        "config"])):
 
     __slots__ = ()
 
@@ -72,3 +73,8 @@ HttpCheckSpec = namedtuple("HttpCheckSpec", [
 
 TcpCheckSpec = namedtuple("TcpCheckSpec", [
     "port"])
+
+ConfigMapSpec = namedtuple("ConfigMapSpec", [
+    "volume",
+    "envs"
+])

@@ -68,7 +68,7 @@ class TestE2E(object):
     def fdd(self, kubernetes):
         port = self._get_open_port()
         fdd = subprocess.Popen(["fiaas-deploy-daemon",
-                                "--no-proxy", "--debug",
+                                "--debug",
                                 "--port", str(port),
                                 "--api-server", kubernetes["server"],
                                 "--client-cert", kubernetes["client-cert"],

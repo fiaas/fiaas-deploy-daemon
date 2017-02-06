@@ -109,16 +109,15 @@ class TestConfig(object):
         assert cfg1.SECRET_KEY != cfg2.SECRET_KEY
 
     @pytest.mark.parametrize("cmdline,envvar,expected", [
-        ([], "", "http://puppetproxy.finntech.no:42042"),
-        (["--infrastructure", "gke"], "", "http://puppetproxy.zt.finn.no:42042"),
+        ([], "", None),
+        (["--infrastructure", "gke"], "", None),
         ([], "http://proxy.example.com", "http://proxy.example.com"),
         (["--infrastructure", "gke"], "http://proxy.example.com", "http://proxy.example.com"),
-        (["--no-proxy"], "", ""),
-        (["--no-proxy"], "http://proxy.example.com", "")
+        (["--proxy", "http://proxy.example.com"], "", "http://proxy.example.com"),
     ])
     def test_proxy(self, monkeypatch, cmdline, envvar, expected):
         if envvar:
-            monkeypatch.setenv("HTTP_PROXY", envvar)
+            monkeypatch.setenv("http_proxy", envvar)
         config = Configuration(cmdline)
 
         assert config.proxy == expected

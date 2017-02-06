@@ -18,7 +18,6 @@ class Configuration(Namespace):
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()
-        self._resolve_proxy()
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
@@ -27,6 +26,7 @@ class Configuration(Namespace):
                                           config_file_parser_class=configargparse.YAMLConfigFileParser,
                                           default_config_files=["/var/run/config/fiaas/cluster_config.yaml"],
                                           args_for_setting_config_path=["-c", "--config-file"],
+                                          ignore_unknown_config_file_keys=True,
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                             default="https://kubernetes.default.svc.cluster.local")
@@ -40,9 +40,8 @@ class Configuration(Namespace):
                             default=None)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)",
                             choices=self.VALID_LOG_FORMAT, default="plain")
-        parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts", env_var="HTTP_PROXY")
-        parser.add_argument("--no-proxy", help="Disable the use of a proxy",
-                            action="store_true")
+        parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
+                            env_var="http_proxy")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
         parser.add_argument("--environment", help="Environment to deploy to",
@@ -50,7 +49,8 @@ class Configuration(Namespace):
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
-        parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int, default=5000)
+        parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
+                            default=5000)
         parser.parse_args(args, namespace=self)
 
     def _resolve_api_config(self):
@@ -68,12 +68,6 @@ class Configuration(Namespace):
         if version:
             self.version = version
 
-    def _resolve_proxy(self):
-        if self.no_proxy:
-            self.proxy = ""
-        elif not self.proxy:
-            self.proxy = "http://puppetproxy.finntech.no:42042" if self.infrastructure == "diy" else "http://puppetproxy.zt.finn.no:42042"
-
     def has_service(self, service):
         try:
             self.resolve_service(service)
@@ -89,20 +83,22 @@ class Configuration(Namespace):
             port = int(port)
         except ValueError:
             raise InvalidConfigurationException(
-                    "{} is not set to a port-number, but instead {!r}. Unable to resolve service {}".format(port_key, port, service))
+                "{} is not set to a port-number, but instead {!r}. Unable to resolve service {}".format(port_key, port,
+                                                                                                        service))
         return host, port
 
     @staticmethod
     def _resolve_required_variable(key, service):
         value = os.getenv(key)
         if not value:
-            raise InvalidConfigurationException("{} is not set in environment, unable to resolve service {}".format(key, service))
+            raise InvalidConfigurationException(
+                "{} is not set in environment, unable to resolve service {}".format(key, service))
         return value
 
     def __repr__(self):
         return "Configuration({})".format(
-                ", ".join("{}={}".format(key, self.__dict__[key]) for key in vars(self)
-                          if not key.startswith("_") and not key.isupper() and "token" not in key)
+            ", ".join("{}={}".format(key, self.__dict__[key]) for key in vars(self)
+                      if not key.startswith("_") and not key.isupper() and "token" not in key)
         )
 
 

@@ -7,3 +7,5 @@ services:
   - exposed_port: 5000
     readiness: /healthz
     liveness: /healthz
+config:
+  volume: true

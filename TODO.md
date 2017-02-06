@@ -14,7 +14,7 @@ Move cluster level configuration into a ConfigMap
 
 Put some configuration in the cluster, instead of in code/environment/command-line:
 
-* HTTP proxy settings
+* HTTP proxy settings [Done]
 * DNS name for ingresses
 * Name of environment
 * Which type of Service to create: NodePort or LoadBalancer (See Entry configuration)

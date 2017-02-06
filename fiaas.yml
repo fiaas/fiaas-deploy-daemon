@@ -1,11 +1,15 @@
 ---
-admin_access: read-write
+version: 2
+admin_access: true
+replicas: 1
 resources:
   requests:
     memory: 128m
-services:
-  - exposed_port: 5000
-    readiness: /healthz
-    liveness: /healthz
+ports:
+  - target_port: 5000
+healthchecks:
+  liveness:
+    http:
+      path: /healthz
 config:
   volume: true

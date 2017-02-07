@@ -46,6 +46,8 @@ class Configuration(Namespace):
                             action="store_true")
         parser.add_argument("--environment", help="Environment to deploy to",
                             env_var="FIAAS_ENVIRONMENT", default="")
+        parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
+                            dest="ingress_suffixes", env_var="INGRESS_SUFFIX", default=[])
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")

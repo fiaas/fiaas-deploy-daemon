@@ -15,6 +15,7 @@ class TestIngressDeployer(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = "diy"
         config.environment = "test"
+        config.ingress_suffixes = ["svc.test.finn.no", "127.0.0.1.xip.io"]
         return IngressDeployer(config)
 
     @pytest.mark.parametrize("host,expected", [
@@ -33,25 +34,36 @@ class TestIngressDeployer(object):
         ("www.finn.no", "test.finn.no"),
         ("m.finn.no", "test.m.finn.no"),
         ("kart.finn.no", "test.kart.finn.no"),
-        (None, "testapp.svc.test.finn.no")
     ])
     def test_generate_hosts(self, app_spec, deployer, host, expected):
         hosts = list(deployer._generate_hosts(app_spec._replace(host=host)))
-        assert hosts == [expected, "testapp.127.0.0.1.xip.io"]
+        assert hosts == [expected, "testapp.svc.test.finn.no", "testapp.127.0.0.1.xip.io"]
 
-    @pytest.mark.parametrize("host,expected,external", [
-        ("www.finn.no", "test.finn.no", True),
-        ("m.finn.no", "test.m.finn.no", True),
-        ("kart.finn.no", "test.kart.finn.no", True),
-        (None, "testapp.svc.test.finn.no", False)
+    def test_generate_hosts_no_host(self, app_spec, deployer):
+        hosts = list(deployer._generate_hosts(app_spec._replace(host=None)))
+        assert hosts == ["testapp.svc.test.finn.no", "testapp.127.0.0.1.xip.io"]
+
+    @pytest.mark.parametrize("host,expected", [
+        ("www.finn.no", "test.finn.no"),
+        ("m.finn.no", "test.m.finn.no"),
+        ("kart.finn.no", "test.kart.finn.no"),
     ])
-    def test_deploy_new_ingress(self, host, expected, external, app_spec, post, deployer):
+    def test_deploy_new_ingress(self, host, expected, app_spec, post, deployer):
         deployer.deploy(app_spec._replace(host=host), LABELS)
 
         expected_ingress = {
             'spec': {
                 'rules': [{
                     'host': expected,
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }, {
+                    'host': "testapp.svc.test.finn.no",
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -70,7 +82,37 @@ class TestIngressDeployer(object):
                     }
                 }]
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=external)
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=True)
+        }
+
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
+
+    def test_deploy_new_ingress_no_host(self, app_spec, post, deployer):
+        deployer.deploy(app_spec._replace(host=None), LABELS)
+
+        expected_ingress = {
+            'spec': {
+                'rules': [{
+                    'host': "testapp.svc.test.finn.no",
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }, {
+                    'host': "testapp.127.0.0.1.xip.io",
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }]
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=False)
         }
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
@@ -80,6 +122,7 @@ class TestIngressDeployer(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = "gke"
         config.environment = "dev"
+        config.ingress_suffixes = ["svc.dev.finn.no", "k8s-gke.dev.finn.no"]
         deployer = IngressDeployer(config)
         deployer.deploy(app_spec, LABELS)
 

@@ -88,8 +88,8 @@ class Configuration(Namespace):
         return self._resolve_service_from_env(service)
 
     def _resolve_service_from_srv_record(self, service):
-        service = "_{}._tcp.{}".format(service, service)
-        answers = dns.resolver.query(service, 'SRV')
+        srv = "_{}._tcp.{}".format(service, service)
+        answers = dns.resolver.query(srv, 'SRV')
         # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
         return answers[0].target[:-1], answers[0].port
 

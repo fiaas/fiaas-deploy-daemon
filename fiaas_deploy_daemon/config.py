@@ -91,7 +91,7 @@ class Configuration(Namespace):
         srv = "_{}._tcp.{}".format(service, service)
         answers = dns.resolver.query(srv, 'SRV')
         # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
-        return answers[0].target[:-1], answers[0].port
+        return str(answers[0].target)[:-1], answers[0].port
 
     def _resolve_service_from_env(self, service):
         host = self._resolve_required_variable("{}_SERVICE_HOST".format(service.upper()), service)

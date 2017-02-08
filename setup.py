@@ -15,7 +15,8 @@ GENERIC_REQ = [
     "prometheus_client == 0.0.13",
     "PyYAML == 3.11",
     "pinject == 0.10.2",
-    "six == 1.10.0"
+    "six == 1.10.0",
+    "dnspython == 1.15.0"
 ]
 
 WEB_REQ = [

@@ -3,7 +3,9 @@
 from argparse import Namespace
 
 import configargparse
+import dns.resolver
 import os
+import logging
 
 
 class Configuration(Namespace):
@@ -18,6 +20,7 @@ class Configuration(Namespace):
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()
+        self._logger = logging.getLogger(__name__)
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
@@ -78,6 +81,19 @@ class Configuration(Namespace):
         return True
 
     def resolve_service(self, service):
+        try:
+            return self._resolve_service_from_srv_record(service)
+        except dns.resolver.NXDOMAIN as e:
+            self._logger.warn("Failed to lookup SRV. %s", str(e))
+        return self._resolve_service_from_env(service)
+
+    def _resolve_service_from_srv_record(self, service):
+        service = "_{}._tcp.{}".format(service, service)
+        answers = dns.resolver.query(service, 'SRV')
+        # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
+        return answers[0].target[:-1], answers[0].port
+
+    def _resolve_service_from_env(self, service):
         host = self._resolve_required_variable("{}_SERVICE_HOST".format(service.upper()), service)
         port_key = "{}_SERVICE_PORT".format(service.upper())
         port = self._resolve_required_variable(port_key, service)

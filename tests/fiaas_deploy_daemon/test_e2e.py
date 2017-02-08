@@ -11,7 +11,7 @@ import re
 import requests
 import yaml
 from k8s import config
-from k8s.client import NotFound
+from k8s.client import NotFound, Client
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
@@ -29,11 +29,16 @@ def _has_utilities():
     return True
 
 
+@pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
+def service_type(request):
+    return request.param
+
+
 @pytest.mark.skipif(not _has_utilities(), reason="E2E test requires minikube and kubectl installed on the PATH")
 @pytest.mark.integration_test
 class TestE2E(object):
     @pytest.fixture(scope="module")
-    def kubernetes(self):
+    def kubernetes(self, service_type):
         subprocess.call(["minikube", "delete"])
         self._start_minikube()
         subprocess.check_call(["kubectl", "config", "use-context", "minikube"])
@@ -59,13 +64,14 @@ class TestE2E(object):
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
+        Client.clear_session()
         config.api_server = kubernetes["server"]
         config.debug = True
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     @pytest.fixture(scope="module")
-    def fdd(self, kubernetes):
+    def fdd(self, kubernetes, service_type):
         port = self._get_open_port()
         fdd = subprocess.Popen(["fiaas-deploy-daemon",
                                 "--debug",
@@ -73,6 +79,7 @@ class TestE2E(object):
                                 "--api-server", kubernetes["server"],
                                 "--client-cert", kubernetes["client-cert"],
                                 "--client-key", kubernetes["client-key"],
+                                "--service-type", service_type,
                                 "--ingress-suffix", "svc.test.finn.no",
                                 "--environment", "test"
                                 ])
@@ -122,7 +129,7 @@ class TestE2E(object):
             kinds.append(Ingress)
         return kinds
 
-    def test_post_to_web(self, fdd, fiaas_yml):
+    def test_post_to_web(self, fdd, fiaas_yml, service_type):
         name, url = fiaas_yml
         kinds = self._select_kinds(name)
         for kind in kinds:
@@ -146,6 +153,8 @@ class TestE2E(object):
             assert kind.get(name)
         dep = Deployment.get(name)
         assert dep.spec.template.spec.containers[0].image == IMAGE1
+        svc = Service.get(name)
+        assert svc.spec.type == service_type
 
         # Redeploy, new image
         data["image"] = IMAGE2

@@ -48,6 +48,8 @@ class Configuration(Namespace):
                             env_var="FIAAS_ENVIRONMENT", default="")
         parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
                             dest="ingress_suffixes", env_var="INGRESS_SUFFIX", default=[])
+        parser.add_argument("--service-type", help="Type of kubernetes Service to create", env_var="FIAAS_SERVICE_TYPE",
+                            choices=("ClusterIP", "NodePort", "LoadBalancer"), default="ClusterIP")
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")

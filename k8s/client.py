@@ -35,6 +35,10 @@ class Client(object):
     _session = requests.Session()
 
     @classmethod
+    def clear_session(cls):
+        cls._session = requests.Session()
+
+    @classmethod
     def init_session(cls):
         if "Authorization" not in cls._session.headers and config.api_token:
             cls._session.headers.update({"Authorization": "Bearer {}".format(config.api_token)})

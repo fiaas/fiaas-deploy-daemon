@@ -80,15 +80,16 @@ class Configuration(Namespace):
             return False
         return True
 
-    def resolve_service(self, service):
+    def resolve_service(self, service_name, port_name=None):
         try:
-            return self._resolve_service_from_srv_record(service)
+            return self._resolve_service_from_srv_record(service_name, port_name)
         except dns.resolver.NXDOMAIN as e:
             self._logger.warn("Failed to lookup SRV. %s", str(e))
-        return self._resolve_service_from_env(service)
+        return self._resolve_service_from_env(service_name)
 
-    def _resolve_service_from_srv_record(self, service):
-        srv = "_{}._tcp.{}".format(service, service)
+    def _resolve_service_from_srv_record(self, service_name, port_name):
+
+        srv = "_{}._tcp.{}".format(port_name if port_name else service_name, service_name)
         answers = dns.resolver.query(srv, 'SRV')
         # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
         return str(answers[0].target)[:-1], answers[0].port

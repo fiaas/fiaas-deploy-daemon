@@ -15,6 +15,7 @@ class IngressDeployer(object):
         self._environment = config.environment
         self._infrastructure = config.infrastructure
         self._ingress_suffixes = config.ingress_suffixes
+        self._host_rewrite_rules = config.host_rewrite_rules
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -45,11 +46,10 @@ class IngressDeployer(object):
 
     def _make_ingress_host(self, app_spec):
         host = app_spec.host
-        if u"prod" == self._environment:
-            return host
-        if host == u"www.finn.no":
-            return u"{}.finn.no".format(self._environment)
-        return u"{}.{}".format(self._environment, host)
+        for rule in self._host_rewrite_rules:
+            if rule.matches(host):
+                return rule.apply(host)
+        return host
 
     @staticmethod
     def _should_have_ingress(app_spec):

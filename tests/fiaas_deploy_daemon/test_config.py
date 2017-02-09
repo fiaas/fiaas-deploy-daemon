@@ -1,9 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import pyaml
 import pytest
 
-from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 
 
 class TestConfig(object):
@@ -121,3 +122,46 @@ class TestConfig(object):
         config = Configuration(cmdline)
 
         assert config.proxy == expected
+
+    @pytest.mark.parametrize("key,attr,value", [
+        ("environment", "environment", "gke"),
+        ("proxy", "proxy", "http://proxy.example.com"),
+        ("ingress-suffix", "ingress_suffixes", ["1\.example.com", "2.example.com"]),
+    ])
+    def test_config_from_file(self, key, attr, value, tmpdir):
+        config_file = tmpdir.join("config.yaml")
+        with config_file.open("w") as fobj:
+            pyaml.dump({key: value}, fobj, safe=True, default_style='"')
+        config = Configuration(["--config-file", config_file.strpath])
+        assert getattr(config, attr) == value
+
+    def test_host_rewrite_rules(self):
+        args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        config = Configuration(["--host-rewrite-rule=%s" % arg for arg in args])
+        assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
+
+    def test_host_rewrite_rules_from_file(self, tmpdir):
+        args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        config_file = tmpdir.join("config.yaml")
+        with config_file.open("w") as fobj:
+            pyaml.dump({"host-rewrite-rule": args}, fobj, safe=True, default_style='"')
+        config = Configuration(["--config-file", config_file.strpath])
+        assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
+
+
+class TestHostRewriteRule(object):
+    def test_equality(self):
+        arg = "pattern=value"
+        assert HostRewriteRule(arg) == HostRewriteRule(arg)
+
+    @pytest.mark.parametrize("rule,host,result", [
+        (r"pattern=value", "pattern", "value"),
+        (r"www.([a-z]+).com=www.\1.net", "www.example.com", "www.example.net"),
+        (r"(?P<name>[a-z_-]+).example.com=\g<name>-stage.route.\g<name>.example.net", "query-manager.example.com",
+            "query-manager-stage.route.query-manager.example.net"),
+    ])
+    def test_apply(self, rule, host, result):
+        hrr = HostRewriteRule(rule)
+        assert hrr.matches(host)
+        assert not hrr.matches("something-else")
+        assert hrr.apply(host) == result

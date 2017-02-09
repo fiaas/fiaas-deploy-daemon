@@ -9,14 +9,6 @@ to list some ideas and thoughts on how to get there.
 No PR should span more than one section, and if possible should be even smaller.
 
 
-Move cluster level configuration into a ConfigMap
--------------------------------------------------
-
-Put some configuration in the cluster, instead of in code/environment/command-line:
-
-* Host rewriting for different environments 
-  (See fiaas_deploy_daemon.deployer.kubernetes.ingress.IngressDeployer#_make_ingress_host)
-
 Additional ways of triggering deploy
 ------------------------------------
 

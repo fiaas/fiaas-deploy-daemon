@@ -3,7 +3,7 @@
 import mock
 import pytest
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
-from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -16,6 +16,9 @@ class TestIngressDeployer(object):
         config.infrastructure = "diy"
         config.environment = "test"
         config.ingress_suffixes = ["svc.test.finn.no", "127.0.0.1.xip.io"]
+        config.host_rewrite_rules = [
+            HostRewriteRule("www.finn.no=test.finn.no"),
+            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).finn.no=test.\1.finn.no")]
         return IngressDeployer(config)
 
     @pytest.mark.parametrize("host,expected", [

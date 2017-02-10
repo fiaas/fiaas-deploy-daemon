@@ -6,29 +6,50 @@ import configargparse
 import os
 import re
 
+DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
+
 INGRESS_SUFFIX_LONG_HELP = """
-When creating Ingress objects for an application, a host must be specified,
+When creating Ingress objects for an application, a host may be specified,
 which will be used to match the request with the application. For each
 ingress suffix specified in the configuration, a host section is generated
-for the application in the form `<application name>.<ingress suffix>`. If
-the application specifies a `host` in it's configuration, a section for that
-host will be generated *in addition* to the sections generated for each
-ingress suffix.
+for the application in the form `<application name>.<ingress suffix>`.
+
+If the application specifies a `host` in its configuration, a section for
+that host will be generated *in addition* to the sections generated for
+each ingress suffix.
 """
 
 HOST_REWRITE_RULE_LONG_HELP = """
-An application has the option of specifying a `host` in it's configuration.
+An application has the option of specifying a `host` in its configuration.
 This host might not be useful in all clusters, due to DNS outside the cluster
 or other reasons outside the control of the cluster. To make this work,
 a number of host-rewrite-rules may be specified. Each rule consists of a
-RegExp pattern, and a replacement value. The `host` is matched against each
+regex pattern, and a replacement value. The `host` is matched against each
 pattern in the order given, stopping at the first match. The replacement can
-contain groups using regular RegExp replace syntax. Regardless of how a rule
-is passed in (option, environment variable or in a config file), it must be
-specified as `<pattern>=<replacement>`. In particular, be aware that even if
-it would be natural to use the map type in YAML, this is not possible.
+contain groups using regular regex replace syntax.
+
+Regardless of how a rule is passed in (option, environment variable or in
+a config file), it must be specified as `<pattern>=<replacement>`. In
+particular, be aware that even if it would be natural to use the map type
+in YAML, this is not possible.
+
 See <https://docs.python.org/2.7/library/re.html#regular-expression-syntax>.
 """
+
+EPILOG = """
+Args that start with '--' (eg. --log-format) can also be set in a config file
+({}) or specified via -c). The config file uses YAML syntax and must represent
+a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
+
+It is possible to specify '--ingress-suffix' and '--host-rewrite-rule'
+multiple times to add more than one of each. In the config-file, these should
+be defined as a YAML list.
+(see https://github.com/bw2/ConfigArgParse#special-values)
+
+If an arg is specified in more than one place, then commandline values
+override environment variables which override config file values which
+override defaults.
+""".format(DEFAULT_CONFIG_FILE)
 
 
 class Configuration(Namespace):
@@ -46,12 +67,14 @@ class Configuration(Namespace):
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
-                                          add_config_file_help=True,
-                                          add_env_var_help=True,
+                                          add_config_file_help=False,
+                                          add_env_var_help=False,
                                           config_file_parser_class=configargparse.YAMLConfigFileParser,
-                                          default_config_files=["/var/run/config/fiaas/cluster_config.yaml"],
+                                          default_config_files=[DEFAULT_CONFIG_FILE],
                                           args_for_setting_config_path=["-c", "--config-file"],
                                           ignore_unknown_config_file_keys=True,
+                                          description="%(prog)s deploys applications to Kubernetes",
+                                          epilog=EPILOG,
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")

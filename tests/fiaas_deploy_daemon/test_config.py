@@ -83,27 +83,29 @@ class TestConfig(object):
 
         assert config.debug
 
-    @pytest.mark.parametrize("dns_exists,service,expected_host,expected_port", [
-        (True, "kafka_pipeline", "host", 1234),
-        (False, "kafka_pipeline", "host", 1234)
-    ])
-    def test_resolve_service(self, monkeypatch, dns_exists, service, expected_host, expected_port):
-
-        if dns_exists:
-            monkeypatch.setattr(resolver, "query", lambda s, p: dns.rdataset.from_text(
-                'IN',
-                'SRV',
-                3600,
-                '10 100 1234 host.'.format(p, s)))
-        else:
-            monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
-            monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
+    def test_resolve_service_from_dns(self, monkeypatch):
+        monkeypatch.setattr(resolver, "query", lambda x, y: dns.rdataset.from_text(
+            'IN',
+            'SRV',
+            3600,
+            '10 100 7794 kafka-pipeline.default.svc.cluster.local.'))
 
         config = Configuration([])
 
+        target, port = config.resolve_service('service', 'port')
+        assert target == 'kafka-pipeline.default.svc.cluster.local'
+        assert port == 7794
+
+    @pytest.mark.parametrize("service", ["kafka_pipeline"])
+    def test_resolve_service_from_env(self, monkeypatch, service):
+
+        monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
+        monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
+        config = Configuration([])
+
         host, port = config.resolve_service(service)
-        assert host == expected_host
-        assert port == expected_port
+        assert host == "host"
+        assert port == 1234
 
     @pytest.mark.parametrize("service_exists", [True, False])
     def test_has_service(self, monkeypatch, service_exists):

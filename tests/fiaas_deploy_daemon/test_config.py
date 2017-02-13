@@ -2,8 +2,9 @@
 # -*- coding: utf-8
 
 import pytest
-
+import dns.rdata
 from fiaas_deploy_daemon.config import Configuration
+from dns import resolver as resolver
 
 
 class TestConfig(object):
@@ -82,15 +83,27 @@ class TestConfig(object):
 
         assert config.debug
 
-    @pytest.mark.parametrize("service", ["kafka_pipeline"])
-    def test_resolve_service(self, monkeypatch, service):
-        monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
-        monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
+    @pytest.mark.parametrize("dns_exists,service,expected_host,expected_port", [
+        (True, "kafka_pipeline", "host", 1234),
+        (False, "kafka_pipeline", "host", 1234)
+    ])
+    def test_resolve_service(self, monkeypatch, dns_exists, service, expected_host, expected_port):
+
+        if dns_exists:
+            monkeypatch.setattr(resolver, "query", lambda s, p: dns.rdataset.from_text(
+                'IN',
+                'SRV',
+                3600,
+                '10 100 1234 host.'.format(p, s)))
+        else:
+            monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
+            monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
+
         config = Configuration([])
 
         host, port = config.resolve_service(service)
-        assert host == "host"
-        assert port == 1234
+        assert host == expected_host
+        assert port == expected_port
 
     @pytest.mark.parametrize("service_exists", [True, False])
     def test_has_service(self, monkeypatch, service_exists):

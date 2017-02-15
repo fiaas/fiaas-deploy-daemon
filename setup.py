@@ -14,6 +14,7 @@ GENERIC_REQ = [
     "ConfigArgParse == 0.11.0",
     "prometheus_client == 0.0.13",
     "PyYAML == 3.11",
+    "pyaml == 16.12.2",
     "pinject == 0.10.2",
     "six == 1.10.0",
     "dnspython == 1.15.0"

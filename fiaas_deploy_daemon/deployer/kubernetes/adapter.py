@@ -6,8 +6,6 @@ import logging
 
 from k8s import config as k8s_config
 
-from .service import deploy_service
-
 LOG = logging.getLogger(__name__)
 
 
@@ -15,7 +13,7 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
     """
 
-    def __init__(self, config, deployment_deployer, ingress_deployer):
+    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer):
         k8s_config.api_server = config.api_server
         k8s_config.api_token = config.api_token
         if config.api_cert:
@@ -26,13 +24,14 @@ class K8s(object):
             k8s_config.cert = (config.client_cert, config.client_key)
         k8s_config.debug = config.debug
         self._version = config.version
+        self._service_deployer = service_deployer
         self._deployment_deployer = deployment_deployer
         self._ingress_deployer = ingress_deployer
 
     def deploy(self, app_spec):
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
-        deploy_service(app_spec, selector, labels)
+        self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels)
 

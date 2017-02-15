@@ -6,6 +6,52 @@ import configargparse
 import dns.resolver
 import os
 import logging
+import re
+
+DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
+
+INGRESS_SUFFIX_LONG_HELP = """
+When creating Ingress objects for an application, a host may be specified,
+which will be used to match the request with the application. For each
+ingress suffix specified in the configuration, a host section is generated
+for the application in the form `<application name>.<ingress suffix>`.
+
+If the application specifies a `host` in its configuration, a section for
+that host will be generated *in addition* to the sections generated for
+each ingress suffix.
+"""
+
+HOST_REWRITE_RULE_LONG_HELP = """
+An application has the option of specifying a `host` in its configuration.
+This host might not be useful in all clusters, due to DNS outside the cluster
+or other reasons outside the control of the cluster. To make this work,
+a number of host-rewrite-rules may be specified. Each rule consists of a
+regex pattern, and a replacement value. The `host` is matched against each
+pattern in the order given, stopping at the first match. The replacement can
+contain groups using regular regex replace syntax.
+
+Regardless of how a rule is passed in (option, environment variable or in
+a config file), it must be specified as `<pattern>=<replacement>`. In
+particular, be aware that even if it would be natural to use the map type
+in YAML, this is not possible.
+
+See <https://docs.python.org/2.7/library/re.html#regular-expression-syntax>.
+"""
+
+EPILOG = """
+Args that start with '--' (eg. --log-format) can also be set in a config file
+({}) or specified via -c). The config file uses YAML syntax and must represent
+a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
+
+It is possible to specify '--ingress-suffix' and '--host-rewrite-rule'
+multiple times to add more than one of each. In the config-file, these should
+be defined as a YAML list.
+(see https://github.com/bw2/ConfigArgParse#special-values)
+
+If an arg is specified in more than one place, then commandline values
+override environment variables which override config file values which
+override defaults.
+""".format(DEFAULT_CONFIG_FILE)
 
 
 class Configuration(Namespace):
@@ -24,38 +70,45 @@ class Configuration(Namespace):
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
-                                          add_config_file_help=True,
-                                          add_env_var_help=True,
+                                          add_config_file_help=False,
+                                          add_env_var_help=False,
                                           config_file_parser_class=configargparse.YAMLConfigFileParser,
-                                          default_config_files=["/var/run/config/fiaas/cluster_config.yaml"],
+                                          default_config_files=[DEFAULT_CONFIG_FILE],
                                           args_for_setting_config_path=["-c", "--config-file"],
                                           ignore_unknown_config_file_keys=True,
+                                          description="%(prog)s deploys applications to Kubernetes",
+                                          epilog=EPILOG,
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
-                            default="https://kubernetes.default.svc.cluster.local")
-        parser.add_argument("--api-token", help="Token to use (default: lookup from service account)",
-                            default=None)
-        parser.add_argument("--api-cert", help="SSL certificate to use (default: lookup from service account)",
-                            default=None)
-        parser.add_argument("--client-cert", help="Client certificate to use",
-                            default=None)
-        parser.add_argument("--client-key", help="Client certificate key to use",
-                            default=None)
-        parser.add_argument("--log-format", help="Set logformat (default: %(default)s)",
-                            choices=self.VALID_LOG_FORMAT, default="plain")
+        parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
+                            default="plain")
         parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
                             env_var="http_proxy")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
-        parser.add_argument("--environment", help="Environment to deploy to",
-                            env_var="FIAAS_ENVIRONMENT", default="")
-        parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
-                            dest="ingress_suffixes", env_var="INGRESS_SUFFIX", default=[])
+        parser.add_argument("--environment", help="Environment to deploy to", env_var="FIAAS_ENVIRONMENT", default="")
+        parser.add_argument("--service-type", help="Type of kubernetes Service to create", env_var="FIAAS_SERVICE_TYPE",
+                            choices=("ClusterIP", "NodePort", "LoadBalancer"), default="ClusterIP")
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
+        api_parser = parser.add_argument_group("API server")
+        api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
+                                default="https://kubernetes.default.svc.cluster.local")
+        api_parser.add_argument("--api-token", help="Token to use (default: lookup from service account)", default=None)
+        api_parser.add_argument("--api-cert", help="SSL certificate to use (default: lookup from service account)",
+                                default=None)
+        client_cert_parser = parser.add_argument_group("Client certificate")
+        client_cert_parser.add_argument("--client-cert", help="Client certificate to use", default=None)
+        client_cert_parser.add_argument("--client-key", help="Client certificate key to use", default=None)
+        ingress_parser = parser.add_argument_group("Ingress suffix", INGRESS_SUFFIX_LONG_HELP)
+        ingress_parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
+                                    dest="ingress_suffixes", env_var="INGRESS_SUFFIXES", default=[])
+        host_rule_parser = parser.add_argument_group("Host rewrite rules", HOST_REWRITE_RULE_LONG_HELP)
+        host_rule_parser.add_argument("--host-rewrite-rule", help="Rule for rewriting host", action="append",
+                                      type=HostRewriteRule, dest="host_rewrite_rules", env_var="HOST_REWRITE_RULES",
+                                      default=[])
         parser.parse_args(args, namespace=self)
 
     def _resolve_api_config(self):
@@ -119,6 +172,23 @@ class Configuration(Namespace):
             ", ".join("{}={}".format(key, self.__dict__[key]) for key in vars(self)
                       if not key.startswith("_") and not key.isupper() and "token" not in key)
         )
+
+
+class HostRewriteRule(object):
+    def __init__(self, arg):
+        pattern, self._replacement = arg.split("=")
+        self._pattern = re.compile(pattern)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return other._pattern == self._pattern and other._replacement == self._replacement
+
+    def matches(self, host):
+        return self._pattern.match(host)
+
+    def apply(self, host):
+        return self._pattern.sub(self._replacement, host)
 
 
 class InvalidConfigurationException(Exception):

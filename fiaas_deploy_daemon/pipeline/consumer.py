@@ -15,10 +15,8 @@ from ..base_thread import DaemonThread
 
 GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
                       "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
-DIY_PROD_BLACKLIST = ["travel-config-solr", "travel-cruise-web", "travel-currency-web",
-                      "travel-flight-api", "travel-flight-solr", "travel-flight-integration", "travel-flight-lowfare",
-                      "travel-flight-solr", "travel-flight-solr-autocomplete", "travel-flight-supplier-integrations", "travel-flight-web",
-                      "travel-frontpage-web"
+DIY_PROD_BLACKLIST = ["travel-config-solr", "travel-cruise-web", "travel-currency-web", "travel-flight-solr",
+                      "travel-flight-solr", "travel-flight-solr-autocomplete", "travel-frontpage-web"
                       "travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web",
                       "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud",
                       "travel-storage-solr-import"]

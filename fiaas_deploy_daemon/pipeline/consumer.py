@@ -15,11 +15,9 @@ from ..base_thread import DaemonThread
 
 GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
                       "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
-DIY_PROD_BLACKLIST = ["travel-config-solr", "travel-cruise-web", "travel-currency-web", "travel-flight-solr",
-                      "travel-flight-solr", "travel-flight-solr-autocomplete", "travel-frontpage-web"
+DIY_PROD_BLACKLIST = ["travel-cruise-web", "travel-currency-web", "travel-frontpage-web"
                       "travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web",
-                      "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud",
-                      "travel-storage-solr-import"]
+                      "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud"]
 
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 

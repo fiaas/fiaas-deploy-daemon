@@ -36,8 +36,6 @@ EVENT = {
 MESSAGE = DummyMessage(json.dumps(EVENT))
 APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None,
                           None, None, None, None, None, None, None)
-APP_SPEC_TRAVEL = models.AppSpec(None, u"travel-lms-web", u'finntech/tp-api:1452002819', 1,
-                                 None, None, None, None, None, None, None, None, None, None)
 
 
 class TestConsumer(object):
@@ -128,26 +126,26 @@ class TestConsumer(object):
 
         reporter.register.assert_called_with(APP_SPEC.image, EVENT[u"callback_url"])
 
-    def test_should_not_deploy_apps_to_gke_prod_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_not_deploy_apps_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
-        monkeypatch.setattr(consumer._config, "infrastructure", "gke")
+        monkeypatch.setattr(consumer._config, "whitelist", ["white_app"])
         factory.return_value = APP_SPEC
         consumer()
         with pytest.raises(Empty):
             queue.get_nowait()
 
-    def test_should_deploy_apps_to_gke_prod_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_deploy_apps_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
-        monkeypatch.setattr(consumer._config, "infrastructure", "gke")
-        factory.return_value = APP_SPEC_TRAVEL
+        monkeypatch.setattr(consumer._config, "whitelist", ["tp-api"])
+        factory.return_value = APP_SPEC
         consumer()
         app_spec = queue.get_nowait()
-        assert app_spec is APP_SPEC_TRAVEL
+        assert app_spec is APP_SPEC
 
-    def test_should_not_deploy_apps_to_dyi_prod_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_not_deploy_apps_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
         kafka_consumer.__iter__.return_value = [MESSAGE]
-        monkeypatch.setattr(consumer._config, "infrastructure", "diy")
-        factory.return_value = APP_SPEC_TRAVEL
+        monkeypatch.setattr(consumer._config, "blacklist", ["tp-api"])
+        factory.return_value = APP_SPEC
 
         consumer()
 

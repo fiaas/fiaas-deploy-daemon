@@ -42,6 +42,8 @@ class TestConfig(object):
         assert config.infrastructure == "diy"
         assert config.log_format == "plain"
         assert config.image == ""
+        assert config.blacklist == []
+        assert config.whitelist == []
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
@@ -142,6 +144,8 @@ class TestConfig(object):
         ("environment", "environment", "gke"),
         ("proxy", "proxy", "http://proxy.example.com"),
         ("ingress-suffix", "ingress_suffixes", ["1\.example.com", "2.example.com"]),
+        ("blacklist", "blacklist", ["app1", "app2"]),
+        ("whitelist", "whitelist", ["app1", "app2"]),
     ])
     def test_config_from_file(self, key, attr, value, tmpdir):
         config_file = tmpdir.join("config.yaml")
@@ -162,6 +166,10 @@ class TestConfig(object):
             pyaml.dump({"host-rewrite-rule": args}, fobj, safe=True, default_style='"')
         config = Configuration(["--config-file", config_file.strpath])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
+
+    def test_mutually_exclusive_lists(self):
+        with pytest.raises(SystemExit):
+            Configuration(["--blacklist", "blacklisted", "--whitelist", "whitelisted"])
 
 
 class TestHostRewriteRule(object):

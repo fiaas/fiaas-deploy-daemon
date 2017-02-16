@@ -13,12 +13,6 @@ from requests import HTTPError
 
 from ..base_thread import DaemonThread
 
-GKE_PROD_WHITELIST = ["travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web", "travel-pp-api",
-                      "travel-solr-config", "travel-pp-web", "travel-pp-solrcloud", "fiaas-deploy-daemon", "fiaas-canary"]
-DIY_PROD_BLACKLIST = ["travel-cruise-web", "travel-currency-web", "travel-frontpage-web"
-                      "travel-lms-integration", "travel-lms-solrcloud", "travel-lms-web",
-                      "travel-pp-api", "travel-pp-web", "travel-pp-solrcloud"]
-
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 
 
@@ -54,16 +48,12 @@ class Consumer(DaemonThread):
             if event[u"environment"] == self._environment:
                 try:
                     app_spec = self._create_spec(event)
-                    if self._config.environment == "prod" \
-                            and self._config.infrastructure == "gke" \
-                            and app_spec.name not in GKE_PROD_WHITELIST:
+                    if self._config.whitelist and app_spec.name not in self._config.whitelist:
                         raise NotWhiteListedApplicationException(
-                            "{} is not a in whitelist for gke prod infrastructure".format(app_spec.name))
-                    if self._config.infrastructure == "diy" \
-                            and app_spec.name in DIY_PROD_BLACKLIST:
+                            "{} is not a in whitelist for this cluster".format(app_spec.name))
+                    if self._config.blacklist and app_spec.name in self._config.blacklist:
                         raise BlackListedApplicationException(
-                            "{} is banned from diy clusters".format(app_spec.name))
-
+                            "{} is banned from this cluster".format(app_spec.name))
                     self._deploy_queue.put(app_spec)
                     self._reporter.register(app_spec.image, event[u"callback_url"])
                     deploy_counter.inc()

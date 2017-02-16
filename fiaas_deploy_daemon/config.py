@@ -38,15 +38,22 @@ in YAML, this is not possible.
 See <https://docs.python.org/2.7/library/re.html#regular-expression-syntax>.
 """
 
+BW_LISTS_LONG_HELP = """
+Only one of `--blacklist` or `--whitelist` may be used, but each can be used
+multiple times. The parameter should match exactly the name of an application.
+When whitelisting, only applications in the whitelist is deployed.
+When blacklisting, applications in the blacklist will not be deployed.
+"""
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({}) or specified via -c). The config file uses YAML syntax and must represent
 a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
 
-It is possible to specify '--ingress-suffix' and '--host-rewrite-rule'
-multiple times to add more than one of each. In the config-file, these should
-be defined as a YAML list.
-(see https://github.com/bw2/ConfigArgParse#special-values)
+It is possible to specify '--ingress-suffix', '--host-rewrite-rule',
+'--blacklist' and '--whitelist' multiple times to add more than one of each.
+In the config-file, these should be defined as a YAML list
+(see https://github.com/bw2/ConfigArgParse#special-values).
 
 If an arg is specified in more than one place, then commandline values
 override environment variables which override config file values which
@@ -109,6 +116,10 @@ class Configuration(Namespace):
         host_rule_parser.add_argument("--host-rewrite-rule", help="Rule for rewriting host", action="append",
                                       type=HostRewriteRule, dest="host_rewrite_rules", env_var="HOST_REWRITE_RULES",
                                       default=[])
+        list_parser = parser.add_argument_group("Blacklisting/whitelisting applications", BW_LISTS_LONG_HELP)
+        list_group = list_parser.add_mutually_exclusive_group()
+        list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
+        list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         parser.parse_args(args, namespace=self)
 
     def _resolve_api_config(self):

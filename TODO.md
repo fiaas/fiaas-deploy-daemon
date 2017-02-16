@@ -40,3 +40,10 @@ features in one change, the new fields should perhaps just be added to v3.
 
 * Ability to disable ports for an application (batch jobs or queue consumers)
 * Set number of replicas per environment
+
+Richer annotations
+------------------
+
+It would be useful to know what fiaas.yml version a given object comes
+from when we're looking to remove support for older versions.  An easy
+way to do this is to annotate generated objects with the version.

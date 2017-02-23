@@ -67,20 +67,23 @@ def main():
     cfg = Configuration()
     init_logging(cfg)
     log = logging.getLogger(__name__)
-    log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
-    binding_specs = [
-        MainBindings(cfg),
-        DeployerBindings(),
-        K8sAdapterBindings(),
-        WebBindings(),
-        SpecBindings()
-    ]
-    if cfg.has_service("kafka_pipeline"):
-        binding_specs.append(PipelineBindings())
-    else:
-        binding_specs.append(FakeConsumerBindings())
-    obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
-    obj_graph.provide(Main).run()
+    try:
+        log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
+        binding_specs = [
+            MainBindings(cfg),
+            DeployerBindings(),
+            K8sAdapterBindings(),
+            WebBindings(),
+            SpecBindings()
+        ]
+        if cfg.has_service("kafka_pipeline"):
+            binding_specs.append(PipelineBindings())
+        else:
+            binding_specs.append(FakeConsumerBindings())
+        obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
+        obj_graph.provide(Main).run()
+    except:
+        log.exception("General failure! Inspect traceback and make the code better!")
 
 
 if __name__ == "__main__":

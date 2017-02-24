@@ -31,9 +31,9 @@ class MainBindings(pinject.BindingSpec):
     def provide_session(self, config):
         session = requests.Session()
         if config.proxy:
-            session.proxies = {host: config.proxy for host in (
-                "http://pipeline.finntech.no",
-                "http://mavenproxy.finntech.no"
+            session.proxies = {scheme: config.proxy for scheme in (
+                "http",
+                "https"
             )}
         return session
 

@@ -1,6 +1,3 @@
-# The fiaas.yml file format is documented in the README.md of the fiaas-deploy-daemon repo.
-# See here for default values: http://fiaas-deploy-daemon.dev-k8s.finntech.no/defaults
-# (or use it as a reference)
 ---
 services:
   - type: thrift # "http" or "thrift"

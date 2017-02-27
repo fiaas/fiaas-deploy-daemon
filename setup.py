@@ -71,13 +71,12 @@ setup(
     # Metadata
     description="Deploy docker containers to kubernetes when notified by pipeline",
     long_description=read("README.md"),
-    url="https://git.finn.no/projects/TOOL/repos/fiaas-deploy-daemon",
+    url="https://github.schibsted.io/finn/fiaas",
 
     # Entrypoints
     entry_points={
         "console_scripts": [
-            "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
-            "create-dns-with-static-ip = fiaas_deploy_daemon.deployer.gke:create_dns_with_static_ip"
+            "fiaas-deploy-daemon = fiaas_deploy_daemon:main"
         ]
     }
 )

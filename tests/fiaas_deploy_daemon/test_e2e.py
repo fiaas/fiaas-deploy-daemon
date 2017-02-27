@@ -80,7 +80,7 @@ class TestE2E(object):
                                 "--client-cert", kubernetes["client-cert"],
                                 "--client-key", kubernetes["client-key"],
                                 "--service-type", service_type,
-                                "--ingress-suffix", "svc.test.finn.no",
+                                "--ingress-suffix", "svc.test.example.com",
                                 "--environment", "test"
                                 ])
         time.sleep(1)

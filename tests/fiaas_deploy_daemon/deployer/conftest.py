@@ -41,7 +41,7 @@ def app_spec():
 
 @pytest.fixture
 def app_spec_with_host(app_spec):
-    return app_spec._replace(host="www.finn.no")
+    return app_spec._replace(host="www.example.com")
 
 
 @pytest.fixture
@@ -79,7 +79,7 @@ def app_spec_thrift():
 
 @pytest.fixture
 def app_spec_thrift_with_host(app_spec_thrift):
-    return app_spec_thrift._replace(host="www.finn.no")
+    return app_spec_thrift._replace(host="www.example.com")
 
 
 @pytest.fixture

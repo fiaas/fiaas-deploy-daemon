@@ -15,16 +15,16 @@ class TestIngressDeployer(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = "diy"
         config.environment = "test"
-        config.ingress_suffixes = ["svc.test.finn.no", "127.0.0.1.xip.io"]
+        config.ingress_suffixes = ["svc.test.example.com", "127.0.0.1.xip.io"]
         config.host_rewrite_rules = [
-            HostRewriteRule("www.finn.no=test.finn.no"),
-            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).finn.no=test.\1.finn.no")]
+            HostRewriteRule("www.example.com=test.example.com"),
+            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).example.com=test.\1.example.com")]
         return IngressDeployer(config)
 
     @pytest.mark.parametrize("host,expected", [
-        ("www.finn.no", "www.finn.no"),
-        ("m.finn.no", "m.finn.no"),
-        ("kart.finn.no", "kart.finn.no"),
+        ("www.example.com", "www.example.com"),
+        ("m.example.com", "m.example.com"),
+        ("kart.example.com", "kart.example.com"),
     ])
     def test_make_ingress_host_prod(self, app_spec, host, expected):
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -34,22 +34,22 @@ class TestIngressDeployer(object):
         assert deployer._make_ingress_host(app_spec._replace(host=host)) == expected
 
     @pytest.mark.parametrize("host,expected", [
-        ("www.finn.no", "test.finn.no"),
-        ("m.finn.no", "test.m.finn.no"),
-        ("kart.finn.no", "test.kart.finn.no"),
+        ("www.example.com", "test.example.com"),
+        ("m.example.com", "test.m.example.com"),
+        ("kart.example.com", "test.kart.example.com"),
     ])
     def test_generate_hosts(self, app_spec, deployer, host, expected):
         hosts = list(deployer._generate_hosts(app_spec._replace(host=host)))
-        assert hosts == [expected, "testapp.svc.test.finn.no", "testapp.127.0.0.1.xip.io"]
+        assert hosts == [expected, "testapp.svc.test.example.com", "testapp.127.0.0.1.xip.io"]
 
     def test_generate_hosts_no_host(self, app_spec, deployer):
         hosts = list(deployer._generate_hosts(app_spec._replace(host=None)))
-        assert hosts == ["testapp.svc.test.finn.no", "testapp.127.0.0.1.xip.io"]
+        assert hosts == ["testapp.svc.test.example.com", "testapp.127.0.0.1.xip.io"]
 
     @pytest.mark.parametrize("host,expected", [
-        ("www.finn.no", "test.finn.no"),
-        ("m.finn.no", "test.m.finn.no"),
-        ("kart.finn.no", "test.kart.finn.no"),
+        ("www.example.com", "test.example.com"),
+        ("m.example.com", "test.m.example.com"),
+        ("kart.example.com", "test.kart.example.com"),
     ])
     def test_deploy_new_ingress(self, host, expected, app_spec, post, deployer):
         deployer.deploy(app_spec._replace(host=host), LABELS)
@@ -66,7 +66,7 @@ class TestIngressDeployer(object):
                         }}]
                     }
                 }, {
-                    'host': "testapp.svc.test.finn.no",
+                    'host': "testapp.svc.test.example.com",
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -96,7 +96,7 @@ class TestIngressDeployer(object):
         expected_ingress = {
             'spec': {
                 'rules': [{
-                    'host': "testapp.svc.test.finn.no",
+                    'host': "testapp.svc.test.example.com",
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -125,14 +125,14 @@ class TestIngressDeployer(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = "gke"
         config.environment = "dev"
-        config.ingress_suffixes = ["svc.dev.finn.no", "k8s-gke.dev.finn.no"]
+        config.ingress_suffixes = ["svc.dev.example.com", "k8s-gke.dev.example.com"]
         deployer = IngressDeployer(config)
         deployer.deploy(app_spec, LABELS)
 
         expected_ingress = {
             'spec': {
                 'rules': [{
-                    'host': 'testapp.svc.dev.finn.no',
+                    'host': 'testapp.svc.dev.example.com',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -141,7 +141,7 @@ class TestIngressDeployer(object):
                         }}]
                     }
                 }, {
-                    'host': 'testapp.k8s-gke.dev.finn.no',
+                    'host': 'testapp.k8s-gke.dev.example.com',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -167,7 +167,7 @@ class TestIngressDeployer(object):
         resp.json.return_value = {
             'spec': {
                 'rules': [{
-                    'host': 'test.finn.no',
+                    'host': 'test.example.com',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {
@@ -175,7 +175,7 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }}, {
-                    'host': 'test.k8s1-prod1.z01.finn.no',
+                    'host': 'test.k8s1-prod1.z01.example.com',
                     'http': {'paths': [{
                         'path': '/',
                         'backend': {

@@ -4,9 +4,10 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, ConfigMapSpec
+    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, ConfigMapSpec, AutoscalerSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port=8080, path='/internal-backstage/prometheus')
+AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
 EMPTY_CONFIG_MAP_SPEC = ConfigMapSpec(volume=False, envs=[])
@@ -19,6 +20,7 @@ def app_spec():
         namespace="default",
         image="finntech/testimage:version",
         replicas=3,
+        autoscaler=AUTOSCALER_SPEC,
         host=None,
         resources=EMPTY_RESOURCE_SPEC,
         admin_access=False,
@@ -55,6 +57,7 @@ def app_spec_thrift():
         admin_access=False,
         name="testapp",
         replicas=3,
+        autoscaler=AUTOSCALER_SPEC,
         image="finntech/testimage:version",
         namespace="default",
         has_secrets=False,
@@ -88,6 +91,7 @@ def app_spec_thrift_and_http():
         admin_access=False,
         name="testapp",
         replicas=3,
+        autoscaler=AUTOSCALER_SPEC,
         image="finntech/testimage:version",
         namespace="default",
         has_secrets=False,
@@ -116,6 +120,7 @@ def app_spec_teams_and_tags():
         admin_access=False,
         name="testapp",
         replicas=3,
+        autoscaler=AUTOSCALER_SPEC,
         image="finntech/testimage:version",
         namespace="default",
         has_secrets=False,

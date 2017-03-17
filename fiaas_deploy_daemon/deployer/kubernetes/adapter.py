@@ -13,7 +13,7 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
     """
 
-    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer):
+    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler):
         k8s_config.api_server = config.api_server
         k8s_config.api_token = config.api_token
         if config.api_cert:
@@ -27,6 +27,8 @@ class K8s(object):
         self._service_deployer = service_deployer
         self._deployment_deployer = deployment_deployer
         self._ingress_deployer = ingress_deployer
+        self._autoscaler_deployer = autoscaler
+
 
     def deploy(self, app_spec):
         selector = _make_selector(app_spec)
@@ -34,6 +36,7 @@ class K8s(object):
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels)
+        self._autoscaler_deployer.deploy(app_spec, labels)
 
     def _make_labels(self, app_spec):
         labels = {

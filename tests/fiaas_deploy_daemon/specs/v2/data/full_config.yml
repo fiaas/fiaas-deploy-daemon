@@ -4,6 +4,10 @@ namespace: test
 admin_access: true
 has_secrets: true
 replicas: 20
+autoscaler:
+  enabled: true
+  min_replicas: 3
+  cpu_threshold_percentage: 60
 host: some.host.no
 prometheus:
   enabled: true

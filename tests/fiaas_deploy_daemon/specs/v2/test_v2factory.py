@@ -15,6 +15,9 @@ TEST_DATA = {
     u"v2minimal": {
         u"namespace": u"default",
         u"replicas": 2,
+        u"autoscaler.enabled": False,
+        u"autoscaler.min_replicas": 2,
+        u"autoscaler.cpu_threshold_percentage": 50,
         u"host": None,
         u"admin_access": False,
         u"has_secrets": False,
@@ -55,6 +58,9 @@ TEST_DATA = {
     u"full_config": {
         u"namespace": u"test",
         u"replicas": 20,
+        u"autoscaler.enabled": True,
+        u"autoscaler.min_replicas": 3,
+        u"autoscaler.cpu_threshold_percentage": 60,
         u"host": u"some.host.no",
         u"admin_access": True,
         u"has_secrets": True,

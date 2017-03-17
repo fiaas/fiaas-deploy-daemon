@@ -9,7 +9,7 @@ import yaml
 from .lookup import LookupMapping
 from .. import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
-    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, ConfigMapSpec
+    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, ConfigMapSpec, AutoscalerSpec
 
 
 class Factory(object):
@@ -24,6 +24,7 @@ class Factory(object):
             name,
             image,
             lookup[u"replicas"],
+            self._autoscaler_spec(lookup[u"autoscaler"]),
             lookup[u"host"],
             self._resources_spec(lookup[u"resources"]),
             lookup[u"admin_access"],
@@ -31,9 +32,14 @@ class Factory(object):
             self._prometheus_spec(lookup[u"prometheus"]),
             ports,
             self._health_checks_spec(lookup[u"healthchecks"], ports),
-            teams, tags,
+            teams,
+            tags,
             self._config_map_spec(lookup[u"config"])
         )
+
+    @staticmethod
+    def _autoscaler_spec(lookup):
+        return AutoscalerSpec(lookup[u"enabled"], lookup[u"min_replicas"], lookup[u"cpu_threshold_percentage"])
 
     @staticmethod
     def _prometheus_spec(lookup):

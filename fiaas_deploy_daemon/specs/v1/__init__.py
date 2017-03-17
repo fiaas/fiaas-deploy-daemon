@@ -38,7 +38,7 @@ class Factory(object):
         prom = self._get_app(u"prometheus", app_config)
         prometheus = self._create_prometheus_spec(prom, ports)
 
-        return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config),
+        return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config), None,
                        None, resources_spec, admin_access, has_secrets, prometheus, ports, health_checks[0],
                        teams, tags, ConfigMapSpec(False, []))
 

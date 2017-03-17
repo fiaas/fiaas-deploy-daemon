@@ -10,10 +10,10 @@ from k8s.client import NotFound
 
 LOG = logging.getLogger(__name__)
 
+
 class AutoscalerDeployer(object):
     def __init__(self):
         self.name = "autoscaler"
-
 
     def deploy(self, app_spec, labels):
         if _should_have_autoscaler(app_spec):
@@ -33,16 +33,20 @@ class AutoscalerDeployer(object):
             except NotFound:
                 pass
 
+
 def _should_have_autoscaler(app_spec):
     return _autoscaler_enabled(app_spec.autoscaler) and _enough_replicas_wanted(app_spec) and _request_cpu_is_set(app_spec)
 
+
 def _autoscaler_enabled(autoscaler):
     print "_autoscaler_enabled", autoscaler.enabled
-    return   autoscaler.enabled
+    return autoscaler.enabled
+
 
 def _enough_replicas_wanted(app_spec):
     print "_enough_replicas_wanted", app_spec.replicas
     return app_spec.replicas > 1
+
 
 def _request_cpu_is_set(app_spec):
     print "_request_cpu_is_set", app_spec.resources.requests.cpu

@@ -8,19 +8,23 @@ from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, Reso
 LABELS = {"autoscaler_deployer": "pass through"}
 AUTOSCALER_API = '/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/'
 
-def test_default_spec_should_create_no_autoscaler( app_spec):
-    assert _should_have_autoscaler(app_spec) == False
+
+def test_default_spec_should_create_no_autoscaler(app_spec):
+    assert _should_have_autoscaler(app_spec) is False
+
 
 def test_autoscaler_enabled_and_1_replica_gives_no_autoscaler(app_spec):
     app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
     app_spec = app_spec._replace(replicas=1)
-    assert _should_have_autoscaler(app_spec) == False
+    assert _should_have_autoscaler(app_spec) is False
+
 
 def test_autoscaler_enabled_and_2_replica_and_no_requested_cpu_gives_no_autoscaler(app_spec):
     app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
     app_spec = app_spec._replace(replicas=2)
 
-    assert _should_have_autoscaler(app_spec) == False
+    assert _should_have_autoscaler(app_spec) is False
+
 
 def test_autoscaler_enabled_and_2_replica_and__requested_cpu_gives_autoscaler(app_spec):
     app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
@@ -28,6 +32,7 @@ def test_autoscaler_enabled_and_2_replica_and__requested_cpu_gives_autoscaler(ap
     app_spec = app_spec._replace(resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
 
     assert _should_have_autoscaler(app_spec)
+
 
 class TestAutoscalerDeployer(object):
 
@@ -43,9 +48,9 @@ class TestAutoscalerDeployer(object):
 
         deployer.deploy(app_spec, LABELS)
 
-        expected_autoscaler={
+        expected_autoscaler = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-            'spec' : {
+            'spec': {
                 "scaleTargetRef": {
                     "kind": "Deployment",
                     "name": "testapp",

@@ -29,7 +29,6 @@ class K8s(object):
         self._ingress_deployer = ingress_deployer
         self._autoscaler_deployer = autoscaler
 
-
     def deploy(self, app_spec):
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)

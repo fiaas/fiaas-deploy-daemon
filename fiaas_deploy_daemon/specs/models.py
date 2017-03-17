@@ -79,7 +79,7 @@ ConfigMapSpec = namedtuple("ConfigMapSpec", [
     "volume",
     "envs"])
 
-AutoscalerSpec = namedtuple("AutoscalerSpec",[
+AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "enabled",
     "min_replicas",
     "cpu_threshold_percentage"

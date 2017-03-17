@@ -30,7 +30,6 @@ class TestK8s(object):
     def autoscaler_deployer(self):
         return mock.create_autospec(AutoscalerDeployer)
 
-
     @pytest.fixture
     def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer):
         config = mock.create_autospec(Configuration([]), spec_set=True)

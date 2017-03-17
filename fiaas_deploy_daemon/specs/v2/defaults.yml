@@ -3,8 +3,8 @@ version: 2
 namespace: default # the namespace to use
 admin_access: false # What access the pod has to the k8s api server
 has_secrets: false # if true, the application will get secrets as defined in hiearadata on ops1
-replicas: 2 # The number of instances to run.
-autoscaler: # Autoscaler scales from 2 to #replicas (#replicas must be >2). Need #resources.requests.cpu. Scales up on mean cpu utilisation of 50%. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
+replicas: 2 # The number of instances to run. Ceiling if autoascaler is enabled
+autoscaler: # Autoscaler scales from min_replicas to fiaas.replicas (#replicas must be >1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
   enabled: false
   min_replicas: 2
   cpu_threshold_percentage: 50

@@ -8,6 +8,7 @@ from .adapter import K8s
 from .service import ServiceDeployer
 from .deployment import DeploymentDeployer
 from .ingress import IngressDeployer
+from .autoscaler import AutoscalerDeployer
 
 
 class K8sAdapterBindings(pinject.BindingSpec):
@@ -16,3 +17,4 @@ class K8sAdapterBindings(pinject.BindingSpec):
         bind("service_deployer", to_class=ServiceDeployer)
         bind("deployment_deployer", to_class=DeploymentDeployer)
         bind("ingress_deployer", to_class=IngressDeployer)
+        bind("autoscaler", to_class=AutoscalerDeployer)

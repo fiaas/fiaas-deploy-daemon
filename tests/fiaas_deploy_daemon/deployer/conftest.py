@@ -81,6 +81,15 @@ def app_spec_thrift():
 
 
 @pytest.fixture
+def app_spec_multiple_thrift_ports(app_spec_thrift):
+    ports = [
+        PortSpec(protocol="tcp", name="thrift1", port=7999, target_port=7999, path=None),
+        PortSpec(protocol="tcp", name="thrift2", port=8000, target_port=8000, path=None),
+    ]
+    return app_spec_thrift._replace(ports=ports)
+
+
+@pytest.fixture
 def app_spec_thrift_with_host(app_spec_thrift):
     return app_spec_thrift._replace(host="www.example.com")
 

@@ -24,7 +24,8 @@ class ServiceDeployer(object):
         except NotFound:
             pass
         service_name = app_spec.name
-        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels)
+        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels,
+                              annotations=self._make_tcp_port_annotation(app_spec))
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
@@ -45,3 +46,11 @@ class ServiceDeployer(object):
             name=port_spec.name,
             port=port_spec.port,
             targetPort=port_spec.target_port)
+
+    @staticmethod
+    def _make_tcp_port_annotation(app_spec):
+        tcp_port_names = [port_spec.name for port_spec in app_spec.ports
+                          if port_spec.protocol == u"tcp"]
+        return {
+            'fiaas/tcp_port_names': ','.join(map(str, tcp_port_names))
+        } if tcp_port_names else {}

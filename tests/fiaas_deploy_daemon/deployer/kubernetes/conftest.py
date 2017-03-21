@@ -33,7 +33,7 @@ def delete():
 
 
 @pytest.helpers.register
-def create_metadata(app_name, namespace='default', prometheus=False, labels=None, external=None):
+def create_metadata(app_name, namespace='default', prometheus=False, labels=None, external=None, annotations=None):
     if not labels:
         labels = {
             'app': app_name,
@@ -45,18 +45,17 @@ def create_metadata(app_name, namespace='default', prometheus=False, labels=None
         'namespace': namespace,
         'name': app_name,
     }
+    if annotations is not None:
+        metadata['annotations'] = annotations
+
     if external is not None:
-        metadata['annotations'] = {
-            'fiaas/expose': str(external).lower()
-        }
+        expose_annotations = {'fiaas/expose': str(external).lower()}
+        metadata.setdefault('annotations', {}).update(expose_annotations)
     if prometheus:
         prom_annotations = {
             'prometheus.io/port': '8080',
             'prometheus.io/path': '/internal-backstage/prometheus',
             'prometheus.io/scrape': 'true'
         }
-        if 'annotations' in metadata:
-            metadata['annotations'].update(prom_annotations)
-        else:
-            metadata['annotations'] = prom_annotations
+        metadata.setdefault('annotations', {}).update(prom_annotations)
     return metadata

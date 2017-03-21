@@ -69,7 +69,38 @@ class TestServiceDeployer(object):
                 ],
                 'sessionAffinity': 'None'
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS,
+                                                       annotations={"fiaas/tcp_port_names": "thrift"})
+        }
+        pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
+
+    def test_deploy_new_service_with_multiple_tcp_ports(self, deployer, service_type, post,
+                                                        app_spec_multiple_thrift_ports):
+        deployer.deploy(app_spec_multiple_thrift_ports, SELECTOR, LABELS)
+
+        expected_service = {
+            'spec': {
+                'selector': SELECTOR,
+                'type': service_type,
+                "loadBalancerSourceRanges": [],
+                'ports': [
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 7999,
+                        'name': 'thrift1',
+                        'port': 7999
+                    },
+                    {
+                        'protocol': 'TCP',
+                        'targetPort': 8000,
+                        'name': 'thrift2',
+                        'port': 8000
+                    },
+                ],
+                'sessionAffinity': 'None'
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS,
+                                                       annotations={"fiaas/tcp_port_names": "thrift1,thrift2"})
         }
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 

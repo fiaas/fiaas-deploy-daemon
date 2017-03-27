@@ -64,7 +64,8 @@ class TestServiceDeployer(object):
                         'protocol': 'TCP',
                         'targetPort': 7999,
                         'name': 'thrift',
-                        'port': 7999
+                        'port': 7999,
+                        'nodePort': 7999,
                     },
                 ],
                 'sessionAffinity': 'None'
@@ -88,13 +89,15 @@ class TestServiceDeployer(object):
                         'protocol': 'TCP',
                         'targetPort': 7999,
                         'name': 'thrift1',
-                        'port': 7999
+                        'port': 7999,
+                        'nodePort': 7999,
                     },
                     {
                         'protocol': 'TCP',
                         'targetPort': 8000,
                         'name': 'thrift2',
-                        'port': 8000
+                        'port': 8000,
+                        'nodePort': 8000,
                     },
                 ],
                 'sessionAffinity': 'None'

@@ -12,8 +12,8 @@ def read(filename):
 
 GENERIC_REQ = [
     "ConfigArgParse == 0.11.0",
-    "prometheus_client == 0.0.13",
-    "PyYAML == 3.11",
+    "prometheus_client == 0.0.19",
+    "PyYAML == 3.12",
     "pyaml == 16.12.2",
     "pinject == 0.10.2",
     "six == 1.10.0",
@@ -21,8 +21,8 @@ GENERIC_REQ = [
 ]
 
 WEB_REQ = [
-    "Flask == 0.10.1",
-    "Flask-WTF == 0.12",
+    "Flask == 0.12",
+    "Flask-WTF == 0.14.2",
     "blinker == 1.4"
 ]
 
@@ -32,8 +32,7 @@ PIPELINE_REQ = [
 ]
 
 DEPLOY_REQ = [
-    "requests == 2.9.1",
-    "google-api-python-client == 1.5.1",
+    "requests == 2.13.0"
 ]
 
 FLAKE8_REQ = [

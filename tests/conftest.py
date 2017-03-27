@@ -7,6 +7,14 @@ import pytest
 pytest_plugins = ['helpers_namespace']
 
 
+@pytest.fixture(autouse=True)
+def prometheus_registry():
+    from prometheus_client.core import REGISTRY
+    yield REGISTRY
+    for c in REGISTRY._collector_to_names.keys():
+        REGISTRY.unregister(c)
+
+
 @pytest.helpers.register
 def assert_any_call(mockk, first, *args):
     __tracebackhide__ = True

@@ -6,6 +6,7 @@ import logging
 import shlex
 
 from k8s.models.common import ObjectMeta
+from k8s.client import NotFound
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, EnvVarSource, ConfigMapKeySelector, \
@@ -56,8 +57,18 @@ class DeploymentDeployer(object):
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
                                   annotations=prom_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
-        spec = DeploymentSpec(replicas=app_spec.replicas, selector=LabelSelector(matchLabels=selector_labels),
+        replicas = app_spec.replicas
+        # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value
+        if app_spec.autoscaler.enabled:
+            try:
+                deployment = Deployment.get(app_spec.name, app_spec.namespace)
+                replicas = deployment.spec.replicas
+            except NotFound:
+                pass
+
+        spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector_labels),
                               template=pod_template_spec)
+
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()
 

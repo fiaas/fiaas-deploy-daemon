@@ -11,6 +11,8 @@ from flask import Flask, Blueprint, current_app, render_template, request, flash
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 from .forms import DeployForm
+from .platform_collector import PLATFORM_COLLECTOR
+PLATFORM_COLLECTOR.collect()
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.

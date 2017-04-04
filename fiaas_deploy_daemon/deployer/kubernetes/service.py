@@ -41,10 +41,11 @@ class ServiceDeployer(object):
 
     @staticmethod
     def _make_service_port(port_spec):
-        service_port = ServicePort(protocol='TCP', name=port_spec.name, port=port_spec.port, targetPort=port_spec.target_port)
-        if port_spec.protocol == u"tcp":
-            service_port.nodePort = port_spec.port
-        return service_port
+        return ServicePort(
+            protocol='TCP',
+            name=port_spec.name,
+            port=port_spec.port,
+            targetPort=port_spec.target_port)
 
     @staticmethod
     def _make_tcp_port_annotation(app_spec):

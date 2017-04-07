@@ -3,6 +3,7 @@
 from __future__ import absolute_import
 
 import logging
+import time
 
 from k8s import config as k8s_config
 
@@ -42,6 +43,7 @@ class K8s(object):
             "app": app_spec.name,
             "fiaas/version": app_spec.version,
             "fiaas/deployed_by": self._version,
+            "fiaas/app_deployed_at": str(int(round(time.time()))),
         }
 
         _add_labels("fiaas/teams", labels, app_spec.teams)

@@ -7,7 +7,7 @@ import pkgutil
 import yaml
 
 from ..models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, PortSpec, HealthCheckSpec, \
-    HttpCheckSpec, TcpCheckSpec, CheckSpec, ConfigMapSpec
+    HttpCheckSpec, TcpCheckSpec, CheckSpec, ConfigMapSpec, AutoscalerSpec
 
 
 class Factory(object):
@@ -38,7 +38,7 @@ class Factory(object):
         prom = self._get_app(u"prometheus", app_config)
         prometheus = self._create_prometheus_spec(prom, ports)
 
-        return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config), None,
+        return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config), AutoscalerSpec(False, 2, 50),
                        None, resources_spec, admin_access, has_secrets, prometheus, ports, health_checks[0],
                        teams, tags, ConfigMapSpec(False, []))
 

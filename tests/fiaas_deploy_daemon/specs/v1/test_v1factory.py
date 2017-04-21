@@ -173,3 +173,14 @@ class TestFactory(object):
     def test_prometheus_enabled(self, make_url, factory, filename, value):
         app_spec = factory(NAME, IMAGE, make_url(filename), TEAMS, TAGS)
         assert app_spec.prometheus.enabled == value
+
+    @pytest.mark.parametrize("filename,value", [
+        ("default_service", 2),
+        ("full_config", 2),
+        ("old_service", 2),
+    ])
+    def test_autoscaler(self, make_url, factory, filename, value):
+        app_spec = factory(NAME, IMAGE, make_url(filename), TEAMS, TAGS)
+        assert app_spec.autoscaler.enabled is False
+        assert app_spec.autoscaler.min_replicas == 2
+        assert app_spec.autoscaler.cpu_threshold_percentage == 50

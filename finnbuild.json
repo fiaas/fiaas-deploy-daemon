@@ -1,6 +1,6 @@
 {
   "links": {
-    "build": "https://travis.schibsted.io/finn/fiaas-deploy-daemo",
+    "build": "https://travis.schibsted.io/finn/fiaas-deploy-daemon",
     "repository": "https://github.schibsted.io/finn/fiaas-deploy-daemon"
   },
   "versions": {

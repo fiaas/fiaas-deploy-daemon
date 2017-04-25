@@ -9,7 +9,7 @@ named 'fiaas-deploy-daemon'. If you wish, you can install pew and/or create the
 virtualenv before you run gradle, in which case gradle will use the ones you provide.
 
 On OSX there may be some problems with pew and you get something like "Python locale error: unsupported locale setting"
-Setting the following solved this for us 
+Setting the following solved this for us
 
 `export LC_ALL=$LANG`
 
@@ -95,5 +95,5 @@ fiaas-config
 
 fiaas-deploy-daemon will read a fiaas-config to determine how to deploy your application.
 This configuration is a YAML file. If any field is missing, a default value will be used.
-The default values, and explanation of their meaning are available at `/defaults` on any 
+The default values, and explanation of their meaning are available at `/defaults` on any
 running instance.

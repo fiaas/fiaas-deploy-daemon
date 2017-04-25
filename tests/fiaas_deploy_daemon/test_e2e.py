@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 
 import contextlib
+import os
 import socket
 import subprocess
 import time
@@ -27,6 +28,15 @@ def _has_utilities():
     except (subprocess.CalledProcessError, OSError):
         return False
     return True
+
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'
+
+
+def _has_xhyve_driver():
+    path = os.environ['PATH']
+    return any(os.access(os.path.join(p, 'docker-machine-driver-xhyve'), os.X_OK) for p in path.split(os.pathsep))
 
 
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
@@ -56,7 +66,8 @@ class TestE2E(object):
         running = False
         start = time.time()
         while not running and time.time() < (start + 60):
-            subprocess.call(["minikube", "start"])
+            extra_args = ["--vm-driver", "xhyve"] if _is_macos() and _has_xhyve_driver() else []
+            subprocess.call(["minikube", "start"] + extra_args)
             time.sleep(5)
             running = (subprocess.call(["kubectl", "cluster-info"]) == 0)
         if not running:

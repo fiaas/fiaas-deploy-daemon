@@ -1,5 +1,5 @@
 #fiaas-deploy-daemon
-[![Build Status](https://travis.schibsted.io/finn/fiaas.svg?token=xNT8WqX4rSiSQzf1cVsU&branch=master)](https://travis.schibsted.io/finn/fiaas)
+[![Build Status](https://travis.schibsted.io/finn/fiaas-deploy-daemon.svg?token=qq6DLsb2b5xV6Fj6t2ps&branch=master)](https://travis.schibsted.io/finn/fiaas-deploy-daemon)
 ===================
 
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.

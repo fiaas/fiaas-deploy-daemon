@@ -1,0 +1,21 @@
+apiVersion: "schibsted.io/v1beta"
+kind: PaasbetaApplication
+metadata:
+  name: v1beta-example
+spec:
+  application: v1beta-example
+  image: containers.schibsted.io/finn/fiaas-deploy-daemon:latest
+  spec:
+    admin_access: true
+    replicas: 1
+    resources:
+      requests:
+        memory: 128m
+    ports:
+      - target_port: 5000
+    healthchecks:
+      liveness:
+        http:
+          path: /healthz
+    config:
+      volume: true

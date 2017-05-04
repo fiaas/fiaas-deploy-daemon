@@ -91,7 +91,7 @@ class PaasApplicationConfig(Model):
 class PaasbetaApplicationSpec(Model):
     application = RequiredField(six.text_type)
     image = RequiredField(six.text_type)
-    spec = RequiredField(PaasApplicationConfig)
+    config = RequiredField(PaasApplicationConfig)
 
 
 class PaasbetaApplication(Model):

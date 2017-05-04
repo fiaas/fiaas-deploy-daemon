@@ -61,11 +61,11 @@ class TestService(object):
         pba = PaasbetaApplication.get_or_create(metadata=_create_default_metadata(), spec=spec)
 
         assert not pba._new
-        assert pba.spec.spec.namespace == NAMESPACE
-        assert pba.spec.spec.replicas == 2
-        assert pba.spec.spec.host == 'example.org'
-        assert pba.spec.spec.ports[0].protocol == 'tcp'
-        assert pba.spec.spec.ports[0].target_port == 1992
+        assert pba.spec.config.namespace == NAMESPACE
+        assert pba.spec.config.replicas == 2
+        assert pba.spec.config.host == 'example.org'
+        assert pba.spec.config.ports[0].protocol == 'tcp'
+        assert pba.spec.config.ports[0].target_port == 1992
         pba.save()
         pytest.helpers.assert_any_call(put, API_INSTANCE_PATH, pba.as_dict())
 
@@ -76,7 +76,7 @@ class TestService(object):
 
 
 def _create_default_paasbetaapplicationspec(**kwargs):
-    app_config = {
+    config = {
         'version':
             '2',
         'namespace':
@@ -106,9 +106,9 @@ def _create_default_paasbetaapplicationspec(**kwargs):
         'config':
             Config(volume=False, envs=['CONFIG_THING', 'ANOTHER_CONFIG_THING'])
     }
-    app_config.update(kwargs)
+    config.update(kwargs)
     return PaasbetaApplicationSpec(application=NAME, image='example.com/group/image:tag',
-                                   spec=PaasApplicationConfig(**app_config))
+                                   config=PaasApplicationConfig(**config))
 
 
 def _create_default_metadata():

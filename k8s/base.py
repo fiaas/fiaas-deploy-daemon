@@ -64,6 +64,12 @@ class ApiMixIn(object):
         return [cls.from_dict(item) for item in resp.json()[u"items"]]
 
     @classmethod
+    def list(cls, namespace="default"):
+        url = cls._build_url(name="", namespace=namespace)
+        resp = cls._client.get(url)
+        return [cls.from_dict(item) for item in resp.json()[u"items"]]
+
+    @classmethod
     def get(cls, name, namespace="default"):
         """Get from API server if it exists"""
         url = cls._build_url(name=name, namespace=namespace)

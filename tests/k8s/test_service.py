@@ -92,6 +92,79 @@ class TestService(object):
         # call delete with service_name
         pytest.helpers.assert_any_call(delete, (SERVICES_URI + SERVICE_NAME))
 
+    @mock.patch('k8s.client.Client.get')
+    def test_list_services(self, get):
+        service_list = {
+            "apiVersion": "v1",
+            "kind": "List",
+            "metadata": {},
+            "resourceVersion": "",
+            "selflink": "",
+            "items": [
+                {
+                    "kind": "Service",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "name": "foo",
+                        "namespace": "default",
+                        "selfLink": "/api/v1/namespaces/default/services/foo",
+                        "uid": "cc562581-cbf5-11e5-b6ef-247703d2e388",
+                        "resourceVersion": "817",
+                        "creationTimestamp": "2016-02-05T10:47:06Z",
+                    },
+                    "spec": {
+                        "ports": [
+                            {
+                                "name": "https", "protocol": "TCP", "port": 443, "targetPort": "https"
+                            }
+                        ],
+                        "clusterIP": "10.0.0.1", "type": "ClusterIP", "sessionAffinity": "None"
+                    },
+                    "status": {
+                        "loadBalancer": {}
+                    }
+                },
+                {
+                    "kind": "Service",
+                    "apiVersion": "v1",
+                    "metadata": {
+                        "name": "bar",
+                        "namespace": "default",
+                        "selfLink": "/api/v1/namespaces/default/services/bar",
+                        "uid": "4d00cb9e-30d2-11e7-ba70-7a4531eb635c",
+                        "resourceVersion": "13608",
+                        "creationTimestamp": "2017-05-04T14:02:25Z",
+                    },
+                    "spec": {
+                        "ports": [
+                            {
+                                "name": "http", "protocol": "TCP", "port": 80, "targetPort": "8080"
+                            }
+                        ],
+                        "clusterIP": "10.0.0.2", "type": "ClusterIP", "sessionAffinity": "None"
+                    },
+                    "status": {
+                        "loadBalancer": {}
+                    }
+                }
+            ]
+        }
+        mock_response = mock.Mock()
+        mock_response.json.return_value = service_list
+        get.return_value = mock_response
+
+        services = Service.list(namespace="default")
+        assert services[0].metadata.name == "foo"
+        assert services[0].metadata.namespace == "default"
+        assert services[0].spec.ports[0].name == "https"
+        assert services[0].spec.ports[0].port == 443
+        assert services[0].spec.ports[0].targetPort == "https"
+        assert services[1].metadata.name == "bar"
+        assert services[1].metadata.namespace == "default"
+        assert services[1].spec.ports[0].name == "http"
+        assert services[1].spec.ports[0].port == 80
+        assert services[1].spec.ports[0].targetPort == "8080"
+
 
 def create_default_service():
     metadata = ObjectMeta(name=SERVICE_NAME, namespace=SERVICE_NAMESPACE, labels={"app": "test"})

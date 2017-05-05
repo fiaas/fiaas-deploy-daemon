@@ -33,8 +33,27 @@ def k8s_config(monkeypatch):
 
 @pytest.mark.usefixtures("k8s_config")
 class TestService(object):
-    @mock.patch('k8s.client.Client.get')
-    @mock.patch('k8s.client.Client.post')
+
+    @pytest.fixture(autouse=True)
+    def get(self):
+        with mock.patch('k8s.client.Client.get') as mockk:
+            yield mockk
+
+    @pytest.fixture(autouse=True)
+    def post(self):
+        with mock.patch('k8s.client.Client.post') as mockk:
+            yield mockk
+
+    @pytest.fixture(autouse=True)
+    def put(self):
+        with mock.patch('k8s.client.Client.put') as mockk:
+            yield mockk
+
+    @pytest.fixture(autouse=True)
+    def delete(self):
+        with mock.patch('k8s.client.Client.delete') as mockk:
+            yield mockk
+
     def test_create_new_paasbetaapplication(self, post, get):
         get.side_effect = NotFound()
         pba = PaasbetaApplication(metadata=_create_default_metadata(), spec=_create_default_paasbetaapplicationspec())
@@ -43,8 +62,6 @@ class TestService(object):
         assert pba._new
         pytest.helpers.assert_any_call(post, API_BASE_PATH, pba.as_dict())
 
-    @mock.patch('k8s.client.Client.get')
-    @mock.patch('k8s.client.Client.put')
     def test_update_existing_paasbetaapplication(self, put, get):
         get_response = mock.Mock()
         get_response.json.return_value = {
@@ -69,7 +86,6 @@ class TestService(object):
         pba.save()
         pytest.helpers.assert_any_call(put, API_INSTANCE_PATH, pba.as_dict())
 
-    @mock.patch('k8s.client.Client.delete')
     def test_delete_paasbetaapplication(self, delete):
         PaasbetaApplication.delete(NAME, NAMESPACE)
         pytest.helpers.assert_any_call(delete, API_INSTANCE_PATH)

@@ -21,8 +21,8 @@ class DisabledThirdPartyResourceBindings(pinject.BindingSpec):
 
 
 class FakeWatcher(object):
-    def start():
+    def start(self):
         pass
 
-    def is_alive():
+    def is_alive(self):
         return True

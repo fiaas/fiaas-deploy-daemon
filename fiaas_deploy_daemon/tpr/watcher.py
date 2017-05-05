@@ -9,8 +9,8 @@ class Watcher(DaemonThread):
         super(Watcher, self).__init__()
         self._deploy_queue = deploy_queue
 
-    def start():
-        pass
-
-    def is_alive():
+    def is_alive(self):
         return True
+
+    def __call__(self):
+        pass

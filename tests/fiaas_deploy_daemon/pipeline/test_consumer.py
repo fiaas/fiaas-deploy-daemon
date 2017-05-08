@@ -14,6 +14,7 @@ from fiaas_deploy_daemon.pipeline import consumer as pipeline_consumer
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
 from fiaas_deploy_daemon.specs import models
 from fiaas_deploy_daemon.specs.factory import SpecFactory
+from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
 
 DummyMessage = namedtuple("DummyMessage", ("value",))
 EVENT = {
@@ -62,12 +63,18 @@ class TestConsumer(object):
         return mock
 
     @pytest.fixture
+    def app_config_downloader(self):
+        mock = create_autospec(AppConfigDownloader, instance=True)
+        mock.get.return_value = {'version': 2}  # minimal v2 yaml
+        return mock
+
+    @pytest.fixture
     def kafka_consumer(self):
         return create_autospec(kafka.KafkaConsumer, instance=True)
 
     @pytest.fixture
-    def consumer(self, queue, config, reporter, factory, kafka_consumer):
-        c = pipeline_consumer.Consumer(queue, config, reporter, factory)
+    def consumer(self, queue, config, reporter, factory, kafka_consumer, app_config_downloader):
+        c = pipeline_consumer.Consumer(queue, config, reporter, factory, app_config_downloader)
         c._consumer = kafka_consumer
         return c
 
@@ -77,9 +84,11 @@ class TestConsumer(object):
 
         assert e.value.message == "FakeConfig"
 
-    def test_create_spec_from_event(self, consumer, factory):
+    def test_create_spec_from_event(self, consumer, factory, app_config_downloader):
         consumer._create_spec(EVENT)
 
+        assert app_config_downloader.get.called
+        assert app_config_downloader.get.call_count == 1
         assert factory.called
         assert factory.call_count == 1
 

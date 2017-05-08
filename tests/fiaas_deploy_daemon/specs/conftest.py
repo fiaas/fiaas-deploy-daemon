@@ -2,23 +2,16 @@
 # -*- coding: utf-8
 
 import pytest
-from requests import Session
-from requests_file import FileAdapter
+import yaml
 
 
 @pytest.fixture
-def session():
-    session = Session()
-    session.mount("file://", FileAdapter())
-    return session
-
-
-@pytest.fixture
-def make_url(request):
-    def _make(filename):
+def load_app_config_testdata(request):
+    def _load(filename):
         path = _find_file(filename+".yml", request.fspath.dirpath())
-        return "file://{}".format(path)
-    return _make
+        with open(path, 'r') as fobj:
+            return yaml.safe_load(fobj)
+    return _load
 
 
 def _find_file(needle, root):

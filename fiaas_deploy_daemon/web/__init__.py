@@ -43,7 +43,9 @@ def frontpage():
 def fiaas():
     form = DeployForm(request.form)
     if form.validate_on_submit():
-        app_spec = current_app.spec_factory(form.name.data, form.image.data, form.fiaas.data, form.teams.data, form.tags.data)
+        fiaas_url = form.fiaas.data
+        app_config = current_app.app_config_downloader.get(fiaas_url)
+        app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, form.teams.data, form.tags.data)
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")
@@ -93,14 +95,16 @@ class WebBindings(pinject.BindingSpec):
         require("config")
         require("deploy_queue")
         require("spec_factory")
+        require("app_config_downloader")
 
-    def provide_webapp(self, deploy_queue, config, spec_factory, health_check):
+    def provide_webapp(self, deploy_queue, config, spec_factory, health_check, app_config_downloader):
         app = Flask(__name__)
         app.deploy_queue = deploy_queue
         app.config.from_object(config)
         app.cfg = config
         app.spec_factory = spec_factory
         app.health_check = health_check
+        app.app_config_downloader = app_config_downloader
         app.register_blueprint(web)
         _connect_signals()
         return app

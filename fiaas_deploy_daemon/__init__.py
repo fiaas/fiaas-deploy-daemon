@@ -15,6 +15,7 @@ from .fake_consumer import FakeConsumerBindings
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .specs import SpecBindings
+from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .web import WebBindings
 
 
@@ -40,25 +41,27 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler):
+    def __init__(self, deployer, consumer, scheduler, tpr_watcher):
         pass
 
     def is_healthy(self):
         return (self._deployer.is_alive() and
                 self._consumer.is_alive() and
                 self._scheduler.is_alive() and
-                self._consumer.is_recieving_messages())
+                self._consumer.is_recieving_messages(),
+                self._tpr_watcher.is_alive())
 
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, webapp, config):
+    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher):
         pass
 
     def run(self):
         self._deployer.start()
         self._consumer.start()
         self._scheduler.start()
+        self._tpr_watcher.start()
         # Run web-app in main thread
         self._webapp.run("0.0.0.0", self._config.port)
 
@@ -80,6 +83,8 @@ def main():
             binding_specs.append(PipelineBindings())
         else:
             binding_specs.append(FakeConsumerBindings())
+        binding_specs.append(ThirdPartyResourceBindings() if cfg.enable_tpr_support
+                             else DisabledThirdPartyResourceBindings())
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()
     except:

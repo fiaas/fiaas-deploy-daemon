@@ -171,6 +171,14 @@ class TestConfig(object):
         with pytest.raises(SystemExit):
             Configuration(["--blacklist", "blacklisted", "--whitelist", "whitelisted"])
 
+    def test_enable_thirdpartyresource_support(self):
+        config = Configuration(["--enable-tpr-support"])
+        assert config.enable_tpr_support is True
+
+    def test_enable_thirdpartyresource_support_default(self):
+        config = Configuration([])
+        assert config.enable_tpr_support is False
+
 
 class TestHostRewriteRule(object):
     def test_equality(self):

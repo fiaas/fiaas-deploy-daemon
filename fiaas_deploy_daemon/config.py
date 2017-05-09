@@ -100,6 +100,8 @@ class Configuration(Namespace):
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
+        parser.add_argument("--enable-tpr-support", help="Enable third party resource support (experimental).",
+                            action="store_true")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

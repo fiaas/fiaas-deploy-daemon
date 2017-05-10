@@ -3,6 +3,7 @@
 
 import contextlib
 import os
+import os.path
 import socket
 import subprocess
 import time
@@ -11,11 +12,15 @@ import pytest
 import re
 import requests
 import yaml
+from monotonic import monotonic as time_monotonic
 from k8s import config
 from k8s.client import NotFound, Client
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
+from k8s.models.common import ObjectMeta
+from fiaas_deploy_daemon.tpr.paasbetaapplication import (PaasbetaApplication, PaasbetaApplicationSpec,
+                                                         PaasApplicationConfig)
 
 IMAGE1 = "finntech/application-name:123"
 IMAGE2 = "finntech/application-name:321"
@@ -98,6 +103,24 @@ class TestE2E(object):
         yield "http://localhost:{}/fiaas".format(port)
         self._end_popen(fdd)
 
+    @pytest.fixture(scope="module")
+    def fdd_tpr_support_enabled(self, kubernetes, service_type):
+        port = self._get_open_port()
+        fdd = subprocess.Popen(["fiaas-deploy-daemon",
+                                "--debug",
+                                "--port", str(port),
+                                "--api-server", kubernetes["server"],
+                                "--client-cert", kubernetes["client-cert"],
+                                "--client-key", kubernetes["client-key"],
+                                "--service-type", service_type,
+                                "--ingress-suffix", "svc.test.example.com",
+                                "--environment", "test",
+                                "--enable-tpr-support"
+                                ])
+        time.sleep(1)
+        yield "http://localhost:{}/fiaas".format(port)
+        self._end_popen(fdd)
+
     @pytest.fixture(params=(
             "data/v1minimal.yml",
             "data/v2minimal.yml",
@@ -114,6 +137,25 @@ class TestE2E(object):
         time.sleep(1)
         yield (self._sanitize(request.param), "http://localhost:{}/{}".format(port, request.param))
         self._end_popen(httpd)
+
+    @pytest.fixture(params=(
+            "data/v1minimal.yml",
+            "data/v2minimal.yml",
+            "v2/data/host.yml",
+            "v2/data/exec_config.yml",
+            "v2/data/config_as_env.yml",
+            "v2/data/config_as_volume.yml"
+    ))
+    def third_party_resource(self, request):
+        fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
+        with open(fiaas_yml_path, 'r') as fobj:
+            fiaas_yml = yaml.safe_load(fobj)
+
+        name = self._sanitize(request.param)
+        metadata = ObjectMeta(name=name, namespace="default")
+        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
+                                       config=PaasApplicationConfig.from_dict(fiaas_yml))
+        return (name, PaasbetaApplication(metadata=metadata, spec=spec))
 
     @staticmethod
     def _sanitize(param):
@@ -139,6 +181,24 @@ class TestE2E(object):
         if "host" in name:
             kinds.append(Ingress)
         return kinds
+
+    @pytest.fixture(autouse=True)
+    def third_party_resource_type(self, request, kubernetes):
+        tpr_path = os.path.abspath(os.path.join(request.fspath.dirpath().strpath, "..", "..", "tpr",
+                                                "PaasbetaApplication.yaml"))
+        kubectl_replace = subprocess.Popen(["kubectl", "replace", "--force=true", "-f", tpr_path])
+        status = kubectl_replace.wait()
+        timeout_seconds = 30
+        timeout = time_monotonic() + timeout_seconds
+        while time_monotonic() < timeout:  # wait for the resource to be usable in the cluster
+            kubectl_get = subprocess.Popen(["kubectl", "get", "paasbetaapplications"])
+            status = kubectl_get.wait()
+            if status == 0:
+                return True
+            else:
+                time.sleep(5)
+        pytest.fail("paasbetaapplication ThirdPartyResource was not available after {}s".format(
+            timeout=timeout_seconds))
 
     def test_post_to_web(self, fdd, fiaas_yml, service_type):
         name, url = fiaas_yml
@@ -171,6 +231,40 @@ class TestE2E(object):
         data["image"] = IMAGE2
         resp = requests.post(fdd, data)
         resp.raise_for_status()
+
+        # Check success
+        time.sleep(5)
+        for kind in kinds:
+            assert kind.get(name)
+        dep = Deployment.get(name)
+        assert dep.spec.template.spec.containers[0].image == IMAGE2
+
+    def test_third_party_resource_deploy(self, third_party_resource_type, fdd_tpr_support_enabled,
+                                         third_party_resource, service_type):
+        name, paasbetaapplication = third_party_resource
+
+        # check that k8s objects for name doesn't already exist
+        kinds = self._select_kinds(name)
+        for kind in kinds:
+            with pytest.raises(NotFound):
+                kind.get(name)
+
+        # First deploy
+        paasbetaapplication.save()
+
+        # Check deploy success
+        time.sleep(5)
+        for kind in kinds:
+            assert kind.get(name)
+        dep = Deployment.get(name)
+        assert dep.spec.template.spec.containers[0].image == IMAGE1
+        svc = Service.get(name)
+        assert svc.spec.type == service_type
+
+        # Redeploy, new image
+        paasbetaapplication_new = PaasbetaApplication.get(name)
+        paasbetaapplication_new.spec.image = IMAGE2
+        paasbetaapplication_new.save()
 
         # Check success
         time.sleep(5)

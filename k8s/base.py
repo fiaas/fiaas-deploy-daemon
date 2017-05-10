@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
+import json
 import logging
 from collections import namedtuple
 
@@ -31,6 +32,7 @@ class MetaModel(type):
             bases += (ApiMixIn,)
         meta = {
             "url_template": getattr(attr_meta, "url_template", ""),
+            "watch_list_url": getattr(attr_meta, "watch_list_url", ""),
             "fields": [],
             "field_names": []
         }
@@ -68,6 +70,19 @@ class ApiMixIn(object):
         url = cls._build_url(name="", namespace=namespace)
         resp = cls._client.get(url)
         return [cls.from_dict(item) for item in resp.json()[u"items"]]
+
+    @classmethod
+    def watch_list(cls):
+        """Return a generator that yields WatchEvents of cls"""
+        url = cls._meta.watch_list_url
+        if not url:
+            raise NotImplementedError("Cannot watch_list, no watch_list_url defined on class {}".format(cls))
+        resp = cls._client.get(url, stream=True, timeout=None)
+        for line in resp.iter_content(chunk_size=None):
+            if line:
+                event_json = json.loads(line)
+                event = WatchEvent(event_json, cls)
+                yield event
 
     @classmethod
     def get(cls, name, namespace="default"):
@@ -161,3 +176,18 @@ class Model(six.with_metaclass(MetaModel)):
 
 def _api_name(name):
     return name[1:] if name.startswith("_") else name
+
+
+class WatchEvent(object):
+
+    ADDED = "ADDED"
+    MODIFIED = "MODIFIED"
+    DELETED = "DELETED"
+
+    def __init__(self, event_json, cls):
+        self.type = event_json["type"]
+        self.object = cls.from_dict(event_json["object"])
+
+    def __repr__(self):
+        return "{cls}(type={type}, object={object})".format(cls=self.__class__.__name__, type=self.type,
+                                                            object=self.object)

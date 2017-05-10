@@ -5,10 +5,10 @@ import pytest
 from requests import HTTPError, Session
 from requests_file import FileAdapter
 
-from fiaas_deploy_daemon.specs.app_spec_downloader import AppSpecDownloader
+from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
 
 
-class TestAppSpecDownloader(object):
+class TestAppConfigDownloader(object):
 
     @pytest.fixture
     def session(self):
@@ -18,9 +18,9 @@ class TestAppSpecDownloader(object):
 
     def test_get_app_spec(self, request, session):
         url = 'file://{}'.format(os.path.join(request.fspath.dirpath().strpath, 'data', 'v2minimal.yml'))
-        app_config = AppSpecDownloader(session).get(url)
+        app_config = AppConfigDownloader(session).get(url)
         assert app_config['version'] == 2
 
     def test_failed_request_raises_exception(self, session):
         with pytest.raises(HTTPError):
-            AppSpecDownloader(session).get("file:///non-existing-file")
+            AppConfigDownloader(session).get("file:///non-existing-file")

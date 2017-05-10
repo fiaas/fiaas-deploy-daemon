@@ -239,6 +239,10 @@ class TestE2E(object):
         dep = Deployment.get(name)
         assert dep.spec.template.spec.containers[0].image == IMAGE2
 
+        # Cleanup
+        for kind in kinds:
+            kind.delete(name)
+
     def test_third_party_resource_deploy(self, third_party_resource_type, fdd_tpr_support_enabled,
                                          third_party_resource, service_type):
         name, paasbetaapplication = third_party_resource
@@ -272,3 +276,7 @@ class TestE2E(object):
             assert kind.get(name)
         dep = Deployment.get(name)
         assert dep.spec.template.spec.containers[0].image == IMAGE2
+
+        # Cleanup
+        for kind in kinds:
+            kind.delete(name)

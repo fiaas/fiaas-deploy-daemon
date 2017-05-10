@@ -96,7 +96,7 @@ class PaasbetaApplicationSpec(Model):
 
 class PaasbetaApplication(Model):
     class Meta:
-        url_template   = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetaapplications/{name}"
+        url_template = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetaapplications/{name}"
         watch_list_url = "/apis/schibsted.io/v1beta/watch/paasbetaapplications"
 
     metadata = Field(ObjectMeta)

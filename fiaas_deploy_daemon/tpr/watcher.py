@@ -2,7 +2,6 @@
 from __future__ import absolute_import
 
 import logging
-import time
 
 from ..base_thread import DaemonThread
 from .paasbetaapplication import PaasbetaApplication
@@ -33,10 +32,9 @@ class Watcher(DaemonThread):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
-            pass # TODO: this should delete the related kubernetes objects
+            pass  # TODO: this should delete the related kubernetes objects
         else:
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
-
 
     def _deploy(self, application):
         LOG.debug("Deploying %s", application.spec.application)

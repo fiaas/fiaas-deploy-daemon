@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import io
 import mock
 import pytest
 
 from k8s.client import Client, DEFAULT_TIMEOUT_SECONDS
 from k8s import config
-from k8s.base import Model, Field, WatchEvent
+from k8s.base import Model, Field
+
 
 @pytest.mark.usefixtures("k8s_config")
 class TestClient(object):
-
     @pytest.fixture
     def success_response(self):
         resp = mock.MagicMock()
@@ -46,7 +45,9 @@ class TestClient(object):
 
     def test_delete_should_use_default_timeout(self, session, client, url):
         client.delete(url)
-        session.request.assert_called_once_with("DELETE", _absolute_url(url), json=None, timeout=DEFAULT_TIMEOUT_SECONDS)
+        session.request.assert_called_once_with(
+            "DELETE", _absolute_url(url), json=None, timeout=DEFAULT_TIMEOUT_SECONDS
+        )
 
     def test_delete_should_propagate_timeout(self, session, client, url, explicit_timeout):
         client.delete(url, timeout=explicit_timeout)
@@ -78,20 +79,25 @@ class TestClient(object):
 
     def test_watch_list(self, session):
         list(WatchListExample.watch_list())
-        session.request.assert_called_once_with("GET", _absolute_url("/watch/example"), json=None, timeout=None, stream=True)
+        session.request.assert_called_once_with(
+            "GET", _absolute_url("/watch/example"), json=None, timeout=None, stream=True
+        )
+
 
 def _absolute_url(url):
     return config.api_server + url
 
+
 class WatchListExample(Model):
     class Meta:
-        url_template   = '/example'
+        url_template = '/example'
         watch_list_url = '/watch/example'
 
     value = Field(int)
 
+
 class WatchListExampleUnsupported(Model):
     class Meta:
-        url_template   = '/example'
+        url_template = '/example'
 
     value = Field(int)

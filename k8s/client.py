@@ -10,7 +10,7 @@ from requests import RequestException
 
 from . import config
 
-DEFAULT_TIMEOUT_SECONDS=10
+DEFAULT_TIMEOUT_SECONDS = 10
 LOG = logging.getLogger(__name__)
 LOG.addHandler(logging.NullHandler())
 

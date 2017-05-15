@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+
+export KUBECONFIG_JSON="$(kubectl config view -o json)"
+API_SERVER="$(jq -r '.clusters[] | select(.name == "minikube") | .cluster.server' <<< "$KUBECONFIG_JSON")"
+CLIENT_CERT="$(jq -r '.users[] | select(.name == "minikube") | .user."client-certificate"' <<< "$KUBECONFIG_JSON")"
+CLIENT_KEY="$(jq -r '.users[] | select(.name == "minikube") | .user."client-key"' <<< "$KUBECONFIG_JSON")"
+
+fiaas-deploy-daemon \
+    --debug \
+    --api-server "$API_SERVER" \
+    --client-cert "$CLIENT_CERT" \
+    --client-key "$CLIENT_KEY" \
+    --service-type ClusterIP \
+    --ingress-suffix svc.example.com \
+    --environment test \
+    --enable-tpr-support

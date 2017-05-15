@@ -190,24 +190,24 @@ def pytest_generate_tests(metafunc):
 
 class TestFactory(object):
     @pytest.fixture
-    def factory(self, session):
-        return SpecFactory(session, {2: Factory()})
+    def factory(self):
+        return SpecFactory({2: Factory()})
 
     @pytest.mark.parametrize("filename", (
             "v2minimal",
             "full_config"
     ))
-    def test_name_and_image(self, make_url, factory, filename):
-        app_spec = factory(NAME, IMAGE, make_url(filename), "IO", "foo")
+    def test_name_and_image(self, load_app_config_testdata, factory, filename):
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo")
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
-    def test_no_health_check(self, make_url, factory):
+    def test_no_health_check(self, load_app_config_testdata, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, make_url("no_health_check_defined"), "IO", "foo")
+            factory(NAME, IMAGE, load_app_config_testdata("no_health_check_defined"), "IO", "foo")
 
-    def test(self, make_url, factory, filename, attribute, value):
-        app_spec = factory(NAME, IMAGE, make_url(filename), "IO", "foo")
+    def test(self, load_app_config_testdata, factory, filename, attribute, value):
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo")
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)

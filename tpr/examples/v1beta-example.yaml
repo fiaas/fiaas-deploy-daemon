@@ -6,7 +6,7 @@ spec:
   application: v1beta-example
   image: containers.schibsted.io/finn/fiaas-deploy-daemon:latest
   config:
-    version: v2
+    version: 2
     admin_access: true
     replicas: 1
     resources:

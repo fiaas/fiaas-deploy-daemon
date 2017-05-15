@@ -1,0 +1,19 @@
+apiVersion: "schibsted.io/v1beta"
+kind: PaasbetaApplication
+metadata:
+  name: nginx-example
+spec:
+  application: nginx-example
+  image: docker.io/nginx:1.13.0
+  config:
+    version: 2
+    replicas: 2
+    resources:
+      requests:
+        memory: 128m
+    ports:
+      - target_port: 80
+    healthchecks:
+      liveness:
+        http:
+          path: /

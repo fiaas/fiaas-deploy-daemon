@@ -51,6 +51,7 @@ TESTS_REQ = [
     'pytest-helpers-namespace',
     'pytest >= 3.0',
     'requests-file',
+    'monotonic',
 ]
 
 setup(

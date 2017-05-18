@@ -11,7 +11,6 @@ from ..fields import Field, ListField
 
 class Version(Model):
     name = Field(six.text_type)
-    value = Field(six.text_type)
 
 
 class ThirdPartyResource(Model):

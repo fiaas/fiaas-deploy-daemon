@@ -30,7 +30,7 @@ class DeploymentSpec(Model):
     template = Field(PodTemplateSpec)
     strategy = Field(DeploymentStrategy)
     minReadySeconds = Field(six.text_type, alt_type=int)
-    revisionHistoryLimit = Field(six.text_type, alt_type=int)
+    revisionHistoryLimit = Field(int)
     paused = Field(six.text_type)
 
 

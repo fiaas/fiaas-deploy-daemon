@@ -6,7 +6,8 @@ from pprint import pformat
 import pytest
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, LabelSelector
-from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction, PodTemplateSpec, PodSpec
+from k8s.models.pod import ContainerPort, Container, LocalObjectReference, Probe, HTTPGetAction, TCPSocketAction, \
+    PodTemplateSpec, PodSpec
 from util import get_vcr
 
 vcr = get_vcr(__file__)
@@ -40,7 +41,8 @@ class TestDeployer(object):
         image_pull_secret = LocalObjectReference(name="image_pull_secret")
         pod_spec = PodSpec(containers=[container], imagePullSecrets=[image_pull_secret], serviceAccountName="default")
         pod_template_spec = PodTemplateSpec(metadata=object_meta, spec=pod_spec)
-        deployer_spec = DeploymentSpec(replicas=2, selector=LabelSelector(matchLabels=labels), template=pod_template_spec)
+        deployer_spec = DeploymentSpec(replicas=2, selector=LabelSelector(matchLabels=labels),
+                                       template=pod_template_spec, revisionHistoryLimit=5)
         first = Deployment(metadata=object_meta, spec=deployer_spec)
         logger.debug(pformat(first.as_dict()))
 
@@ -54,6 +56,7 @@ class TestDeployer(object):
             },
             u"spec": {
                 u"replicas": 2,
+                u"revisionHistoryLimit": 5,
                 u"template": {
                     u"spec": {
                         u"dnsPolicy": u"ClusterFirst",

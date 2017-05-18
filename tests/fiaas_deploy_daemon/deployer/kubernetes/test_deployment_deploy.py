@@ -129,7 +129,8 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
-                'replicas': 3
+                'replicas': 3,
+                'revisionHistoryLimit': 5
             }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
@@ -181,7 +182,8 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
-                'replicas': 3
+                'replicas': 3,
+                'revisionHistoryLimit': 5
             }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
@@ -234,7 +236,8 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
                 },
-                'replicas': 3
+                'replicas': 3,
+                'revisionHistoryLimit': 5
             }
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
@@ -287,7 +290,8 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
                 },
-                'replicas': 5
+                'replicas': 5,
+                'revisionHistoryLimit': 5
             }
         }
         get.side_effect = None
@@ -338,7 +342,8 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
-                'replicas': 5
+                'replicas': 5,
+                'revisionHistoryLimit': 5
             }
         }
         pytest.helpers.assert_no_calls(post)

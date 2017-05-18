@@ -67,7 +67,7 @@ class DeploymentDeployer(object):
                 pass
 
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector_labels),
-                              template=pod_template_spec)
+                              template=pod_template_spec, revisionHistoryLimit=5)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()

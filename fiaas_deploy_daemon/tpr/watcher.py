@@ -41,7 +41,7 @@ class Watcher(DaemonThread):
         third_party_resource = ThirdPartyResource.get_or_create(
             metadata=metadata, description='A paas application definition', versions=[Version(name='v1beta')])
         third_party_resource.save()
-        LOG.exception("Created ThirdPartyResource with name PaasbetaApplication")
+        LOG.debug("Created ThirdPartyResource with name PaasbetaApplication")
 
     def _handle_watch_event(self, event):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):

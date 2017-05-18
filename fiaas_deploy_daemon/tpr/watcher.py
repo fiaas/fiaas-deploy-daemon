@@ -5,7 +5,7 @@ import logging
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
-from k8s.models.third_party_resource import ThirdPartyResource
+from k8s.models.third_party_resource import ThirdPartyResource, Version
 from ..base_thread import DaemonThread
 from .paasbetaapplication import PaasbetaApplication
 from k8s.base import WatchEvent
@@ -39,7 +39,7 @@ class Watcher(DaemonThread):
     def _create_third_party_resource(self):
         metadata = ObjectMeta(name="paasbeta-application.schibsted.io")
         third_party_resource = ThirdPartyResource.get_or_create(
-            metadata=metadata, description='A paas application definition', versions=[{'name': 'v1beta'}])
+            metadata=metadata, description='A paas application definition', versions=[Version(name='v1beta')])
         third_party_resource.save()
         LOG.exception("Created ThirdPartyResource with name PaasbetaApplication")
 

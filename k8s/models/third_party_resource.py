@@ -9,7 +9,7 @@ from ..base import Model
 from ..fields import Field, ListField
 
 
-class Version(Model):
+class APIVersion(Model):
     name = Field(six.text_type)
 
 
@@ -19,4 +19,4 @@ class ThirdPartyResource(Model):
 
     metadata = Field(ObjectMeta)
     description = Field(six.text_type)
-    versions = ListField(Version)
+    versions = ListField(APIVersion)

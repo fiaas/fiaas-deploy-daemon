@@ -5,7 +5,6 @@ from __future__ import absolute_import
 import logging
 import time
 
-from k8s import config as k8s_config
 
 LOG = logging.getLogger(__name__)
 
@@ -15,15 +14,6 @@ class K8s(object):
     """
 
     def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler):
-        k8s_config.api_server = config.api_server
-        k8s_config.api_token = config.api_token
-        if config.api_cert:
-            k8s_config.verify_ssl = config.api_cert
-        else:
-            k8s_config.verify_ssl = not config.debug
-        if config.client_cert:
-            k8s_config.cert = (config.client_cert, config.client_key)
-        k8s_config.debug = config.debug
         self._version = config.version
         self._service_deployer = service_deployer
         self._deployment_deployer = deployment_deployer

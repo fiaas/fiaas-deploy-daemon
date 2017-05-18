@@ -18,6 +18,8 @@ from .specs import SpecBindings
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .web import WebBindings
 
+from k8s import config as k8s_config
+
 
 class MainBindings(pinject.BindingSpec):
     def __init__(self, config):
@@ -66,9 +68,22 @@ class Main(object):
         self._webapp.run("0.0.0.0", self._config.port)
 
 
+def init_k8s_client(config):
+    k8s_config.api_server = config.api_server
+    k8s_config.api_token = config.api_token
+    if config.api_cert:
+        k8s_config.verify_ssl = config.api_cert
+    else:
+        k8s_config.verify_ssl = not config.debug
+    if config.client_cert:
+        k8s_config.cert = (config.client_cert, config.client_key)
+    k8s_config.debug = config.debug
+
+
 def main():
     cfg = Configuration()
     init_logging(cfg)
+    init_k8s_client(cfg)
     log = logging.getLogger(__name__)
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))

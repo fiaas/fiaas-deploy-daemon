@@ -3,9 +3,12 @@ from __future__ import absolute_import
 
 import logging
 
-from ..base_thread import DaemonThread
-from .paasbetaapplication import PaasbetaApplication
 from k8s.base import WatchEvent
+from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
+from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
+from .paasbetaapplication import PaasbetaApplication
+from ..base_thread import DaemonThread
 
 LOG = logging.getLogger(__name__)
 
@@ -22,11 +25,23 @@ class Watcher(DaemonThread):
 
     def __call__(self):
         while True:
-            try:
-                for event in PaasbetaApplication.watch_list():
-                    self._handle_watch_event(event)
-            except:
-                LOG.exception("Error while watching for changes on PaasbetaApplications")
+            self._watch()
+
+    def _watch(self):
+        try:
+            for event in PaasbetaApplication.watch_list():
+                self._handle_watch_event(event)
+        except NotFound:
+            self._create_third_party_resource()
+        except Exception:
+            LOG.exception("Error while watching for changes on PaasbetaApplications")
+
+    def _create_third_party_resource(self):
+        metadata = ObjectMeta(name="paasbeta-application.schibsted.io")
+        third_party_resource = ThirdPartyResource.get_or_create(
+            metadata=metadata, description='A paas application definition', versions=[APIVersion(name='v1beta')])
+        third_party_resource.save()
+        LOG.debug("Created ThirdPartyResource with name PaasbetaApplication")
 
     def _handle_watch_event(self, event):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):

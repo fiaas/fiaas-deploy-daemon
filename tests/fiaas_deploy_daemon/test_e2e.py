@@ -2,25 +2,25 @@
 # -*- coding: utf-8
 
 import contextlib
-import os
 import os.path
+import re
 import socket
 import subprocess
 import time
 
+import os
 import pytest
-import re
 import requests
 import yaml
-from monotonic import monotonic as time_monotonic
+
+from fiaas_deploy_daemon.tpr.paasbetaapplication import (PaasbetaApplication, PaasbetaApplicationSpec,
+                                                         PaasApplicationConfig)
 from k8s import config
 from k8s.client import NotFound, Client
+from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
-from k8s.models.common import ObjectMeta
-from fiaas_deploy_daemon.tpr.paasbetaapplication import (PaasbetaApplication, PaasbetaApplicationSpec,
-                                                         PaasApplicationConfig)
 
 IMAGE1 = "finntech/application-name:123"
 IMAGE2 = "finntech/application-name:321"
@@ -182,24 +182,6 @@ class TestE2E(object):
             kinds.append(Ingress)
         return kinds
 
-    @pytest.fixture(autouse=True)
-    def third_party_resource_type(self, request, kubernetes):
-        tpr_path = os.path.abspath(os.path.join(request.fspath.dirpath().strpath, "..", "..", "tpr",
-                                                "PaasbetaApplication.yaml"))
-        kubectl_replace = subprocess.Popen(["kubectl", "replace", "--force=true", "-f", tpr_path])
-        status = kubectl_replace.wait()
-        timeout_seconds = 30
-        timeout = time_monotonic() + timeout_seconds
-        while time_monotonic() < timeout:  # wait for the resource to be usable in the cluster
-            kubectl_get = subprocess.Popen(["kubectl", "get", "paasbetaapplications"])
-            status = kubectl_get.wait()
-            if status == 0:
-                return True
-            else:
-                time.sleep(5)
-        pytest.fail("paasbetaapplication ThirdPartyResource was not available after {}s".format(
-            timeout=timeout_seconds))
-
     def test_post_to_web(self, fdd, fiaas_yml, service_type):
         name, url = fiaas_yml
         kinds = self._select_kinds(name)
@@ -243,7 +225,7 @@ class TestE2E(object):
         for kind in kinds:
             kind.delete(name)
 
-    def test_third_party_resource_deploy(self, third_party_resource_type, fdd_tpr_support_enabled,
+    def test_third_party_resource_deploy(self, fdd_tpr_support_enabled,
                                          third_party_resource, service_type):
         name, paasbetaapplication = third_party_resource
 
@@ -253,6 +235,7 @@ class TestE2E(object):
             with pytest.raises(NotFound):
                 kind.get(name)
 
+        time.sleep(10)
         # First deploy
         paasbetaapplication.save()
 

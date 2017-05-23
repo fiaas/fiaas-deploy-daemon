@@ -195,7 +195,7 @@ class HostRewriteRule(object):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return other._pattern == self._pattern and other._replacement == self._replacement
+        return other._pattern.pattern == self._pattern.pattern and other._replacement == self._replacement
 
     def matches(self, host):
         return self._pattern.match(host)

@@ -45,6 +45,9 @@ class Client(object):
         if cls._session.cert is None and config.cert:
             cls._session.cert = config.cert
         cls._session.verify = config.verify_ssl
+        if not config.verify_ssl:
+            import requests.packages.urllib3 as urllib3
+            urllib3.disable_warnings()
 
     def get(self, url, timeout=DEFAULT_TIMEOUT_SECONDS, **kwargs):
         return self._call("GET", url, timeout=timeout, **kwargs)

@@ -20,13 +20,13 @@ class Reporter(object):
     def register(self, deployment_id, url):
         self._callback_urls[deployment_id] = url
 
-    def _handle_started(self, sender, deployment_id):
+    def _handle_started(self, sender, deployment_id, name):
         self._handle_signal(u"deploy_started", deployment_id)
 
-    def _handle_success(self, sender, deployment_id):
+    def _handle_success(self, sender, deployment_id, name):
         self._handle_signal(u"deploy_end", deployment_id)
 
-    def _handle_failure(self, sender, deployment_id):
+    def _handle_failure(self, sender, deployment_id, name):
         self._handle_signal(u"deploy_end", deployment_id, status=u"failure")
 
     def _handle_signal(self, event_name, deployment_id, status=u"success"):

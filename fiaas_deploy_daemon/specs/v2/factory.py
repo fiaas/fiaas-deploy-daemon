@@ -16,7 +16,7 @@ class Factory(object):
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
 
-    def __call__(self, name, image, teams, tags, app_config):
+    def __call__(self, name, image, teams, tags, app_config, deployment_id):
         lookup = LookupMapping(app_config, self._defaults)
         ports = self._ports(lookup[u"ports"])
         return AppSpec(
@@ -34,7 +34,8 @@ class Factory(object):
             self._health_checks_spec(lookup[u"healthchecks"], ports),
             teams,
             tags,
-            self._config_map_spec(lookup[u"config"])
+            self._config_map_spec(lookup[u"config"]),
+            deployment_id
         )
 
     @staticmethod

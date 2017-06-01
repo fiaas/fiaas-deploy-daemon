@@ -16,7 +16,7 @@ class Factory(object):
         self.default_service_config = self.default_app_config[u"services"][0]
         self.default_prometheus_config = self.default_app_config[u"prometheus"]
 
-    def __call__(self, name, image, teams, tags, app_config):
+    def __call__(self, name, image, teams, tags, app_config, deployment_id):
         if u"service" in app_config and u"services" not in app_config:
             new_service_configs = [app_config[u"service"]]
         else:
@@ -40,7 +40,7 @@ class Factory(object):
 
         return AppSpec(namespace, name, image, self._get_app(u"replicas", app_config), AutoscalerSpec(False, 2, 50),
                        None, resources_spec, admin_access, has_secrets, prometheus, ports, health_checks[0],
-                       teams, tags, ConfigMapSpec(False, []))
+                       teams, tags, ConfigMapSpec(False, []), deployment_id)
 
     def _create_port(self, service_config):
         protocol = self._get_service(u"type", service_config)

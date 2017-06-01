@@ -56,7 +56,7 @@ class Consumer(DaemonThread):
                         raise BlackListedApplicationException(
                             "{} is banned from this cluster".format(app_spec.name))
                     self._deploy_queue.put(app_spec)
-                    self._reporter.register(app_spec.image, event[u"callback_url"])
+                    self._reporter.register(app_spec.deployment_id, event[u"callback_url"])
                     deploy_counter.inc()
                 except (NoDockerArtifactException, NoFiaasArtifactException):
                     self._logger.debug("Ignoring event %r with missing artifacts", event)
@@ -86,7 +86,7 @@ class Consumer(DaemonThread):
 
         app_config = self._app_config_downloader.get(fiaas_url)
 
-        return self._spec_factory(name, image, app_config, teams, tags)
+        return self._spec_factory(name, image, app_config, teams, tags, image)
 
     def _deserialize(self, message):
         return json.loads(message.value)

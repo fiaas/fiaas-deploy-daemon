@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# -*- coding: utf-8
+
 import json
 from Queue import Queue, Empty
 from collections import namedtuple
@@ -12,9 +11,8 @@ from mock import create_autospec
 from fiaas_deploy_daemon import config
 from fiaas_deploy_daemon.pipeline import consumer as pipeline_consumer
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
-from fiaas_deploy_daemon.specs import models
-from fiaas_deploy_daemon.specs.factory import SpecFactory
 from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
+from fiaas_deploy_daemon.specs.factory import SpecFactory
 
 DummyMessage = namedtuple("DummyMessage", ("value",))
 EVENT = {
@@ -35,8 +33,6 @@ EVENT = {
     u'user': u'fikameva'
 }
 MESSAGE = DummyMessage(json.dumps(EVENT))
-APP_SPEC = models.AppSpec(None, u"tp-api", u'finntech/tp-api:1452002819', 1, None, None, None, None,
-                          None, None, None, None, None, None, None)
 
 
 class TestConsumer(object):
@@ -57,9 +53,9 @@ class TestConsumer(object):
         return create_autospec(Reporter, instance=True)
 
     @pytest.fixture
-    def factory(self):
+    def factory(self, app_spec):
         mock = create_autospec(SpecFactory, instance=True)
-        mock.return_value = APP_SPEC
+        mock.return_value = app_spec
         return mock
 
     @pytest.fixture
@@ -111,13 +107,13 @@ class TestConsumer(object):
 
         assert event == EVENT
 
-    def test_consume_message_in_correct_cluster(self, kafka_consumer, queue, consumer):
+    def test_consume_message_in_correct_cluster(self, kafka_consumer, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]
 
         consumer()
 
-        app_spec = queue.get_nowait()
-        assert app_spec is APP_SPEC
+        result = queue.get_nowait()
+        assert app_spec is result
 
     def test_skip_message_if_wrong_cluster(self, monkeypatch, kafka_consumer, consumer, queue):
         kafka_consumer.__iter__.return_value = [MESSAGE]
@@ -128,33 +124,33 @@ class TestConsumer(object):
         with pytest.raises(Empty):
             queue.get_nowait()
 
-    def test_registers_callback(self, kafka_consumer, consumer, reporter):
+    def test_registers_callback(self, kafka_consumer, consumer, reporter, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]
 
         consumer()
 
-        reporter.register.assert_called_with(APP_SPEC.image, EVENT[u"callback_url"])
+        reporter.register.assert_called_with(app_spec.deployment_id, EVENT[u"callback_url"])
 
-    def test_should_not_deploy_apps_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_not_deploy_apps_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]
         monkeypatch.setattr(consumer._config, "whitelist", ["white_app"])
-        factory.return_value = APP_SPEC
+        factory.return_value = app_spec
         consumer()
         with pytest.raises(Empty):
             queue.get_nowait()
 
-    def test_should_deploy_apps_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_deploy_apps_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]
-        monkeypatch.setattr(consumer._config, "whitelist", ["tp-api"])
-        factory.return_value = APP_SPEC
+        monkeypatch.setattr(consumer._config, "whitelist", ["testapp"])
+        factory.return_value = app_spec
         consumer()
-        app_spec = queue.get_nowait()
-        assert app_spec is APP_SPEC
+        result = queue.get_nowait()
+        assert app_spec is result
 
-    def test_should_not_deploy_apps_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer):
+    def test_should_not_deploy_apps_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]
-        monkeypatch.setattr(consumer._config, "blacklist", ["tp-api"])
-        factory.return_value = APP_SPEC
+        monkeypatch.setattr(consumer._config, "blacklist", ["testapp"])
+        factory.return_value = app_spec
 
         consumer()
 

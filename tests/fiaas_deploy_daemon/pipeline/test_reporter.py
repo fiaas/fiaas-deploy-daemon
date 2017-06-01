@@ -9,7 +9,7 @@ from mock import create_autospec
 from requests import Session
 
 CALLBACK = u"http://example.com/callback/"
-IMAGE = u"image"
+DEPLOYMENT_ID = u"deployment_id"
 
 
 class TestReporter(object):
@@ -31,9 +31,9 @@ class TestReporter(object):
     ])
     def test_signal_to_callback(self, session, config, signal_name, url):
         reporter = Reporter(config, session)
-        reporter.register(IMAGE, CALLBACK)
+        reporter.register(DEPLOYMENT_ID, CALLBACK)
 
-        signal(signal_name).send(image=IMAGE)
+        signal(signal_name).send(deployment_id=DEPLOYMENT_ID)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

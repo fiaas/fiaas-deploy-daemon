@@ -18,10 +18,6 @@ class Watcher(DaemonThread):
         super(Watcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
-        # TODO: we rely on k8s client being configured in adapter.py. setup should be moved to fdd/__init__.py
-
-    def is_alive(self):
-        return True
 
     def __call__(self):
         while True:
@@ -53,9 +49,15 @@ class Watcher(DaemonThread):
 
     def _deploy(self, application):
         LOG.debug("Deploying %s", application.spec.application)
+        try:
+            deployment_id = application.metadata.annotations["fiaas/deployment_id"]
+        except (AttributeError, KeyError, TypeError):
+            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' annotation".format(
+                application.spec.application))
         app_spec = self._spec_factory(
             name=application.spec.application, image=application.spec.image,
-            app_config=application.spec.config.as_dict(), teams=[], tags=[]
+            app_config=application.spec.config.as_dict(), teams=[], tags=[],
+            deployment_id=deployment_id
         )
         self._deploy_queue.put(app_spec)
         LOG.debug("Queued deployment for %s", application.spec.application)

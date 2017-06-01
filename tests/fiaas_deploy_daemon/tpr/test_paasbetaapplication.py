@@ -128,4 +128,4 @@ def _create_default_paasbetaapplicationspec(**kwargs):
 
 
 def _create_default_metadata():
-    return ObjectMeta(name=NAME, namespace=NAMESPACE)
+    return ObjectMeta(name=NAME, namespace=NAMESPACE, annotations={"fiaas/deployment_id": "deployment_id"})

@@ -78,11 +78,14 @@ class ApiMixIn(object):
         if not url:
             raise NotImplementedError("Cannot watch_list, no watch_list_url defined on class {}".format(cls))
         resp = cls._client.get(url, stream=True, timeout=None)
-        for line in resp.iter_content(chunk_size=None):
+        for line in resp.iter_lines(chunk_size=None):
             if line:
-                event_json = json.loads(line)
-                event = WatchEvent(event_json, cls)
-                yield event
+                try:
+                    event_json = json.loads(line)
+                    event = WatchEvent(event_json, cls)
+                    yield event
+                except ValueError:
+                    LOG.exception("Unable to parse JSON on watch event, discarding event. Line: %r", line)
 
     @classmethod
     def get(cls, name, namespace="default"):

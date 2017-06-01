@@ -2,6 +2,8 @@ apiVersion: "schibsted.io/v1beta"
 kind: PaasbetaApplication
 metadata:
   name: nginx-example
+  annotations:
+    fiaas/artifact_id: nginx-example-1.13.0
 spec:
   application: nginx-example
   image: docker.io/nginx:1.13.0

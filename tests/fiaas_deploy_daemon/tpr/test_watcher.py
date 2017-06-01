@@ -3,12 +3,12 @@
 
 from Queue import Queue
 
-from mock import mock, Mock
-from requests import Response
-
 from fiaas_deploy_daemon.specs import SpecFactory
 from fiaas_deploy_daemon.specs.v1 import Factory
 from fiaas_deploy_daemon.tpr import Watcher
+from mock import mock, Mock
+from requests import Response
+
 from k8s.client import NotFound
 
 
@@ -42,7 +42,8 @@ class TestWatcher(object):
 
     def test_is_able_to_watch_third_party_resource(self):
         response = Response()
-        json = '{"type": "ADDED", "object": {"metadata": {"name": "example", "namespace": "default"}, ' \
+        json = '{"type": "ADDED", "object": {"metadata": {"name": "example", "namespace": "default", "annotations": ' \
+               '{"fiaas/deployment_id": "deployment_id"}}, ' \
                '"spec": {"application": "example", "image": "example/app", "config": {"namespace": "default", ' \
                '"host": "example.com", "config": {"version": 2 }}}}} '
         response.iter_content = Mock(return_value=[json])

@@ -37,7 +37,8 @@ def app_spec():
                                 timeout_seconds=1)),
         teams=[u'foo'],
         tags=[u'bar'],
-        config=EMPTY_CONFIG_MAP_SPEC
+        config=EMPTY_CONFIG_MAP_SPEC,
+        deployment_id="test_app_deployment_id"
     )
 
 
@@ -52,18 +53,8 @@ def app_spec_with_admin_access(app_spec):
 
 
 @pytest.fixture
-def app_spec_thrift():
-    return AppSpec(
-        admin_access=False,
-        name="testapp",
-        replicas=3,
-        autoscaler=AUTOSCALER_SPEC,
-        image="finntech/testimage:version",
-        namespace="default",
-        has_secrets=False,
-        host=None,
-        resources=EMPTY_RESOURCE_SPEC,
-        prometheus=PROMETHEUS_SPEC,
+def app_spec_thrift(app_spec):
+    return app_spec._replace(
         ports=[
             PortSpec(protocol="tcp", name="thrift", port=7999, target_port=7999, path=None),
         ],
@@ -73,10 +64,7 @@ def app_spec_thrift():
             readiness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 timeout_seconds=1)
-        ),
-        teams=[u'foo'],
-        tags=[u'bar'],
-        config=EMPTY_CONFIG_MAP_SPEC
+        )
     )
 
 
@@ -95,18 +83,8 @@ def app_spec_thrift_with_host(app_spec_thrift):
 
 
 @pytest.fixture
-def app_spec_thrift_and_http():
-    return AppSpec(
-        admin_access=False,
-        name="testapp",
-        replicas=3,
-        autoscaler=AUTOSCALER_SPEC,
-        image="finntech/testimage:version",
-        namespace="default",
-        has_secrets=False,
-        host=None,
-        resources=EMPTY_RESOURCE_SPEC,
-        prometheus=PROMETHEUS_SPEC,
+def app_spec_thrift_and_http(app_spec):
+    return app_spec._replace(
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080, path="/"),
             PortSpec(protocol="tcp", name="thrift", port=7999, target_port=7999, path=None),
@@ -116,29 +94,15 @@ def app_spec_thrift_and_http():
                                period_seconds=10, success_threshold=1, timeout_seconds=1),
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
-                                timeout_seconds=1)),
-        teams=[u'foo'],
-        tags=[u'bar'],
-        config=EMPTY_CONFIG_MAP_SPEC
+                                timeout_seconds=1))
     )
 
 
 @pytest.fixture
-def app_spec_teams_and_tags():
-    return AppSpec(
-        admin_access=False,
-        name="testapp",
-        replicas=3,
-        autoscaler=AUTOSCALER_SPEC,
-        image="finntech/testimage:version",
-        namespace="default",
-        has_secrets=False,
-        host=None,
-        resources=EMPTY_RESOURCE_SPEC,
-        prometheus=PROMETHEUS_SPEC,
+def app_spec_teams_and_tags(app_spec):
+    return app_spec._replace(
         ports=None,
         health_checks=None,
         teams=[u'Order Produkt Betaling'],
-        tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging'],
-        config=EMPTY_CONFIG_MAP_SPEC
+        tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
     )

@@ -12,6 +12,7 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, His
 
 from .forms import DeployForm
 from .platform_collector import PLATFORM_COLLECTOR
+
 PLATFORM_COLLECTOR.collect()
 
 """Web app that provides metrics and other ways to inspect the action.
@@ -45,7 +46,8 @@ def fiaas():
     if form.validate_on_submit():
         fiaas_url = form.fiaas.data
         app_config = current_app.app_config_downloader.get(fiaas_url)
-        app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, form.teams.data, form.tags.data)
+        app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, form.teams.data,
+                                            form.tags.data, form.deployment_id.data)
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")

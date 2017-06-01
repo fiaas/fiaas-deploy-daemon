@@ -152,10 +152,10 @@ class TestE2E(object):
             fiaas_yml = yaml.safe_load(fobj)
 
         name = self._sanitize(request.param)
-        metadata = ObjectMeta(name=name, namespace="default")
+        metadata = ObjectMeta(name=name, namespace="default", annotations={"fiaas/deployment_id": "deployment_id"})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
                                        config=PaasApplicationConfig.from_dict(fiaas_yml))
-        return (name, PaasbetaApplication(metadata=metadata, spec=spec))
+        return name, PaasbetaApplication(metadata=metadata, spec=spec)
 
     @staticmethod
     def _sanitize(param):
@@ -195,7 +195,8 @@ class TestE2E(object):
             "image": IMAGE1,
             "fiaas": url,
             "teams": ["testteam"],
-            "tags": ["testtags"]
+            "tags": ["testtags"],
+            "deployment_id": "deployment_id"
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()

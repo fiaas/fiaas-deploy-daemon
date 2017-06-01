@@ -10,6 +10,7 @@ from requests import Session
 
 CALLBACK = u"http://example.com/callback/"
 DEPLOYMENT_ID = u"deployment_id"
+NAME = u"testapp"
 
 
 class TestReporter(object):
@@ -33,7 +34,7 @@ class TestReporter(object):
         reporter = Reporter(config, session)
         reporter.register(DEPLOYMENT_ID, CALLBACK)
 
-        signal(signal_name).send(deployment_id=DEPLOYMENT_ID)
+        signal(signal_name).send(deployment_id=DEPLOYMENT_ID, name=NAME)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

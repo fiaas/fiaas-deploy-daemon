@@ -10,6 +10,7 @@ import os
 from kafka import KafkaConsumer
 from prometheus_client import Counter
 from requests import HTTPError
+from yaml import YAMLError
 
 from ..base_thread import DaemonThread
 
@@ -60,6 +61,8 @@ class Consumer(DaemonThread):
                     deploy_counter.inc()
                 except (NoDockerArtifactException, NoFiaasArtifactException):
                     self._logger.debug("Ignoring event %r with missing artifacts", event)
+                except YAMLError:
+                    self._logger.exception("Failure when parsing FIAAS-config")
                 except HTTPError:
                     self._logger.exception("Failure when downloading FIAAS-config")
                 except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:

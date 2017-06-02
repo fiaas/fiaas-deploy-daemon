@@ -32,7 +32,8 @@ PIPELINE_REQ = [
 ]
 
 DEPLOY_REQ = [
-    "requests == 2.13.0"
+    "requests == 2.13.0",
+    "ipaddress == 1.0.18"  # Required by requests for resolving IP address in SSL cert
 ]
 
 FLAKE8_REQ = [

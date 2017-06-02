@@ -96,7 +96,10 @@ class Consumer(DaemonThread):
         connect = ",".join("{}:{}".format(host, port) for host in host.split(","))
         return connect
 
-    def is_recieving_messages(self):
+    def is_alive(self):
+        return super(Consumer, self).is_alive() and self._is_recieving_messages()
+
+    def _is_recieving_messages(self):
         # TODO: this is a hack to handle the fact that we sometimes seem to loose contact with kafka
         self._logger.debug("No message for %r seconds", int(time.time()) - self._last_message_timestamp)
         return self._last_message_timestamp > int(time.time()) - ALLOW_WITHOUT_MESSAGES_S

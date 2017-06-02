@@ -9,6 +9,3 @@ class FakeConsumer(object):
 
     def is_alive(self):
         return True
-
-    def is_recieving_messages(self):
-        return True

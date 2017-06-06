@@ -6,6 +6,7 @@ import logging
 import pkgutil
 
 import pinject
+import re
 from flask import Flask, Blueprint, current_app, render_template, request, flash, url_for, redirect, make_response, \
     request_started, request_finished, got_request_exception
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
@@ -13,11 +14,13 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, His
 from .forms import DeployForm
 from .platform_collector import PLATFORM_COLLECTOR
 
-PLATFORM_COLLECTOR.collect()
-
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
 """
+
+PLATFORM_COLLECTOR.collect()
+LOG = logging.getLogger(__name__)
+SPLITTER = re.compile(ur"\s*,\s*")
 
 web = Blueprint("web", __name__, template_folder="templates")
 fiaas_counter = Counter("web_fiaas_deploy", "Fiaas App deploy requested through web")
@@ -26,8 +29,6 @@ request_histogram = Histogram("web_request_latency", "Request latency in seconds
 frontpage_histogram = request_histogram.labels("frontpage")
 fiaas_histogram = request_histogram.labels("fiaas")
 metrics_histogram = request_histogram.labels("metrics")
-
-LOG = logging.getLogger(__name__)
 
 
 @web.route("/")
@@ -46,8 +47,10 @@ def fiaas():
     if form.validate_on_submit():
         fiaas_url = form.fiaas.data
         app_config = current_app.app_config_downloader.get(fiaas_url)
-        app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, form.teams.data,
-                                            form.tags.data, form.deployment_id.data)
+        teams = SPLITTER.split(form.teams.data)
+        tags = SPLITTER.split(form.tags.data)
+        app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, teams, tags,
+                                            form.deployment_id.data)
         current_app.deploy_queue.put(app_spec)
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")

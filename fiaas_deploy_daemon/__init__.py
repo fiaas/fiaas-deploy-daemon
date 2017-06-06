@@ -8,6 +8,7 @@ from Queue import Queue
 import pinject
 import requests
 
+from k8s import config as k8s_config
 from .config import Configuration
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
@@ -17,8 +18,6 @@ from .pipeline import PipelineBindings
 from .specs import SpecBindings
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .web import WebBindings
-
-from k8s import config as k8s_config
 
 
 class MainBindings(pinject.BindingSpec):
@@ -47,11 +46,12 @@ class HealthCheck(object):
         pass
 
     def is_healthy(self):
-        return (self._deployer.is_alive() and
-                self._consumer.is_alive() and
-                self._scheduler.is_alive() and
-                self._consumer.is_recieving_messages(),
-                self._tpr_watcher.is_alive())
+        return all((
+            self._deployer.is_alive(),
+            self._consumer.is_alive(),
+            self._scheduler.is_alive(),
+            self._tpr_watcher.is_alive(),
+        ))
 
 
 class Main(object):

@@ -10,6 +10,7 @@ import os
 from kafka import KafkaConsumer
 from prometheus_client import Counter
 from requests import HTTPError
+from yaml import YAMLError
 
 from ..base_thread import DaemonThread
 
@@ -42,28 +43,36 @@ class Consumer(DaemonThread):
         message_counter = Counter("pipeline_message_received", "A message from pipeline received")
         deploy_counter = Counter("pipeline_deploy_triggered", "A message caused a deploy to be triggered")
         for message in self._consumer:
-            message_counter.inc()
-            self._last_message_timestamp = int(time.time())
-            event = self._deserialize(message)
-            self._logger.debug("Got event: %r", event)
-            if event[u"environment"] == self._environment:
-                try:
-                    app_spec = self._create_spec(event)
-                    if self._config.whitelist and app_spec.name not in self._config.whitelist:
-                        raise NotWhiteListedApplicationException(
-                            "{} is not a in whitelist for this cluster".format(app_spec.name))
-                    if self._config.blacklist and app_spec.name in self._config.blacklist:
-                        raise BlackListedApplicationException(
-                            "{} is banned from this cluster".format(app_spec.name))
-                    self._deploy_queue.put(app_spec)
-                    self._reporter.register(app_spec.deployment_id, event[u"callback_url"])
-                    deploy_counter.inc()
-                except (NoDockerArtifactException, NoFiaasArtifactException):
-                    self._logger.debug("Ignoring event %r with missing artifacts", event)
-                except HTTPError:
-                    self._logger.exception("Failure when downloading FIAAS-config")
-                except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
-                    self._logger.warn("App not deployed. %s", str(e))
+            self._handle_message(deploy_counter, message, message_counter)
+
+    def _handle_message(self, deploy_counter, message, message_counter):
+        message_counter.inc()
+        self._last_message_timestamp = int(time.time())
+        event = self._deserialize(message)
+        self._logger.debug("Got event: %r", event)
+        if event[u"environment"] == self._environment:
+            try:
+                app_spec = self._create_spec(event)
+                self._check_app_acceptable(app_spec)
+                self._deploy_queue.put(app_spec)
+                self._reporter.register(app_spec.deployment_id, event[u"callback_url"])
+                deploy_counter.inc()
+            except (NoDockerArtifactException, NoFiaasArtifactException):
+                self._logger.debug("Ignoring event %r with missing artifacts", event)
+            except YAMLError:
+                self._logger.exception("Failure when parsing FIAAS-config")
+            except HTTPError:
+                self._logger.exception("Failure when downloading FIAAS-config")
+            except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
+                self._logger.warn("App not deployed. %s", str(e))
+
+    def _check_app_acceptable(self, app_spec):
+        if self._config.whitelist and app_spec.name not in self._config.whitelist:
+            raise NotWhiteListedApplicationException(
+                "{} is not a in whitelist for this cluster".format(app_spec.name))
+        if self._config.blacklist and app_spec.name in self._config.blacklist:
+            raise BlackListedApplicationException(
+                "{} is banned from this cluster".format(app_spec.name))
 
     def _connect_kafka(self):
         self._consumer = KafkaConsumer(
@@ -96,7 +105,10 @@ class Consumer(DaemonThread):
         connect = ",".join("{}:{}".format(host, port) for host in host.split(","))
         return connect
 
-    def is_recieving_messages(self):
+    def is_alive(self):
+        return super(Consumer, self).is_alive() and self._is_recieving_messages()
+
+    def _is_recieving_messages(self):
         # TODO: this is a hack to handle the fact that we sometimes seem to loose contact with kafka
         self._logger.debug("No message for %r seconds", int(time.time()) - self._last_message_timestamp)
         return self._last_message_timestamp > int(time.time()) - ALLOW_WITHOUT_MESSAGES_S

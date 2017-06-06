@@ -47,7 +47,7 @@ When blacklisting, applications in the blacklist will not be deployed.
 
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
-({}) or specified via -c). The config file uses YAML syntax and must represent
+({} or specified via -c). The config file uses YAML syntax and must represent
 a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
 
 It is possible to specify '--ingress-suffix', '--host-rewrite-rule',
@@ -106,7 +106,7 @@ class Configuration(Namespace):
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")
         api_parser.add_argument("--api-token", help="Token to use (default: lookup from service account)", default=None)
-        api_parser.add_argument("--api-cert", help="SSL certificate to use (default: lookup from service account)",
+        api_parser.add_argument("--api-cert", help="API server certificate (default: lookup from service account)",
                                 default=None)
         client_cert_parser = parser.add_argument_group("Client certificate")
         client_cert_parser.add_argument("--client-cert", help="Client certificate to use", default=None)
@@ -153,31 +153,34 @@ class Configuration(Namespace):
             self._logger.warn("Failed to lookup SRV. %s", str(e))
         return self._resolve_service_from_env(service_name)
 
-    def _resolve_service_from_srv_record(self, service_name, port_name):
-
-        srv = "_{}._tcp.{}".format(port_name if port_name else service_name, service_name)
-        answers = dns.resolver.query(srv, 'SRV')
-        # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
-        return str(answers[0].target)[:-1], answers[0].port
-
-    def _resolve_service_from_env(self, service):
-        host = self._resolve_required_variable("{}_SERVICE_HOST".format(service.upper()), service)
-        port_key = "{}_SERVICE_PORT".format(service.upper())
-        port = self._resolve_required_variable(port_key, service)
+    def _resolve_service_from_env(self, service_name):
+        service = service_name.replace("-", "_").upper()
+        host = self._resolve_required_variable("{}_SERVICE_HOST".format(service), service_name)
+        port_key = "{}_SERVICE_PORT".format(service)
+        port = self._resolve_required_variable(port_key, service_name)
         try:
             port = int(port)
         except ValueError:
             raise InvalidConfigurationException(
                 "{} is not set to a port-number, but instead {!r}. Unable to resolve service {}".format(port_key, port,
-                                                                                                        service))
+                                                                                                        service_name))
         return host, port
 
     @staticmethod
-    def _resolve_required_variable(key, service):
+    def _resolve_service_from_srv_record(service_name, port_name):
+        service = service_name.replace("_", "-")
+        port = (port_name if port_name else service_name).replace("_", "-")
+        srv = "_{}._tcp.{}".format(port, service)
+        answers = dns.resolver.query(srv, 'SRV')
+        # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
+        return str(answers[0].target)[:-1], answers[0].port
+
+    @staticmethod
+    def _resolve_required_variable(key, service_name):
         value = os.getenv(key)
         if not value:
             raise InvalidConfigurationException(
-                "{} is not set in environment, unable to resolve service {}".format(key, service))
+                "{} is not set in environment, unable to resolve service {}".format(key, service_name))
         return value
 
     def __repr__(self):

@@ -1,0 +1,77 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: "{{ .Values.name }}"
+  name: "{{ .Values.name }}"
+  namespace: "{{ .Values.namespace }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.name }}"
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /internal-backstage/prometheus
+        prometheus.io/port: http5000
+        prometheus.io/scrape: "true"
+      labels:
+        app: "{{ .Values.name }}"
+    spec:
+      containers:
+      - command:
+        - fiaas-deploy-daemon
+        - --enable-tpr-support
+        - --ingress-suffix
+        - "{{ .Values.ingress.domainName }}"
+        env:
+        - name: LOG_STDOUT
+          value: "true"
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_ENVIRONMENT
+          value: pro
+        - name: LOG_FORMAT
+          value: plain
+        - name: IMAGE
+          value: "{{ .Values.image.repository }}"
+        - name: VERSION
+          value: "{{ .Values.image.tag }}"
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http5000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: "{{ .Values.name }}"
+        ports:
+        - containerPort: 5000
+          name: http5000
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /healthz
+            port: http5000
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+{{- if .Values.deployment.includeResourceUsage }}
+        resources:
+          limits:
+            cpu: 250m
+            memory: 128Mi
+          requests:
+            cpu: 125m
+            memory: 64Mi
+{{- end }}
+      restartPolicy: Always

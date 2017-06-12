@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    ingress.kubernetes.io/whitelist-source-range: "{{ .Values.ingress.whitelistedIPs }}"
+{{- if .Values.ingress.enableLego }}
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+{{- end }}
+  labels:
+    app: "{{ .Values.name }}"
+  name: "{{ .Values.name }}"
+  namespace: "{{ .Values.namespace }}"
+spec:
+{{- if .Values.ingress.enableTLS }}
+  tls:
+  - hosts:
+    - "{{ .Values.ingress.fqdn }}"
+    secretName: "{{ .Values.ingress.fqdn }}"
+{{- end }}
+  rules:
+  - host: "{{ .Values.ingress.fqdn }}"
+    http:
+      paths:
+      - backend:
+          serviceName: "{{ .Values.name }}"
+          servicePort: 5000
+        path: /

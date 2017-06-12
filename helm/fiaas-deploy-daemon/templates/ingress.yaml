@@ -11,13 +11,13 @@ metadata:
     app: "{{ .Values.name }}"
   name: "{{ .Values.name }}"
   namespace: "{{ .Values.namespace }}"
-{{- if .Values.ingress.enableTLS }}
-{{- end }}
 spec:
+{{- if .Values.ingress.enableTLS }}
   tls:
   - hosts:
     - "{{ .Values.ingress.fqdn }}"
     secretName: "{{ .Values.ingress.fqdn }}"
+{{- end }}
   rules:
   - host: "{{ .Values.ingress.fqdn }}"
     http:

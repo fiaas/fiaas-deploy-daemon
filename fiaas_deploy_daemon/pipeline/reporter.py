@@ -20,17 +20,17 @@ class Reporter(object):
     def register(self, deployment_id, url):
         self._callback_urls[deployment_id] = url
 
-    def _handle_started(self, sender, deployment_id, name):
-        self._handle_signal(u"deploy_started", deployment_id)
+    def _handle_started(self, sender, app_spec):
+        self._handle_signal(u"deploy_started", app_spec)
 
-    def _handle_success(self, sender, deployment_id, name):
-        self._handle_signal(u"deploy_end", deployment_id)
+    def _handle_success(self, sender, app_spec):
+        self._handle_signal(u"deploy_end", app_spec)
 
-    def _handle_failure(self, sender, deployment_id, name):
-        self._handle_signal(u"deploy_end", deployment_id, status=u"failure")
+    def _handle_failure(self, sender, app_spec):
+        self._handle_signal(u"deploy_end", app_spec, status=u"failure")
 
-    def _handle_signal(self, event_name, deployment_id, status=u"success"):
-        base_url = self._callback_urls.get(deployment_id)
+    def _handle_signal(self, event_name, app_spec, status=u"success"):
+        base_url = self._callback_urls.get(app_spec.deployment_id)
         if base_url:
             task_name = u"fiaas_{}-{}_{}".format(self._environment, self._infrastructure, event_name)
             url = posixpath.join(base_url, task_name, status)

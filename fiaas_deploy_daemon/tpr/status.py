@@ -16,12 +16,12 @@ def connect_signals():
     signal("deploy_success").connect(_handle_success)
 
 
-def _handle_signal(result, sender, deployment_id, name):
-    # TODO: Select a namespace
-    metadata = ObjectMeta(name=create_name(name, deployment_id), labels={
-        "app": name
+def _handle_signal(result, sender, app_spec):
+    name = create_name(app_spec.name, app_spec.deployment_id)
+    metadata = ObjectMeta(name=name, namespace=app_spec.namespace, labels={
+        "app": app_spec.name
     }, annotations={
-        "fiaas/deployment_id": deployment_id
+        "fiaas/deployment_id": app_spec.deployment_id
     })
     status = PaasbetaStatus.get_or_create(metadata=metadata, result=result)
     status.save()

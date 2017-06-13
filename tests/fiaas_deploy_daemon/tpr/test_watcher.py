@@ -3,12 +3,12 @@
 
 from Queue import Queue
 
-from fiaas_deploy_daemon.specs import SpecFactory
-from fiaas_deploy_daemon.specs.v1 import Factory
-from fiaas_deploy_daemon.tpr import Watcher
 from mock import mock, Mock
 from requests import Response
 
+from fiaas_deploy_daemon.specs import SpecFactory
+from fiaas_deploy_daemon.specs.v1 import Factory
+from fiaas_deploy_daemon.tpr import Watcher
 from k8s.client import NotFound
 
 
@@ -22,14 +22,19 @@ def when_watching_the_third_party_resource():
 
 
 def then_the_third_party_resource_should_be_created(mock_post):
-    mock_post.assert_called_once_with(
-        "/apis/extensions/v1beta1/thirdpartyresources/",
-        {
+    calls = [
+        mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
             'metadata': {'namespace': 'default', 'name': 'paasbeta-application.schibsted.io'},
             'description': 'A paas application definition',
             'versions': [{'name': 'v1beta'}]
-        }
-    )
+        }),
+        mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
+            'metadata': {'namespace': 'default', 'name': 'paasbeta-status.schibsted.io'},
+            'description': 'A paas application status',
+            'versions': [{'name': 'v1beta'}]
+        })
+    ]
+    assert mock_post.call_args_list == calls
 
 
 class TestWatcher(object):

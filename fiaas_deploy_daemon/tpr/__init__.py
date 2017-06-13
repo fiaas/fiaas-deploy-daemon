@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import pinject
 
 from .watcher import Watcher
+from .status import connect_signals
 
 
 class ThirdPartyResourceBindings(pinject.BindingSpec):
@@ -13,6 +14,7 @@ class ThirdPartyResourceBindings(pinject.BindingSpec):
         require("deploy_queue")
 
         bind("tpr_watcher", to_class=Watcher)
+        connect_signals()
 
 
 class DisabledThirdPartyResourceBindings(pinject.BindingSpec):

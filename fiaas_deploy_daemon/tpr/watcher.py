@@ -7,7 +7,7 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
-from .paasbetaapplication import PaasbetaApplication
+from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
 
 LOG = logging.getLogger(__name__)
@@ -34,10 +34,15 @@ class Watcher(DaemonThread):
 
     def _create_third_party_resource(self):
         metadata = ObjectMeta(name="paasbeta-application.schibsted.io")
-        third_party_resource = ThirdPartyResource.get_or_create(
+        paasbeta_application_resource = ThirdPartyResource.get_or_create(
             metadata=metadata, description='A paas application definition', versions=[APIVersion(name='v1beta')])
-        third_party_resource.save()
+        paasbeta_application_resource.save()
         LOG.debug("Created ThirdPartyResource with name PaasbetaApplication")
+        metadata = ObjectMeta(name="paasbeta-status.schibsted.io")
+        paasbeta_status_resource = ThirdPartyResource.get_or_create(
+            metadata=metadata, description='A paas application status', versions=[APIVersion(name='v1beta')])
+        paasbeta_status_resource.save()
+        LOG.debug("Created ThirdPartyResource with name PaasbetaStatus")
 
     def _handle_watch_event(self, event):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):

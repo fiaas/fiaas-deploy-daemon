@@ -30,11 +30,11 @@ class TestReporter(object):
         ("deploy_failed", u"fiaas_test-diy_deploy_end/failure"),
         ("deploy_success", u"fiaas_test-diy_deploy_end/success")
     ])
-    def test_signal_to_callback(self, session, config, signal_name, url):
+    def test_signal_to_callback(self, session, config, signal_name, url, app_spec):
         reporter = Reporter(config, session)
-        reporter.register(DEPLOYMENT_ID, CALLBACK)
+        reporter.register(app_spec.deployment_id, CALLBACK)
 
-        signal(signal_name).send(deployment_id=DEPLOYMENT_ID, name=NAME)
+        signal(signal_name).send(app_spec=app_spec)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

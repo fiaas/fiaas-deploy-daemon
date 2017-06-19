@@ -43,7 +43,7 @@ class TestDeploy(object):
     def test_signals_start_of_deploy(self, app_spec, bookkeeper, deployer):
         deployer()
 
-        bookkeeper.deploy_signal.send.assert_called_with(deployment_id=app_spec.deployment_id, name=app_spec.name)
+        bookkeeper.deploy_signal.send.assert_called_with(app_spec=app_spec)
 
     def test_signals_failure_on_exception(self, app_spec, bookkeeper, deployer, adapter):
         adapter.deploy.side_effect = Exception("message")
@@ -51,7 +51,7 @@ class TestDeploy(object):
         deployer()
 
         bookkeeper.success_signal.send.assert_not_called()
-        bookkeeper.error_signal.send.assert_called_with(deployment_id=app_spec.deployment_id, name=app_spec.name)
+        bookkeeper.error_signal.send.assert_called_with(app_spec=app_spec)
 
     def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer):
         deployer()

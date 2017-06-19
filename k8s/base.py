@@ -25,6 +25,7 @@ class MetaModel(type):
     Mixes in ApiMixIn if the Model has a Meta attribute, indicating a top level
         Model (not to be confused with _meta).
     """
+
     @staticmethod
     def __new__(mcs, cls, bases, attrs):
         attr_meta = attrs.pop("Meta", None)
@@ -60,9 +61,13 @@ class ApiMixIn(object):
         return cls._meta.url_template.format(**kwargs)
 
     @classmethod
-    def find(cls, name, namespace="default"):
+    def find(cls, name, namespace="default", labels=None):
         url = cls._build_url(name="", namespace=namespace)
-        resp = cls._client.get(url, params={"labelSelector": "app={}".format(name)})
+        if labels:
+            selector = ",".join("{}={}".format(k, v) for k, v in labels.iteritems())
+        else:
+            selector = "app={}".format(name)
+        resp = cls._client.get(url, params={"labelSelector": selector})
         return [cls.from_dict(item) for item in resp.json()[u"items"]]
 
     @classmethod
@@ -116,10 +121,12 @@ class ApiMixIn(object):
         """Save to API server, either update if existing, or create if new"""
         if self._new:
             url = self._build_url(name="", namespace=self.metadata.namespace)
-            self._client.post(url, self.as_dict())
+            resp = self._client.post(url, self.as_dict())
+            self._new = False
         else:
             url = self._build_url(name=self.metadata.name, namespace=self.metadata.namespace)
-            self._client.put(url, self.as_dict())
+            resp = self._client.put(url, self.as_dict())
+        self.update_from_dict(resp.json())
 
 
 class Model(six.with_metaclass(MetaModel)):
@@ -127,6 +134,7 @@ class Model(six.with_metaclass(MetaModel)):
 
     Contains fields for each attribute in the API specification, and methods for export/import.
     """
+
     def __init__(self, new=True, **kwargs):
         self._new = new
         self._values = {}
@@ -135,7 +143,8 @@ class Model(six.with_metaclass(MetaModel)):
             kwarg_names.discard(field.name)
             field.set(self, kwargs)
         if kwarg_names:
-            raise TypeError("{}() got unexpected keyword-arguments: {}".format(self.__class__.__name__, ", ".join(kwarg_names)))
+            raise TypeError(
+                "{}() got unexpected keyword-arguments: {}".format(self.__class__.__name__, ", ".join(kwarg_names)))
         if self._new:
             self._validate_fields()
 
@@ -158,12 +167,15 @@ class Model(six.with_metaclass(MetaModel)):
         for field in self._meta.fields:
             setattr(self, field.name, getattr(other, field.name))
 
+    def update_from_dict(self, d):
+        for field in self._meta.fields:
+            field.load(self, d.get(_api_name(field.name)))
+        self._validate_fields()
+
     @classmethod
     def from_dict(cls, d):
         instance = cls(new=False)
-        for field in cls._meta.fields:
-            field.load(instance, d.get(_api_name(field.name)))
-        instance._validate_fields()
+        instance.update_from_dict(d)
         return instance
 
     def __repr__(self):
@@ -182,7 +194,6 @@ def _api_name(name):
 
 
 class WatchEvent(object):
-
     ADDED = "ADDED"
     MODIFIED = "MODIFIED"
     DELETED = "DELETED"

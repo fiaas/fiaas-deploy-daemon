@@ -38,9 +38,11 @@ class TestService(object):
     def test_service_created_if_not_exists(self, post, get):
         get.side_effect = NotFound()
         service = create_default_service()
-        service.save()
+        call_params = service.as_dict()
         assert service._new
-        pytest.helpers.assert_any_call(post, SERVICES_URI, service.as_dict())
+        service.save()
+        assert not service._new
+        pytest.helpers.assert_any_call(post, SERVICES_URI, call_params)
 
     @mock.patch('k8s.client.Client.get')
     @mock.patch('k8s.client.Client.put')
@@ -82,8 +84,9 @@ class TestService(object):
         assert not from_api._new
         assert from_api.metadata.labels
         assert from_api.metadata.name == service.metadata.name
+        call_params = from_api.as_dict()
         from_api.save()
-        pytest.helpers.assert_any_call(put, SERVICES_URI + SERVICE_NAME, from_api.as_dict())
+        pytest.helpers.assert_any_call(put, SERVICES_URI + SERVICE_NAME, call_params)
 
     @mock.patch('k8s.client.Client.delete')
     def test_service_deleted(self, delete):

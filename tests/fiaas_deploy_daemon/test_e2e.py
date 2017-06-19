@@ -2,19 +2,21 @@
 # -*- coding: utf-8
 
 import contextlib
-import os.path
-import re
 import socket
 import subprocess
 import time
+from urlparse import urljoin
 
 import os
+import os.path
 import pytest
+import re
 import requests
 import yaml
 
-from fiaas_deploy_daemon.tpr.paasbetaapplication import (PaasbetaApplication, PaasbetaApplicationSpec,
-                                                         PaasApplicationConfig)
+from fiaas_deploy_daemon.tpr.status import create_name
+from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
+                                           PaasApplicationConfig, PaasbetaStatus)
 from k8s import config
 from k8s.client import NotFound, Client
 from k8s.models.common import ObjectMeta
@@ -22,8 +24,11 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
-IMAGE1 = "finntech/application-name:123"
-IMAGE2 = "finntech/application-name:321"
+IMAGE1 = u"finntech/application-name:123"
+IMAGE2 = u"finntech/application-name:321"
+DEPLOYMENT_ID1 = u"deployment_id_1"
+DEPLOYMENT_ID2 = u"deployment_id_2"
+PATIENCE = 300
 
 
 def _has_utilities():
@@ -44,6 +49,23 @@ def _has_xhyve_driver():
     return any(os.access(os.path.join(p, 'docker-machine-driver-xhyve'), os.X_OK) for p in path.split(os.pathsep))
 
 
+def _wait_for_tpr_available(kubernetes):
+    start = time.time()
+    app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.watch_list_url)
+    status_url = urljoin(kubernetes["server"], PaasbetaStatus._meta.url_template.format(namespace="default", name=""))
+    session = requests.Session()
+    session.verify = kubernetes["api-cert"]
+    session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
+    while time.time() < (start + PATIENCE):
+        for url in (app_url, status_url):
+            resp = session.get(url)
+            if resp.status_code >= 400:
+                time.sleep(5)
+                continue
+        return
+    raise RuntimeError("The ThirdPartyResources are not available after {} seconds".format(PATIENCE))
+
+
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
 def service_type(request):
     return request.param
@@ -62,7 +84,8 @@ class TestE2E(object):
         yield {
             "server": kubectl_config[u"clusters"][0][u"cluster"][u"server"],
             "client-cert": kubectl_config[u"users"][0][u"user"][u"client-certificate"],
-            "client-key": kubectl_config[u"users"][0][u"user"][u"client-key"]
+            "client-key": kubectl_config[u"users"][0][u"user"][u"client-key"],
+            "api-cert": kubectl_config[u"clusters"][0][u"cluster"][u"certificate-authority"]
         }
         subprocess.check_call(["minikube", "delete"])
 
@@ -70,8 +93,8 @@ class TestE2E(object):
     def _start_minikube():
         running = False
         start = time.time()
-        while not running and time.time() < (start + 60):
-            extra_args = ["--vm-driver", "xhyve"] if _is_macos() and _has_xhyve_driver() else []
+        extra_args = ["--vm-driver", "xhyve"] if _is_macos() and _has_xhyve_driver() else []
+        while not running and time.time() < (start + PATIENCE):
             subprocess.call(["minikube", "start"] + extra_args)
             time.sleep(5)
             running = (subprocess.call(["kubectl", "cluster-info"]) == 0)
@@ -93,6 +116,7 @@ class TestE2E(object):
                                 "--debug",
                                 "--port", str(port),
                                 "--api-server", kubernetes["server"],
+                                "--api-cert", kubernetes["api-cert"],
                                 "--client-cert", kubernetes["client-cert"],
                                 "--client-key", kubernetes["client-key"],
                                 "--service-type", service_type,
@@ -110,6 +134,7 @@ class TestE2E(object):
                                 "--debug",
                                 "--port", str(port),
                                 "--api-server", kubernetes["server"],
+                                "--api-cert", kubernetes["api-cert"],
                                 "--client-cert", kubernetes["client-cert"],
                                 "--client-key", kubernetes["client-key"],
                                 "--service-type", service_type,
@@ -118,6 +143,7 @@ class TestE2E(object):
                                 "--enable-tpr-support"
                                 ])
         time.sleep(1)
+        _wait_for_tpr_available(kubernetes)
         yield "http://localhost:{}/fiaas".format(port)
         self._end_popen(fdd)
 
@@ -152,7 +178,7 @@ class TestE2E(object):
             fiaas_yml = yaml.safe_load(fobj)
 
         name = self._sanitize(request.param)
-        metadata = ObjectMeta(name=name, namespace="default", annotations={"fiaas/deployment_id": "deployment_id"})
+        metadata = ObjectMeta(name=name, namespace="default", annotations={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
                                        config=PaasApplicationConfig.from_dict(fiaas_yml))
         return name, PaasbetaApplication(metadata=metadata, spec=spec)
@@ -196,7 +222,7 @@ class TestE2E(object):
             "fiaas": url,
             "teams": ["testteam"],
             "tags": ["testtags"],
-            "deployment_id": "deployment_id"
+            "deployment_id": DEPLOYMENT_ID1
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()
@@ -241,26 +267,33 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check deploy success
-        time.sleep(5)
+        time.sleep(15)
         for kind in kinds:
             assert kind.get(name)
         dep = Deployment.get(name)
         assert dep.spec.template.spec.containers[0].image == IMAGE1
         svc = Service.get(name)
         assert svc.spec.type == service_type
+        _assert_status(name, DEPLOYMENT_ID1, u"RUNNING")
 
         # Redeploy, new image
-        paasbetaapplication_new = PaasbetaApplication.get(name)
-        paasbetaapplication_new.spec.image = IMAGE2
-        paasbetaapplication_new.save()
+        paasbetaapplication.spec.image = IMAGE2
+        paasbetaapplication.metadata.annotations["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        paasbetaapplication.save()
 
         # Check success
-        time.sleep(5)
+        time.sleep(15)
         for kind in kinds:
             assert kind.get(name)
         dep = Deployment.get(name)
         assert dep.spec.template.spec.containers[0].image == IMAGE2
+        _assert_status(name, DEPLOYMENT_ID2, u"RUNNING")
 
         # Cleanup
         for kind in kinds:
             kind.delete(name)
+
+
+def _assert_status(name, deployment_id, result):
+    status = PaasbetaStatus.get(create_name(name, deployment_id))
+    assert status.result == result

@@ -84,8 +84,9 @@ class Client(object):
             json_response = resp.json()
             LOG.debug("Response: %s", pformat(json_response))
             causes = json_response.get(u"details", {}).get(u"causes", {})
-            lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
-            http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
+            if causes:
+                lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
+                http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
         except Exception as e:
             LOG.debug("Exception when dealing with client error response: %s", e)
             LOG.debug("Response: %r", resp.text)

@@ -17,13 +17,13 @@ class Bookkeeper(object):
 
     def time(self, app_spec):
         self.deploy_gauge.labels(app_spec.name).inc()
-        self.deploy_signal.send(deployment_id=app_spec.deployment_id, name=app_spec.name)
+        self.deploy_signal.send(app_spec=app_spec)
         return self.deploy_histogram.time()
 
     def failed(self, app_spec):
         self.error_counter.labels(app_spec.name).inc()
-        self.error_signal.send(deployment_id=app_spec.deployment_id, name=app_spec.name)
+        self.error_signal.send(app_spec=app_spec)
 
     def success(self, app_spec):
         self.success_counter.labels(app_spec.name).inc()
-        self.success_signal.send(deployment_id=app_spec.deployment_id, name=app_spec.name)
+        self.success_signal.send(app_spec=app_spec)

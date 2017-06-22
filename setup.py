@@ -72,7 +72,7 @@ setup(
     # Metadata
     description="Deploy docker containers to kubernetes when notified by pipeline",
     long_description=read("README.md"),
-    url="https://github.schibsted.io/finn/fiaas",
+    url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
 
     # Entrypoints
     entry_points={

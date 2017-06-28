@@ -110,7 +110,8 @@ project.ext {
     excludes = ['**/*.pyc', '**/__pycache__/**']
 
     source_files = fileTree(dir: 'fiaas_deploy_daemon', exclude: excludes) +
-            fileTree(dir: 'k8s', exclude: excludes)
+            fileTree(dir: 'k8s', exclude: excludes) +
+            fileTree(dir: 'minikube', exclude: excludes)
     test_files = fileTree(dir: 'tests', exclude: excludes)
     setup_files = files('setup.py', 'setup.cfg')
     all_sources = source_files + test_files + setup_files
@@ -200,8 +201,10 @@ task test(type: PewTask) {
         '--addopts=' +
             '-m "not integration_test" ' +
             '-p no:sugar ' +
+            '-rxs ' +
             '--cov=k8s ' +
             '--cov=fiaas_deploy_daemon ' +
+            '--cov=minikube ' +
             '--cov-report html ' +
             '--cov-report term ' +
             '--junit-xml=build/reports/tests.xml ' +
@@ -223,6 +226,7 @@ task integrationTest(type: PewTask) {
         '--addopts=' +
             '-m integration_test ' +
             '-p no:sugar ' +
+            '-rxs ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html'
     ]

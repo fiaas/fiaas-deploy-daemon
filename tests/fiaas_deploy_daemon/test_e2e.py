@@ -7,8 +7,6 @@ import subprocess
 import time
 from urlparse import urljoin
 
-import os
-import os.path
 import pytest
 import re
 import requests
@@ -23,30 +21,13 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
+from minikube import MinikubeInstaller, MinikubeError
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
 PATIENCE = 300
-
-
-def _has_utilities():
-    try:
-        subprocess.check_call(["minikube", "version"])
-        subprocess.check_call(["kubectl", "version", "--client"])
-    except (subprocess.CalledProcessError, OSError):
-        return False
-    return True
-
-
-def _is_macos():
-    return os.uname()[0] == 'Darwin'
-
-
-def _has_xhyve_driver():
-    path = os.environ['PATH']
-    return any(os.access(os.path.join(p, 'docker-machine-driver-xhyve'), os.X_OK) for p in path.split(os.pathsep))
 
 
 def _wait_for_tpr_available(kubernetes):
@@ -66,40 +47,41 @@ def _wait_for_tpr_available(kubernetes):
     raise RuntimeError("The ThirdPartyResources are not available after {} seconds".format(PATIENCE))
 
 
+@pytest.fixture(scope="session")
+def minikube_installer():
+        try:
+            mki = MinikubeInstaller()
+            mki.install()
+            yield mki
+            mki.cleanup()
+        except MinikubeError as e:
+            msg = "Unable to install minikube: %s"
+            pytest.skip(msg % str(e))
+
+
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
 def service_type(request):
     return request.param
 
 
-@pytest.mark.skipif(not _has_utilities(), reason="E2E test requires minikube and kubectl installed on the PATH")
 @pytest.mark.integration_test
 class TestE2E(object):
     @pytest.fixture(scope="module")
-    def kubernetes(self, service_type):
-        subprocess.call(["minikube", "delete"])
-        self._start_minikube()
-        subprocess.check_call(["kubectl", "config", "use-context", "minikube"])
-        output = subprocess.check_output(["kubectl", "config", "view", "--minify", "-oyaml"])
-        kubectl_config = yaml.safe_load(output)
-        yield {
-            "server": kubectl_config[u"clusters"][0][u"cluster"][u"server"],
-            "client-cert": kubectl_config[u"users"][0][u"user"][u"client-certificate"],
-            "client-key": kubectl_config[u"users"][0][u"user"][u"client-key"],
-            "api-cert": kubectl_config[u"clusters"][0][u"cluster"][u"certificate-authority"]
-        }
-        subprocess.check_call(["minikube", "delete"])
-
-    @staticmethod
-    def _start_minikube():
-        running = False
-        start = time.time()
-        extra_args = ["--vm-driver", "xhyve"] if _is_macos() and _has_xhyve_driver() else []
-        while not running and time.time() < (start + PATIENCE):
-            subprocess.call(["minikube", "start"] + extra_args)
-            time.sleep(5)
-            running = (subprocess.call(["kubectl", "cluster-info"]) == 0)
-        if not running:
-            raise RuntimeError("Minikube won't start")
+    def kubernetes(self, minikube_installer, service_type):
+        try:
+            minikube = minikube_installer.new(profile=service_type)
+            minikube.delete()
+            minikube.start()
+            yield {
+                "server": minikube.server,
+                "client-cert": minikube.client_cert,
+                "client-key": minikube.client_key,
+                "api-cert": minikube.api_cert
+            }
+            minikube.delete()
+        except MinikubeError as e:
+            msg = "Unable to run minikube: %s"
+            pytest.skip(msg % str(e))
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):

@@ -4,6 +4,7 @@ metadata:
   name: v1beta-example
   annotations:
     fiaas/artifact_id: v1beta-example-123
+    fiaas/deployment_id: v1beta-example-deployment-id
 spec:
   application: v1beta-example
   image: containers.schibsted.io/finn/fiaas-deploy-daemon:latest

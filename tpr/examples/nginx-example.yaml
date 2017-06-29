@@ -4,6 +4,7 @@ metadata:
   name: nginx-example
   annotations:
     fiaas/artifact_id: nginx-example-1.13.0
+    fiaas/deployment_id: nginx-example-deployment-id
 spec:
   application: nginx-example
   image: docker.io/nginx:1.13.0

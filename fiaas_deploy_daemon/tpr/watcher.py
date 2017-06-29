@@ -9,6 +9,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
 from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
+from ..deployer import DeployerEvent
 
 LOG = logging.getLogger(__name__)
 
@@ -64,5 +65,5 @@ class Watcher(DaemonThread):
             app_config=application.spec.config.as_dict(), teams=[], tags=[],
             deployment_id=deployment_id
         )
-        self._deploy_queue.put(app_spec)
+        self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)

@@ -13,6 +13,7 @@ from requests import HTTPError
 from yaml import YAMLError
 
 from ..base_thread import DaemonThread
+from ..deployer import DeployerEvent
 
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 
@@ -54,7 +55,7 @@ class Consumer(DaemonThread):
             try:
                 app_spec = self._create_spec(event)
                 self._check_app_acceptable(app_spec)
-                self._deploy_queue.put(app_spec)
+                self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
                 self._reporter.register(app_spec.deployment_id, event[u"callback_url"])
                 deploy_counter.inc()
             except (NoDockerArtifactException, NoFiaasArtifactException):

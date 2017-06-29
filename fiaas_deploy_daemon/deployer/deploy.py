@@ -24,8 +24,14 @@ class Deployer(DaemonThread):
         self._scheduler = scheduler
 
     def __call__(self):
-        for app_spec in self._queue:
-            LOG.info("Received %r for deployment", app_spec)
+        for event in self._queue:
+            LOG.info("Received %r for %s", event.app_spec, event.action)
+            if event.action == "UPDATE":
+                self._update(event.app_spec)
+            else:
+                raise ValueError("Unknown DeployerEvent action {}".format(event.action))
+
+    def _update(self, app_spec):
             try:
                 with self._bookkeeper.time(app_spec):
                     self._adapter.deploy(app_spec)

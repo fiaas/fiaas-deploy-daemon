@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 from __future__ import absolute_import
+from collections import namedtuple
 
 import pinject
 
@@ -17,3 +18,6 @@ class DeployerBindings(pinject.BindingSpec):
         bind("bookkeeper", to_class=Bookkeeper)
         bind("scheduler", to_class=Scheduler)
         bind("deployer", to_class=Deployer)
+
+
+DeployerEvent = namedtuple('DeployerEvent', ['action', 'app_spec'])

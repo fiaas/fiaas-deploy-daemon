@@ -13,6 +13,7 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, His
 
 from .forms import DeployForm
 from .platform_collector import PLATFORM_COLLECTOR
+from ..deployer import DeployerEvent
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
@@ -51,7 +52,7 @@ def fiaas():
         tags = SPLITTER.split(form.tags.data)
         app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, teams, tags,
                                             form.deployment_id.data)
-        current_app.deploy_queue.put(app_spec)
+        current_app.deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")
         fiaas_counter.inc()

@@ -113,7 +113,8 @@ class TestConsumer(object):
         consumer()
 
         result = queue.get_nowait()
-        assert app_spec is result
+        assert app_spec is result.app_spec
+        assert result.action is "UPDATE"
 
     def test_skip_message_if_wrong_cluster(self, monkeypatch, kafka_consumer, consumer, queue):
         kafka_consumer.__iter__.return_value = [MESSAGE]
@@ -145,7 +146,8 @@ class TestConsumer(object):
         factory.return_value = app_spec
         consumer()
         result = queue.get_nowait()
-        assert app_spec is result
+        assert app_spec is result.app_spec
+        assert result.action is "UPDATE"
 
     def test_should_not_deploy_apps_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]

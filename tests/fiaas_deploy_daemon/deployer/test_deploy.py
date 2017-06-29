@@ -7,6 +7,7 @@ import mock
 import pytest
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.deployer.deploy import Deployer
+from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.deployer.scheduler import Scheduler
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
@@ -32,7 +33,7 @@ class TestDeploy(object):
     @pytest.fixture
     def deployer(self, app_spec, bookkeeper, adapter, scheduler):
         deployer = Deployer(Queue(), bookkeeper, adapter, scheduler)
-        deployer._queue = [app_spec]
+        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         return deployer
 
     def test_use_adapter_to_deploy(self, app_spec, deployer, adapter):

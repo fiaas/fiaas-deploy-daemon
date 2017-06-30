@@ -96,7 +96,7 @@ class Consumer(DaemonThread):
 
         app_config = self._app_config_downloader.get(fiaas_url)
 
-        return self._spec_factory(name, image, app_config, teams, tags, image)
+        return self._spec_factory(name, image, app_config, teams, tags, image.split(":")[-1][:63].lower())
 
     def _deserialize(self, message):
         return json.loads(message.value)

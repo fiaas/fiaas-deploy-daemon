@@ -47,7 +47,7 @@ class TestWatcher(object):
 
     def test_is_able_to_watch_third_party_resource(self):
         response = Response()
-        json = '{"type": "ADDED", "object": {"metadata": {"name": "example", "namespace": "default", "annotations": ' \
+        json = '{"type": "ADDED", "object": {"metadata": {"name": "example", "namespace": "default", "labels": ' \
                '{"fiaas/deployment_id": "deployment_id"}}, ' \
                '"spec": {"application": "example", "image": "example/app", "config": {"namespace": "default", ' \
                '"host": "example.com", "config": {"version": 2 }}}}} '

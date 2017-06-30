@@ -4,6 +4,7 @@ metadata:
   name: v1beta-example
   annotations:
     fiaas/artifact_id: v1beta-example-123
+  labels:
     fiaas/deployment_id: v1beta-example-deployment-id
 spec:
   application: v1beta-example

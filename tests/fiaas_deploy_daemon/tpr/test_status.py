@@ -43,8 +43,7 @@ class TestStatusReport(object):
         app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
         app_spec = app_spec._replace(name=test_data.signal_name)
         metadata = ObjectMeta(name=app_name, namespace="default", labels={
-            "app": test_data.signal_name
-        }, annotations={
+            "app": test_data.signal_name,
             "fiaas/deployment_id": app_spec.deployment_id
         })
         get_or_create.return_value = PaasbetaStatus(new=test_data.new, metadata=metadata, result=test_data.result)
@@ -65,9 +64,7 @@ class TestStatusReport(object):
             'result': test_data.result,
             'metadata': {
                 'labels': {
-                    'app': test_data.signal_name
-                },
-                'annotations': {
+                    'app': test_data.signal_name,
                     'fiaas/deployment_id': app_spec.deployment_id
                 },
                 'namespace': 'default',

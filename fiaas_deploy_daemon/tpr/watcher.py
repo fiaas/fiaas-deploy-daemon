@@ -56,9 +56,9 @@ class Watcher(DaemonThread):
     def _deploy(self, application):
         LOG.debug("Deploying %s", application.spec.application)
         try:
-            deployment_id = application.metadata.annotations["fiaas/deployment_id"]
+            deployment_id = application.metadata.labels["fiaas/deployment_id"]
         except (AttributeError, KeyError, TypeError):
-            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' annotation".format(
+            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
         app_spec = self._spec_factory(
             name=application.spec.application, image=application.spec.image,

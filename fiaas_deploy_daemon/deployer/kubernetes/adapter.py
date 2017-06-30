@@ -32,6 +32,7 @@ class K8s(object):
         labels = {
             "app": app_spec.name,
             "fiaas/version": app_spec.version,
+            "fiaas/deployment_id": app_spec.deployment_id,
             "fiaas/deployed_by": self._version,
             "fiaas/app_deployed_at": str(int(round(time.time()))),
         }

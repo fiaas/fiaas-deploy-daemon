@@ -160,7 +160,7 @@ class TestE2E(object):
             fiaas_yml = yaml.safe_load(fobj)
 
         name = self._sanitize(request.param)
-        metadata = ObjectMeta(name=name, namespace="default", annotations={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
                                        config=PaasApplicationConfig.from_dict(fiaas_yml))
         return name, PaasbetaApplication(metadata=metadata, spec=spec)
@@ -260,7 +260,7 @@ class TestE2E(object):
 
         # Redeploy, new image
         paasbetaapplication.spec.image = IMAGE2
-        paasbetaapplication.metadata.annotations["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        paasbetaapplication.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
         paasbetaapplication.save()
 
         # Check success

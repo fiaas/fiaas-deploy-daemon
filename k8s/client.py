@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import logging
-from pprint import pformat
 
 import requests
 from requests import RequestException
@@ -77,26 +76,48 @@ class Client(object):
             exc = ClientError
         else:
             exc = ServerError
-        http_error_msg = '{:d} {:s}: {:s} for url: {:s}'.format(
-                resp.status_code, exc.__name__, resp.reason, resp.url)
-        LOG.debug("Request: %s", Client._format_request(resp.request))
-        try:
-            json_response = resp.json()
-            LOG.debug("Response: %s", pformat(json_response))
-            causes = json_response.get(u"details", {}).get(u"causes", {})
-            if causes:
-                lines = ["{}: {}".format(d[u"field"], d[u"message"]) for d in causes]
-                http_error_msg += '\nCauses: \n\t{0:s}'.format("\n\t".join(lines))
-        except Exception as e:
-            LOG.debug("Exception when dealing with client error response: %s", e)
-            LOG.debug("Response: %r", resp.text)
+        http_error_msg = Client._build_error_message(resp)
         raise exc(http_error_msg, response=resp)
 
     @staticmethod
-    def _format_request(request):
-        return "Request({})".format(pformat({
-            "method": request.method,
-            "url": request.url,
-            "headers": request.headers,
-            "body": request.body
-        }))
+    def _build_error_message(resp):
+        request = resp.request
+        message = ['{:d}: {:s} for url: {:s}'.format(resp.status_code, resp.reason, resp.url)]
+        Client._add_causes(message, resp)
+        Client._add_request(message, request)
+        Client._add_response(message, resp)
+        return "\n".join(message)
+
+    @staticmethod
+    def _add_causes(message, resp):
+        try:
+            json_response = resp.json()
+            json_causes = json_response.get(u"details", {}).get(u"causes", {})
+            if json_causes:
+                message.append("Causes:")
+                message.extend("\t{}: {}".format(d[u"field"], d[u"message"]) for d in json_causes)
+        except Exception as e:
+            LOG.debug("Exception when dealing with client error response: %s", e)
+            LOG.debug("Response: %r", resp.text)
+
+    @staticmethod
+    def _add_response(message, resp):
+        message.append("Response:")
+        Client._add_headers(message, resp.headers, "<<<")
+        if resp.text:
+            message.append("<<< ")
+            message.extend("<<< {}".format(line) for line in resp.text.splitlines())
+
+    @staticmethod
+    def _add_request(message, request):
+        message.append("Request:")
+        message.append(">>> {method} {url}".format(method=request.method, url=request.url))
+        Client._add_headers(message, request.headers, ">>>")
+        if request.body:
+            message.append(">>> ")
+            message.extend(">>> {}".format(line) for line in request.body.splitlines())
+
+    @staticmethod
+    def _add_headers(message, headers, prefix):
+        for key, value in headers.items():
+            message.append("{} {}: {}".format(prefix, key, value))

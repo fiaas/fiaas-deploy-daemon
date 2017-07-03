@@ -64,7 +64,7 @@ class ApiMixIn(object):
     def find(cls, name, namespace="default", labels=None):
         url = cls._build_url(name="", namespace=namespace)
         if labels:
-            selector = ",".join("{}={}".format(k, v) for k, v in labels.iteritems())
+            selector = ",".join("{}={}".format(k, v) for k, v in labels.items())
         else:
             selector = "app={}".format(name)
         resp = cls._client.get(url, params={"labelSelector": selector})

@@ -1,3 +1,13 @@
 language: finnbuild
 script:
   - run_finnbuild
+after_failure:
+  - reports-publisher
+
+after_success:
+  - reports-publisher
+
+notifications:
+  webhooks:
+    - https://devhose.spt-engprod-pro.schibsted.io/devhose/travis
+

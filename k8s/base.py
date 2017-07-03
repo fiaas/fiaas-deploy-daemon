@@ -113,9 +113,9 @@ class ApiMixIn(object):
             return cls(new=True, **kwargs)
 
     @classmethod
-    def delete(cls, name, namespace="default"):
+    def delete(cls, name, namespace="default", **kwargs):
         url = cls._build_url(name=name, namespace=namespace)
-        cls._client.delete(url)
+        cls._client.delete(url, **kwargs)
 
     def save(self):
         """Save to API server, either update if existing, or create if new"""

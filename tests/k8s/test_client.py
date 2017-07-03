@@ -53,6 +53,19 @@ class TestClient(object):
         client.delete(url, timeout=explicit_timeout)
         session.request.assert_called_once_with("DELETE", _absolute_url(url), json=None, timeout=explicit_timeout)
 
+    def test_delete_should_use_default_body(self, session, client, url):
+        client.delete(url)
+        session.request.assert_called_once_with(
+            "DELETE", _absolute_url(url), json=None, timeout=DEFAULT_TIMEOUT_SECONDS
+        )
+
+    def test_delete_should_propagate_body(self, session, client, url):
+        body = {"kind": "DeleteOptions", "apiVersion": "v1", "propagationPolicy": "Foreground"}
+        client.delete(url, body=body)
+        session.request.assert_called_once_with(
+            "DELETE", _absolute_url(url), json=body, timeout=DEFAULT_TIMEOUT_SECONDS
+        )
+
     def test_post_should_use_default_timeout(self, session, client, url):
         body = {"foo": "bar"}
         client.post(url, body=body)

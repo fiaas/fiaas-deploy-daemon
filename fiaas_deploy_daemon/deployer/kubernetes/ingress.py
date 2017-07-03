@@ -38,6 +38,13 @@ class IngressDeployer(object):
             except NotFound:
                 pass
 
+    def delete(self, app_spec):
+        LOG.info("Deleting ingress for %s", app_spec.name)
+        try:
+            Ingress.delete(app_spec.name, app_spec.namespace)
+        except NotFound:
+            pass
+
     def _generate_hosts(self, app_spec):
         if app_spec.host:
             yield self._make_ingress_host(app_spec)

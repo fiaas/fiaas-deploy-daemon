@@ -48,7 +48,7 @@ class Deployer(DaemonThread):
 
     def _delete(self, app_spec):
         self._adapter.delete(app_spec)
-        LOG.info("Completed deployement of %r", app_spec)
+        LOG.info("Completed removal of %r", app_spec)
 
 
 def _make_gen(func):

@@ -1,5 +1,9 @@
 #fiaas-deploy-daemon
 
+<!-- Badger start badges -->
+[![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/travis/finn/fiaas-deploy-daemon)](https://travis.schibsted.io/finn/fiaas-deploy-daemon) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/coverage/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/issues/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/engprod/finn/fiaas-deploy-daemon)](https://github.schibsted.io/spt-engprod/badger)
+<!-- Badger end badges -->
+
 [![Build Status](https://travis.schibsted.io/finn/fiaas-deploy-daemon.svg?token=qq6DLsb2b5xV6Fj6t2ps&branch=master)](https://travis.schibsted.io/finn/fiaas-deploy-daemon)
 ===================
 

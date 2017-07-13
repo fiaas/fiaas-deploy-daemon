@@ -206,6 +206,7 @@ task test(type: PewTask) {
             '--cov=fiaas_deploy_daemon ' +
             '--cov=minikube ' +
             '--cov-report html ' +
+            '--cov-report xml ' +
             '--cov-report term ' +
             '--junit-xml=build/reports/tests.xml ' +
             '--html=build/reports/tests.html'

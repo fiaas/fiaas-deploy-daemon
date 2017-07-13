@@ -5,7 +5,7 @@ import pyaml
 import pytest
 import dns.rdata
 from dns import resolver as resolver
-from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
+from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue
 
 
 class TestConfig(object):
@@ -178,6 +178,11 @@ class TestConfig(object):
     def test_enable_thirdpartyresource_support_default(self):
         config = Configuration([])
         assert config.enable_tpr_support is False
+
+    def test_global_env_keyvalue(self):
+        args = ("pattern=value", "FIAAS_ENV=test")
+        config = Configuration(["--global-env=%s" % arg for arg in args])
+        assert config.global_env == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
 
 
 class TestHostRewriteRule(object):

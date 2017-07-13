@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 class DeploymentDeployer(object):
     def __init__(self, config):
-        self._env = {
+        self._fiaas_env = {
             "FINN_ENV": config.environment,  # DEPRECATED. Remove in the future.
             "FIAAS_INFRASTRUCTURE": config.infrastructure,
             "FIAAS_ENVIRONMENT": config.environment,
@@ -25,6 +25,7 @@ class DeploymentDeployer(object):
             "LOG_STDOUT": "true",
             "LOG_FORMAT": "json"
         }
+        self._global_env = config.global_env
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -91,11 +92,21 @@ class DeploymentDeployer(object):
         return volume_mounts
 
     def _make_env(self, app_spec):
-        constants = self._env.copy()
+        constants = self._fiaas_env.copy()
         constants["ARTIFACT_NAME"] = app_spec.name
         constants["IMAGE"] = app_spec.image
         constants["VERSION"] = app_spec.version
         env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
+
+        # For backward compatability. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
+        global_env = []
+        for name, value in self._global_env.iteritems():
+            if "FIAAS_{}".format(name) not in constants and name not in constants:
+                global_env.extend([EnvVar(name=name, value=value), EnvVar(name="FIAAS_{}".format(name), value=value)])
+            else:
+                LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
+        env.extend(global_env)
+
         if app_spec.config.envs:
             env.extend(
                 EnvVar(

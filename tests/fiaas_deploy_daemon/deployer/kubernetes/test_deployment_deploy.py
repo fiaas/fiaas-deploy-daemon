@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
 import mock
 import pytest
 from fiaas_deploy_daemon.config import Configuration
@@ -54,11 +55,18 @@ class TestDeploymentDeployer(object):
     def infra(self, request):
         yield request.param
 
+    @pytest.fixture(params=({}, {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'},
+                            {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test',
+                             'INFRASTRUCTURE': 'illegal', 'ARTIFACT_NAME': 'illegal'}))
+    def global_env(self, request):
+        yield request.param
+
     @pytest.fixture
-    def deployer(self, infra):
+    def deployer(self, infra, global_env):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = "test"
+        config.global_env = global_env
         return DeploymentDeployer(config)
 
     @pytest.mark.parametrize("volume,envs", [
@@ -67,7 +75,7 @@ class TestDeploymentDeployer(object):
         (False, True),
         (True, True)
     ])
-    def test_deploy_new_deployment(self, infra, post, deployer, app_spec, volume, envs):
+    def test_deploy_new_deployment(self, infra, global_env, post, deployer, app_spec, volume, envs):
         app_spec = app_spec._replace(config=ConfigMapSpec(volume, ["ENV"] if envs else []))
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -109,7 +117,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
-                            'env': create_environment_variables(infra, envs),
+                            'env': create_environment_variables(infra, envs, global_env=global_env),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -135,7 +143,7 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_deploy_new_admin_deployment(self, infra, post, deployer, app_spec_with_admin_access):
+    def test_deploy_new_admin_deployment(self, infra, global_env, post, deployer, app_spec_with_admin_access):
         deployer.deploy(app_spec_with_admin_access, SELECTOR, LABELS)
 
         expected_deployment = {
@@ -162,7 +170,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': [],
-                            'env': create_environment_variables(infra),
+                            'env': create_environment_variables(infra, global_env=global_env),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -188,7 +196,7 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_deploy_new_deployment_without_prometheus_scraping(self, infra, post, deployer, app_spec):
+    def test_deploy_new_deployment_without_prometheus_scraping(self, infra, global_env, post, deployer, app_spec):
         app_spec = app_spec._replace(prometheus=PrometheusSpec(False, None, None))
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -216,7 +224,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': [],
-                            'env': create_environment_variables(infra),
+                            'env': create_environment_variables(infra, global_env=global_env),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -242,7 +250,7 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_given_autoscaler_when_deployment_replicas_is_set_to_current_value(self, infra, deployer, app_spec, get, put, post):
+    def test_given_autoscaler_when_deployment_replicas_is_set_to_current_value(self, infra, global_env, deployer, app_spec, get, put, post):
         app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
         app_spec = app_spec._replace(image="finntech/testimage:version2")
         mock_response = create_autospec(Response)
@@ -270,7 +278,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': [],
-                            'env': create_environment_variables(infra),
+                            'env': create_environment_variables(infra, global_env=global_env),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -322,7 +330,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version2',
                             'volumeMounts': [],
-                            'env': create_environment_variables(infra, version="version2"),
+                            'env': create_environment_variables(infra, global_env=global_env, version="version2"),
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -350,14 +358,21 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI+"testapp", expected_deployment)
 
 
-def create_environment_variables(infrastructure, envs=False, version="version"):
-    environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'}, {'name': 'LOG_STDOUT', 'value': 'true'},
+def create_environment_variables(infrastructure, envs=False, global_env=None, version="version"):
+    environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'},
+                   {'name': 'LOG_STDOUT', 'value': 'true'},
                    {'name': 'VERSION', 'value': version},
                    {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-test,kubernetes,test'},
                    {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
                    {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
-                   {'name': 'LOG_FORMAT', 'value': 'json'}, {'name': 'IMAGE', 'value': 'finntech/testimage:'+version},
+                   {'name': 'LOG_FORMAT', 'value': 'json'},
+                   {'name': 'IMAGE', 'value': 'finntech/testimage:'+version},
                    {'name': 'FINN_ENV', 'value': 'test'}, ]
+    if global_env:
+        environment.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
+        environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
+        environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+        environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
     if envs:
         environment.append({'name': 'ENV', 'valueFrom': {
             'configMapKeyRef': {

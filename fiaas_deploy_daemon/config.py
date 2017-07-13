@@ -38,6 +38,14 @@ in YAML, this is not possible.
 See <https://docs.python.org/2.7/library/re.html#regular-expression-syntax>.
 """
 
+GLOBAL_ENV_LONG_HELP = """
+If you wish to expose certain environment variables to every application
+in your cluster, define them here.
+
+Regardless of how a variable is passed in (option, environment variable or in
+a config file), it must be specified as `<key>=<value>`.
+"""
+
 BW_LISTS_LONG_HELP = """
 Only one of `--blacklist` or `--whitelist` may be used, but each can be used
 multiple times. The parameter should match exactly the name of an application.
@@ -67,13 +75,13 @@ class Configuration(Namespace):
 
     def __init__(self, args=None, **kwargs):
         super(Configuration, self).__init__(**kwargs)
+        self._logger = logging.getLogger(__name__)
         self.image = ""
         self.version = ""
         self.SECRET_KEY = os.urandom(24)
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()
-        self._logger = logging.getLogger(__name__)
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
@@ -118,11 +126,16 @@ class Configuration(Namespace):
         host_rule_parser.add_argument("--host-rewrite-rule", help="Rule for rewriting host", action="append",
                                       type=HostRewriteRule, dest="host_rewrite_rules", env_var="HOST_REWRITE_RULES",
                                       default=[])
+        global_env_parser = parser.add_argument_group("Global environment variables", GLOBAL_ENV_LONG_HELP)
+        global_env_parser.add_argument("--global-env", default=[], env_var="FIAAS_GLOBAL_ENV",
+                                       help="Various non-essential global variables to expose for all applications",
+                                       action="append", type=KeyValue, dest="global_env")
         list_parser = parser.add_argument_group("Blacklisting/whitelisting applications", BW_LISTS_LONG_HELP)
         list_group = list_parser.add_mutually_exclusive_group()
         list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         parser.parse_args(args, namespace=self)
+        self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
 
     def _resolve_api_config(self):
         token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
@@ -188,6 +201,16 @@ class Configuration(Namespace):
             ", ".join("{}={}".format(key, self.__dict__[key]) for key in vars(self)
                       if not key.startswith("_") and not key.isupper() and "token" not in key)
         )
+
+
+class KeyValue(object):
+    def __init__(self, arg):
+        self.key, self.value = arg.split("=")
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return other.key == self.key and other.value == self.value
 
 
 class HostRewriteRule(object):

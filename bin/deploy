@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -evuo pipefail
+
+PROJECT_NAME=${TRAVIS_REPO_SLUG#*/}
+
+helm upgrade --tiller-namespace="${K8S_NAMESPACE}" --install --namespace="${K8S_NAMESPACE}" "${PROJECT_NAME}" "./helm/${PROJECT_NAME}" \
+    --set image.tag="${FIAAS_PUSHED_IMAGE_TAG}" \
+    --set ingress.fqdn="fiaas-deploy-daemon.ingress.cre-pro.schibsted.io" \
+    --set ingress.domainName="ingress.cre-pro.schibsted.io" \
+    --set ingress.enableTLS="true" \
+    --set ingress.enableLego="true"

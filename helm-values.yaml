@@ -1,0 +1,5 @@
+ingress:
+  fqdn: fiaas-deploy-daemon.ingress.cre-pro.schibsted.io
+  domainName: ingress.cre-pro.schibsted.io
+  enableTLS: true
+  enableLego: true

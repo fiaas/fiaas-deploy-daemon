@@ -8,6 +8,14 @@ from fiaas_deploy_daemon.logsetup import init_logging, FiaasFormatter
 
 
 class TestLogSetup(object):
+    # This removes the pytest injected handler if it exists
+    # without this code, the test would fail under some versions of pytest
+    # as yet uncharacterized. Nasty hack for nasty behavior
+    def __init__(self):
+        logger = logging.getLogger()
+        if len(logger.handlers) == 1:
+            logger.removeHandler(logger.handlers[0])
+
     def setup(self):
         self.root = logging.getLogger()
 

@@ -44,7 +44,7 @@ FLAKE8_REQ = [
 ]
 
 TESTS_REQ = [
-    'vcrpy',
+    'vcrpy == 1.10.5',
     'mock',
     'pytest-sugar',
     'pytest-html',

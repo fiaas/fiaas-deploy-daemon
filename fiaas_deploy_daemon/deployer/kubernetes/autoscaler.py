@@ -33,6 +33,13 @@ class AutoscalerDeployer(object):
             except NotFound:
                 pass
 
+    def delete(self, app_spec):
+        LOG.info("Deleting autoscaler for %s", app_spec.name)
+        try:
+            HorizontalPodAutoscaler.delete(app_spec.name, app_spec.namespace)
+        except NotFound:
+            pass
+
 
 def _should_have_autoscaler(app_spec):
     return _autoscaler_enabled(app_spec.autoscaler) and _enough_replicas_wanted(app_spec) and _request_cpu_is_set(app_spec)

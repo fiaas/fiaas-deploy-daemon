@@ -51,8 +51,8 @@ class Client(object):
     def get(self, url, timeout=DEFAULT_TIMEOUT_SECONDS, **kwargs):
         return self._call("GET", url, timeout=timeout, **kwargs)
 
-    def delete(self, url, timeout=DEFAULT_TIMEOUT_SECONDS):
-        return self._call("DELETE", url, timeout=timeout)
+    def delete(self, url, timeout=DEFAULT_TIMEOUT_SECONDS, **kwargs):
+        return self._call("DELETE", url=url, timeout=timeout, **kwargs)
 
     def post(self, url, body, timeout=DEFAULT_TIMEOUT_SECONDS):
         return self._call("POST", url, body, timeout=timeout)

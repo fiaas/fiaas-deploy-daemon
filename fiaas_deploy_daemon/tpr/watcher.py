@@ -49,7 +49,7 @@ class Watcher(DaemonThread):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
-            pass  # TODO: this should delete the related kubernetes objects
+            self._delete(event.object)
         else:
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
 
@@ -67,3 +67,12 @@ class Watcher(DaemonThread):
         )
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
+
+    def _delete(self, application):
+        app_spec = self._spec_factory(
+            name=application.spec.application, image=application.spec.image,
+            app_config=application.spec.config.as_dict(), teams=[], tags=[],
+            deployment_id=None
+        )
+        self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
+        LOG.debug("Queued delete for %s", application.spec.application)

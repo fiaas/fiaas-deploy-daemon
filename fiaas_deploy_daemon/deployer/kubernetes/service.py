@@ -30,6 +30,13 @@ class ServiceDeployer(object):
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
 
+    def delete(self, app_spec):
+        LOG.info("Deleting service for %s", app_spec.name)
+        try:
+            Service.delete(app_spec.name, app_spec.namespace)
+        except NotFound:
+            pass
+
     @staticmethod
     def _merge_ports(existing_ports, wanted_ports):
         existing = {port.name: port for port in existing_ports}

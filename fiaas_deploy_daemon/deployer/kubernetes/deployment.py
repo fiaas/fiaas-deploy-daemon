@@ -73,6 +73,14 @@ class DeploymentDeployer(object):
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()
 
+    def delete(self, app_spec):
+        LOG.info("Deleting deployment for %s", app_spec.name)
+        try:
+            body = {"kind": "DeleteOptions", "apiVersion": "v1", "propagationPolicy": "Foreground"}
+            Deployment.delete(app_spec.name, app_spec.namespace, body=body)
+        except NotFound:
+            pass
+
     @staticmethod
     def _make_volumes(app_spec):
         volumes = []

@@ -272,8 +272,12 @@ class TestE2E(object):
         _assert_status(name, DEPLOYMENT_ID2, u"RUNNING")
 
         # Cleanup
+        PaasbetaApplication.delete(name)
+
+        time.sleep(10)
         for kind in kinds:
-            kind.delete(name)
+            with pytest.raises(NotFound):
+                kind.get(name)
 
 
 def _assert_status(name, deployment_id, result):

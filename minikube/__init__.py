@@ -55,7 +55,8 @@ class MinikubeInstaller(object):
         return path, sha.hexdigest()
 
     def _get_wanted_checksum(self, url):
-        if self._minikube_version == StrictVersion("0.20"):
+        if (self._minikube_version == StrictVersion("0.20") and self._driver.os == "linux"
+                and self._driver.arch == "amd64"):
             # This version had invalid checksums on github.com, so use hardcoded digest
             return "f7447a37332879b934bf7fcae97327367a5b92d33d12ea24301c212892efe326"
         sha_url = url + ".sha256"

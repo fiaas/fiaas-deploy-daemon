@@ -1,10 +1,6 @@
 language: finnbuild
 script:
   - run_finnbuild
-deploy:
-  provider: script
-  script: bin/deploy
-  skip_cleanup: true
 after_failure:
   - reports-publisher
 

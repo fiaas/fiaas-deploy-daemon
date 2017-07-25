@@ -1,0 +1,8 @@
+ingress:
+  fqdn: fiaas-deploy-daemon.ingress.cre-pro.schibsted.io
+  domainName: ingress.cre-pro.schibsted.io
+  enableTLS: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    kubernetes.io/tls-acme: "true"
+    schibsted.io/heimdall: "true"

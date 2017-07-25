@@ -7,10 +7,7 @@ image:
 ingress:
   fqdn: fiaas-deploy-daemon.yourcluster.local
   domainName: yourcluster.local
-  # add your IPs as comma separated CIDR masks
-  whitelistedIPs: "127.0.0.1/32"
   enableTLS: true
-  enableLego: false
 deployment:
   # include the resource requests and limits
   includeResourceUsage: true

@@ -101,6 +101,7 @@ task publishImage(type: Exec) {
     doLast {
         logger.lifecycle("Pushed image ${image_tag}")
     }
+    environment "FIAAS_PUSHED_IMAGE_TAG", "${image_tag}"
 }
 task publishLatestImage(type: Exec) {
     description 'Publish "latest" docker image to docker registry'

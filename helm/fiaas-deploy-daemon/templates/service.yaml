@@ -4,7 +4,6 @@ metadata:
   labels:
     app: "{{ .Values.name }}"
   name: "{{ .Values.name }}"
-  namespace: "{{ .Values.namespace }}"
 spec:
   ports:
   - name: http

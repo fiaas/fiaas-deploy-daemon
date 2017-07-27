@@ -2,15 +2,12 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    ingress.kubernetes.io/whitelist-source-range: "{{ .Values.ingress.whitelistedIPs }}"
-{{- if .Values.ingress.enableLego }}
-    kubernetes.io/ingress.class: nginx
-    kubernetes.io/tls-acme: "true"
-{{- end }}
+    {{- range $key, $value := .Values.ingress.annotations }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
   labels:
     app: "{{ .Values.name }}"
   name: "{{ .Values.name }}"
-  namespace: "{{ .Values.namespace }}"
 spec:
 {{- if .Values.ingress.enableTLS }}
   tls:

@@ -1,5 +1,4 @@
 name: fiaas-deploy-daemon
-namespace: default
 image:
   repository: containers.schibsted.io/finntech/fiaas-deploy-daemon
   tag: "latest"

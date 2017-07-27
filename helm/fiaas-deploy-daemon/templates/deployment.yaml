@@ -2,7 +2,6 @@ apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
   name: "{{ .Values.name }}"
-  namespace: "{{ .Values.namespace }}"
   labels:
     app: "{{ .Values.name }}"
     chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"

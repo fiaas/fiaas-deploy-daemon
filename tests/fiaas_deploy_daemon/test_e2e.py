@@ -71,7 +71,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, minikube_installer, service_type):
         try:
-            minikube = minikube_installer.new(profile=service_type)
+            minikube = minikube_installer.new(profile=service_type, k8s_version='v1.6.4')
             minikube.delete()
             minikube.start()
             yield {

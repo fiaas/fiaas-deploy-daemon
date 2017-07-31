@@ -2,7 +2,7 @@ interactions:
 interactions:
 - request:
     body: '{"spec": {"rules": [{"host": "dummy.example.com", "http": {"paths": [{"path":
-      "/", "backend": {"serviceName": "dummy", "servicePort": "http"}}]}}]}, "metadata":
+      "/", "backend": {"serviceName": "dummy", "servicePort": "http"}}]}}], "tls": []}, "metadata":
       {"labels": {"test": "true"}, "namespace": "my-namespace", "name": "my-name"}}'
     headers:
       Accept: ['*/*']
@@ -15,7 +15,7 @@ interactions:
     method: POST
     uri: https://10.0.0.1/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/
   response:
-    body: {string: !!python/unicode '{"kind":"Ingress","apiVersion":"extensions/v1beta1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/my-name","uid":"edd9cd79-cc01-11e5-9ece-247703d2e388","resourceVersion":"231","generation":1,"creationTimestamp":"2016-02-05T12:13:56Z","labels":{"test":"true"}},"spec":{"rules":[{"host":"dummy.example.com","http":{"paths":[{"path":"/","backend":{"serviceName":"dummy","servicePort":"http"}}]}}]},"status":{"loadBalancer":{}}}
+    body: {string: !!python/unicode '{"kind":"Ingress","apiVersion":"extensions/v1beta1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/my-name","uid":"edd9cd79-cc01-11e5-9ece-247703d2e388","resourceVersion":"231","generation":1,"creationTimestamp":"2016-02-05T12:13:56Z","labels":{"test":"true"}},"spec":{"rules":[{"host":"dummy.example.com","http":{"paths":[{"path":"/","backend":{"serviceName":"dummy","servicePort":"http"}}]}}],"tls":[]},"status":{"loadBalancer":{}}}
 
 '}
     headers:
@@ -34,7 +34,7 @@ interactions:
     method: GET
     uri: https://10.0.0.1/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/my-name
   response:
-    body: {string: !!python/unicode '{"kind":"Ingress","apiVersion":"extensions/v1beta1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/my-name","uid":"edd9cd79-cc01-11e5-9ece-247703d2e388","resourceVersion":"231","generation":1,"creationTimestamp":"2016-02-05T12:13:56Z","labels":{"test":"true"}},"spec":{"rules":[{"host":"dummy.example.com","http":{"paths":[{"path":"/","backend":{"serviceName":"dummy","servicePort":"http"}}]}}]},"status":{"loadBalancer":{}}}
+    body: {string: !!python/unicode '{"kind":"Ingress","apiVersion":"extensions/v1beta1","metadata":{"name":"my-name","namespace":"my-namespace","selfLink":"/apis/extensions/v1beta1/namespaces/my-namespace/ingresses/my-name","uid":"edd9cd79-cc01-11e5-9ece-247703d2e388","resourceVersion":"231","generation":1,"creationTimestamp":"2016-02-05T12:13:56Z","labels":{"test":"true"}},"spec":{"rules":[{"host":"dummy.example.com","http":{"paths":[{"path":"/","backend":{"serviceName":"dummy","servicePort":"http"}}]}}],"tls":[]},"status":{"loadBalancer":{}}}
 
 '}
     headers:

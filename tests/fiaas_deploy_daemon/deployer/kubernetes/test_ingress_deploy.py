@@ -83,7 +83,8 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }
-                }]
+                }],
+                'tls': [],
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=True)
         }
@@ -113,7 +114,8 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }
-                }]
+                }],
+                'tls': [],
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=False)
         }
@@ -149,7 +151,8 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }
-                }]
+                }],
+                'tls': [],
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, external=False)
         }
@@ -183,7 +186,8 @@ class TestIngressDeployer(object):
                             'servicePort': 80
                         }}]
                     }}
-                ]
+                ],
+                'tls': [],
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
         }

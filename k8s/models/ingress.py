@@ -28,9 +28,15 @@ class IngressRule(Model):
     http = Field(HTTPIngressRuleValue)
 
 
+class IngressTLS(Model):
+    hosts = ListField(six.text_type)
+    secretName = Field(six.text_type)
+
+
 class IngressSpec(Model):
     backend = Field(IngressBackend)
     rules = ListField(IngressRule)
+    tls = ListField(IngressTLS)
 
 
 class Ingress(Model):

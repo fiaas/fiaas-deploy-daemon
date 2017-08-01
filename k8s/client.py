@@ -63,6 +63,11 @@ class Client(object):
     def _call(self, method, url, body=None, timeout=DEFAULT_TIMEOUT_SECONDS, **kwargs):
         self.init_session()
         resp = self._session.request(method, config.api_server + url, json=body, timeout=timeout, **kwargs)
+        if config.debug and not kwargs.get('stream', False):
+            message = ['{:d} for url: {:s}'.format(resp.status_code, resp.url)]
+            Client._add_request(message, resp.request)
+            Client._add_response(message, resp)
+            LOG.debug("\n".join(message))
         self._raise_on_status(resp)
         return resp
 

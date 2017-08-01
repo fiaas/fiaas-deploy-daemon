@@ -7,10 +7,12 @@ import subprocess
 import time
 from urlparse import urljoin
 
+from monotonic import monotonic as time_monotonic
 import pytest
 import re
 import requests
 import yaml
+
 
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
@@ -31,13 +33,13 @@ PATIENCE = 300
 
 
 def _wait_for_tpr_available(kubernetes):
-    start = time.time()
+    start = time_monotonic()
     app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.watch_list_url)
     status_url = urljoin(kubernetes["server"], PaasbetaStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
-    while time.time() < (start + PATIENCE):
+    while time_monotonic() < (start + PATIENCE):
         for url in (app_url, status_url):
             resp = session.get(url)
             if resp.status_code >= 400:
@@ -69,7 +71,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, minikube_installer, service_type):
         try:
-            minikube = minikube_installer.new(profile=service_type)
+            minikube = minikube_installer.new(profile=service_type, k8s_version='v1.6.4')
             minikube.delete()
             minikube.start()
             yield {

@@ -142,7 +142,7 @@ def getDate() {
     return formattedDate
 }
 
-def getGitHash = { ->
+def getGitHash() {
     def stdout = new ByteArrayOutputStream()
     exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'

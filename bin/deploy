@@ -4,7 +4,7 @@ set -evuo pipefail
 
 PROJECT_NAME=${TRAVIS_REPO_SLUG#*/}
 VALUES_FILE="./helm-values.yaml"
-IMAGE_TAG=$(sudo docker images "$DOCKER_IMAGE" | egrep -v '(REPOSITORY|latest)' | awk '{print $2}')
+IMAGE_TAG="$(sudo docker images "$DOCKER_IMAGE" --format '{{.Tag}}' | grep -iv 'latest' | head -n 1)"
 
 helm upgrade --tiller-namespace="${K8S_NAMESPACE}" --install --namespace="${K8S_NAMESPACE}" "${PROJECT_NAME}" ./helm/"${PROJECT_NAME}" \
-    --values="${VALUES_FILE}" --set image.tag="${IMAGE_TAG}"
+    --values="${VALUES_FILE}" --set image.tag="\"${IMAGE_TAG}\""

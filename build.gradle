@@ -70,8 +70,17 @@ docker {
     }
 }
 
+def getGitHash = { ->
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
 def image_name = "containers.schibsted.io/finntech/${project.description}"
-def image_tag = "${image_name}:${project.version}"
+def image_tag = "${image_name}:${project.version}-${getGitHash()}"
 
 task bakeImage(type: DockerBuildImage) {
     description 'Build docker image'

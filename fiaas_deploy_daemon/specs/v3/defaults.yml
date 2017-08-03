@@ -3,7 +3,7 @@ version: 3
 replicas:
   # Autoscaler scales from replicas.minimum to replicas.maximum (if minimum < maximum and maximum > 1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
   minimum: 2 # Set minimum to the same as maximum for no autoscaling
-  maximum: 3
+  maximum: 5
   cpu_threshold_percentage: 50
 ingress:
   hosts:

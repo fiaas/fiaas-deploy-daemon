@@ -1,0 +1,72 @@
+---
+version: 3
+annotations: # Annotations to be set on generated objects
+  deployment: {}
+  horizontalpodautoscaler: {}
+  ingress: {}
+  service: {}
+labels: # Labels to be set on generated objects
+  deployment: {}
+  horizontalpodautoscaler: {}
+  ingress: {}
+  service: {}
+admin_access: false # What access the pod has to the k8s api server
+replicas:
+  # Autoscaler scales from replicas.minimum to replicas.maximum (if minimum < maximum and maximum > 1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
+  minimum: 2 # Set minimum to the same as maximum for no autoscaling
+  maximum: 3
+  cpu_threshold_percentage: 50
+ingress:
+  hosts:
+  - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
+    tls: false # If true, tls is enabled for this host
+    paths: # Defaults to a single path definition specifying / as the path
+    - path:
+      port: # Defaults to first http port defined.
+ports: # A list of ports the application listens on. For no exposed ports, specify as []
+  - protocol: http # [http|tcp]
+    name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)
+    port: 80 # port number that will be exposed. For protocol=tcp, the available port range is (1024-32767).
+    target_port: 80 # the port number which is exposed by the container and should receive traffic routed to `port`
+metrics:
+  prometheus:
+    enabled: true # if false the pod will not be scraped for metrics by prometheus
+    port: http # Name of HTTP port prometheus is served on
+    path: /internal-backstage/prometheus # Path to prometheus-metrics
+resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
+  limits:
+    memory: # app will be killed if exceeding these limits
+    cpu: # app will have its cpu usage throttled if exceeding this limit
+  requests: # app will be scheduled on nodes with at least this amount resources available
+    memory:  # for java apps set this to -xmx * 1.1
+    cpu: #
+healthchecks:
+  liveness:
+    # Valid configuration requires exactly one of execute|http|tcp
+    execute:
+      command: # Command to execute inside the container.
+    http:
+      path: / # Path to GET
+      port: http # port to connect to on the container. Must either be port number or name
+      http_headers: {} # optional http headers (free form map)
+    tcp:
+      port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
+    initial_delay_seconds: 10 # Number of seconds after the container has started before liveness probes are initiated.
+    period_seconds: 10 # How often (in seconds) to perform the probe.
+    success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
+    timeout_seconds: 1 # Number of seconds after which the probe times out.
+  readiness: # If readiness is left out, the readiness settings are copied from liveness
+    # Valid configuration requires exactly one of execute|http|tcp
+    execute:
+      command: # Command to execute inside the container.
+    http:
+      path: / # Path to GET
+      port: http # port to connect to on the container. Must either be port number or name
+      http_headers: {} # optional http headers
+    tcp:
+      port: # tcp port number we will connect to on the container. Will receive a SYN and must complete the TCP handshake. Must either be port number or name
+    initial_delay_seconds: 10 # Number of seconds after the container has started before readiness probes are initiated.
+    period_seconds: 10 # How often (in seconds) to perform the probe.
+    success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
+    timeout_seconds: 1 # Number of seconds after which the probe times out.
+secrets_in_environment: false # If a Secret of the same name exists, it is exposed to the pod as environment variables

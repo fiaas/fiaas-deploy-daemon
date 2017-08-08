@@ -57,7 +57,7 @@ ports: # A list of ports the application listens on. For no exposed ports, speci
   - protocol: http # [http|tcp]
     name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)
     port: 80 # port number that will be exposed. For protocol=tcp, the available port range is (1024-32767).
-    target_port: 80 # the port number which is exposed by the container and should receive traffic routed to `port`
+    target_port: 8080 # the port number which is exposed by the container and should receive traffic routed to `port`
 annotations: # Annotations to be set on generated objects
   deployment: {}
   horizontal_pod_autoscaler: {}

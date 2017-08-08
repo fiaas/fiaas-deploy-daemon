@@ -60,12 +60,12 @@ ports: # A list of ports the application listens on. For no exposed ports, speci
     target_port: 80 # the port number which is exposed by the container and should receive traffic routed to `port`
 annotations: # Annotations to be set on generated objects
   deployment: {}
-  horizontalpodautoscaler: {}
+  horizontal_pod_autoscaler: {}
   ingress: {}
   service: {}
 labels: # Labels to be set on generated objects
   deployment: {}
-  horizontalpodautoscaler: {}
+  horizontal_pod_autoscaler: {}
   ingress: {}
   service: {}
 secrets_in_environment: false # If a Secret of the same name exists, it is exposed to the pod as environment variables

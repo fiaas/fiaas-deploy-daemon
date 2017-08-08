@@ -18,7 +18,7 @@ healthchecks:
     execute:
       command: # Command to execute inside the container.
     http:
-      path: / # Path to GET
+      path: /_/health # Path to GET
       port: http # port to connect to on the container. Must either be port number or name
       http_headers: {} # optional http headers (free form map)
     tcp:
@@ -32,7 +32,7 @@ healthchecks:
     execute:
       command: # Command to execute inside the container.
     http:
-      path: / # Path to GET
+      path: /_/ready # Path to GET
       port: http # port to connect to on the container. Must either be port number or name
       http_headers: {} # optional http headers
     tcp:
@@ -46,13 +46,13 @@ resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resourc
     memory: # app will be killed if exceeding these limits
     cpu: # app will have its cpu usage throttled if exceeding this limit
   requests: # app will be scheduled on nodes with at least this amount resources available
-    memory:  # for java apps set this to -xmx * 1.1
-    cpu: #
+    memory:
+    cpu:
 metrics:
   prometheus:
     enabled: true # if false the pod will not be scraped for metrics by prometheus
     port: http # Name of HTTP port prometheus is served on
-    path: /internal-backstage/prometheus # Path to prometheus-metrics
+    path: /_/metrics # Path to prometheus-metrics
 ports: # A list of ports the application listens on. For no exposed ports, specify as []
   - protocol: http # [http|tcp]
     name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)

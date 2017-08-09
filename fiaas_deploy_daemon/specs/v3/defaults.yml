@@ -8,7 +8,7 @@ replicas:
 ingress:
   hosts:
   - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
-    tls: false # If true, tls is enabled for this host
+    tls: true # Enable tls for this host
     paths: # List of paths exposed to which application port
     - path: / # Path the application answers on
       port: http # Name of the port path is served on
@@ -43,11 +43,11 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     timeout_seconds: 1 # Number of seconds after which the probe times out.
 resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
   limits:
-    memory: # app will be killed if exceeding these limits
-    cpu: # app will have its cpu usage throttled if exceeding this limit
+    cpu: 200m # app will have its cpu usage throttled if exceeding this limit
+    memory: 256Mi # app will be killed if exceeding these limits
   requests: # app will be scheduled on nodes with at least this amount resources available
-    memory:
-    cpu:
+    cpu: 400m
+    memory: 512Mi
 metrics:
   prometheus:
     enabled: true # if false the pod will not be scraped for metrics by prometheus

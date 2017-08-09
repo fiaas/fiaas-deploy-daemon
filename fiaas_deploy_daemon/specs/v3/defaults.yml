@@ -43,11 +43,11 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     timeout_seconds: 1 # Number of seconds after which the probe times out.
 resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
   limits:
-    cpu: 200m # app will have its cpu usage throttled if exceeding this limit
-    memory: 256Mi # app will be killed if exceeding these limits
+    cpu: 400m # app will have its cpu usage throttled if exceeding this limit
+    memory: 512Mi # app will be killed if exceeding these limits
   requests: # app will be scheduled on nodes with at least this amount resources available
-    cpu: 400m
-    memory: 512Mi
+    cpu: 200m
+    memory: 256Mi
 metrics:
   prometheus:
     enabled: true # if false the pod will not be scraped for metrics by prometheus

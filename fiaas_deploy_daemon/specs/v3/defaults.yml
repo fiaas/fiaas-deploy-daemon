@@ -8,7 +8,6 @@ replicas:
 ingress:
   hosts:
   - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
-    tls: true # Enable tls for this host
     paths: # List of paths exposed to which application port
     - path: / # Path the application answers on
       port: http # Name of the port path is served on

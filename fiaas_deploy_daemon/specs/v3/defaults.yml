@@ -6,10 +6,10 @@ replicas:
   maximum: 5
   cpu_threshold_percentage: 50
 ingress:
-- host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
-  paths: # List of paths exposed to which application port
-  - path: / # Path the application answers on
-    port: http # Name of the port path is served on
+  - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
+    paths: # List of paths exposed to which application port
+    - path: / # Path the application answers on
+      port: http # Name of the port path is served on
 healthchecks: # Healthchecks defined for your application. If omitted and a single port is defined, liveness will default to http or tcp depending on port type, and readiness will be a copy of liveness. If multiple ports are defined, healthchecks are not provided and should be defined explicitly
   liveness:
     # Valid configuration requires exactly one of execute|http|tcp

@@ -42,7 +42,15 @@ class AutoscalerDeployer(object):
 
 
 def _should_have_autoscaler(app_spec):
-    return _autoscaler_enabled(app_spec.autoscaler) and _enough_replicas_wanted(app_spec) and _request_cpu_is_set(app_spec)
+    if not _autoscaler_enabled(app_spec.autoscaler):
+        return False
+    if not _enough_replicas_wanted(app_spec):
+        LOG.warn("Can't enable autoscaler with only %d max replicas", app_spec.replicas)
+        return False
+    if not _request_cpu_is_set(app_spec):
+        LOG.warn("Can't enable autoscaler without CPU requests")
+        return False
+    return True
 
 
 def _autoscaler_enabled(autoscaler):

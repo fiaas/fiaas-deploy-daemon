@@ -5,6 +5,7 @@ from __future__ import absolute_import
 import logging
 import shlex
 
+from .autoscaler import should_have_autoscaler
 from k8s.models.common import ObjectMeta
 from k8s.client import NotFound
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
@@ -60,7 +61,7 @@ class DeploymentDeployer(object):
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
         replicas = app_spec.replicas
         # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value
-        if app_spec.autoscaler.enabled:
+        if should_have_autoscaler(app_spec):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
                 replicas = deployment.spec.replicas

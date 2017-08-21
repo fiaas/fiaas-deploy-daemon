@@ -3,11 +3,13 @@
 
 import mock
 import pytest
-from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
-from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, ConfigMapSpec, AutoscalerSpec
 from mock import create_autospec
 from requests import Response
+
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
+from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, ConfigMapSpec, \
+    AutoscalerSpec, ResourceRequirementSpec, ResourcesSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -250,9 +252,21 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_given_autoscaler_when_deployment_replicas_is_set_to_current_value(self, infra, global_env, deployer, app_spec, get, put, post):
-        app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
-        app_spec = app_spec._replace(image="finntech/testimage:version2")
+    @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
+            (5, 3, 2, None, 3),
+            (5, 3, 2, "1", 5),
+    ))
+    def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
+                                              expected_replicas, infra, global_env, deployer, app_spec, get, put, post):
+        app_spec = app_spec._replace(
+            replicas=max_replicas,
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, cpu_threshold_percentage=50),
+            image="finntech/testimage:version2")
+        if cpu_request:
+            app_spec = app_spec._replace(
+                resources=ResourcesSpec(
+                    requests=ResourceRequirementSpec(cpu=cpu_request, memory=None),
+                    limits=ResourceRequirementSpec(cpu=None, memory=None)))
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
@@ -298,7 +312,7 @@ class TestDeploymentDeployer(object):
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
                 },
-                'replicas': 5,
+                'replicas': previous_replicas,
                 'revisionHistoryLimit': 5
             }
         }
@@ -345,17 +359,19 @@ class TestDeploymentDeployer(object):
                                 }
                             },
                             'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
-                            'resources': {}
+                            'resources': {
+                                'requests': {'cpu': cpu_request}
+                            } if cpu_request else {}
                         }]
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
                 },
-                'replicas': 5,
+                'replicas': expected_replicas,
                 'revisionHistoryLimit': 5
             }
         }
         pytest.helpers.assert_no_calls(post)
-        pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI+"testapp", expected_deployment)
+        pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
 def create_environment_variables(infrastructure, envs=False, global_env=None, version="version"):
@@ -366,7 +382,7 @@ def create_environment_variables(infrastructure, envs=False, global_env=None, ve
                    {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
                    {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
                    {'name': 'LOG_FORMAT', 'value': 'json'},
-                   {'name': 'IMAGE', 'value': 'finntech/testimage:'+version},
+                   {'name': 'IMAGE', 'value': 'finntech/testimage:' + version},
                    {'name': 'FINN_ENV', 'value': 'test'}, ]
     if global_env:
         environment.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})

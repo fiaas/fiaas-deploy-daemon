@@ -16,7 +16,7 @@ class AutoscalerDeployer(object):
         self.name = "autoscaler"
 
     def deploy(self, app_spec, labels):
-        if _should_have_autoscaler(app_spec):
+        if should_have_autoscaler(app_spec):
             LOG.info("Creating/updating %s for %s", self.name, app_spec.name)
             metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
@@ -41,7 +41,7 @@ class AutoscalerDeployer(object):
             pass
 
 
-def _should_have_autoscaler(app_spec):
+def should_have_autoscaler(app_spec):
     if not _autoscaler_enabled(app_spec.autoscaler):
         return False
     if not _enough_replicas_wanted(app_spec):

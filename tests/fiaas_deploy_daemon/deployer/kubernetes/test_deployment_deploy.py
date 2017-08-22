@@ -198,8 +198,14 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_deploy_new_deployment_without_prometheus_scraping(self, infra, global_env, post, deployer, app_spec):
-        app_spec = app_spec._replace(prometheus=PrometheusSpec(False, None, None))
+    @pytest.mark.parametrize("enabled,port", (
+            (False, None),
+            (True, 8080),
+            (True, "8080"),
+            (True, "http")
+    ))
+    def test_deployment_prometheus(self, enabled, port, infra, global_env, post, deployer, app_spec):
+        app_spec = app_spec._replace(prometheus=PrometheusSpec(enabled, port, '/internal-backstage/prometheus'))
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
         expected_deployment = {
@@ -244,7 +250,7 @@ class TestDeploymentDeployer(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=enabled, labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5

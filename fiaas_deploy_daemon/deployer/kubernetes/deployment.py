@@ -5,13 +5,13 @@ from __future__ import absolute_import
 import logging
 import shlex
 
-from .autoscaler import should_have_autoscaler
-from k8s.models.common import ObjectMeta
 from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, EnvVarSource, ConfigMapKeySelector, \
     ConfigMapVolumeSource
+from .autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class DeploymentDeployer(object):
                            volumes=self._make_volumes(app_spec),
                            serviceAccountName=service_account_name)
 
-        prom_annotations = _make_prometheus_annotations(app_spec.prometheus) \
+        prom_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else None
 
         pod_labels = _add_status_label(labels)
@@ -139,10 +139,20 @@ def _add_status_label(labels):
     return labels
 
 
-def _make_prometheus_annotations(prometheus_spec):
+def _make_prometheus_annotations(app_spec):
+    lookup = {p.name: p.target_port for p in app_spec.ports}
+    prometheus_spec = app_spec.prometheus
+    try:
+        port = int(prometheus_spec.port)
+    except ValueError:
+        try:
+            port = lookup[prometheus_spec.port]
+        except KeyError:
+            LOG.error("Invalid prometheus configuration for %s", app_spec.name)
+            return {}
     return {
         "prometheus.io/scrape": str(prometheus_spec.enabled).lower(),
-        "prometheus.io/port": str(prometheus_spec.port),
+        "prometheus.io/port": str(port),
         "prometheus.io/path": prometheus_spec.path
     }
 

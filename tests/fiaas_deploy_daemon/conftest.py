@@ -6,7 +6,7 @@ import pytest
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, ConfigMapSpec, AutoscalerSpec
 
-PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port=8080, path='/internal-backstage/prometheus')
+PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))

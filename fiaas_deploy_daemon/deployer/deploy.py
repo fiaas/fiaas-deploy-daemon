@@ -44,7 +44,7 @@ class Deployer(DaemonThread):
                 LOG.info("Completed deployment of %r", app_spec)
             except Exception:
                 self._bookkeeper.failed(app_spec)
-                LOG.exception("Error while deploying: ")
+                LOG.exception("Error while deploying %s: ", app_spec.name)
 
     def _delete(self, app_spec):
         self._adapter.delete(app_spec)

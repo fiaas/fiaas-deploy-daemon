@@ -17,7 +17,8 @@ GENERIC_REQ = [
     "pyaml == 16.12.2",
     "pinject == 0.10.2",
     "six == 1.10.0",
-    "dnspython == 1.15.0"
+    "dnspython == 1.15.0",
+    "k8s == 0.0.2",
 ]
 
 WEB_REQ = [

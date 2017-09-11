@@ -136,7 +136,7 @@ def _add_status_label(labels):
     copy.update({
         "fiaas/status": "active"
     })
-    return copy
+    return labels
 
 
 def _make_prometheus_annotations(app_spec):

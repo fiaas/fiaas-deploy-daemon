@@ -95,10 +95,16 @@ class TestDeploymentDeployer(object):
                 'mountPath': '/var/run/config/fiaas/'
             }]
 
+        expected_labels = {'fiaas/status': 'active'}
+        expected_labels.update(LABELS)
+
+        expected_selector = {'fiaas/status': 'active'}
+        expected_selector.update(SELECTOR)
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
             'spec': {
-                'selector': {'matchLabels': SELECTOR},
+                'selector': {'matchLabels': expected_selector},
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
@@ -137,7 +143,7 @@ class TestDeploymentDeployer(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=expected_labels)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -148,10 +154,16 @@ class TestDeploymentDeployer(object):
     def test_deploy_new_admin_deployment(self, infra, global_env, post, deployer, app_spec_with_admin_access):
         deployer.deploy(app_spec_with_admin_access, SELECTOR, LABELS)
 
+        expected_labels = {'fiaas/status': 'active'}
+        expected_labels.update(LABELS)
+
+        expected_selector = {'fiaas/status': 'active'}
+        expected_selector.update(SELECTOR)
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
             'spec': {
-                'selector': {'matchLabels': SELECTOR},
+                'selector': {'matchLabels': expected_selector},
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
@@ -190,7 +202,7 @@ class TestDeploymentDeployer(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=expected_labels)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -208,10 +220,16 @@ class TestDeploymentDeployer(object):
         app_spec = app_spec._replace(prometheus=PrometheusSpec(enabled, port, '/internal-backstage/prometheus'))
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
+        expected_labels = {'fiaas/status': 'active'}
+        expected_labels.update(LABELS)
+
+        expected_selector = {'fiaas/status': 'active'}
+        expected_selector.update(SELECTOR)
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
             'spec': {
-                'selector': {'matchLabels': SELECTOR},
+                'selector': {'matchLabels': expected_selector},
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
@@ -250,7 +268,7 @@ class TestDeploymentDeployer(object):
                             'resources': {}
                         }]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=enabled, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=enabled, labels=expected_labels)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5

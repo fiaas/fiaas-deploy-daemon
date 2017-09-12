@@ -1,4 +1,4 @@
-FROM gliderlabs/alpine:3.4
+FROM gliderlabs/alpine:3.6
 
 RUN apk-install python py-pip ca-certificates
 

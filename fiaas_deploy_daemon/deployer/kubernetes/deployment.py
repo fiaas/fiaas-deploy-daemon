@@ -49,7 +49,8 @@ class DeploymentDeployer(object):
 
         pod_spec = PodSpec(containers=[container],
                            volumes=self._make_volumes(app_spec),
-                           serviceAccountName=service_account_name)
+                           serviceAccountName=service_account_name,
+                           automountServiceAccountToken=app_spec.admin_access)
 
         prom_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else None

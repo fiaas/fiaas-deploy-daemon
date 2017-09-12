@@ -102,6 +102,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': False,
                         'serviceAccountName': 'fiaas-no-access',
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
@@ -155,6 +156,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': True,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
@@ -215,6 +217,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': False,
                         'serviceAccountName': 'fiaas-no-access',
                         'restartPolicy': 'Always',
                         'volumes': [],
@@ -281,6 +284,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': False,
                         'serviceAccountName': 'fiaas-no-access',
                         'restartPolicy': 'Always',
                         'volumes': [],
@@ -333,6 +337,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': False,
                         'serviceAccountName': 'fiaas-no-access',
                         'restartPolicy': 'Always',
                         'volumes': [],

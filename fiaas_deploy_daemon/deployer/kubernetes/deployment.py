@@ -45,11 +45,10 @@ class DeploymentDeployer(object):
                               imagePullPolicy=pull_policy,
                               volumeMounts=self._make_volume_mounts(app_spec),
                               resources=_make_resource_requirements(app_spec.resources))
-        service_account_name = "default" if app_spec.admin_access else "fiaas-no-access"
 
         pod_spec = PodSpec(containers=[container],
                            volumes=self._make_volumes(app_spec),
-                           serviceAccountName=service_account_name,
+                           serviceAccountName="default",
                            automountServiceAccountToken=app_spec.admin_access)
 
         prom_annotations = _make_prometheus_annotations(app_spec) \

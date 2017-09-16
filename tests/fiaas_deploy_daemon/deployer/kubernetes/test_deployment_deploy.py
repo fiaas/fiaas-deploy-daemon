@@ -103,7 +103,7 @@ class TestDeploymentDeployer(object):
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
                         'automountServiceAccountToken': False,
-                        'serviceAccountName': 'fiaas-no-access',
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
@@ -218,7 +218,7 @@ class TestDeploymentDeployer(object):
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
                         'automountServiceAccountToken': False,
-                        'serviceAccountName': 'fiaas-no-access',
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],
@@ -285,7 +285,7 @@ class TestDeploymentDeployer(object):
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
                         'automountServiceAccountToken': False,
-                        'serviceAccountName': 'fiaas-no-access',
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],
@@ -338,7 +338,7 @@ class TestDeploymentDeployer(object):
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
                         'automountServiceAccountToken': False,
-                        'serviceAccountName': 'fiaas-no-access',
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],

@@ -102,7 +102,8 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
-                        'serviceAccountName': 'fiaas-no-access',
+                        'automountServiceAccountToken': False,
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
@@ -155,6 +156,7 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': True,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
@@ -215,7 +217,8 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
-                        'serviceAccountName': 'fiaas-no-access',
+                        'automountServiceAccountToken': False,
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],
@@ -281,7 +284,8 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
-                        'serviceAccountName': 'fiaas-no-access',
+                        'automountServiceAccountToken': False,
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],
@@ -333,7 +337,8 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
-                        'serviceAccountName': 'fiaas-no-access',
+                        'automountServiceAccountToken': False,
+                        'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
                         'volumes': [],
                         'imagePullSecrets': [],

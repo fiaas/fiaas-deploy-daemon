@@ -1,14 +1,21 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import dns.rdata
+import mock
 import pyaml
 import pytest
-import dns.rdata
-from dns import resolver as resolver
+
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue
 
 
 class TestConfig(object):
+    @pytest.fixture(autouse=True)
+    def dns_resolver(self):
+        with mock.patch("dns.resolver.query") as mock_resolver:
+            mock_resolver.side_effect = dns.resolver.NXDOMAIN
+            yield mock_resolver
+
     @pytest.mark.parametrize("format", ["plain", "json"])
     def test_resolve_log_format_env(self, monkeypatch, format):
         monkeypatch.setenv("LOG_FORMAT", format)
@@ -86,12 +93,10 @@ class TestConfig(object):
 
         assert config.debug
 
-    def test_resolve_service_from_dns(self, monkeypatch):
-        monkeypatch.setattr(resolver, "query", lambda x, y: dns.rdataset.from_text(
-            'IN',
-            'SRV',
-            3600,
-            '10 100 7794 kafka-pipeline.default.svc.cluster.local.'))
+    def test_resolve_service_from_dns(self, dns_resolver):
+        dns_resolver.side_effect = None
+        dns_resolver.return_value = dns.rdataset.from_text('IN', 'SRV', 3600,
+                                                           '10 100 7794 kafka-pipeline.default.svc.cluster.local.')
 
         config = Configuration([])
 
@@ -101,7 +106,6 @@ class TestConfig(object):
 
     @pytest.mark.parametrize("service", ["kafka_pipeline"])
     def test_resolve_service_from_env(self, monkeypatch, service):
-
         monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
         monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
         config = Configuration([])
@@ -194,7 +198,7 @@ class TestHostRewriteRule(object):
         (r"pattern=value", "pattern", "value"),
         (r"www.([a-z]+).com=www.\1.net", "www.example.com", "www.example.net"),
         (r"(?P<name>[a-z_-]+).example.com=\g<name>-stage.route.\g<name>.example.net", "query-manager.example.com",
-            "query-manager-stage.route.query-manager.example.net"),
+         "query-manager-stage.route.query-manager.example.net"),
     ])
     def test_apply(self, rule, host, result):
         hrr = HostRewriteRule(rule)

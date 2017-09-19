@@ -40,4 +40,5 @@ class Reporter(object):
         task_name = u"fiaas_{}-{}_{}".format(self._environment, self._infrastructure, event_name)
         url = posixpath.join(base_url, task_name, status)
         r = self._session.post(url, json={u"description": u"From fiaas-deploy-daemon"})
-        self._logger.info("Posted {} to pipeline, return code={}".format(status, r.status_code))
+        self._logger.info("Posted {} for app (deployment_id={}) to pipeline, return code={}".format(
+            status, app_spec.name, app_spec.deployment_id, r.status_code))

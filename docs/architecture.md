@@ -18,20 +18,20 @@ Extension mechanism
 
 If we build our platform as above, the services (operators) will often need to know about others operating in the same cluster. Services implemented by others, to integrate with our platform, will also need to be discovered. To solve this, we will use a generic extension mechanism for both services developed by us, and for services developed by cluster operators. We will call these services "Extensions". An extension can be an operator, or a simple service integrating via hooks.
 
-This allows for a wide range of use-cases, some specific to a single site and outside the scope of the PaaS itself, and others developed and maintained as part of the PaaS. Site-specific features can be implemented in much the same way as generic PaaS features, and an extension that starts life as a site-specific solution can easily by lifted up and deployed to all users of the PaaS if it is useful to others. 
+This allows for a wide range of use-cases, some specific to a single site and outside the scope of FiaaS itself, and others developed and maintained as part of FiaaS. Site-specific features can be implemented in much the same way as generic FiaaS features, and an extension that starts life as a site-specific solution can easily by lifted up and deployed to all users of FiaaS if it is useful to others. 
 
-Extensions in the cluster needs to be registered, by creating a PaasExtension object, with details about how it integrates with the rest of the platform, a name and possibly other identifying details like maintainer and code repo.
+Extensions in the cluster needs to be registered, by creating a FiaasExtension object, with details about how it integrates with the rest of the platform, a name and possibly other identifying details like maintainer and code repo.
 
 Extensions would typically require some configuration for each application. In the case of pure Operators, the configuration would most likely be in the form of custom annotations that are applied to objects as they are created, and then picked up by the Operator. This is supported in v3 of the fiaas.yml specification, with custom annotations propagated directly from the configuration to the objects.
 
-When an extension needs configuration that can't be applied as annotations on existing objects, we need a place to put that configuration. Configuration of an extension happens in a `extensions` section in the fiaas.yml file of a project (which is exposed in the cluster as a TPR). Each extension needs to register using a unique name, which would typically be the name of the PaasExtension object. The extension would then find its configuration under `extensions.<name>` in the configuration. When linting, anything under `extensions` are ignored by the platform itself, except that we will issue warnings (or even errors?) if there is configuration for a non-existing extension.
+When an extension needs configuration that can't be applied as annotations on existing objects, we need a place to put that configuration. Configuration of an extension happens in a `extensions` section in the fiaas.yml file of a project (which is exposed in the cluster as a TPR). Each extension needs to register using a unique name, which would typically be the name of the FiaasExtension object. The extension would then find its configuration under `extensions.<name>` in the configuration. When linting, anything under `extensions` are ignored by the platform itself, except that we will issue warnings (or even errors?) if there is configuration for a non-existing extension.
 
 Hooks of various kinds
 ----------------------
 
 To replace initializers, we will need to implement some kind of pre-create hook. We should make sure that this mechanism is extensible and flexible enough to handle other hooks as well. There are already a couple hooks we can envision, and we should be able to add more should the need arise.  
 
-Operators that wish to use hooks should add the hooks it wishes to use to its PaasExtension object.
+Operators that wish to use hooks should add the hooks it wishes to use to its FiaasExtension object.
 
 At the start, we should support two hooks: `pre-create` and `lint`. Each one is a URL which will receive a POST containing data to be acted on. Further hooks would be created by adding more URLs.
 
@@ -53,7 +53,7 @@ One problem with ordering of extensions is who sets the order? The extension dev
 
 #### Priority number
 
-One approach is that each extensions lists a priority number in its PaasExtension object. When applying hooks, the extensions are ordered according to their priority. If two extensions have the same priority, the ordering between them is undefined.
+One approach is that each extensions lists a priority number in its FiaasExtension object. When applying hooks, the extensions are ordered according to their priority. If two extensions have the same priority, the ordering between them is undefined.
  
 #### After and before links
 
@@ -69,21 +69,17 @@ Use-cases and how to solve them
 
 ### Case 1: Site-specific SSL annotations
 
-To use `lego` to auto-provision SSL certificates, two annotations need to be added to each ingress. This can of course be added manually to every project, but would be better served done on the scope where the ingress TLS mechanism relies on lego. An operator would be good in this case - something which would know what namespaces/applications are served by the ingress controller, and would automatically add those annotations. Ideally, this would be managed by the CRE team in the case of the CRE but could easily be deployed otherwise.
+To use `lego` to auto-provision SSL certificates, two annotations need to be added to each ingress. This can of course be added manually to every project, but would be better served done on the scope where the ingress TLS mechanism relies on lego. An operator would be good in this case - something which would know what namespaces/applications are served by the ingress controller, and would automatically add those annotations.
 
-As part of the PaaS we might even consider creating a generic "annotater" operator, which can read a list of default annotations for a namespace/cluster, and apply to all objects matching a selector. This would then be deployed by cluster operators, with suitable configuration for their cluster.
+As part of FiaaS we might even consider creating a generic "annotater" operator, which can read a list of default annotations for a namespace/cluster, and apply to all objects matching a selector. This would then be deployed by cluster operators, with suitable configuration for their cluster.
 
 ### Case 2: Per environment QoS level
 
-The CRE has adopted the convention that teams are allocated namespaces designating their "dev", "pre" and "pro" environments as suffixes to their team name, e.g. delivery-{dev,pre,pro}. These namespaces have different QoS guarantees, enforced by gating based on pod resource requests and limits.
+It might be reasonable to establish the convention that teams are allocated namespaces designating their "dev", "pre" and "pro" environments as suffixes to their team name, e.g. money-{dev,pre,pro}. These namespaces might have different QoS guarantees, enforced by gating based on pod resource requests and limits.
 
-The specifications around resource requests and limits are documented here: https://confluence.schibsted.io/display/SPTINF/Resources+in+Kubernetes
+To handle this case, the resource requests/limits in the pod specification within the deployment needs to be managed per destination namespace. This seems best handled before the deployment is an active object, and that currently seems best done with the deploy daemon. If done as an operator, after the deployment is active, modifying the pod specification would result in a new rolling deploy, meaning that for every FiaaS deploy, we may have a failed deploy, and then another deploy with the desired settings.
 
-To handle this case, the resource requests/limits in the pod specification within the deployment needs to be managed per destination namespace. This seems best handled before the deployment is an active object, and that currently seems best done with the deploy daemon. If done as an operator, after the deployment is active, modifying the pod specification would result in a new rolling deploy, meaning that for every FIAAS deploy, we may have a failed deploy, and then another deploy with the desired settings.
-
-This case can be solved with pre-create hooks, removing or adjusting request and limits as needed. This is a site specific policy and not something that really should be handled in FIAAS. However, in order to get deployment to CRE to work, we should probably develop this hook on behalf of the CRE team.
-
-On another note, this policy makes it tricky to run Java applications, as the JVM needs to know how much memory is available. The typical thing to do is to use a script to set the available memory for the JVM to a percentage of the limit (since the OS needs some of the memory for itself) on startup. If we strip away the limits, then the scripts will fail. 
+This case can be solved with pre-create hooks, removing or adjusting request and limits as needed.
 
 ### Case 3: Log shipper support
 

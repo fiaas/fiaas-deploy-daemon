@@ -34,7 +34,8 @@ class Reporter(object):
     def _handle_signal(self, event_name, app_spec, status=u"success"):
         base_url = self._callback_urls.get(app_spec.deployment_id)
         if not base_url:
-            self._logger.info("No base URL for {} (deployment_id={}) found, not posting to pipeline".format(app_spec.name, app_spec.deployment_id))
+            self._logger.info(
+                "No base URL for {} (deployment_id={}) found, not posting to pipeline".format(app_spec.name, app_spec.deployment_id))
             return
         task_name = u"fiaas_{}-{}_{}".format(self._environment, self._infrastructure, event_name)
         url = posixpath.join(base_url, task_name, status)

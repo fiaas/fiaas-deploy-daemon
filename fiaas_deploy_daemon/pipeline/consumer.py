@@ -56,7 +56,7 @@ class Consumer(DaemonThread):
                 app_spec = self._create_spec(event)
                 self._check_app_acceptable(app_spec)
                 self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
-                self._reporter.register(app_spec.deployment_id, event[u"callback_url"])
+                self._reporter.register(app_spec, event[u"callback_url"])
                 deploy_counter.inc()
             except (NoDockerArtifactException, NoFiaasArtifactException):
                 self._logger.debug("Ignoring event %r with missing artifacts", event)

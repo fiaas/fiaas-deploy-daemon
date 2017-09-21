@@ -130,7 +130,7 @@ class TestConsumer(object):
 
         consumer()
 
-        reporter.register.assert_called_with(app_spec.deployment_id, EVENT[u"callback_url"])
+        reporter.register.assert_called_with(app_spec, EVENT[u"callback_url"])
 
     def test_should_not_deploy_apps_not_in_whitelist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]

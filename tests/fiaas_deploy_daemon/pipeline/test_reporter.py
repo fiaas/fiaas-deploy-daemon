@@ -32,7 +32,7 @@ class TestReporter(object):
     ])
     def test_signal_to_callback(self, session, config, signal_name, url, app_spec):
         reporter = Reporter(config, session)
-        reporter.register(app_spec.deployment_id, CALLBACK)
+        reporter.register(app_spec, CALLBACK)
 
         signal(signal_name).send(app_spec=app_spec)
 

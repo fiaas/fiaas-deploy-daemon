@@ -20,7 +20,7 @@ class Reporter(object):
         signal("deploy_failed").connect(self._handle_failure)
 
     def register(self, app_spec, url):
-        self._callback_urls[app_spec.name + app_spec.deployment_id] = url
+        self._callback_urls[(app_spec.name, app_spec.deployment_id)] = url
 
     def _handle_started(self, sender, app_spec):
         self._handle_signal(u"deploy_started", app_spec)
@@ -32,7 +32,7 @@ class Reporter(object):
         self._handle_signal(u"deploy_end", app_spec, status=u"failure")
 
     def _handle_signal(self, event_name, app_spec, status=u"success"):
-        base_url = self._callback_urls.get(app_spec.name + app_spec.deployment_id)
+        base_url = self._callback_urls.get((app_spec.name, app_spec.deployment_id))
         if not base_url:
             self._logger.info(
                 "No base URL for {} (deployment_id={}) found, not posting to pipeline".format(app_spec.name, app_spec.deployment_id))

@@ -10,7 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, EnvVarSource, ConfigMapKeySelector, \
-    ConfigMapVolumeSource
+    ConfigMapVolumeSource, EmptyDirVolumeSource
 from .autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
@@ -27,6 +27,8 @@ class DeploymentDeployer(object):
             "LOG_FORMAT": "json"
         }
         self._global_env = config.global_env
+        self._secrets_init_container_image = config.secrets_init_container_image
+        self._secrets_service_account_name = config.secrets_service_account_name
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -46,10 +48,22 @@ class DeploymentDeployer(object):
                               volumeMounts=self._make_volume_mounts(app_spec),
                               resources=_make_resource_requirements(app_spec.resources))
 
+        automount_service_account_token = app_spec.admin_access
+        init_containers = []
+        service_account_name = "default"
+
+        if app_spec.has_secrets and self._uses_secrets_init_container():
+            init_container = self._make_secrets_init_container(app_spec)
+            init_containers.append(init_container)
+            automount_service_account_token = True
+            if self._secrets_service_account_name:
+                service_account_name = self._secrets_service_account_name
+
         pod_spec = PodSpec(containers=[container],
+                           initContainers=init_containers,
                            volumes=self._make_volumes(app_spec),
-                           serviceAccountName="default",
-                           automountServiceAccountToken=app_spec.admin_access)
+                           serviceAccountName=service_account_name,
+                           automountServiceAccountToken=automount_service_account_token)
 
         prom_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else None
@@ -82,23 +96,34 @@ class DeploymentDeployer(object):
         except NotFound:
             pass
 
-    @staticmethod
-    def _make_volumes(app_spec):
+    def _make_volumes(self, app_spec):
         volumes = []
         if app_spec.has_secrets:
-            volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
+            if self._uses_secrets_init_container():
+                volumes.append(Volume(name=app_spec.name, emptyDir=EmptyDirVolumeSource()))
+            else:
+                volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
         if app_spec.config.volume:
             volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name)))
         return volumes
 
-    @staticmethod
-    def _make_volume_mounts(app_spec):
+    def _make_volume_mounts(self, app_spec, is_init_container=False):
         volume_mounts = []
         if app_spec.has_secrets:
-            volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/secrets/fiaas/"))
+            volume_mounts.append(VolumeMount(name=app_spec.name,
+                                             readOnly=not is_init_container,
+                                             mountPath="/var/run/secrets/fiaas/"))
         if app_spec.config.volume:
             volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/config/fiaas/"))
         return volume_mounts
+
+    def _make_secrets_init_container(self, app_spec):
+        container = Container(name="fiaas-secrets-init-container",
+                              image=self._secrets_init_container_image,
+                              imagePullPolicy="IfNotPresent",
+                              env=[EnvVar(name="K8S_DEPLOYMENT", value=app_spec.name)],
+                              volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
+        return container
 
     def _make_env(self, app_spec):
         constants = self._fiaas_env.copy()
@@ -129,6 +154,9 @@ class DeploymentDeployer(object):
                 ) for name in app_spec.config.envs
             )
         return env
+
+    def _uses_secrets_init_container(self):
+        return bool(self._secrets_init_container_image)
 
 
 def _add_status_label(labels):

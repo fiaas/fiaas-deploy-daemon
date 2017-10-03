@@ -4,25 +4,26 @@
 import contextlib
 import socket
 import subprocess
+import sys
 import time
+import traceback
 from urlparse import urljoin
 
-from monotonic import monotonic as time_monotonic
 import pytest
 import re
 import requests
 import yaml
-
-
-from fiaas_deploy_daemon.tpr.status import create_name
-from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
-                                           PaasApplicationConfig, PaasbetaStatus)
 from k8s import config
 from k8s.client import NotFound, Client
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
+from monotonic import monotonic as time_monotonic
+
+from fiaas_deploy_daemon.tpr.status import create_name
+from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
+                                           PaasApplicationConfig, PaasbetaStatus)
 from minikube import MinikubeInstaller, MinikubeError
 
 IMAGE1 = u"finntech/application-name:123"
@@ -30,6 +31,28 @@ IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
 PATIENCE = 300
+
+
+def _wait_until(action, description=None, exception_class=AssertionError, patience=PATIENCE):
+    """Attempt to call 'action' every 2 seconds, until it completes without exception or patience runs out"""
+    __tracebackhide__ = True
+
+    start = time_monotonic()
+    cause = []
+    if not description:
+        description = action.__doc__ or action.__name__
+    message = ["Gave up waiting for {} after {} seconds".format(description, patience)]
+    while time_monotonic() < (start + patience):
+        try:
+            action()
+            return
+        except BaseException:
+            cause = traceback.format_exception(*sys.exc_info())
+        time.sleep(2)
+    if cause:
+        message.append("\nThe last exception was:\n")
+        message.extend(cause)
+    raise exception_class("".join(message))
 
 
 def _wait_for_tpr_available(kubernetes):
@@ -51,14 +74,14 @@ def _wait_for_tpr_available(kubernetes):
 
 @pytest.fixture(scope="session")
 def minikube_installer():
-        try:
-            mki = MinikubeInstaller()
-            mki.install()
-            yield mki
-            mki.cleanup()
-        except MinikubeError as e:
-            msg = "Unable to install minikube: %s"
-            pytest.skip(msg % str(e))
+    try:
+        mki = MinikubeInstaller()
+        mki.install()
+        yield mki
+        mki.cleanup()
+    except MinikubeError as e:
+        msg = "Unable to install minikube: %s"
+        pytest.skip(msg % str(e))
 
 
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
@@ -107,7 +130,12 @@ class TestE2E(object):
                                 "--ingress-suffix", "svc.test.example.com",
                                 "--environment", "test"
                                 ])
-        time.sleep(1)
+
+        def ready():
+            resp = requests.get("http://localhost:{}/healthz".format(port))
+            resp.raise_for_status()
+
+        _wait_until(ready, "web-interface healthy", RuntimeError)
         yield "http://localhost:{}/fiaas".format(port)
         self._end_popen(fdd)
 
@@ -126,7 +154,6 @@ class TestE2E(object):
                                 "--environment", "test",
                                 "--enable-tpr-support"
                                 ])
-        time.sleep(1)
         _wait_for_tpr_available(kubernetes)
         yield "http://localhost:{}/fiaas".format(port)
         self._end_popen(fdd)
@@ -144,8 +171,14 @@ class TestE2E(object):
         data_dir = request.fspath.dirpath().join("specs")
         httpd = subprocess.Popen(["python", "-m", "SimpleHTTPServer", str(port)],
                                  cwd=data_dir.strpath)
-        time.sleep(1)
-        yield (self._sanitize(request.param), "http://localhost:{}/{}".format(port, request.param))
+        fiaas_yml_url = "http://localhost:{}/{}".format(port, request.param)
+
+        def ready():
+            resp = requests.get(fiaas_yml_url)
+            resp.raise_for_status()
+
+        _wait_until(ready, "web-interface healthy", RuntimeError)
+        yield (self._sanitize(request.param), fiaas_yml_url)
         self._end_popen(httpd)
 
     @pytest.fixture(params=(
@@ -212,25 +245,15 @@ class TestE2E(object):
         resp.raise_for_status()
 
         # Check deploy success
-        time.sleep(5)
-        for kind in kinds:
-            assert kind.get(name)
-        dep = Deployment.get(name)
-        assert dep.spec.template.spec.containers[0].image == IMAGE1
-        svc = Service.get(name)
-        assert svc.spec.type == service_type
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
 
         # Redeploy, new image
         data["image"] = IMAGE2
         resp = requests.post(fdd, data)
         resp.raise_for_status()
 
-        # Check success
-        time.sleep(5)
-        for kind in kinds:
-            assert kind.get(name)
-        dep = Deployment.get(name)
-        assert dep.spec.template.spec.containers[0].image == IMAGE2
+        # Check redeploy success
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
 
         # Cleanup
         for kind in kinds:
@@ -246,19 +269,14 @@ class TestE2E(object):
             with pytest.raises(NotFound):
                 kind.get(name)
 
-        time.sleep(10)
         # First deploy
         paasbetaapplication.save()
 
+        # Check that deployment status is RUNNING
+        _wait_until(lambda: _assert_status(name, DEPLOYMENT_ID1, u"RUNNING"))
+
         # Check deploy success
-        time.sleep(15)
-        for kind in kinds:
-            assert kind.get(name)
-        dep = Deployment.get(name)
-        assert dep.spec.template.spec.containers[0].image == IMAGE1
-        svc = Service.get(name)
-        assert svc.spec.type == service_type
-        _assert_status(name, DEPLOYMENT_ID1, u"RUNNING")
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
 
         # Redeploy, new image
         paasbetaapplication.spec.image = IMAGE2
@@ -266,22 +284,29 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check success
-        time.sleep(15)
-        for kind in kinds:
-            assert kind.get(name)
-        dep = Deployment.get(name)
-        assert dep.spec.template.spec.containers[0].image == IMAGE2
-        _assert_status(name, DEPLOYMENT_ID2, u"RUNNING")
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
 
         # Cleanup
         PaasbetaApplication.delete(name)
 
-        time.sleep(10)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
+        def cleanup_complete():
+            for kind in kinds:
+                with pytest.raises(NotFound):
+                    kind.get(name)
+        _wait_until(cleanup_complete)
 
 
 def _assert_status(name, deployment_id, result):
     status = PaasbetaStatus.get(create_name(name, deployment_id))
     assert status.result == result
+
+
+def _deploy_success(name, kinds, service_type, image):
+    def action():
+        for kind in kinds:
+            assert kind.get(name)
+        dep = Deployment.get(name)
+        assert dep.spec.template.spec.containers[0].image == image
+        svc = Service.get(name)
+        assert svc.spec.type == service_type
+    return action

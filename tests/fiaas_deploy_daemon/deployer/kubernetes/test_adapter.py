@@ -64,13 +64,41 @@ class TestK8s(object):
     def test_make_selector(self, app_spec):
         assert _make_selector(app_spec) == {'app': app_spec.name}
 
-    def test_pass_to_deployment(self, app_spec, k8s, deployment_deployer, resource_quota_list):
+    @pytest.mark.parametrize("resource_quota_specs,expect_strip_resources,has_resources", [
+        ([], False, True),
+        ([], False, False),
+        ([dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, True),
+        ([dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, False),
+        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort]),
+          dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, True),
+        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort]),
+          dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, False),
+        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort])], False, True),
+        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort])], False, False),
+        ([dict(hard={"pods": "0"}, scopes=[BestEffort])], False, True),
+        ([dict(hard={"pods": "0"}, scopes=[BestEffort])], False, False),
+    ])
+    def test_pass_to_deployment(self, app_spec, k8s, deployment_deployer, resource_quota_list,
+                                resource_quota_specs, expect_strip_resources, has_resources):
+        explicit_resources = ResourcesSpec(limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
+                                         requests=ResourceRequirementSpec(cpu="100m", memory="64M"))
+        no_resources =  ResourcesSpec(limits=ResourceRequirementSpec(cpu=None, memory=None),
+                                         requests=ResourceRequirementSpec(cpu=None, memory=None))
+
+        app_spec = app_spec._replace(resources=explicit_resources if has_resources else no_resources)
+        expected_app_spec = app_spec._replace(resources=no_resources) if expect_strip_resources else app_spec
+
+        resource_quotas = [ResourceQuota(metadata=ObjectMeta(name="quota-{}".format(i), namespace=app_spec.namespace),
+                                         spec=ResourceQuotaSpec(**spec))
+                           for i, spec in enumerate(resource_quota_specs)]
+        resource_quota_list.return_value = resource_quotas
+
         selector = _make_selector(app_spec)
         labels = k8s._make_labels(app_spec)
 
         k8s.deploy(app_spec)
 
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec, selector, labels)
+        pytest.helpers.assert_any_call(deployment_deployer.deploy, expected_app_spec, selector, labels)
 
     def test_pass_to_ingress(self, app_spec, k8s, ingress_deployer, resource_quota_list):
         labels = k8s._make_labels(app_spec)
@@ -86,91 +114,3 @@ class TestK8s(object):
         k8s.deploy(app_spec)
 
         pytest.helpers.assert_any_call(service_deployer.deploy, app_spec, selector, labels)
-
-    def test_pass_to_deployment_with_stripped_resources_when_resourcequota_denies(self, app_spec, k8s,
-                                                                                  deployment_deployer,
-                                                                                  resource_quota_list):
-        selector = _make_selector(app_spec)
-        labels = k8s._make_labels(app_spec)
-
-        not_besteffort = ResourceQuota(
-            metadata=ObjectMeta(name="not-besteffort", namespace=app_spec.namespace),
-            spec=ResourceQuotaSpec(hard={"pods": "0"}, scopes=[NotBestEffort])
-        )
-        resource_quota_list.return_value = [not_besteffort]
-
-        no_requirements = ResourceRequirementSpec(cpu=None, memory=None)
-        app_spec_resources_stripped = app_spec._replace(
-            resources=ResourcesSpec(limits=no_requirements, requests=no_requirements))
-
-        k8s.deploy(app_spec)
-
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec_resources_stripped, selector, labels)
-
-    def test_pass_to_deployment_with_resources_when_no_resourcequota(self, app_spec, k8s, deployment_deployer,
-                                                                     resource_quota_list):
-
-        app_spec = app_spec._replace(
-            resources=ResourcesSpec(
-                limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
-                requests=ResourceRequirementSpec(cpu="100m", memory="64M")
-            )
-        )
-
-        selector = _make_selector(app_spec)
-        labels = k8s._make_labels(app_spec)
-
-        k8s.deploy(app_spec)
-
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec, selector, labels)
-
-    def test_pass_to_deployment_with_resources_when_resourcequota_allows_n(self, app_spec, k8s, deployment_deployer,
-                                                                           resource_quota_list):
-
-        app_spec = app_spec._replace(
-            resources=ResourcesSpec(
-                limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
-                requests=ResourceRequirementSpec(cpu="100m", memory="64M")
-            )
-        )
-
-        selector = _make_selector(app_spec)
-        labels = k8s._make_labels(app_spec)
-
-        not_besteffort = ResourceQuota(
-            metadata=ObjectMeta(name="not-besteffort", namespace=app_spec.namespace),
-            spec=ResourceQuotaSpec(hard={"pods": "100"}, scopes=[NotBestEffort])
-        )
-        resource_quota_list.return_value = [not_besteffort]
-
-        resource_quota_list.return_value = []
-
-        k8s.deploy(app_spec)
-
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec, selector, labels)
-
-    def test_pass_to_deployment_with_resources_when_resourcequota_allows_besteffort(self, app_spec, k8s,
-                                                                                    deployment_deployer,
-                                                                                    resource_quota_list):
-
-        app_spec = app_spec._replace(
-            resources=ResourcesSpec(
-                limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
-                requests=ResourceRequirementSpec(cpu="100m", memory="64M")
-            )
-        )
-
-        selector = _make_selector(app_spec)
-        labels = k8s._make_labels(app_spec)
-
-        not_besteffort = ResourceQuota(
-            metadata=ObjectMeta(name="besteffort", namespace=app_spec.namespace),
-            spec=ResourceQuotaSpec(hard={"pods": "0"}, scopes=[BestEffort])
-        )
-        resource_quota_list.return_value = [not_besteffort]
-
-        resource_quota_list.return_value = []
-
-        k8s.deploy(app_spec)
-
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec, selector, labels)

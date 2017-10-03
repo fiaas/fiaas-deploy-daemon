@@ -1,0 +1,4 @@
+reviewersRaffle:
+  strategies:
+    - default:
+        type: knowledge

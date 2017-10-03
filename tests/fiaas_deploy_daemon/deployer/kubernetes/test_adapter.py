@@ -65,25 +65,26 @@ class TestK8s(object):
         assert _make_selector(app_spec) == {'app': app_spec.name}
 
     @pytest.mark.parametrize("resource_quota_specs,expect_strip_resources,has_resources", [
-        ([], False, True),
-        ([], False, False),
-        ([dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, True),
-        ([dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, False),
-        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort]),
-          dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, True),
-        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort]),
-          dict(hard={"pods": "0"}, scopes=[NotBestEffort])], True, False),
-        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort])], False, True),
-        ([dict(hard={"pods": "10"}, scopes=[NotBestEffort])], False, False),
-        ([dict(hard={"pods": "0"}, scopes=[BestEffort])], False, True),
-        ([dict(hard={"pods": "0"}, scopes=[BestEffort])], False, False),
-    ])
+        ([], False, True),  # noqa: C408
+        ([], False, False),  # noqa: C408
+        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),  # noqa: C408
+        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
+        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
+          {"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),
+        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
+          {"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
+        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, True),
+        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, False),
+        ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, True),
+        ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, False),
+    ]
+    )
     def test_pass_to_deployment(self, app_spec, k8s, deployment_deployer, resource_quota_list,
                                 resource_quota_specs, expect_strip_resources, has_resources):
         explicit_resources = ResourcesSpec(limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
-                                         requests=ResourceRequirementSpec(cpu="100m", memory="64M"))
-        no_resources =  ResourcesSpec(limits=ResourceRequirementSpec(cpu=None, memory=None),
-                                         requests=ResourceRequirementSpec(cpu=None, memory=None))
+                                           requests=ResourceRequirementSpec(cpu="100m", memory="64M"))
+        no_resources = ResourcesSpec(limits=ResourceRequirementSpec(cpu=None, memory=None),
+                                     requests=ResourceRequirementSpec(cpu=None, memory=None))
 
         app_spec = app_spec._replace(resources=explicit_resources if has_resources else no_resources)
         expected_app_spec = app_spec._replace(resources=no_resources) if expect_strip_resources else app_spec

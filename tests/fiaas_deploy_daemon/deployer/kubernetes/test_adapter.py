@@ -37,6 +37,7 @@ class TestK8s(object):
     @pytest.fixture(autouse=True)
     def resource_quota_list(self):
         with mock.patch('k8s.models.resourcequota.ResourceQuota.list') as mockk:
+            mockk.return_value = []
             yield mockk
 
     @pytest.fixture
@@ -67,16 +68,12 @@ class TestK8s(object):
         selector = _make_selector(app_spec)
         labels = k8s._make_labels(app_spec)
 
-        resource_quota_list.return_value = []
-
         k8s.deploy(app_spec)
 
         pytest.helpers.assert_any_call(deployment_deployer.deploy, app_spec, selector, labels)
 
     def test_pass_to_ingress(self, app_spec, k8s, ingress_deployer, resource_quota_list):
         labels = k8s._make_labels(app_spec)
-
-        resource_quota_list.return_value = []
 
         k8s.deploy(app_spec)
 
@@ -85,8 +82,6 @@ class TestK8s(object):
     def test_pass_to_service(self, app_spec, k8s, service_deployer, resource_quota_list):
         selector = _make_selector(app_spec)
         labels = k8s._make_labels(app_spec)
-
-        resource_quota_list.return_value = []
 
         k8s.deploy(app_spec)
 
@@ -124,8 +119,6 @@ class TestK8s(object):
 
         selector = _make_selector(app_spec)
         labels = k8s._make_labels(app_spec)
-
-        resource_quota_list.return_value = []
 
         k8s.deploy(app_spec)
 

@@ -5,6 +5,9 @@ from __future__ import absolute_import
 import logging
 import time
 
+from k8s.models.resourcequota import ResourceQuota, NotBestEffort
+
+from ...specs.models import ResourcesSpec, ResourceRequirementSpec
 
 LOG = logging.getLogger(__name__)
 
@@ -21,6 +24,9 @@ class K8s(object):
         self._autoscaler_deployer = autoscaler
 
     def deploy(self, app_spec):
+        if not _besteffort_qos_is_allowed(app_spec):
+            app_spec = _remove_resource_requirements(app_spec)
+
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
         self._service_deployer.deploy(app_spec, selector, labels)
@@ -66,3 +72,13 @@ def _to_valid_label_value(value):
 
 def _make_selector(app_spec):
     return {'app': app_spec.name}
+
+
+def _remove_resource_requirements(app_spec):
+    no_requirements = ResourceRequirementSpec(cpu=None, memory=None)
+    return app_spec._replace(resources=ResourcesSpec(limits=no_requirements, requests=no_requirements))
+
+
+def _besteffort_qos_is_allowed(app_spec):
+    resourcequotas = ResourceQuota.list(namespace=app_spec.namespace)
+    return not any(rq.spec.hard.get("pods") == "0" and NotBestEffort in rq.spec.scopes for rq in resourcequotas)

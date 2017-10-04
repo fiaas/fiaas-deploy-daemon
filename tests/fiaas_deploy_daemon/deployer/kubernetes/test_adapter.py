@@ -65,9 +65,9 @@ class TestK8s(object):
         assert _make_selector(app_spec) == {'app': app_spec.name}
 
     @pytest.mark.parametrize("resource_quota_specs,expect_strip_resources,has_resources", [
-        ([], False, True),  # noqa: C408
-        ([], False, False),  # noqa: C408
-        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),  # noqa: C408
+        ([], False, True),
+        ([], False, False),
+        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),
         ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
         ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
           {"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),

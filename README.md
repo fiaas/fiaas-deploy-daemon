@@ -55,9 +55,9 @@ Running fiaas-deploy-daemon with `minikube`
 
 To run fiaas-deploy-daemon locally and connect it to a minikube cluster, do the following.
 
-* Set up development environment and install fiaas-deploy-daemon (`pip install -r requirements.txt`)
-* Start minikube `minikube start`
-* Run `bin/run_fdd_against_minikube`
+* Set up development environment and install fiaas-deploy-daemon (`$ pip install -r requirements.txt`)
+* Start minikube: `$ minikube start`
+* Run `$ bin/run_fdd_against_minikube`
 
 There should be a bunch of logging while fiaas-deploy-daemon starts and initializes the required
 ThirdPartyResources. This is normal.
@@ -94,7 +94,7 @@ spec:
 ```
 
 Create the resource by saving this in a file like e.g. `example.yml` and then run
-`kubectl --context minikube create -f example.yml`.
+`$ kubectl --context minikube create -f example.yml`.
 
 
 IntelliJ runconfigs

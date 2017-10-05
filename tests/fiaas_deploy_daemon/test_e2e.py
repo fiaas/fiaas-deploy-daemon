@@ -159,7 +159,6 @@ class TestE2E(object):
         self._end_popen(fdd)
 
     @pytest.fixture(params=(
-            "data/v1minimal.yml",
             "data/v2minimal.yml",
             "v2/data/host.yml",
             "v2/data/exec_config.yml",
@@ -182,7 +181,6 @@ class TestE2E(object):
         self._end_popen(httpd)
 
     @pytest.fixture(params=(
-            "data/v1minimal.yml",
             "data/v2minimal.yml",
             "v2/data/host.yml",
             "v2/data/exec_config.yml",

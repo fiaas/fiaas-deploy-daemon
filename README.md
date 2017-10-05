@@ -50,6 +50,53 @@ Useful resources:
 - http://www.voidspace.org.uk/python/mock
 - http://flask.pocoo.org/
 
+Running fiaas-deploy-daemon with `minikube`
+-------------------------------------------
+
+To run fiaas-deploy-daemon locally and connect it to a minikube cluster, do the following.
+
+* Set up development environment and install fiaas-deploy-daemon (`$ pip install -r requirements.txt`)
+* Start minikube: `$ minikube start`
+* Run `$ bin/run_fdd_against_minikube`
+
+There should be a bunch of logging while fiaas-deploy-daemon starts and initializes the required
+ThirdPartyResources. This is normal.
+
+If you need to test some behavior manually you can deploy applications either by accessing the web UI at
+http://localhost:5000 or by creating a PaasbetaApplication resource.
+
+An example PaasbetaApplication:
+
+```yaml
+apiVersion: schibsted.io/v1beta
+kind: PaasbetaApplication
+metadata:
+  labels:
+    app: example
+    fiaas/deployment_id: test
+  name: example
+  namespace: default
+spec:
+  application: example
+  image: nginx:1.13.0
+  config:
+    version: 2
+    host: example.com
+    prometheus:
+      enabled: false
+    resources:
+      limits:
+        memory: 128M
+        cpu: 200m
+      requests:
+        memory: 64M
+        cpu: 100m
+```
+
+Create the resource by saving this in a file like e.g. `example.yml` and then run
+`$ kubectl --context minikube create -f example.yml`.
+
+
 IntelliJ runconfigs
 -------------------
 

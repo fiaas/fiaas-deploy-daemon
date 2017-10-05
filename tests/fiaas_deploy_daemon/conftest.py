@@ -53,6 +53,11 @@ def app_spec_with_admin_access(app_spec):
 
 
 @pytest.fixture
+def app_spec_with_secrets(app_spec):
+    return app_spec._replace(has_secrets=True)
+
+
+@pytest.fixture
 def app_spec_thrift(app_spec):
     return app_spec._replace(
         ports=[

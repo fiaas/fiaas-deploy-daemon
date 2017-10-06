@@ -4,8 +4,7 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.v2.factory import Factory
-from fiaas_deploy_daemon.specs.factory import SpecFactory
-from fiaas_deploy_daemon.specs import InvalidConfiguration
+from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 
 IMAGE = u"finntech/docker-image:some-version"
 NAME = u"application-name"

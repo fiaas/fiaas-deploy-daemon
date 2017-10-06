@@ -7,8 +7,8 @@ import pkgutil
 
 import pinject
 
-from .factory import SpecFactory
 from .app_config_downloader import AppConfigDownloader
+from .factory import SpecFactory
 
 
 class SpecBindings(pinject.BindingSpec):
@@ -24,7 +24,3 @@ class SpecBindings(pinject.BindingSpec):
                 module = importlib.import_module("{}.{}".format(__name__, name))
                 factories[version] = module.Factory()
         return factories
-
-
-class InvalidConfiguration(Exception):
-    pass

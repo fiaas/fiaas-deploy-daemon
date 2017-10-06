@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-
+import json
 from Queue import Queue
 
+from k8s.client import NotFound
 from mock import mock, Mock
 from requests import Response
 
 from fiaas_deploy_daemon.specs import SpecFactory
-from fiaas_deploy_daemon.specs.v1 import Factory
+from fiaas_deploy_daemon.specs.v2 import Factory
 from fiaas_deploy_daemon.tpr import Watcher
-from k8s.client import NotFound
 
 
 def given_third_party_resource_does_not_exist(mock_get):
@@ -47,14 +47,31 @@ class TestWatcher(object):
 
     def test_is_able_to_watch_third_party_resource(self):
         response = Response()
-        json = '{"type": "ADDED", "object": {"metadata": {"name": "example", "namespace": "default", "labels": ' \
-               '{"fiaas/deployment_id": "deployment_id"}}, ' \
-               '"spec": {"application": "example", "image": "example/app", "config": {"namespace": "default", ' \
-               '"host": "example.com", "config": {"version": 2 }}}}} '
-        response.iter_content = Mock(return_value=[json])
+        event = {
+            'object': {
+                'metadata': {
+                    'labels': {
+                        'fiaas/deployment_id': 'deployment_id'
+                    },
+                    'name': 'example',
+                    'namespace': 'default'
+                },
+                'spec': {
+                    'application': 'example',
+                    'config': {
+                        'version': 2,
+                        'host': 'example.com',
+                        'namespace': 'default'
+                    },
+                    'image': 'example/app'
+                }
+            },
+            'type': 'ADDED'
+        }
+        response.iter_content = Mock(return_value=[json.dumps(event)])
         response.status_code = Mock(return_value=200)
         with mock.patch('k8s.client.Client.get', return_value=response):
-            watcher = Watcher(SpecFactory({1: Factory()}), Queue())
+            watcher = Watcher(SpecFactory({2: Factory()}), Queue())
 
             assert watcher._deploy_queue.qsize() == 0
             watcher._watch()

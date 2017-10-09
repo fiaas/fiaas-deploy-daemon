@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+from __future__ import print_function
+
 import contextlib
 import socket
 import subprocess
@@ -31,6 +33,7 @@ IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
 PATIENCE = 300
+TIMEOUT = 5
 
 
 def _wait_until(action, description=None, exception_class=AssertionError, patience=PATIENCE):
@@ -55,21 +58,21 @@ def _wait_until(action, description=None, exception_class=AssertionError, patien
     raise exception_class("".join(message))
 
 
-def _wait_for_tpr_available(kubernetes):
-    start = time_monotonic()
-    app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.watch_list_url)
+def _tpr_available(kubernetes):
+    app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.url_template.format(namespace="default", name=""))
     status_url = urljoin(kubernetes["server"], PaasbetaStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
-    while time_monotonic() < (start + PATIENCE):
+
+    def tpr_available():
+        plog("Checking if TPRs are available")
         for url in (app_url, status_url):
-            resp = session.get(url)
-            if resp.status_code >= 400:
-                time.sleep(5)
-                continue
-        return
-    raise RuntimeError("The ThirdPartyResources are not available after {} seconds".format(PATIENCE))
+            plog("Checking %s" % url)
+            resp = session.get(url, timeout=TIMEOUT)
+            resp.raise_for_status()
+            plog("!!!!! %s is available !!!!" % url)
+    return tpr_available
 
 
 @pytest.fixture(scope="session")
@@ -120,7 +123,6 @@ class TestE2E(object):
     def fdd(self, kubernetes, service_type):
         port = self._get_open_port()
         fdd = subprocess.Popen(["fiaas-deploy-daemon",
-                                "--debug",
                                 "--port", str(port),
                                 "--api-server", kubernetes["server"],
                                 "--api-cert", kubernetes["api-cert"],
@@ -132,18 +134,19 @@ class TestE2E(object):
                                 ])
 
         def ready():
-            resp = requests.get("http://localhost:{}/healthz".format(port))
+            resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
             resp.raise_for_status()
 
-        _wait_until(ready, "web-interface healthy", RuntimeError)
-        yield "http://localhost:{}/fiaas".format(port)
-        self._end_popen(fdd)
+        try:
+            _wait_until(ready, "web-interface healthy", RuntimeError)
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(fdd)
 
     @pytest.fixture(scope="module")
     def fdd_tpr_support_enabled(self, kubernetes, service_type):
         port = self._get_open_port()
         fdd = subprocess.Popen(["fiaas-deploy-daemon",
-                                "--debug",
                                 "--port", str(port),
                                 "--api-server", kubernetes["server"],
                                 "--api-cert", kubernetes["api-cert"],
@@ -154,9 +157,11 @@ class TestE2E(object):
                                 "--environment", "test",
                                 "--enable-tpr-support"
                                 ])
-        _wait_for_tpr_available(kubernetes)
-        yield "http://localhost:{}/fiaas".format(port)
-        self._end_popen(fdd)
+        try:
+            _wait_until(_tpr_available(kubernetes), "TPR available", RuntimeError)
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(fdd)
 
     @pytest.fixture(params=(
             "data/v2minimal.yml",
@@ -173,7 +178,7 @@ class TestE2E(object):
         fiaas_yml_url = "http://localhost:{}/{}".format(port, request.param)
 
         def ready():
-            resp = requests.get(fiaas_yml_url)
+            resp = requests.get(fiaas_yml_url, timeout=TIMEOUT)
             resp.raise_for_status()
 
         _wait_until(ready, "web-interface healthy", RuntimeError)
@@ -308,3 +313,8 @@ def _deploy_success(name, kinds, service_type, image):
         svc = Service.get(name)
         assert svc.spec.type == service_type
     return action
+
+
+def plog(message):
+    """Primitive logging"""
+    print("%s: %s" % (time.asctime(), message))

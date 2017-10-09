@@ -17,7 +17,7 @@ def given_third_party_resource_does_not_exist(mock_get):
 
 
 def when_watching_the_third_party_resource():
-    watcher = Watcher(SpecFactory([]), Queue())
+    watcher = Watcher(SpecFactory(Factory(), {}), Queue())
     watcher._watch()
 
 
@@ -71,7 +71,7 @@ class TestWatcher(object):
         response.iter_content = Mock(return_value=[json.dumps(event)])
         response.status_code = Mock(return_value=200)
         with mock.patch('k8s.client.Client.get', return_value=response):
-            watcher = Watcher(SpecFactory({2: Factory()}), Queue())
+            watcher = Watcher(SpecFactory(Factory(), {}), Queue())
 
             assert watcher._deploy_queue.qsize() == 0
             watcher._watch()

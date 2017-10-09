@@ -190,7 +190,7 @@ def pytest_generate_tests(metafunc):
 class TestFactory(object):
     @pytest.fixture
     def factory(self):
-        return SpecFactory({2: Factory()})
+        return SpecFactory(Factory(), {})
 
     @pytest.mark.parametrize("filename", (
             "v2minimal",

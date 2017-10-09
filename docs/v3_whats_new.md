@@ -78,7 +78,7 @@ In version 3, the following configuration exposes `myapp.example.com/endpoint/fo
 
 ```yaml
 ingress:
-    host: myapp.example.com
+  - host: myapp.example.com
     paths:
       - path: /endpoint/for/things
 ```

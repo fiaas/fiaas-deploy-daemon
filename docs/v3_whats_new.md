@@ -9,7 +9,7 @@ See also [the defaults.yml for version 3](fiaas_deploy_daemon/specs/v3/defaults.
 
 | **Type** | **Required** |
 |----------|--------------|
-| string   | yes          |
+| int      | yes          |
 
 Version 3 is the new version. To use the features described below, it is neccessary to set `version: 3`.
 

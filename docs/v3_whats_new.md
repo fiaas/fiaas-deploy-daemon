@@ -128,9 +128,10 @@ ports:
 |----------|--------------|
 | object   | no           |
 
-To indicate that it is a good idea to have an explicit well considered endpoint for liveness and readiness checks
-used by Kubernetes, the default paths for the http liveness and readiness checks have been changed from `/` to
-`/_/health` and `/_/ready`, respectively.
+To indicate that it is a good idea to have an explicit well considered endpoint for liveness and readiness checks used
+by Kubernetes, the default paths for the http liveness and readiness checks have been changed from `/` to `/_/health`
+and `/_/ready`, respectively. This is to match the
+[draft application endpoint proposal](https://confluence.schibsted.io/display/SPTINF/Application+Endpoint+Proposal).
 
 New defaults:
 ```yaml

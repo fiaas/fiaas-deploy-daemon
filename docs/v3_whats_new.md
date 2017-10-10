@@ -17,6 +17,18 @@ Version 3 is the new version. To use the features described below, it is neccess
 version: 3
 ```
 
+## namespace removed
+
+The namespace field has been removed from the FIAAS configuration format.
+
+We want to promote good continuous delivery practice by promoting a version of an application through a set of
+environments and finally to production. In this context an environment can mean a different namespace, which would
+mean that we realistically would need different FIAAS configuration files per environment. This would negate the
+benefit of promoting the same version across environments, since the infrastructure configuration from the FIAAS
+config file could be different. To avoid this, the namespace (environment) should not be a parameter of the FIAAS
+configuration file, but should rather originate from elsewhere.
+
+
 ## replicas and autoscaler merged into replicas
 
 | **Type** | **Required** |

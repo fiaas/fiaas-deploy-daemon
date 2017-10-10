@@ -13,6 +13,8 @@ from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirement
 
 
 class Factory(object):
+    version = 2
+
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
 

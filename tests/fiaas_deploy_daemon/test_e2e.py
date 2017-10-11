@@ -165,10 +165,10 @@ class TestE2E(object):
 
     @pytest.fixture(params=(
             "data/v2minimal.yml",
-            "v2/data/host.yml",
-            "v2/data/exec_config.yml",
-            "v2/data/config_as_env.yml",
-            "v2/data/config_as_volume.yml"
+            "v2/data/examples/host.yml",
+            "v2/data/examples/exec_config.yml",
+            "v2/data/examples/config_as_env.yml",
+            "v2/data/examples/config_as_volume.yml"
     ))
     def fiaas_yml(self, request):
         port = self._get_open_port()
@@ -187,10 +187,10 @@ class TestE2E(object):
 
     @pytest.fixture(params=(
             "data/v2minimal.yml",
-            "v2/data/host.yml",
-            "v2/data/exec_config.yml",
-            "v2/data/config_as_env.yml",
-            "v2/data/config_as_volume.yml"
+            "v2/data/examples/host.yml",
+            "v2/data/examples/exec_config.yml",
+            "v2/data/examples/config_as_env.yml",
+            "v2/data/examples/config_as_volume.yml"
     ))
     def third_party_resource(self, request):
         fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath

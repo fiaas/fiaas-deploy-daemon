@@ -13,6 +13,7 @@ import requests
 import shutil
 import yaml
 from distutils.version import StrictVersion
+from monotonic import monotonic as time_monotonic
 
 from .drivers import select_driver
 
@@ -146,8 +147,8 @@ class Minikube(object):
             extra_params.extend(("--kubernetes-version", self._k8s_version))
         extra_params.extend(self._driver.arguments)
         running = self._attempt_start(extra_params)
-        start = time.time()
-        while not running and time.time() < (start + PATIENCE):
+        start = time_monotonic()
+        while not running and time_monotonic() < (start + PATIENCE):
             running = self._attempt_start(extra_params)
         if not running:
             raise MinikubeError("Gave up starting minikube after %d seconds" % PATIENCE)

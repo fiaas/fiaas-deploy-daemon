@@ -16,11 +16,11 @@ DEPLOYMENT_ID = "deployment_id"
 class TestSpecFactory(object):
     @pytest.fixture
     def v1(self):
-        return create_autospec(BaseTransformer, spec_set=True, version=1, return_value={"version": 2})
+        return create_autospec(BaseTransformer, spec_set=True, return_value={"version": 2})
 
     @pytest.fixture
     def v2(self):
-        return create_autospec(BaseTransformer, spec_set=True, version=2, return_value={"version": 3})
+        return create_autospec(BaseTransformer, spec_set=True, return_value={"version": 3})
 
     @pytest.fixture
     def v3(self):

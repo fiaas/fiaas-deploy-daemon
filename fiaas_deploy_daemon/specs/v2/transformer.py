@@ -44,10 +44,6 @@ class Transformer(BaseTransformer):
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
         return new_config
 
-    @property
-    def version(self):
-        pass
-
     @staticmethod
     def _health_check(lookup, ports_lookup):
         value = {key: value for key, value in lookup.iteritems() if key not in ("execute", "http", "tcp")}

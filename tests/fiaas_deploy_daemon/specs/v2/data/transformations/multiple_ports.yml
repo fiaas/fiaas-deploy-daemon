@@ -1,0 +1,58 @@
+---
+version: 3
+replicas:
+  minimum: 2
+  maximum: 2
+  cpu_threshold_percentage: 50
+ingress:
+  - host:
+    paths:
+    - path: /
+      port: main_port
+    - path: /prometheus
+      port: prom_port
+healthchecks:
+  liveness:
+    http:
+      path: /
+      port: main_port
+      http_headers: {}
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    timeout_seconds: 1
+  readiness:
+    http:
+      path: /
+      port: main_port
+      http_headers: {}
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    timeout_seconds: 1
+resources:
+  limits:
+    cpu:
+    memory:
+  requests:
+    cpu:
+    memory:
+metrics:
+  prometheus:
+    enabled: true
+    port: http
+    path: /internal-backstage/prometheus
+ports:
+  - protocol: http
+    name: main_port
+    port: 8080
+    target_port: 5000
+  - protocol: http
+    name: prom_port
+    port: 8081
+    target_port: 5001
+  - protocol: tcp
+    name: thrift_port
+    port: 7000
+    target_port: 7000
+admin_access: false

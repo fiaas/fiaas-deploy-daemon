@@ -45,10 +45,6 @@ class BaseFactory(object):
 
 
 class BaseTransformer(object):
-    @property
-    def version(self):
-        raise NotImplementedError("Subclass must override version property")
-
     def __call__(self, app_config):
         raise NotImplementedError("Subclass must override __call__")
 

@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 
 import collections
+from itertools import izip_longest
 
 
 class _Lookup(object):
@@ -32,14 +33,23 @@ class _Lookup(object):
     def raw(self):
         return self._config if self._config else self._defaults
 
+    def __len__(self):
+        return max(_len(self._defaults), _len(self._config))
 
-class LookupMapping(_Lookup):
+    def __repr__(self):
+        return "%s(config=%r, defaults=%r)" % (self.__class__.__name__, self._config, self._defaults)
+
+
+class LookupMapping(_Lookup, collections.Mapping):
     def _get_value(self, col, key):
         d_value = col.get(key)
         return d_value
 
+    def __iter__(self):
+        return iter(self._defaults) if _len(self._defaults) > _len(self._config) else iter(self._config)
 
-class _LookupList(_Lookup):
+
+class _LookupList(_Lookup, collections.Sequence):
     def __getitem__(self, idx):
         if self._config:
             if idx >= len(self._config):
@@ -55,3 +65,15 @@ class _LookupList(_Lookup):
         if idx >= len(col):
             return None
         return col[idx]
+
+    def __eq__(self, other):
+        if not isinstance(other, collections.Sequence):
+            return NotImplemented
+        for self_i, other_i in izip_longest(self, other, fillvalue=object()):
+            if self_i != other_i:
+                return False
+        return True
+
+
+def _len(d):
+    return len(d) if d is not None else -1

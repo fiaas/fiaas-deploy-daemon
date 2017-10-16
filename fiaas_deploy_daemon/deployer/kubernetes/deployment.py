@@ -104,19 +104,19 @@ class DeploymentDeployer(object):
         volumes = []
         if app_spec.has_secrets:
             if self._uses_secrets_init_container():
-                volumes.append(Volume(name=app_spec.name, emptyDir=EmptyDirVolumeSource()))
+                volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
             else:
-                volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
-        volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
+                volumes.append(Volume(name="{}-secret".format(app_spec.name), secret=SecretVolumeSource(secretName=app_spec.name)))
+        volumes.append(Volume(name="{}-config".format(app_spec.name), configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         return volumes
 
     def _make_volume_mounts(self, app_spec, is_init_container=False):
         volume_mounts = []
         if app_spec.has_secrets:
-            volume_mounts.append(VolumeMount(name=app_spec.name,
+            volume_mounts.append(VolumeMount(name="{}-secret".format(app_spec.name),
                                              readOnly=not is_init_container,
                                              mountPath="/var/run/secrets/fiaas/"))
-        volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/config/fiaas/"))
+        volume_mounts.append(VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         return volume_mounts
 
     def _make_secrets_init_container(self, app_spec):

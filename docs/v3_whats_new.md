@@ -271,7 +271,7 @@ It is now possible to configure custom annotations on the Kubernetes resources c
 default is no additional annotations.
 
 ```yaml
-labels:
+annotations:
   deployment: {}
   horizontal_pod_autoscaler: {}
   ingress: {}
@@ -283,7 +283,7 @@ annotations, set key-value pairs under the respective Kubernetes resource name. 
 on the Deployment object, you can do the following:
 
 ```yaml
-labels:
+annotations:
   deployment:
     foo: bar
 ```

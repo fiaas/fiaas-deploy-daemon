@@ -8,7 +8,7 @@ replicas:
 metrics:
   prometheus:
     enabled: true
-    port: prom_port
+    port: prom-port
     path: /prometheus
 resources:
   limits:
@@ -21,10 +21,10 @@ ingress:
   - host: some.host.no
     paths:
       - path: /
-        port: prom_port
+        port: prom-port
 ports:
   - protocol: http
-    name: prom_port
+    name: prom-port
     port: 8080
     target_port: 5000
 healthchecks:

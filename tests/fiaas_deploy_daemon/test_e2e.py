@@ -72,6 +72,7 @@ def _tpr_available(kubernetes):
             resp = session.get(url, timeout=TIMEOUT)
             resp.raise_for_status()
             plog("!!!!! %s is available !!!!" % url)
+
     return tpr_available
 
 
@@ -167,8 +168,6 @@ class TestE2E(object):
             "data/v2minimal.yml",
             "v2/data/examples/host.yml",
             "v2/data/examples/exec_config.yml",
-            "v2/data/examples/config_as_env.yml",
-            "v2/data/examples/config_as_volume.yml"
     ))
     def fiaas_yml(self, request):
         port = self._get_open_port()
@@ -177,20 +176,20 @@ class TestE2E(object):
                                  cwd=data_dir.strpath)
         fiaas_yml_url = "http://localhost:{}/{}".format(port, request.param)
 
-        def ready():
-            resp = requests.get(fiaas_yml_url, timeout=TIMEOUT)
-            resp.raise_for_status()
+        try:
+            def ready():
+                resp = requests.get(fiaas_yml_url, timeout=TIMEOUT)
+                resp.raise_for_status()
 
-        _wait_until(ready, "web-interface healthy", RuntimeError)
-        yield (self._sanitize(request.param), fiaas_yml_url)
-        self._end_popen(httpd)
+            _wait_until(ready, "web-interface healthy", RuntimeError)
+            yield (self._sanitize(request.param), fiaas_yml_url)
+        finally:
+            self._end_popen(httpd)
 
     @pytest.fixture(params=(
             "data/v2minimal.yml",
             "v2/data/examples/host.yml",
             "v2/data/examples/exec_config.yml",
-            "v2/data/examples/config_as_env.yml",
-            "v2/data/examples/config_as_volume.yml"
     ))
     def third_party_resource(self, request):
         fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
@@ -296,6 +295,7 @@ class TestE2E(object):
             for kind in kinds:
                 with pytest.raises(NotFound):
                     kind.get(name)
+
         _wait_until(cleanup_complete)
 
 
@@ -312,6 +312,7 @@ def _deploy_success(name, kinds, service_type, image):
         assert dep.spec.template.spec.containers[0].image == image
         svc = Service.get(name)
         assert svc.spec.type == service_type
+
     return action
 
 

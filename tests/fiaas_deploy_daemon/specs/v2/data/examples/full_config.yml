@@ -11,7 +11,7 @@ autoscaler:
 host: some.host.no
 prometheus:
   enabled: true
-  port: prom_port
+  port: prom-port
   path: /prometheus
 resources:
   limits:
@@ -22,7 +22,7 @@ resources:
     cpu: 50m
 ports:
   - protocol: http
-    name: prom_port
+    name: prom-port
     port: 8080
     target_port: 5000
     path: /
@@ -47,6 +47,8 @@ healthchecks:
     period_seconds: 20
     success_threshold: 2
     timeout_seconds: 2
+
+# No longer in use (we expose entire config map), but left in for testing backwards compatibility until v3 takes over
 config:
   envs:
     - FIRST_ENV

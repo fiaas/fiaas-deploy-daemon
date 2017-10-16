@@ -8,8 +8,8 @@ from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
-from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, ConfigMapSpec, \
-    AutoscalerSpec, ResourceRequirementSpec, ResourcesSpec
+from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
+    ResourceRequirementSpec, ResourcesSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -63,6 +63,20 @@ class TestDeploymentDeployer(object):
     def global_env(self, request):
         yield request.param
 
+    @pytest.fixture(params=(True, False))
+    def admin_access(self, request):
+        yield request.param
+
+    @pytest.fixture(params=(
+            (False, None),
+            (True, 8080),
+            (True, "8080"),
+            (True, "http")
+    ))
+    def prometheus(self, request):
+        enabled, port = request.param
+        yield PrometheusSpec(enabled, port, '/internal-backstage/prometheus')
+
     @pytest.fixture
     def deployer(self, infra, global_env):
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -83,30 +97,10 @@ class TestDeploymentDeployer(object):
         config.secrets_service_account_name = "secretsmanager"
         return DeploymentDeployer(config)
 
-    @pytest.mark.parametrize("volume,envs", [
-        (False, False),
-        (True, False),
-        (False, True),
-        (True, True)
-    ])
-    def test_deploy_new_deployment(self, infra, global_env, post, deployer, app_spec, volume, envs):
-        app_spec = app_spec._replace(config=ConfigMapSpec(volume, ["ENV"] if envs else []))
+    def test_deploy_new_deployment(self, infra, global_env, post, deployer, app_spec, admin_access, prometheus):
+        app_spec = app_spec._replace(admin_access=admin_access, prometheus=prometheus)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
-        expected_volumes = []
-        expected_volume_mounts = []
-        if volume:
-            expected_volumes = [{
-                'name': app_spec.name,
-                'configMap': {
-                    'name': app_spec.name
-                }}]
-            expected_volume_mounts = [{
-                'name': app_spec.name,
-                'readOnly': True,
-                'mountPath': '/var/run/config/fiaas/'
-            }]
-
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
             'spec': {
@@ -114,10 +108,14 @@ class TestDeploymentDeployer(object):
                 'template': {
                     'spec': {
                         'dnsPolicy': 'ClusterFirst',
-                        'automountServiceAccountToken': False,
+                        'automountServiceAccountToken': admin_access,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
-                        'volumes': expected_volumes,
+                        'volumes': [{
+                            'name': app_spec.name,
+                            'configMap': {
+                                'name': app_spec.name
+                            }}],
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -129,65 +127,20 @@ class TestDeploymentDeployer(object):
                                     'port': 8080
                                 }
                             },
-                            'name': 'testapp',
+                            'name': app_spec.name,
                             'image': 'finntech/testimage:version',
-                            'volumeMounts': expected_volume_mounts,
-                            'env': create_environment_variables(infra, envs, global_env=global_env),
-                            'imagePullPolicy': 'IfNotPresent',
-                            'readinessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'httpGet': {
-                                    'path': '/',
-                                    'scheme': 'HTTP',
-                                    'port': 8080,
-                                    'httpHeaders': []
-                                }
-                            },
-                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
-                            'resources': {}
-                        }],
-                        'initContainers': []
-                    },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
-                },
-                'replicas': 3,
-                'revisionHistoryLimit': 5
-            }
-        }
-        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
-
-    def test_deploy_new_admin_deployment(self, infra, global_env, post, deployer, app_spec_with_admin_access):
-        deployer.deploy(app_spec_with_admin_access, SELECTOR, LABELS)
-
-        expected_deployment = {
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-            'spec': {
-                'selector': {'matchLabels': SELECTOR},
-                'template': {
-                    'spec': {
-                        'dnsPolicy': 'ClusterFirst',
-                        'automountServiceAccountToken': True,
-                        'serviceAccountName': 'default',
-                        'restartPolicy': 'Always',
-                        'volumes': [],
-                        'imagePullSecrets': [],
-                        'containers': [{
-                            'livenessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'tcpSocket': {
-                                    'port': 8080
-                                }
-                            },
-                            'name': 'testapp',
-                            'image': 'finntech/testimage:version',
-                            'volumeMounts': [],
+                            'volumeMounts': [{
+                                'name': app_spec.name,
+                                'readOnly': True,
+                                'mountPath': '/var/run/config/fiaas/'
+                            }],
                             'env': create_environment_variables(infra, global_env=global_env),
+                            'envFrom': [{
+                                'configMapRef': {
+                                    'name': app_spec.name,
+                                    'optional': True,
+                                }
+                            }],
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -206,7 +159,7 @@ class TestDeploymentDeployer(object):
                         }],
                         'initContainers': []
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=prometheus.enabled, labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -214,41 +167,62 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    @pytest.mark.parametrize("deployer", [deployer, secrets_init_container_deployer])
-    def test_deploy_new_deployment_with_secrets(self, infra, global_env, post, deployer, app_spec_with_secrets):
-        app_spec = app_spec_with_secrets
-        deployer = deployer(self, infra, global_env)
+    @pytest.mark.parametrize("deployer_name", (
+            "deployer",
+            "secrets_init_container_deployer"
+    ))
+    def test_deploy_new_deployment_with_secrets(self, request, infra, global_env, post, deployer_name, app_spec):
+        app_spec = app_spec._replace(has_secrets=True)
+        deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
-        expected_volumes = [{
+        secret_volume = {
             'name': app_spec.name,
             'secret': {
                 'secretName': app_spec.name
             }
-        }]
-        expected_volume_mounts = [{
+        }
+        secret_volume_mount = {
             'name': app_spec.name,
             'readOnly': True,
             'mountPath': '/var/run/secrets/fiaas/'
-        }]
-        init_containers = []
+        }
+        init_secret_volume = {
+            'name': app_spec.name,
+        }
+        init_secret_volume_mount = {
+            'name': app_spec.name,
+            'readOnly': False,
+            'mountPath': '/var/run/secrets/fiaas/'
+        }
+        config_map_volume = {
+            'name': app_spec.name,
+            'configMap': {
+                'name': app_spec.name
+            }
+        }
+        config_map_volume_mount = {
+            'name': app_spec.name,
+            'readOnly': True,
+            'mountPath': '/var/run/config/fiaas/'
+        }
+
+        expected_volume_mounts = [secret_volume_mount, config_map_volume_mount]
         if deployer._uses_secrets_init_container():
-            expected_volumes = [{
-                'name': app_spec.name,
-            }]
-            expected_init_volume_mounts = [{
-                'name': app_spec.name,
-                'readOnly': False,
-                'mountPath': '/var/run/secrets/fiaas/'
-            }]
+            expected_volumes = [init_secret_volume, config_map_volume]
+            expected_init_volume_mounts = [init_secret_volume_mount, config_map_volume_mount]
             init_containers = [{
                 'name': 'fiaas-secrets-init-container',
                 'image': 'finntech/testimage:version',
                 'volumeMounts': expected_init_volume_mounts,
                 'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
+                'envFrom': [],
                 'imagePullPolicy': 'IfNotPresent',
                 'ports': []
             }]
+        else:
+            expected_volumes = [secret_volume, config_map_volume]
+            init_containers = []
 
         service_account_name = "default"
         if deployer._uses_secrets_init_container():
@@ -280,6 +254,12 @@ class TestDeploymentDeployer(object):
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
                             'env': create_environment_variables(infra, global_env=global_env),
+                            'envFrom': [{
+                                'configMapRef': {
+                                    'name': app_spec.name,
+                                    'optional': True,
+                                }
+                            }],
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -299,68 +279,6 @@ class TestDeploymentDeployer(object):
                         'initContainers': init_containers
                     },
                     'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
-                },
-                'replicas': 3,
-                'revisionHistoryLimit': 5
-            }
-        }
-        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
-
-    @pytest.mark.parametrize("enabled,port", (
-            (False, None),
-            (True, 8080),
-            (True, "8080"),
-            (True, "http")
-    ))
-    def test_deployment_prometheus(self, enabled, port, infra, global_env, post, deployer, app_spec):
-        app_spec = app_spec._replace(prometheus=PrometheusSpec(enabled, port, '/internal-backstage/prometheus'))
-        deployer.deploy(app_spec, SELECTOR, LABELS)
-
-        expected_deployment = {
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-            'spec': {
-                'selector': {'matchLabels': SELECTOR},
-                'template': {
-                    'spec': {
-                        'dnsPolicy': 'ClusterFirst',
-                        'automountServiceAccountToken': False,
-                        'serviceAccountName': 'default',
-                        'restartPolicy': 'Always',
-                        'volumes': [],
-                        'imagePullSecrets': [],
-                        'containers': [{
-                            'livenessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'tcpSocket': {
-                                    'port': 8080
-                                }
-                            },
-                            'name': 'testapp',
-                            'image': 'finntech/testimage:version',
-                            'volumeMounts': [],
-                            'env': create_environment_variables(infra, global_env=global_env),
-                            'imagePullPolicy': 'IfNotPresent',
-                            'readinessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'httpGet': {
-                                    'path': '/',
-                                    'scheme': 'HTTP',
-                                    'port': 8080,
-                                    'httpHeaders': []
-                                }
-                            },
-                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
-                            'resources': {}
-                        }],
-                        'initContainers': []
-                    },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=enabled, labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -394,7 +312,11 @@ class TestDeploymentDeployer(object):
                         'automountServiceAccountToken': False,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
-                        'volumes': [],
+                        'volumes': [{
+                            'name': app_spec.name,
+                            'configMap': {
+                                'name': app_spec.name
+                            }}],
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -408,8 +330,18 @@ class TestDeploymentDeployer(object):
                             },
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
-                            'volumeMounts': [],
+                            'volumeMounts': [{
+                                'name': app_spec.name,
+                                'readOnly': True,
+                                'mountPath': '/var/run/config/fiaas/'
+                            }],
                             'env': create_environment_variables(infra, global_env=global_env),
+                            'envFrom': [{
+                                'configMapRef': {
+                                    'name': app_spec.name,
+                                    'optional': True,
+                                }
+                            }],
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -447,7 +379,11 @@ class TestDeploymentDeployer(object):
                         'automountServiceAccountToken': False,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
-                        'volumes': [],
+                        'volumes': [{
+                            'name': app_spec.name,
+                            'configMap': {
+                                'name': app_spec.name
+                            }}],
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -461,8 +397,18 @@ class TestDeploymentDeployer(object):
                             },
                             'name': 'testapp',
                             'image': 'finntech/testimage:version2',
-                            'volumeMounts': [],
+                            'volumeMounts': [{
+                                'name': app_spec.name,
+                                'readOnly': True,
+                                'mountPath': '/var/run/config/fiaas/'
+                            }],
                             'env': create_environment_variables(infra, global_env=global_env, version="version2"),
+                            'envFrom': [{
+                                'configMapRef': {
+                                    'name': app_spec.name,
+                                    'optional': True,
+                                }
+                            }],
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': {
                                 'initialDelaySeconds': 10,
@@ -493,7 +439,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
-def create_environment_variables(infrastructure, envs=False, global_env=None, version="version"):
+def create_environment_variables(infrastructure, global_env=None, version="version"):
     environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'},
                    {'name': 'LOG_STDOUT', 'value': 'true'},
                    {'name': 'VERSION', 'value': version},
@@ -508,11 +454,4 @@ def create_environment_variables(infrastructure, envs=False, global_env=None, ve
         environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
-    if envs:
-        environment.append({'name': 'ENV', 'valueFrom': {
-            'configMapKeyRef': {
-                'name': 'testapp',
-                'key': "ENV"
-            }
-        }})
     return environment

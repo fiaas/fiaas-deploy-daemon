@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import time
-
 import mock
 import pytest
+from monotonic import monotonic as time_monotonic
+
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from k8s.models.deployment import Deployment
@@ -59,7 +59,7 @@ class TestReadyCheck(object):
         self._create_response(get, requested, replicas, available, updated)
 
         ready = ReadyCheck(app_spec, bookkeeper)
-        ready._fail_after = time.time()
+        ready._fail_after = time_monotonic()
 
         assert ready() is False
         bookkeeper.success.assert_not_called()

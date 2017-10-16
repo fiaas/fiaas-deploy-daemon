@@ -19,6 +19,7 @@ GENERIC_REQ = [
     "six == 1.10.0",
     "dnspython == 1.15.0",
     "k8s == 0.3.1",
+    "monotonic == 1.3",
 ]
 
 WEB_REQ = [
@@ -53,7 +54,6 @@ TESTS_REQ = [
     'pytest-helpers-namespace',
     'pytest >= 3.0',
     'requests-file',
-    'monotonic',
 ]
 
 setup(

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import time
+from monotonic import monotonic as time_monotonic
 
 from k8s.models.deployment import Deployment
 from k8s.client import NotFound
@@ -14,13 +14,13 @@ class ReadyCheck(object):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
-        self._fail_after = time.time() + fail_after_seconds
+        self._fail_after = time_monotonic() + fail_after_seconds
 
     def __call__(self):
         if self._ready():
             self._bookkeeper.success(self._app_spec)
             return False
-        if time.time() >= self._fail_after:
+        if time_monotonic() >= self._fail_after:
             self._bookkeeper.failed(self._app_spec)
             return False
         return True

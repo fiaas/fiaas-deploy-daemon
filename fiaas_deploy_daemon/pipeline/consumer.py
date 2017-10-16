@@ -4,13 +4,14 @@ from __future__ import absolute_import
 
 import json
 import logging
-import time
+
 
 import os
 from kafka import KafkaConsumer
 from prometheus_client import Counter
 from requests import HTTPError
 from yaml import YAMLError
+from monotonic import monotonic as time_monotonic
 
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -36,7 +37,7 @@ class Consumer(DaemonThread):
         self._reporter = reporter
         self._spec_factory = spec_factory
         self._app_config_downloader = app_config_downloader
-        self._last_message_timestamp = int(time.time())
+        self._last_message_timestamp = int(time_monotonic())
 
     def __call__(self):
         if self._consumer is None:
@@ -48,7 +49,7 @@ class Consumer(DaemonThread):
 
     def _handle_message(self, deploy_counter, message, message_counter):
         message_counter.inc()
-        self._last_message_timestamp = int(time.time())
+        self._last_message_timestamp = int(time_monotonic())
         event = self._deserialize(message)
         self._logger.debug("Got event: %r", event)
         if event[u"environment"] == self._environment:
@@ -111,8 +112,8 @@ class Consumer(DaemonThread):
 
     def _is_recieving_messages(self):
         # TODO: this is a hack to handle the fact that we sometimes seem to loose contact with kafka
-        self._logger.debug("No message for %r seconds", int(time.time()) - self._last_message_timestamp)
-        return self._last_message_timestamp > int(time.time()) - ALLOW_WITHOUT_MESSAGES_S
+        self._logger.debug("No message for %r seconds", int(time_monotonic()) - self._last_message_timestamp)
+        return self._last_message_timestamp > int(time_monotonic()) - ALLOW_WITHOUT_MESSAGES_S
 
 
 class NoDockerArtifactException(Exception):

@@ -4,11 +4,13 @@
 import time
 from Queue import PriorityQueue
 
+from monotonic import monotonic as time_monotonic
+
 from ..base_thread import DaemonThread
 
 
 class Scheduler(DaemonThread):
-    def __init__(self, time_func=time.time, delay_func=time.sleep):
+    def __init__(self, time_func=time_monotonic, delay_func=time.sleep):
         super(Scheduler, self).__init__()
         self._tasks = PriorityQueue()
         self._time_func = time_func

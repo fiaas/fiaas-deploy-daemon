@@ -50,8 +50,6 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 1,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
-        u"config.envs": [],
-        u"config.volume": False
     },
     # full_config should test overriding "all" possible values
     u"full_config": {
@@ -64,14 +62,14 @@ TEST_DATA = {
         u"admin_access": True,
         u"has_secrets": True,
         u"prometheus.enabled": True,
-        u"prometheus.port": u"prom_port",
+        u"prometheus.port": u"prom-port",
         u"prometheus.path": u"/prometheus",
         u"resources.limits.memory": u"128Mi",
         u"resources.limits.cpu": u"100m",
         u"resources.requests.memory": u"64Mi",
         u"resources.requests.cpu": u"50m",
         u"ports[0].protocol": u"http",
-        u"ports[0].name": u"prom_port",
+        u"ports[0].name": u"prom-port",
         u"ports[0].port": 8080,
         u"ports[0].target_port": 5000,
         u"ports[0].path": u"/",
@@ -93,9 +91,6 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 2,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
-        u"config.envs[0]": u"FIRST_ENV",
-        u"config.envs[1]": u"SECOND_ENV",
-        u"config.volume": True
     },
     u"exec_config": {
         u"health_checks.liveness.execute.command": u"liveness",
@@ -164,15 +159,6 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 10,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
-    },
-    u"config_as_env": {
-        u"config.envs[0]": u"FIRST_ENV",
-        u"config.envs[1]": u"SECOND_ENV",
-        u"config.volume": False
-    },
-    u"config_as_volume": {
-        u"config.envs": [],
-        u"config.volume": True
     }
 }
 

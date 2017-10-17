@@ -9,8 +9,9 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
-    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, EnvVarSource, ConfigMapKeySelector, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource
+    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource
+
 from .autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
@@ -42,6 +43,9 @@ class DeploymentDeployer(object):
                               image=app_spec.image,
                               ports=container_ports,
                               env=env,
+                              envFrom=[
+                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))
+                              ],
                               livenessProbe=_make_probe(app_spec.health_checks.liveness),
                               readinessProbe=_make_probe(app_spec.health_checks.readiness),
                               imagePullPolicy=pull_policy,
@@ -103,8 +107,7 @@ class DeploymentDeployer(object):
                 volumes.append(Volume(name=app_spec.name, emptyDir=EmptyDirVolumeSource()))
             else:
                 volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
-        if app_spec.config.volume:
-            volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name)))
+        volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name)))
         return volumes
 
     def _make_volume_mounts(self, app_spec, is_init_container=False):
@@ -113,8 +116,7 @@ class DeploymentDeployer(object):
             volume_mounts.append(VolumeMount(name=app_spec.name,
                                              readOnly=not is_init_container,
                                              mountPath="/var/run/secrets/fiaas/"))
-        if app_spec.config.volume:
-            volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/config/fiaas/"))
+        volume_mounts.append(VolumeMount(name=app_spec.name, readOnly=True, mountPath="/var/run/config/fiaas/"))
         return volume_mounts
 
     def _make_secrets_init_container(self, app_spec):
@@ -140,19 +142,6 @@ class DeploymentDeployer(object):
             else:
                 LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
         env.extend(global_env)
-
-        if app_spec.config.envs:
-            env.extend(
-                EnvVar(
-                    name=name,
-                    valueFrom=EnvVarSource(
-                        configMapKeyRef=ConfigMapKeySelector(
-                            name=app_spec.name,
-                            key=name
-                        )
-                    )
-                ) for name in app_spec.config.envs
-            )
         return env
 
     def _uses_secrets_init_container(self):

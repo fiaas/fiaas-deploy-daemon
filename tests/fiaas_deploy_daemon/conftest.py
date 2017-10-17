@@ -4,13 +4,12 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, ConfigMapSpec, AutoscalerSpec
+    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
-EMPTY_CONFIG_MAP_SPEC = ConfigMapSpec(volume=False, envs=[])
 
 
 @pytest.fixture
@@ -37,24 +36,8 @@ def app_spec():
                                 timeout_seconds=1)),
         teams=[u'foo'],
         tags=[u'bar'],
-        config=EMPTY_CONFIG_MAP_SPEC,
         deployment_id="test_app_deployment_id"
     )
-
-
-@pytest.fixture
-def app_spec_with_host(app_spec):
-    return app_spec._replace(host="www.example.com")
-
-
-@pytest.fixture
-def app_spec_with_admin_access(app_spec):
-    return app_spec._replace(admin_access=True)
-
-
-@pytest.fixture
-def app_spec_with_secrets(app_spec):
-    return app_spec._replace(has_secrets=True)
 
 
 @pytest.fixture

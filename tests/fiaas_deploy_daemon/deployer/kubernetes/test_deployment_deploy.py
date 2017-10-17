@@ -114,7 +114,8 @@ class TestDeploymentDeployer(object):
                         'volumes': [{
                             'name': app_spec.name,
                             'configMap': {
-                                'name': app_spec.name
+                                'name': app_spec.name,
+                                'optional': True
                             }}],
                         'imagePullSecrets': [],
                         'containers': [{
@@ -198,7 +199,8 @@ class TestDeploymentDeployer(object):
         config_map_volume = {
             'name': app_spec.name,
             'configMap': {
-                'name': app_spec.name
+                'name': app_spec.name,
+                'optional': True
             }
         }
         config_map_volume_mount = {
@@ -315,7 +317,8 @@ class TestDeploymentDeployer(object):
                         'volumes': [{
                             'name': app_spec.name,
                             'configMap': {
-                                'name': app_spec.name
+                                'name': app_spec.name,
+                                'optional': True
                             }}],
                         'imagePullSecrets': [],
                         'containers': [{
@@ -382,7 +385,8 @@ class TestDeploymentDeployer(object):
                         'volumes': [{
                             'name': app_spec.name,
                             'configMap': {
-                                'name': app_spec.name
+                                'name': app_spec.name,
+                                'optional': True
                             }}],
                         'imagePullSecrets': [],
                         'containers': [{

@@ -107,7 +107,7 @@ class DeploymentDeployer(object):
                 volumes.append(Volume(name=app_spec.name, emptyDir=EmptyDirVolumeSource()))
             else:
                 volumes.append(Volume(name=app_spec.name, secret=SecretVolumeSource(secretName=app_spec.name)))
-        volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name)))
+        volumes.append(Volume(name=app_spec.name, configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         return volumes
 
     def _make_volume_mounts(self, app_spec, is_init_container=False):

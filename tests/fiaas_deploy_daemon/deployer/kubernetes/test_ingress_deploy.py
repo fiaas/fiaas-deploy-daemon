@@ -2,8 +2,9 @@
 # -*- coding: utf-8
 import mock
 import pytest
-from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
+from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -201,7 +202,8 @@ class TestIngressDeployer(object):
         expected_labels = {"ingress_deployer": "pass through", "custom": "label"}
         expected_annotations = {"fiaas/expose": "false", "custom": "annotation"}
 
-        deployer.deploy(app_spec._replace(labels={"ingress": {"custom": "label"}}, annotations={"ingress": {"custom": "annotation"}}), LABELS)
+        deployer.deploy(app_spec._replace(labels={"ingress": {"custom": "label"}},
+                                          annotations={"ingress": {"custom": "annotation"}}), LABELS)
 
         expected_ingress = {
             'spec': {
@@ -226,7 +228,8 @@ class TestIngressDeployer(object):
                 }],
                 'tls': [],
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels, annotations=expected_annotations)
+            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels,
+                                                       annotations=expected_annotations)
         }
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)

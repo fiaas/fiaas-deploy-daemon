@@ -2,10 +2,11 @@
 # -*- coding: utf-8
 
 import pytest
-from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
-from fiaas_deploy_daemon.config import Configuration
 from mock import create_autospec
 from requests import Response
+
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"service": "pass through"}
@@ -63,10 +64,12 @@ class TestServiceDeployer(object):
                 }],
                 'sessionAffinity': 'None'
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels, annotations=expected_annotations)
+            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels,
+                                                       annotations=expected_annotations)
         }
 
-        app_spec_custom_labels_and_annotations = app_spec._replace(labels={"service": expected_labels}, annotations={"service": expected_annotations})
+        app_spec_custom_labels_and_annotations = app_spec._replace(labels={"service": expected_labels},
+                                                                   annotations={"service": expected_annotations})
         deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)

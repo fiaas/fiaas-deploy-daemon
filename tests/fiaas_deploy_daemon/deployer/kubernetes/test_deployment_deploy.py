@@ -101,7 +101,8 @@ class TestDeploymentDeployer(object):
             "deployer",
             "secrets_init_container_deployer"
     ))
-    def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access, prometheus):
+    def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
+                                   prometheus):
         app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus)
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
@@ -209,7 +210,8 @@ class TestDeploymentDeployer(object):
                         }],
                         'initContainers': init_containers
                     },
-                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
+                                                               labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -217,9 +219,11 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, post, app_spec, prometheus):
+    def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, post, app_spec,
+                                                                      prometheus):
         app_spec = app_spec._replace(prometheus=prometheus)
-        app_spec = app_spec._replace(labels={"deployment": {"custom": "label"}}, annotations={"deployment": {"custom": "annotation"}})
+        app_spec = app_spec._replace(labels={"deployment": {"custom": "label"}},
+                                     annotations={"deployment": {"custom": "annotation"}})
         deployer = request.getfuncargvalue("deployer")
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -237,7 +241,9 @@ class TestDeploymentDeployer(object):
         }]
 
         expected_deployment = {
-            'metadata': pytest.helpers.create_metadata(app_spec.name, labels={"deployment_deployer": "pass through", "custom": "label"}, annotations={"custom": "annotation"}),
+            'metadata': pytest.helpers.create_metadata(app_spec.name, labels={"deployment_deployer": "pass through",
+                                                                              "custom": "label"},
+                                                       annotations={"custom": "annotation"}),
             'spec': {
                 'selector': {'matchLabels': SELECTOR},
                 'template': {
@@ -286,7 +292,8 @@ class TestDeploymentDeployer(object):
                         }],
                         'initContainers': []
                     },
-                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
+                                                               labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5

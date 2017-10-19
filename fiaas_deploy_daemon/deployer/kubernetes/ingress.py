@@ -23,6 +23,8 @@ class IngressDeployer(object):
             annotations = {
                 u"fiaas/expose": u"true" if app_spec.host else u"false"
             }
+            labels.update(app_spec.labels.get("ingress", {}))
+            annotations.update(app_spec.annotations.get("ingress", {}))
             metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels,
                                   annotations=annotations)
             http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if

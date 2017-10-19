@@ -36,7 +36,9 @@ def app_spec():
                                 timeout_seconds=1)),
         teams=[u'foo'],
         tags=[u'bar'],
-        deployment_id="test_app_deployment_id"
+        deployment_id="test_app_deployment_id",
+        labels={},
+        annotations={}
     )
 
 

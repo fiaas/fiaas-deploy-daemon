@@ -36,7 +36,9 @@ class Factory(object):
             self._health_checks_spec(lookup[u"healthchecks"], ports),
             teams,
             tags,
-            deployment_id
+            deployment_id,
+            lookup[u"labels"],
+            lookup[u"annotations"]
         )
 
     @staticmethod

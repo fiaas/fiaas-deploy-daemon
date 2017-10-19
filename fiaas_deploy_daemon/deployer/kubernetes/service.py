@@ -24,8 +24,10 @@ class ServiceDeployer(object):
         except NotFound:
             pass
         service_name = app_spec.name
-        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels,
-                              annotations=self._make_tcp_port_annotation(app_spec))
+        labels.update(app_spec.labels.get("service", {}))
+        annotations = self._make_tcp_port_annotation(app_spec)
+        annotations.update(app_spec.annotations.get("service", {}))
+        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()

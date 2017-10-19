@@ -28,7 +28,7 @@ class ServiceDeployer(object):
         custom_labels.update(labels)
         custom_annotations = app_spec.annotations.get("service", {})
         custom_annotations.update(self._make_tcp_port_annotation(app_spec))
-        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=labels, annotations=custom_annotations)
+        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations)
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()

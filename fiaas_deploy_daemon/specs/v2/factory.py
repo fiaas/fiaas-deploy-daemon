@@ -37,8 +37,8 @@ class Factory(object):
             teams,
             tags,
             deployment_id,
-            lookup[u"labels"],
-            lookup[u"annotations"]
+            {},
+            {}
         )
 
     @staticmethod

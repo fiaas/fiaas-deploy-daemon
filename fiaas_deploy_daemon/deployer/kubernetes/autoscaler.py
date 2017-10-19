@@ -21,7 +21,7 @@ class AutoscalerDeployer(object):
             custom_labels = app_spec.labels.get("horizontal_pod_autoscaler", {})
             custom_labels.update(labels)
             annotations = app_spec.annotations.get("horizontal_pod_autoscaler", {})
-            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
+            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=annotations)
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
             spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
                                                minReplicas=app_spec.autoscaler.min_replicas,

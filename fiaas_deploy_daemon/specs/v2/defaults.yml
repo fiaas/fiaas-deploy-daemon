@@ -58,13 +58,3 @@ healthchecks:
 config: # A ConfigMap of the same name must exist, and is made available to the application
   volume: false # If true, the ConfigMap is mounted at /var/run/config/fiaas/
   envs: [] # A list of environment variables to set from the ConfigMap. The entry must be named the same in the ConfigMap.
-labels:
-  deployment: {}
-  horizontal_pod_autoscaler: {}
-  ingress: {}
-  service: {}
-annotations:
-  deployment: {}
-  horizontal_pod_autoscaler: {}
-  ingress: {}
-  service: {}

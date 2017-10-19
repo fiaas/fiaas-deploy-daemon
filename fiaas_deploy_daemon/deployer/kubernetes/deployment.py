@@ -36,7 +36,7 @@ class DeploymentDeployer(object):
         custom_labels = app_spec.labels.get("deployment", {})
         custom_labels.update(labels)
         annotations = app_spec.annotations.get("deployment", {})
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=annotations)
         container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in
                            app_spec.ports]
         env = self._make_env(app_spec)

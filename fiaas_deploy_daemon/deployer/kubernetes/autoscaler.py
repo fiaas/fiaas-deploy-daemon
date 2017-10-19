@@ -18,7 +18,8 @@ class AutoscalerDeployer(object):
     def deploy(self, app_spec, labels):
         if should_have_autoscaler(app_spec):
             LOG.info("Creating/updating %s for %s", self.name, app_spec.name)
-            labels.update(app_spec.labels.get("horizontal_pod_autoscaler", {}))
+            custom_labels = app_spec.labels.get("horizontal_pod_autoscaler", {})
+            custom_labels.update(labels)
             annotations = app_spec.annotations.get("horizontal_pod_autoscaler", {})
             metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")

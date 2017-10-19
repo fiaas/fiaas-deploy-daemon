@@ -23,7 +23,7 @@ version: 3
 |----------|--------------|
 | object   | no           |
 
-Number of Pods (instances) to run of the application. Based on the values of `minimum` and `maximum`, this object also
+Number of pods (instances) to run of the application. Based on the values of `minimum` and `maximum`, this object also
 controls whether the number of replicas should be automatically scaled based on load.
 
 
@@ -41,9 +41,9 @@ replicas:
 |----------|--------------|
 | int      | no           |
 
-Minimum number of Pods to run for the application.
+Minimum number of pods to run for the application.
 
-If maximum If `minimum` and `maximum` is set to the same value, autoscaling will be disabled.
+If `minimum` and `maximum` are set to the same value, autoscaling will be disabled.
 
 Default value:
 ```yaml
@@ -52,15 +52,15 @@ replicas:
 ```
 
 
-### maxium
+### maximum
 
 | **Type** | **Required** |
 |----------|--------------|
 | int      | no           |
 
-Maximum number of Pods to run for the application.
+Maximum number of pods to run for the application.
 
-If maximum If `minimum` and `maximum` is set to the same value, autoscaling will be disabled.
+If `minimum` and `maximum` are set to the same value, autoscaling will be disabled.
 
 
 Default value:
@@ -77,9 +77,9 @@ replicas:
 
 If `maximum` is greater than `minimum`, autoscaling is enabled for the application.
 
-Currently, the only supported metric for autoscaling is average cpu usage. If average cpu usage across all Pods is
-less than this value over some time period, the number of Pods will be increased. If average cpu usage across all
-Pods is less than this value, the number of Pods will be decreased after some time period.
+Currently, the only supported metric for autoscaling is average cpu usage. If average cpu usage across all pods is
+greater than this value over some time period, the number of pods will be increased. If average cpu usage across all
+pods is less than this value, the number of pods will be decreased after some time period.
 
 Autoscaling is done by using a
 [`HorizontalPodAutoscaler`](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/).
@@ -117,8 +117,14 @@ ingress:
 |----------|--------------|
 | string   | no           |
 
-
 The hostname part of a host + path combination where your application expects requests.
+
+If fiaas-deploy-daemon in the cluster you are deploying to is set up with one or more default ingress suffixes , all
+paths specified will be made available under these ingress suffixes.  E.g. if `foo.example.com` is the default ingress
+suffix, and your application is named `myapp`, your application will be available on `myapp.foo.example.com/`
+
+If the `host` field is set, the application will be available on `host` + any paths specified *in addition* to any
+default ingress suffixes.
 
 Example:
 ```yaml
@@ -145,6 +151,12 @@ ingress:
         port: metrics-port
 ```
 
+In this example, requests to `your-app.example.com/foo` or `your-app.example.com/bar` will go to the port named
+`http`. Unless overridden, this is the default service port 80 which points to target port 8080 in the pod running
+your application. Requests to `your-app.example.com/metrics` will go to the port named metrics-port, which also has to
+be defined under the `ports` configuration structure. It is also possible to use a port number, but named ports are
+strongly recommended.
+
 
 ## healthchecks
 
@@ -152,7 +164,7 @@ ingress:
 |----------|--------------|
 | object   | no           |
 
-Application endpoints to be used by Kubernetes to determine [when your application is up and/or ready to handle requests](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/).
+Application endpoints to be used by Kubernetes to determine [whether your application is up and/or ready to handle requests](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/).
 If `healthchecks.readiness` is not specified, `healthchecks.liveness` will be used as the value for `healthchecks.readiness`.
 
 ### liveness
@@ -181,10 +193,10 @@ healthchecks:
 ```
 
 You can only have one check, so specify only one of `execute`, `http`, or `tcp`. The default is a `http` check, which
-will send a HTTP request to the path and port configuration on the Pod running the application. The health check will
+will send a HTTP request to the path and port configuration on the pod running the application. The health check will
 be considered good if the HTTP response has a status code in the 200 range. Otherwise it will be considered bad.
 
-An `execute` check can be used to execute a program inside the Pod running the application. In this case, a exit
+An `execute` check can be used to execute a program inside the pod running the application. In this case, a exit
 status of 0 is considered a good health check, while any other exit status is considered bad.
 
 Example:
@@ -266,7 +278,7 @@ The application will have its CPU usage throttled if exceeding this limit.
 |----------|--------------|
 | object   | no           |
 
-Maximum amount of resources this application needs.
+Minimum amount of resources this application needs.
 
 #### memory
 
@@ -318,9 +330,9 @@ metrics:
 #### enabled
 | **Type** | **Required** |
 |----------|--------------|
-| boolean  | yes          |
+| boolean  | no           |
 
-Whether or not the Pods running the application will be scraped by Prometheus looking for metrics.
+Whether or not the pods running the application will be scraped by Prometheus looking for metrics.
 
 #### port
 | **Type** | **Required** |
@@ -334,15 +346,13 @@ Name of HTTP port Prometheus metrics are served on.
 |----------|--------------|
 | string   | no           |
 
-HTTP endpoint where metrics are being exposed.
-
-
+HTTP endpoint where metrics are exposed.
 
 ## ports
 
 | **Type** | **Required** |
 |----------|--------------|
-| object   | no           |
+| list     | no           |
 
 List of ports the application listens for requests.
 
@@ -358,14 +368,14 @@ ports:
 ### protocol
 | **Type** | **Required** |
 |----------|--------------|
-| boolean  | yes          |
+| string   | yes          |
 
 Protocol used by the application. It must be `http` or `tcp`.
 
 ### name
 | **Type** | **Required** |
 |----------|--------------|
-| string   | no          |
+| string   | no           |
 
 A logical name for port discovery. Must be <= 63 characters and match `[a-z0-9]([-a-z0-9]*[a-z0-9])?`.
 
@@ -471,8 +481,8 @@ secrets_in_environment: false
 |----------|--------------|
 | boolean  | no           |
 
-Controls whether or not Kubernetes apiserver tokens from the default `ServiceAccount` in the namespace the application
-is deployed to will be mounted inside the Pods. This is only neccessary if the application requires access to the
+Controls whether or not Kubernetes apiserver tokens from the `default` `ServiceAccount` in the namespace the application
+is deployed to will be mounted inside the pods. This is only neccessary if the application requires access to the
 Kubernetes apiserver. If in doubt, leave this disabled.
 
 ```yaml

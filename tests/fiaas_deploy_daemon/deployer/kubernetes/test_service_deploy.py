@@ -45,6 +45,32 @@ class TestServiceDeployer(object):
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 
+    def test_deploy_new_service_with_custom_labels_and_annotations(self, deployer, service_type, post, app_spec):
+        expected_labels = {"custom": "label"}
+        expected_annotations = {"custom": "annotation"}
+
+        expected_service = {
+            'spec': {
+                'selector': SELECTOR,
+                'type': service_type,
+                "loadBalancerSourceRanges": [
+                ],
+                'ports': [{
+                    'protocol': 'TCP',
+                    'targetPort': 8080,
+                    'name': 'http',
+                    'port': 80
+                }],
+                'sessionAffinity': 'None'
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels, annotations=expected_annotations)
+        }
+
+        app_spec_custom_labels_and_annotations = app_spec._replace(labels={"service": expected_labels}, annotations={"service": expected_annotations})
+        deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
+
+        pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
+
     def test_deploy_new_service_with_multiple_ports(self, deployer, service_type, post, app_spec_thrift_and_http):
         deployer.deploy(app_spec_thrift_and_http, SELECTOR, LABELS)
 

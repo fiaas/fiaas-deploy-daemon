@@ -18,6 +18,8 @@ LOG = logging.getLogger(__name__)
 
 
 class DeploymentDeployer(object):
+    SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
+
     def __init__(self, config):
         self._fiaas_env = {
             "FINN_ENV": config.environment,  # DEPRECATED. Remove in the future.
@@ -108,6 +110,8 @@ class DeploymentDeployer(object):
         if app_spec.has_secrets:
             if self._uses_secrets_init_container():
                 volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
+                volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                                      configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)))
             else:
                 volumes.append(Volume(name="{}-secret".format(app_spec.name), secret=SecretVolumeSource(secretName=app_spec.name)))
         volumes.append(Volume(name="{}-config".format(app_spec.name), configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
@@ -119,14 +123,20 @@ class DeploymentDeployer(object):
             volume_mounts.append(VolumeMount(name="{}-secret".format(app_spec.name),
                                              readOnly=not is_init_container,
                                              mountPath="/var/run/secrets/fiaas/"))
+            if is_init_container:
+                volume_mounts.append(VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                                                 readOnly=True, mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
         volume_mounts.append(VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         return volume_mounts
 
     def _make_secrets_init_container(self, app_spec):
-        container = Container(name="fiaas-secrets-init-container",
+        container = Container(name=self.SECRETS_INIT_CONTAINER_NAME,
                               image=self._secrets_init_container_image,
                               imagePullPolicy="IfNotPresent",
                               env=[EnvVar(name="K8S_DEPLOYMENT", value=app_spec.name)],
+                              envFrom=[
+                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True))
+                              ],
                               volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
         return container
 

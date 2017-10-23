@@ -163,34 +163,8 @@ class TestIngressDeployer(object):
             "app_spec_thrift_with_host",
             "app_spec_thrift"
     ))
-    def test_remove_existing_ingress_if_not_needed(self, request, delete, get, post, deployer, spec_name):
+    def test_remove_existing_ingress_if_not_needed(self, request, delete, post, deployer, spec_name):
         app_spec = request.getfuncargvalue(spec_name)
-        resp = mock.MagicMock()
-        get.return_value = resp
-        resp.json.return_value = {
-            'spec': {
-                'rules': [{
-                    'host': 'test.example.com',
-                    'http': {'paths': [{
-                        'path': '/',
-                        'backend': {
-                            'serviceName': 'testapp',
-                            'servicePort': 80
-                        }}]
-                    }}, {
-                    'host': 'test.k8s1-prod1.z01.example.com',
-                    'http': {'paths': [{
-                        'path': '/',
-                        'backend': {
-                            'serviceName': 'testapp',
-                            'servicePort': 80
-                        }}]
-                    }}
-                ],
-                'tls': [],
-            },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
-        }
 
         deployer.deploy(app_spec, LABELS)
 

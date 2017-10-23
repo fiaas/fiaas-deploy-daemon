@@ -95,6 +95,7 @@ def app_spec_teams_and_tags(app_spec):
         tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
     )
 
+
 @pytest.fixture
 def app_spec_no_ports(app_spec):
     exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),

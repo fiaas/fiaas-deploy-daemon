@@ -418,6 +418,7 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
     return environment
 
+
 def merge_dicts(*args):
     result = {}
     for d in args:

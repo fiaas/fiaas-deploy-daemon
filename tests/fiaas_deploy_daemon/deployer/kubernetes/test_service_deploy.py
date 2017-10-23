@@ -149,7 +149,6 @@ class TestServiceDeployer(object):
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, SERVICES_URI + "testapp", expected_service)
 
-
     def test_dont_deploy_service_with_no_ports(self, deployer, post, delete, app_spec_no_ports):
         deployer.deploy(app_spec_no_ports, SELECTOR, LABELS)
 

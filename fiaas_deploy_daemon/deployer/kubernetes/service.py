@@ -16,6 +16,19 @@ class ServiceDeployer(object):
         self._service_type = config.service_type
 
     def deploy(self, app_spec, selector, labels):
+        if self._should_have_service(app_spec):
+            self._create(app_spec, selector, labels)
+        else:
+            self.delete(app_spec)
+
+    def delete(self, app_spec):
+        LOG.info("Deleting service for %s", app_spec.name)
+        try:
+            Service.delete(app_spec.name, app_spec.namespace)
+        except NotFound:
+            pass
+
+    def _create(self, app_spec, selector, labels):
         LOG.info("Creating/updating service for %s with labels: %s", app_spec.name, labels)
         ports = [self._make_service_port(port_spec) for port_spec in app_spec.ports]
         try:
@@ -29,13 +42,6 @@ class ServiceDeployer(object):
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         svc.save()
-
-    def delete(self, app_spec):
-        LOG.info("Deleting service for %s", app_spec.name)
-        try:
-            Service.delete(app_spec.name, app_spec.namespace)
-        except NotFound:
-            pass
 
     @staticmethod
     def _merge_ports(existing_ports, wanted_ports):
@@ -61,3 +67,7 @@ class ServiceDeployer(object):
         return {
             'fiaas/tcp_port_names': ','.join(map(str, tcp_port_names))
         } if tcp_port_names else {}
+
+    @staticmethod
+    def _should_have_service(app_spec):
+        return len(app_spec.ports) > 0

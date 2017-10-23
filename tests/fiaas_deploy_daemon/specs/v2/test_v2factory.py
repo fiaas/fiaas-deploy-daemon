@@ -159,7 +159,14 @@ TEST_DATA = {
         u"health_checks.readiness.timeout_seconds": 10,
         u"health_checks.readiness.execute": None,
         u"health_checks.readiness.tcp": None,
-    }
+    },
+    u"ports_empty_list": {
+        u"ports[0].protocol": u"http",
+        u"ports[0].name": u"http",
+        u"ports[0].port": 80,
+        u"ports[0].target_port": 80,
+        u"ports[0].path": u"/",
+    },
 }
 
 

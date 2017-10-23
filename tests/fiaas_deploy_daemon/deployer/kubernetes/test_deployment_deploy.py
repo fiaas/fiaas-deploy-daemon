@@ -9,7 +9,7 @@ from requests import Response
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
-    ResourceRequirementSpec, ResourcesSpec
+    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -109,8 +109,19 @@ class TestDeploymentDeployer(object):
     ))
     def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
                                    prometheus, has_ports):
-        ports = app_spec.ports if has_ports else []
-        app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus, ports=ports)
+
+        if has_ports:
+            ports = app_spec.ports
+            health_checks = app_spec.health_checks
+        else:
+            ports = []
+            exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
+                                   initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                                   timeout_seconds=1)
+            health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
+
+        app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus, ports=ports,
+                                     health_checks=health_checks)
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -167,6 +178,35 @@ class TestDeploymentDeployer(object):
         if deployer._uses_secrets_init_container():
             service_account_name = "secretsmanager"
 
+        base_expected_health_check = {
+            'initialDelaySeconds': 10,
+            'periodSeconds': 10,
+            'successThreshold': 1,
+            'timeoutSeconds': 1,
+        }
+        if has_ports:
+            expected_liveness_check = merge_dicts(base_expected_health_check, {
+                'tcpSocket': {
+                    'port': 8080
+                }
+            })
+            expected_readiness_check = merge_dicts(base_expected_health_check, {
+                'httpGet': {
+                    'path': '/',
+                    'scheme': 'HTTP',
+                    'port': 8080,
+                    'httpHeaders': []
+                }
+            })
+        else:
+            exec_check = merge_dicts(base_expected_health_check, {
+                'exec': {
+                    'command': ['/app/check.sh'],
+                }
+            })
+            expected_liveness_check = exec_check
+            expected_readiness_check = exec_check
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata(app_spec.name, labels=LABELS),
             'spec': {
@@ -180,15 +220,7 @@ class TestDeploymentDeployer(object):
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
                         'containers': [{
-                            'livenessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'tcpSocket': {
-                                    'port': 8080
-                                }
-                            },
+                            'livenessProbe': expected_liveness_check,
                             'name': app_spec.name,
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
@@ -200,18 +232,7 @@ class TestDeploymentDeployer(object):
                                 }
                             }],
                             'imagePullPolicy': 'IfNotPresent',
-                            'readinessProbe': {
-                                'initialDelaySeconds': 10,
-                                'periodSeconds': 10,
-                                'successThreshold': 1,
-                                'timeoutSeconds': 1,
-                                'httpGet': {
-                                    'path': '/',
-                                    'scheme': 'HTTP',
-                                    'port': 8080,
-                                    'httpHeaders': []
-                                }
-                            },
+                            'readinessProbe': expected_readiness_check,
                             'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
                             'resources': {}
                         }],
@@ -396,3 +417,9 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
     return environment
+
+def merge_dicts(*args):
+    result = {}
+    for d in args:
+        result.update(d)
+    return result

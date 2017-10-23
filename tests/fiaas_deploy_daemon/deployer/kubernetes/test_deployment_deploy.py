@@ -73,9 +73,15 @@ class TestDeploymentDeployer(object):
             (True, "8080"),
             (True, "http")
     ))
-    def prometheus(self, request):
+    def prometheus(self, request, has_ports):
         enabled, port = request.param
+        if not has_ports:
+            enabled = False
         yield PrometheusSpec(enabled, port, '/internal-backstage/prometheus')
+
+    @pytest.fixture(params=(True, False))
+    def has_ports(self, request):
+        yield request.param
 
     @pytest.fixture
     def deployer(self, infra, global_env):
@@ -99,10 +105,12 @@ class TestDeploymentDeployer(object):
 
     @pytest.mark.parametrize("deployer_name", (
             "deployer",
-            "secrets_init_container_deployer"
+            "secrets_init_container_deployer",
     ))
-    def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access, prometheus):
-        app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus)
+    def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
+                                   prometheus, has_ports):
+        ports = app_spec.ports if has_ports else []
+        app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus, ports=ports)
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -204,7 +212,7 @@ class TestDeploymentDeployer(object):
                                     'httpHeaders': []
                                 }
                             },
-                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
+                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
                             'resources': {}
                         }],
                         'initContainers': init_containers

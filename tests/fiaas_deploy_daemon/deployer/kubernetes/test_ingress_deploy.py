@@ -161,7 +161,8 @@ class TestIngressDeployer(object):
 
     @pytest.mark.parametrize("spec_name", (
             "app_spec_thrift_with_host",
-            "app_spec_thrift"
+            "app_spec_thrift",
+            "app_spec_no_ports",
     ))
     def test_remove_existing_ingress_if_not_needed(self, request, delete, post, deployer, spec_name):
         app_spec = request.getfuncargvalue(spec_name)

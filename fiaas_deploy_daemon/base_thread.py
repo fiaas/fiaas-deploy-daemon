@@ -14,7 +14,7 @@ class DaemonThread(Thread):
         log = logging.getLogger()
         try:
             self()
-        except:
+        except BaseException:
             log.exception("Error in background thread %s", self.name)
 
     def _make_name(self):

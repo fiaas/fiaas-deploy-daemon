@@ -19,28 +19,9 @@ class IngressDeployer(object):
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
-            LOG.info("Creating/updating ingress for %s", app_spec.name)
-            annotations = {
-                u"fiaas/expose": u"true" if app_spec.host else u"false"
-            }
-            custom_labels = app_spec.labels.get("ingress", {})
-            custom_labels.update(labels)
-            custom_annotations = app_spec.annotations.get("ingress", {})
-            custom_annotations.update(annotations)
-            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
-                                  annotations=custom_annotations)
-            http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if
-                                  port_spec.protocol == u"http"]
-            http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
-            ingress_rules = [IngressRule(host=host, http=http_ingress_rule) for host in self._generate_hosts(app_spec)]
-            ingress_spec = IngressSpec(rules=ingress_rules)
-            ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
-            ingress.save()
+            self._create(app_spec, labels)
         else:
-            try:
-                Ingress.delete(app_spec.name, app_spec.namespace)
-            except NotFound:
-                pass
+            self.delete(app_spec)
 
     def delete(self, app_spec):
         LOG.info("Deleting ingress for %s", app_spec.name)
@@ -48,6 +29,25 @@ class IngressDeployer(object):
             Ingress.delete(app_spec.name, app_spec.namespace)
         except NotFound:
             pass
+
+    def _create(self, app_spec, labels):
+        LOG.info("Creating/updating ingress for %s", app_spec.name)
+        annotations = {
+            u"fiaas/expose": u"true" if app_spec.host else u"false"
+        }
+        custom_labels = app_spec.labels.get("ingress", {})
+        custom_labels.update(labels)
+        custom_annotations = app_spec.annotations.get("ingress", {})
+        custom_annotations.update(annotations)
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
+                              annotations=custom_annotations)
+        http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if
+                              port_spec.protocol == u"http"]
+        http_ingress_rule = HTTPIngressRuleValue(paths=http_ingress_paths)
+        ingress_rules = [IngressRule(host=host, http=http_ingress_rule) for host in self._generate_hosts(app_spec)]
+        ingress_spec = IngressSpec(rules=ingress_rules)
+        ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
+        ingress.save()
 
     def _generate_hosts(self, app_spec):
         if app_spec.host:

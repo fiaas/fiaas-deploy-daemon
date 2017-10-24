@@ -33,7 +33,10 @@ class DeploymentDeployer(object):
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels)
+        custom_labels = app_spec.labels.get("deployment", {})
+        custom_labels.update(labels)
+        annotations = app_spec.annotations.get("deployment", {})
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=annotations)
         container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in
                            app_spec.ports]
         env = self._make_env(app_spec)

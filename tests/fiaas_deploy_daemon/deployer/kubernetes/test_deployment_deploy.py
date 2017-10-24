@@ -109,7 +109,6 @@ class TestDeploymentDeployer(object):
     ))
     def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
                                    prometheus, has_ports):
-
         if has_ports:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
@@ -238,7 +237,90 @@ class TestDeploymentDeployer(object):
                         }],
                         'initContainers': init_containers
                     },
-                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
+                                                               labels=LABELS)
+                },
+                'replicas': 3,
+                'revisionHistoryLimit': 5
+            }
+        }
+        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
+
+    def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, post, app_spec,
+                                                                      prometheus):
+        app_spec = app_spec._replace(prometheus=prometheus)
+        app_spec = app_spec._replace(labels={"deployment": {"custom": "label"}},
+                                     annotations={"deployment": {"custom": "annotation"}})
+        deployer = request.getfuncargvalue("deployer")
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        expected_volume_mounts = [{
+            'name': "{}-config".format(app_spec.name),
+            'readOnly': True,
+            'mountPath': '/var/run/config/fiaas/'
+        }]
+        expected_volumes = [{
+            'name': "{}-config".format(app_spec.name),
+            'configMap': {
+                'name': app_spec.name,
+                'optional': True
+            }
+        }]
+
+        expected_deployment = {
+            'metadata': pytest.helpers.create_metadata(app_spec.name, labels={"deployment_deployer": "pass through",
+                                                                              "custom": "label"},
+                                                       annotations={"custom": "annotation"}),
+            'spec': {
+                'selector': {'matchLabels': SELECTOR},
+                'template': {
+                    'spec': {
+                        'dnsPolicy': 'ClusterFirst',
+                        'automountServiceAccountToken': False,
+                        'serviceAccountName': "default",
+                        'restartPolicy': 'Always',
+                        'volumes': expected_volumes,
+                        'imagePullSecrets': [],
+                        'containers': [{
+                            'livenessProbe': {
+                                'initialDelaySeconds': 10,
+                                'periodSeconds': 10,
+                                'successThreshold': 1,
+                                'timeoutSeconds': 1,
+                                'tcpSocket': {
+                                    'port': 8080
+                                }
+                            },
+                            'name': app_spec.name,
+                            'image': 'finntech/testimage:version',
+                            'volumeMounts': expected_volume_mounts,
+                            'env': create_environment_variables(infra, global_env=global_env),
+                            'envFrom': [{
+                                'configMapRef': {
+                                    'name': app_spec.name,
+                                    'optional': True,
+                                }
+                            }],
+                            'imagePullPolicy': 'IfNotPresent',
+                            'readinessProbe': {
+                                'initialDelaySeconds': 10,
+                                'periodSeconds': 10,
+                                'successThreshold': 1,
+                                'timeoutSeconds': 1,
+                                'httpGet': {
+                                    'path': '/',
+                                    'scheme': 'HTTP',
+                                    'port': 8080,
+                                    'httpHeaders': []
+                                }
+                            },
+                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}],
+                            'resources': {}
+                        }],
+                        'initContainers': []
+                    },
+                    'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
+                                                               labels=LABELS)
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5

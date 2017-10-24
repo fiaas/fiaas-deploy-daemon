@@ -2,10 +2,11 @@
 # -*- coding: utf-8
 
 import pytest
-from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
-from fiaas_deploy_daemon.config import Configuration
 from mock import create_autospec
 from requests import Response
+
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"service": "pass through"}
@@ -42,6 +43,34 @@ class TestServiceDeployer(object):
             },
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
         }
+
+        pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
+
+    def test_deploy_new_service_with_custom_labels_and_annotations(self, deployer, service_type, post, app_spec):
+        expected_labels = {"custom": "label"}
+        expected_annotations = {"custom": "annotation"}
+
+        expected_service = {
+            'spec': {
+                'selector': SELECTOR,
+                'type': service_type,
+                "loadBalancerSourceRanges": [
+                ],
+                'ports': [{
+                    'protocol': 'TCP',
+                    'targetPort': 8080,
+                    'name': 'http',
+                    'port': 80
+                }],
+                'sessionAffinity': 'None'
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels,
+                                                       annotations=expected_annotations)
+        }
+
+        app_spec_custom_labels_and_annotations = app_spec._replace(labels={"service": expected_labels},
+                                                                   annotations={"service": expected_annotations})
+        deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 

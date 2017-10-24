@@ -2,8 +2,9 @@
 # -*- coding: utf-8
 import mock
 import pytest
-from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
+from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -171,3 +172,39 @@ class TestIngressDeployer(object):
 
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")
+
+    def test_deploy_new_ingress_with_custom_labels_and_annotations(self, app_spec, post, deployer):
+        expected_labels = {"ingress_deployer": "pass through", "custom": "label"}
+        expected_annotations = {"fiaas/expose": "false", "custom": "annotation"}
+
+        deployer.deploy(app_spec._replace(labels={"ingress": {"custom": "label"}},
+                                          annotations={"ingress": {"custom": "annotation"}}), LABELS)
+
+        expected_ingress = {
+            'spec': {
+                'rules': [{
+                    'host': "testapp.svc.test.example.com",
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }, {
+                    'host': "testapp.127.0.0.1.xip.io",
+                    'http': {'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80
+                        }}]
+                    }
+                }],
+                'tls': [],
+            },
+            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels,
+                                                       annotations=expected_annotations)
+        }
+
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)

@@ -19,7 +19,9 @@ class AppSpec(namedtuple("AppSpec", [
         "health_checks",
         "teams",
         "tags",
-        "deployment_id"])):
+        "deployment_id",
+        "labels",
+        "annotations"])):
 
     __slots__ = ()
 

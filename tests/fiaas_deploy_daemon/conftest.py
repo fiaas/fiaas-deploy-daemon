@@ -4,7 +4,7 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec
+    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
@@ -94,3 +94,11 @@ def app_spec_teams_and_tags(app_spec):
         teams=[u'Order Produkt Betaling'],
         tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
     )
+
+
+@pytest.fixture
+def app_spec_no_ports(app_spec):
+    exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
+                           initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                           timeout_seconds=1)
+    return app_spec._replace(ports=[], health_checks=HealthCheckSpec(liveness=exec_check, readiness=exec_check))

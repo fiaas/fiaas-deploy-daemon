@@ -102,7 +102,7 @@ def main():
                              else DisabledThirdPartyResourceBindings())
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()
-    except:
+    except BaseException:
         log.exception("General failure! Inspect traceback and make the code better!")
 
 

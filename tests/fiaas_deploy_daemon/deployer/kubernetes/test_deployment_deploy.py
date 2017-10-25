@@ -124,6 +124,7 @@ class TestDeploymentDeployer(object):
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
+        init_container_name = 'fiaas-secrets-init-container'
         secret_volume = {
             'name': "{}-secret".format(app_spec.name),
             'secret': {
@@ -155,17 +156,34 @@ class TestDeploymentDeployer(object):
             'readOnly': True,
             'mountPath': '/var/run/config/fiaas/'
         }
+        init_config_map_volume = {
+            'name': "{}-config".format(init_container_name),
+            'configMap': {
+                'name': init_container_name,
+                'optional': True
+            }
+        }
+        init_config_map_volume_mount = {
+            'name': "{}-config".format(init_container_name),
+            'readOnly': True,
+            'mountPath': "/var/run/config/{}/".format(init_container_name)
+        }
 
         expected_volume_mounts = [secret_volume_mount, config_map_volume_mount]
         if deployer._uses_secrets_init_container():
-            expected_volumes = [init_secret_volume, config_map_volume]
-            expected_init_volume_mounts = [init_secret_volume_mount, config_map_volume_mount]
+            expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume]
+            expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount]
             init_containers = [{
-                'name': 'fiaas-secrets-init-container',
+                'name': init_container_name,
                 'image': 'finntech/testimage:version',
                 'volumeMounts': expected_init_volume_mounts,
                 'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
-                'envFrom': [],
+                'envFrom': [{
+                    'configMapRef': {
+                        'name': init_container_name,
+                        'optional': True,
+                    }
+                }],
                 'imagePullPolicy': 'IfNotPresent',
                 'ports': []
             }]

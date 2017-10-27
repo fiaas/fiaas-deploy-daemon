@@ -10,7 +10,6 @@ class AppSpec(namedtuple("AppSpec", [
         "image",
         "replicas",
         "autoscaler",
-        "host",
         "resources",
         "admin_access",
         "secrets_in_environment",
@@ -21,7 +20,8 @@ class AppSpec(namedtuple("AppSpec", [
         "tags",
         "deployment_id",
         "labels",
-        "annotations"])):
+        "annotations",
+        "ingresses"])):
 
     __slots__ = ()
 
@@ -51,7 +51,7 @@ PortSpec = namedtuple("PortSpec", [
     "name",
     "port",
     "target_port",
-    "path"])
+])
 
 HealthCheckSpec = namedtuple("HealthCheckSpec", [
     "liveness",
@@ -83,9 +83,20 @@ AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "cpu_threshold_percentage"
 ])
 
+
 LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
   "deployment",
   "horizontal_pod_autoscaler",
   "ingress",
   "service"
+])
+
+IngressItemSpec = namedtuple("IngressItemSpec", [
+    "host",
+    "pathmappings",
+])
+
+IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
+    "path",
+    "port",
 ])

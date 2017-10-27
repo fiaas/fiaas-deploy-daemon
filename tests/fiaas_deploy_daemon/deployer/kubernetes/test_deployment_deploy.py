@@ -256,7 +256,7 @@ class TestDeploymentDeployer(object):
                         'initContainers': init_containers
                     },
                     'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
-                                                               labels=LABELS)
+                                                               labels=_get_expected_template_labels())
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -338,7 +338,7 @@ class TestDeploymentDeployer(object):
                         'initContainers': []
                     },
                     'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
-                                                               labels=LABELS)
+                                                               labels=_get_expected_template_labels())
                 },
                 'replicas': 3,
                 'revisionHistoryLimit': 5
@@ -491,7 +491,7 @@ class TestDeploymentDeployer(object):
                         }],
                         'initContainers': []
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=LABELS)
+                    'metadata': pytest.helpers.create_metadata('testapp', prometheus=True, labels=_get_expected_template_labels())
                 },
                 'replicas': expected_replicas,
                 'revisionHistoryLimit': 5
@@ -524,3 +524,9 @@ def merge_dicts(*args):
     for d in args:
         result.update(d)
     return result
+
+
+def _get_expected_template_labels():
+    expected_template_labels = {"fiaas/status": "active"}
+    expected_template_labels.update(LABELS)
+    return expected_template_labels

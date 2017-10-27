@@ -61,7 +61,7 @@ class DeploymentDeployer(object):
         init_containers = []
         service_account_name = "default"
 
-        if app_spec.has_secrets and self._uses_secrets_init_container():
+        if self._uses_secrets_init_container():
             init_container = self._make_secrets_init_container(app_spec)
             init_containers.append(init_container)
             automount_service_account_token = True
@@ -107,25 +107,25 @@ class DeploymentDeployer(object):
 
     def _make_volumes(self, app_spec):
         volumes = []
-        if app_spec.has_secrets:
-            if self._uses_secrets_init_container():
-                volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
-                volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                      configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)))
-            else:
-                volumes.append(Volume(name="{}-secret".format(app_spec.name), secret=SecretVolumeSource(secretName=app_spec.name)))
-        volumes.append(Volume(name="{}-config".format(app_spec.name), configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
+        if self._uses_secrets_init_container():
+            volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
+            volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                                  configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)))
+        else:
+            volumes.append(Volume(name="{}-secret".format(app_spec.name),
+                                  secret=SecretVolumeSource(secretName=app_spec.name, optional=True)))
+        volumes.append(Volume(name="{}-config".format(app_spec.name),
+                              configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         return volumes
 
     def _make_volume_mounts(self, app_spec, is_init_container=False):
         volume_mounts = []
-        if app_spec.has_secrets:
-            volume_mounts.append(VolumeMount(name="{}-secret".format(app_spec.name),
-                                             readOnly=not is_init_container,
-                                             mountPath="/var/run/secrets/fiaas/"))
-            if is_init_container:
-                volume_mounts.append(VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                                 readOnly=True, mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
+        volume_mounts.append(VolumeMount(name="{}-secret".format(app_spec.name),
+                                         readOnly=not is_init_container,
+                                         mountPath="/var/run/secrets/fiaas/"))
+        if is_init_container:
+            volume_mounts.append(VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                                             readOnly=True, mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
         volume_mounts.append(VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         return volume_mounts
 

@@ -11,6 +11,8 @@ from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, Depl
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec
 
+INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
+
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
 DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
@@ -119,68 +121,22 @@ class TestDeploymentDeployer(object):
                                    timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
 
-        app_spec = app_spec._replace(has_secrets=True, admin_access=admin_access, prometheus=prometheus, ports=ports,
-                                     health_checks=health_checks)
+        app_spec = app_spec._replace(admin_access=admin_access, prometheus=prometheus, ports=ports, health_checks=health_checks)
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
-        init_container_name = 'fiaas-secrets-init-container'
-        secret_volume = {
-            'name': "{}-secret".format(app_spec.name),
-            'secret': {
-                'secretName': app_spec.name
-            }
-        }
-        secret_volume_mount = {
-            'name': "{}-secret".format(app_spec.name),
-            'readOnly': True,
-            'mountPath': '/var/run/secrets/fiaas/'
-        }
-        init_secret_volume = {
-            'name': "{}-secret".format(app_spec.name),
-        }
-        init_secret_volume_mount = {
-            'name': "{}-secret".format(app_spec.name),
-            'readOnly': False,
-            'mountPath': '/var/run/secrets/fiaas/'
-        }
-        config_map_volume = {
-            'name': "{}-config".format(app_spec.name),
-            'configMap': {
-                'name': app_spec.name,
-                'optional': True
-            }
-        }
-        config_map_volume_mount = {
-            'name': "{}-config".format(app_spec.name),
-            'readOnly': True,
-            'mountPath': '/var/run/config/fiaas/'
-        }
-        init_config_map_volume = {
-            'name': "{}-config".format(init_container_name),
-            'configMap': {
-                'name': init_container_name,
-                'optional': True
-            }
-        }
-        init_config_map_volume_mount = {
-            'name': "{}-config".format(init_container_name),
-            'readOnly': True,
-            'mountPath': "/var/run/config/{}/".format(init_container_name)
-        }
+        expected_volumes = _get_expected_volumes(app_spec, deployer)
+        expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec, deployer)
 
-        expected_volume_mounts = [secret_volume_mount, config_map_volume_mount]
         if deployer._uses_secrets_init_container():
-            expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume]
-            expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount]
             init_containers = [{
-                'name': init_container_name,
+                'name': (INIT_CONTAINER_NAME),
                 'image': 'finntech/testimage:version',
                 'volumeMounts': expected_init_volume_mounts,
                 'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
                 'envFrom': [{
                     'configMapRef': {
-                        'name': init_container_name,
+                        'name': INIT_CONTAINER_NAME,
                         'optional': True,
                     }
                 }],
@@ -188,10 +144,10 @@ class TestDeploymentDeployer(object):
                 'ports': []
             }]
         else:
-            expected_volumes = [secret_volume, config_map_volume]
             init_containers = []
 
         service_account_name = "default"
+
         if deployer._uses_secrets_init_container():
             service_account_name = "secretsmanager"
 
@@ -272,18 +228,8 @@ class TestDeploymentDeployer(object):
         deployer = request.getfuncargvalue("deployer")
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
-        expected_volume_mounts = [{
-            'name': "{}-config".format(app_spec.name),
-            'readOnly': True,
-            'mountPath': '/var/run/config/fiaas/'
-        }]
-        expected_volumes = [{
-            'name': "{}-config".format(app_spec.name),
-            'configMap': {
-                'name': app_spec.name,
-                'optional': True
-            }
-        }]
+        expected_volumes = _get_expected_volumes(app_spec, deployer)
+        expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec, deployer)
 
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata(app_spec.name, labels={"deployment_deployer": "pass through",
@@ -361,6 +307,9 @@ class TestDeploymentDeployer(object):
                 resources=ResourcesSpec(
                     requests=ResourceRequirementSpec(cpu=cpu_request, memory=None),
                     limits=ResourceRequirementSpec(cpu=None, memory=None)))
+        expected_volumes = _get_expected_volumes(app_spec, deployer)
+        expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec, deployer)
+
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
@@ -372,12 +321,7 @@ class TestDeploymentDeployer(object):
                         'automountServiceAccountToken': False,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
-                        'volumes': [{
-                            'name': "{}-config".format(app_spec.name),
-                            'configMap': {
-                                'name': app_spec.name,
-                                'optional': True
-                            }}],
+                        'volumes': expected_volumes,
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -391,11 +335,7 @@ class TestDeploymentDeployer(object):
                             },
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
-                            'volumeMounts': [{
-                                'name': "{}-config".format(app_spec.name),
-                                'readOnly': True,
-                                'mountPath': '/var/run/config/fiaas/'
-                            }],
+                            'volumeMounts': expected_volume_mounts,
                             'env': create_environment_variables(infra, global_env=global_env),
                             'envFrom': [{
                                 'configMapRef': {
@@ -440,12 +380,7 @@ class TestDeploymentDeployer(object):
                         'automountServiceAccountToken': False,
                         'serviceAccountName': 'default',
                         'restartPolicy': 'Always',
-                        'volumes': [{
-                            'name': "{}-config".format(app_spec.name),
-                            'configMap': {
-                                'name': app_spec.name,
-                                'optional': True
-                            }}],
+                        'volumes': expected_volumes,
                         'imagePullSecrets': [],
                         'containers': [{
                             'livenessProbe': {
@@ -459,11 +394,7 @@ class TestDeploymentDeployer(object):
                             },
                             'name': 'testapp',
                             'image': 'finntech/testimage:version2',
-                            'volumeMounts': [{
-                                'name': "{}-config".format(app_spec.name),
-                                'readOnly': True,
-                                'mountPath': '/var/run/config/fiaas/'
-                            }],
+                            'volumeMounts': expected_volume_mounts,
                             'env': create_environment_variables(infra, global_env=global_env, version="version2"),
                             'envFrom': [{
                                 'configMapRef': {
@@ -530,3 +461,64 @@ def _get_expected_template_labels():
     expected_template_labels = {"fiaas/status": "active"}
     expected_template_labels.update(LABELS)
     return expected_template_labels
+
+
+def _get_expected_volumes(app_spec, deployer):
+    secret_volume = {
+        'name': "{}-secret".format(app_spec.name),
+        'secret': {
+            'secretName': app_spec.name,
+            'optional': True
+        }
+    }
+    init_secret_volume = {
+        'name': "{}-secret".format(app_spec.name),
+    }
+    config_map_volume = {
+        'name': "{}-config".format(app_spec.name),
+        'configMap': {
+            'name': app_spec.name,
+            'optional': True
+        }
+    }
+    init_config_map_volume = {
+        'name': "{}-config".format(INIT_CONTAINER_NAME),
+        'configMap': {
+            'name': INIT_CONTAINER_NAME,
+            'optional': True
+        }
+    }
+    if deployer._uses_secrets_init_container():
+        expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume]
+    else:
+        expected_volumes = [secret_volume, config_map_volume]
+    return expected_volumes
+
+
+def _get_expected_volume_mounts(app_spec, deployer):
+    secret_volume_mount = {
+        'name': "{}-secret".format(app_spec.name),
+        'readOnly': True,
+        'mountPath': '/var/run/secrets/fiaas/'
+    }
+    init_secret_volume_mount = {
+        'name': "{}-secret".format(app_spec.name),
+        'readOnly': False,
+        'mountPath': '/var/run/secrets/fiaas/'
+    }
+    config_map_volume_mount = {
+        'name': "{}-config".format(app_spec.name),
+        'readOnly': True,
+        'mountPath': '/var/run/config/fiaas/'
+    }
+    init_config_map_volume_mount = {
+        'name': "{}-config".format(INIT_CONTAINER_NAME),
+        'readOnly': True,
+        'mountPath': "/var/run/config/{}/".format(INIT_CONTAINER_NAME)
+    }
+    expected_volume_mounts = [secret_volume_mount, config_map_volume_mount]
+    if deployer._uses_secrets_init_container():
+        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount]
+    else:
+        expected_init_volume_mounts = []
+    return expected_init_volume_mounts, expected_volume_mounts

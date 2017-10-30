@@ -78,7 +78,6 @@ class DeploymentDeployer(object):
             if app_spec.prometheus and app_spec.prometheus.enabled else None
 
         pod_labels = _add_status_label(labels)
-        selector_labels = _add_status_label(selector)
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
                                   annotations=prom_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
@@ -91,7 +90,7 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
-        spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector_labels),
+        spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),
                               template=pod_template_spec, revisionHistoryLimit=5)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
@@ -166,7 +165,7 @@ def _add_status_label(labels):
     copy.update({
         "fiaas/status": "active"
     })
-    return labels
+    return copy
 
 
 def _make_prometheus_annotations(app_spec):

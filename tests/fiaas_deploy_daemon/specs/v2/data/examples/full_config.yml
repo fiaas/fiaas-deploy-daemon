@@ -2,7 +2,6 @@
 version: 2
 namespace: test
 admin_access: true
-has_secrets: true
 replicas: 20
 autoscaler:
   enabled: true
@@ -48,7 +47,10 @@ healthchecks:
     success_threshold: 2
     timeout_seconds: 2
 
-# No longer in use (we expose entire config map), but left in for testing backwards compatibility until v3 takes over
+# No longer in use, but left in for testing backwards compatibility until v3 takes over
+# We always mount secrets if they exist
+has_secrets: true
+# We expose entire config map always if it exists
 config:
   envs:
     - FIRST_ENV

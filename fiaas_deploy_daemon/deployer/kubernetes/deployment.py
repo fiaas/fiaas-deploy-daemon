@@ -10,7 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
@@ -44,13 +44,14 @@ class DeploymentDeployer(object):
         env = self._make_env(app_spec)
         pull_policy = "IfNotPresent" if (":" in app_spec.image and ":latest" not in app_spec.image) else "Always"
 
+        env_from = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
+        if app_spec.secrets_in_environment:
+            env_from.append(EnvFromSource(secretRef=SecretEnvSource(name=app_spec.name, optional=True)))
         container = Container(name=app_spec.name,
                               image=app_spec.image,
                               ports=container_ports,
                               env=env,
-                              envFrom=[
-                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))
-                              ],
+                              envFrom=env_from,
                               livenessProbe=_make_probe(app_spec.health_checks.liveness),
                               readinessProbe=_make_probe(app_spec.health_checks.readiness),
                               imagePullPolicy=pull_policy,

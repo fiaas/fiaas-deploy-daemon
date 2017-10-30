@@ -78,6 +78,7 @@ class PaasApplicationConfig(Model):
     namespace = Field(six.text_type)
     admin_access = Field(bool)
     has_secrets = Field(bool)
+    secrets_in_environment = Field(bool)
     replicas = Field(int)
     autoscaler = Field(Autoscaler)
     host = Field(six.text_type)

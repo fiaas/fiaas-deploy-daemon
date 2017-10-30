@@ -86,6 +86,10 @@ class TestDeploymentDeployer(object):
     def has_ports(self, request):
         yield request.param
 
+    @pytest.fixture(params=(True, False))
+    def secrets_in_environment(self, request):
+        yield request.param
+
     @pytest.fixture
     def deployer(self, infra, global_env):
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -111,7 +115,7 @@ class TestDeploymentDeployer(object):
             "secrets_init_container_deployer",
     ))
     def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
-                                   prometheus, has_ports):
+                                   prometheus, has_ports, secrets_in_environment):
         if has_ports:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
@@ -122,7 +126,13 @@ class TestDeploymentDeployer(object):
                                    timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
 
-        app_spec = app_spec._replace(admin_access=admin_access, prometheus=prometheus, ports=ports, health_checks=health_checks)
+        app_spec = app_spec._replace(
+            admin_access=admin_access,
+            prometheus=prometheus,
+            ports=ports,
+            health_checks=health_checks,
+            secrets_in_environment=secrets_in_environment
+        )
         deployer = request.getfuncargvalue(deployer_name)
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -181,6 +191,20 @@ class TestDeploymentDeployer(object):
             expected_liveness_check = exec_check
             expected_readiness_check = exec_check
 
+        expected_env_from = [{
+            'configMapRef': {
+                'name': app_spec.name,
+                'optional': True,
+            }
+        }]
+        if secrets_in_environment:
+            expected_env_from.append({
+                'secretRef': {
+                    'name': app_spec.name,
+                    'optional': True,
+                }
+            })
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata(app_spec.name, labels=LABELS),
             'spec': {
@@ -199,12 +223,7 @@ class TestDeploymentDeployer(object):
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
                             'env': create_environment_variables(infra, global_env=global_env),
-                            'envFrom': [{
-                                'configMapRef': {
-                                    'name': app_spec.name,
-                                    'optional': True,
-                                }
-                            }],
+                            'envFrom': expected_env_from,
                             'imagePullPolicy': 'IfNotPresent',
                             'readinessProbe': expected_readiness_check,
                             'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],

@@ -1,11 +1,11 @@
 # coding: utf-8
 from __future__ import absolute_import
+
 import mock
 import pytest
-
 from k8s.client import NotFound
-
 from k8s.models.common import ObjectMeta
+
 from fiaas_deploy_daemon.tpr.types import (
     PaasbetaApplication, PaasbetaApplicationSpec, PaasApplicationConfig, Autoscaler, Prometheus, Resources,
     ResourceRequirements, Port, HealthChecks, HealthCheck, HttpCheck, Config
@@ -72,6 +72,8 @@ def _create_default_paasbetaapplicationspec(**kwargs):
             False,
         'has_secrets':
             True,
+        'secrets_in_environment':
+            False,
         'replicas':
             10,
         'autoscaler':

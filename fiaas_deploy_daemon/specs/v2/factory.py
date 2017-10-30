@@ -30,7 +30,7 @@ class Factory(object):
             lookup[u"host"],
             self._resources_spec(lookup[u"resources"]),
             lookup[u"admin_access"],
-            lookup[u"has_secrets"],
+            False,
             self._prometheus_spec(lookup[u"prometheus"]),
             ports,
             self._health_checks_spec(lookup[u"healthchecks"], ports),

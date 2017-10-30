@@ -13,7 +13,7 @@ class AppSpec(namedtuple("AppSpec", [
         "host",
         "resources",
         "admin_access",
-        "has_secrets",
+        "secrets_in_environment",
         "prometheus",
         "ports",
         "health_checks",

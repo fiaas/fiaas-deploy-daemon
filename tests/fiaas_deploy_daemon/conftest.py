@@ -23,7 +23,7 @@ def app_spec():
         host=None,
         resources=EMPTY_RESOURCE_SPEC,
         admin_access=False,
-        has_secrets=False,
+        secrets_in_environment=False,
         prometheus=PROMETHEUS_SPEC,
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080, path="/"),

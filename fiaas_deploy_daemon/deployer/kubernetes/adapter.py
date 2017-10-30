@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import logging
-import time
 
 from k8s.models.resourcequota import ResourceQuota, NotBestEffort
 
@@ -46,7 +45,6 @@ class K8s(object):
             "fiaas/version": app_spec.version,
             "fiaas/deployment_id": app_spec.deployment_id,
             "fiaas/deployed_by": self._version,
-            "fiaas/app_deployed_at": str(int(round(time.time()))),
         }
 
         _add_labels("fiaas/teams", labels, app_spec.teams)
@@ -65,7 +63,7 @@ def _add_labels(prefix, labels, values):
 
 
 def _to_valid_label_value(value):
-    return value.encode('utf-8').lower()\
+    return value.encode('utf-8').lower() \
         .replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae") \
         .replace(":", "-")
 

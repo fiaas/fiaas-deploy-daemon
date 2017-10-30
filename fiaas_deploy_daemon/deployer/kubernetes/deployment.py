@@ -12,6 +12,7 @@ from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
     ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource
 
+from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
@@ -35,10 +36,9 @@ class DeploymentDeployer(object):
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
-        custom_labels = app_spec.labels.get("deployment", {})
-        custom_labels.update(labels)
-        annotations = app_spec.annotations.get("deployment", {})
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=annotations)
+        custom_labels = merge_dicts(app_spec.labels.deployment, labels)
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=(
+            app_spec.annotations.deployment))
         container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in
                            app_spec.ports]
         env = self._make_env(app_spec)

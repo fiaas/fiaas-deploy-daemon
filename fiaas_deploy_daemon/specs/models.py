@@ -82,3 +82,10 @@ AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "min_replicas",
     "cpu_threshold_percentage"
 ])
+
+LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
+  "deployment",
+  "horizontal_pod_autoscaler",
+  "ingress",
+  "service"
+])

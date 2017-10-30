@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 from __future__ import absolute_import
+
 import logging
+
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
-from k8s.client import NotFound
 
+from fiaas_deploy_daemon.tools import merge_dicts
 
 LOG = logging.getLogger(__name__)
 
@@ -35,10 +38,8 @@ class IngressDeployer(object):
         annotations = {
             u"fiaas/expose": u"true" if app_spec.host else u"false"
         }
-        custom_labels = app_spec.labels.get("ingress", {})
-        custom_labels.update(labels)
-        custom_annotations = app_spec.annotations.get("ingress", {})
-        custom_annotations.update(annotations)
+        custom_labels = merge_dicts(app_spec.labels.ingress, labels)
+        custom_annotations = merge_dicts(app_spec.annotations.ingress, annotations)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
                               annotations=custom_annotations)
         http_ingress_paths = [self._make_http_ingress_path(app_spec, port_spec) for port_spec in app_spec.ports if

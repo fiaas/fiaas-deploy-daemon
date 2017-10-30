@@ -4,9 +4,11 @@ from __future__ import absolute_import
 
 import logging
 
+from k8s.client import NotFound
 from k8s.models.autoscaler import HorizontalPodAutoscaler, HorizontalPodAutoscalerSpec, CrossVersionObjectReference
 from k8s.models.common import ObjectMeta
-from k8s.client import NotFound
+
+from fiaas_deploy_daemon.tools import merge_dicts
 
 LOG = logging.getLogger(__name__)
 
@@ -18,10 +20,9 @@ class AutoscalerDeployer(object):
     def deploy(self, app_spec, labels):
         if should_have_autoscaler(app_spec):
             LOG.info("Creating/updating %s for %s", self.name, app_spec.name)
-            custom_labels = app_spec.labels.get("horizontal_pod_autoscaler", {})
-            custom_labels.update(labels)
-            annotations = app_spec.annotations.get("horizontal_pod_autoscaler", {})
-            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=annotations)
+            custom_labels = merge_dicts(app_spec.labels.horizontal_pod_autoscaler, labels)
+            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
+                                  annotations=app_spec.annotations.horizontal_pod_autoscaler)
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
             spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
                                                minReplicas=app_spec.autoscaler.min_replicas,

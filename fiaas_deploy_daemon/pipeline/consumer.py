@@ -7,6 +7,7 @@ import logging
 
 
 import os
+import time
 from kafka import KafkaConsumer
 from prometheus_client import Counter
 from requests import HTTPError
@@ -56,6 +57,7 @@ class Consumer(DaemonThread):
             try:
                 app_spec = self._create_spec(event)
                 self._check_app_acceptable(app_spec)
+                self._add_deployment_label(app_spec)
                 self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
                 self._reporter.register(app_spec, event[u"callback_url"])
                 deploy_counter.inc()
@@ -99,21 +101,26 @@ class Consumer(DaemonThread):
 
         return self._spec_factory(name, image, app_config, teams, tags, image.split(":")[-1][:63].lower())
 
-    def _deserialize(self, message):
-        return json.loads(message.value)
-
     def _build_connect_string(self, service):
         host, port = self._config.resolve_service(service)
         connect = ",".join("{}:{}".format(host, port) for host in host.split(","))
         return connect
 
     def is_alive(self):
-        return super(Consumer, self).is_alive() and self._is_recieving_messages()
+        return super(Consumer, self).is_alive() and self._is_receiving_messages()
 
-    def _is_recieving_messages(self):
+    def _is_receiving_messages(self):
         # TODO: this is a hack to handle the fact that we sometimes seem to loose contact with kafka
         self._logger.debug("No message for %r seconds", int(time_monotonic()) - self._last_message_timestamp)
         return self._last_message_timestamp > int(time_monotonic()) - ALLOW_WITHOUT_MESSAGES_S
+
+    @staticmethod
+    def _deserialize(message):
+        return json.loads(message.value)
+
+    @staticmethod
+    def _add_deployment_label(app_spec):
+        app_spec.labels.deployment["fiaas/app_deployed_at"] = str(int(round(time.time())))
 
 
 class NoDockerArtifactException(Exception):

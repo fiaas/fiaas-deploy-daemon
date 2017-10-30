@@ -9,7 +9,7 @@ import yaml
 from .lookup import LookupMapping
 from ..factory import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
-    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec
+    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec
 
 
 class Factory(object):
@@ -37,8 +37,8 @@ class Factory(object):
             teams,
             tags,
             deployment_id,
-            {},
-            {}
+            LabelAndAnnotationSpec({}, {}, {}, {}),
+            LabelAndAnnotationSpec({}, {}, {}, {})
         )
 
     @staticmethod

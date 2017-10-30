@@ -7,6 +7,7 @@ from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
+from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"service": "pass through"}
@@ -68,8 +69,9 @@ class TestServiceDeployer(object):
                                                        annotations=expected_annotations)
         }
 
-        app_spec_custom_labels_and_annotations = app_spec._replace(labels={"service": expected_labels},
-                                                                   annotations={"service": expected_annotations})
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={}, service=expected_labels)
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={}, service=expected_annotations)
+        app_spec_custom_labels_and_annotations = app_spec._replace(labels=labels, annotations=annotations)
         deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)

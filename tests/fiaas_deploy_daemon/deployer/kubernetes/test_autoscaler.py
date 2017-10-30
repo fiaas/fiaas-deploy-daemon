@@ -4,7 +4,7 @@
 import pytest
 
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler, AutoscalerDeployer
-from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec
+from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec, LabelAndAnnotationSpec
 
 LABELS = {"autoscaler_deployer": "pass through"}
 AUTOSCALER_API = '/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/'
@@ -71,8 +71,9 @@ class TestAutoscalerDeployer(object):
         app_spec = app_spec._replace(replicas=4)
         app_spec = app_spec._replace(
             resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
-        app_spec = app_spec._replace(labels={"horizontal_pod_autoscaler": {"custom": "label"}},
-                                     annotations={"horizontal_pod_autoscaler": {"custom": "annotation"}})
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "label"}, ingress={}, service={})
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "annotation"}, ingress={}, service={})
+        app_spec = app_spec._replace(labels=labels, annotations=annotations)
 
         deployer.deploy(app_spec, LABELS)
 

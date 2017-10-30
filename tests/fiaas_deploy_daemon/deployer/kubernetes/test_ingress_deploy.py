@@ -5,6 +5,7 @@ import pytest
 
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -177,8 +178,9 @@ class TestIngressDeployer(object):
         expected_labels = {"ingress_deployer": "pass through", "custom": "label"}
         expected_annotations = {"fiaas/expose": "false", "custom": "annotation"}
 
-        deployer.deploy(app_spec._replace(labels={"ingress": {"custom": "label"}},
-                                          annotations={"ingress": {"custom": "annotation"}}), LABELS)
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_labels, service={})
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_annotations, service={})
+        deployer.deploy(app_spec._replace(labels=labels, annotations=annotations), LABELS)
 
         expected_ingress = {
             'spec': {

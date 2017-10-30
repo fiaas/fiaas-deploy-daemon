@@ -8,6 +8,8 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.service import Service, ServicePort, ServiceSpec
 
+from fiaas_deploy_daemon.tools import merge_dicts
+
 LOG = logging.getLogger(__name__)
 
 
@@ -37,10 +39,8 @@ class ServiceDeployer(object):
         except NotFound:
             pass
         service_name = app_spec.name
-        custom_labels = app_spec.labels.get("service", {})
-        custom_labels.update(labels)
-        custom_annotations = app_spec.annotations.get("service", {})
-        custom_annotations.update(self._make_tcp_port_annotation(app_spec))
+        custom_labels = merge_dicts(app_spec.labels.service, labels)
+        custom_annotations = merge_dicts(app_spec.annotations.service, self._make_tcp_port_annotation(app_spec))
         metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations)
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)

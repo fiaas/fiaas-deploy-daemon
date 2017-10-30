@@ -9,7 +9,8 @@ from requests import Response
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
-    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec
+    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec
+from fiaas_deploy_daemon.tools import merge_dicts
 
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
 
@@ -222,9 +223,9 @@ class TestDeploymentDeployer(object):
 
     def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, post, app_spec,
                                                                       prometheus):
-        app_spec = app_spec._replace(prometheus=prometheus)
-        app_spec = app_spec._replace(labels={"deployment": {"custom": "label"}},
-                                     annotations={"deployment": {"custom": "annotation"}})
+        labels = LabelAndAnnotationSpec(deployment={"custom": "label"}, horizontal_pod_autoscaler={}, ingress={}, service={})
+        annotations = LabelAndAnnotationSpec(deployment={"custom": "annotation"}, horizontal_pod_autoscaler={}, ingress={}, service={})
+        app_spec = app_spec._replace(prometheus=prometheus, labels=labels, annotations=annotations)
         deployer = request.getfuncargvalue("deployer")
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
@@ -448,13 +449,6 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
     return environment
-
-
-def merge_dicts(*args):
-    result = {}
-    for d in args:
-        result.update(d)
-    return result
 
 
 def _get_expected_template_labels():

@@ -16,8 +16,6 @@ LOG = logging.getLogger(__name__)
 
 class IngressDeployer(object):
     def __init__(self, config):
-        self._environment = config.environment
-        self._infrastructure = config.infrastructure
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
 

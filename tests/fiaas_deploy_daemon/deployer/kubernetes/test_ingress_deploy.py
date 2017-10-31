@@ -376,8 +376,6 @@ class TestIngressDeployer(object):
     @pytest.fixture
     def deployer(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
-        config.infrastructure = "diy"
-        config.environment = "test"
         config.ingress_suffixes = ["svc.test.example.com", "127.0.0.1.xip.io"]
         config.host_rewrite_rules = [
             HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),

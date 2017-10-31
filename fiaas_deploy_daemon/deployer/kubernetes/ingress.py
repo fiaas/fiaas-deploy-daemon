@@ -80,11 +80,11 @@ class IngressDeployer(object):
         if not default_port:
             raise InvalidConfiguration("Could not find any ports with protocol=http!")
 
-        http_ingress_paths =[
+        http_ingress_paths = [
             HTTPIngressPath(path=pm.path if pm.path else default_path,
                             backend=IngressBackend(serviceName=app_spec.name,
                                                    servicePort=pm.port if pm.port else default_port))
-            for pm in pathmappings]
+            for pm in _deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
 
@@ -98,3 +98,10 @@ def _get_default_port(app_spec):
 
 def _has_explicitly_set_host(app_spec):
     return any(ingress.host is not None for ingress in app_spec.ingresses)
+
+def _deduplicate_in_order(iterator):
+    seen = set()
+    for item in iterator:
+        if item not in seen:
+            yield item
+            seen.add(item)

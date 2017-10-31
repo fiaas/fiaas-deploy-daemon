@@ -170,7 +170,7 @@ TEST_DATA = (
                          IngressItemSpec(host="bar.example.com",
                                          pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
      ingress(expose=True, rules=[
-         {'host': "apps.example.com",
+         {'host': "foo.example.com",
           'http': {'paths': [{
               'path': '/',
               'backend': {

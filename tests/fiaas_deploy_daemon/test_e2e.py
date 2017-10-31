@@ -95,10 +95,10 @@ def service_type(request):
 
 @pytest.mark.integration_test
 class TestE2E(object):
-    @pytest.fixture(scope="module")
-    def kubernetes(self, minikube_installer, service_type):
+    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5"))
+    def kubernetes(self, minikube_installer, service_type, request):
         try:
-            minikube = minikube_installer.new(profile=service_type, k8s_version='v1.6.4')
+            minikube = minikube_installer.new(profile=service_type, k8s_version=request.param)
             minikube.delete()
             minikube.start()
             yield {

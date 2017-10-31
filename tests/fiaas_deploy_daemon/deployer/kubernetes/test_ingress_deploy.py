@@ -23,7 +23,7 @@ def app_spec(**kwargs):
         resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None)),
         admin_access=False,
-        has_secrets=False,
+        secrets_in_environment=False,
         prometheus=PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus'),
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
@@ -37,8 +37,8 @@ def app_spec(**kwargs):
         teams=[u'foo'],
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",
-        labels={},
-        annotations={},
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])]
     )
 

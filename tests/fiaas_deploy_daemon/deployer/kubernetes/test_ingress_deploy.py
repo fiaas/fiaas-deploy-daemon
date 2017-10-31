@@ -369,6 +369,31 @@ TEST_DATA = (
                                                      labels={"ingress_deployer": "pass through", "custom": "label"},
                                                      annotations={"fiaas/expose": "false", "custom": "annotation"}))
     ),
+    ("regex_path",
+     app_spec(ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(
+         path="/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+         port=80)]
+     )]),
+     ingress(expose=False, rules=[
+         {'host': "testapp.svc.test.example.com",
+          'http': {'paths': [{
+              'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+              'backend': {
+                  'serviceName': 'testapp',
+                  'servicePort': 80,
+              }}]
+          }
+        },
+        {'host': "testapp.127.0.0.1.xip.io",
+         'http': {'paths': [{
+             'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+             'backend': {
+                 'serviceName': 'testapp',
+                 'servicePort': 80,
+             }}]
+         }
+        }])
+    ),
 )
 
 

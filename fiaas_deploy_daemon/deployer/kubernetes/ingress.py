@@ -10,6 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
 
 from fiaas_deploy_daemon.tools import merge_dicts
+from fiaas_deploy_daemon.factory import InvalidConfiguration
 
 LOG = logging.getLogger(__name__)
 
@@ -43,7 +44,7 @@ class IngressDeployer(object):
                               annotations=custom_annotations)
 
         per_host_ingress_rules = [IngressRule(host=self._apply_host_rewrite_rules(ingress_item.host),
-                                             http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
+                                              http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
                                   for ingress_item in app_spec.ingresses
                                   if ingress_item.host is not None]
         default_host_ingress_rules = self._create_default_host_ingress_rules(app_spec)
@@ -98,6 +99,7 @@ def _get_default_port(app_spec):
 
 def _has_explicitly_set_host(app_spec):
     return any(ingress.host is not None for ingress in app_spec.ingresses)
+
 
 def _deduplicate_in_order(iterator):
     seen = set()

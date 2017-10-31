@@ -13,7 +13,6 @@ from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirement
     IngressPathMappingSpec
 
 
-
 class Factory(object):
     version = 2
 

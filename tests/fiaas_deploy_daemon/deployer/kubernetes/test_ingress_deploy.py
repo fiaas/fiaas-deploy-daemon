@@ -6,12 +6,12 @@ import pytest
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
+    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
     LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec
-
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
+
 
 def app_spec(**kwargs):
     default_app_spec = AppSpec(
@@ -21,7 +21,7 @@ def app_spec(**kwargs):
         replicas=3,
         autoscaler=AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50),
         resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
-                                    limits=ResourceRequirementSpec(cpu=None, memory=None)),
+                                limits=ResourceRequirementSpec(cpu=None, memory=None)),
         admin_access=False,
         secrets_in_environment=False,
         prometheus=PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus'),
@@ -46,26 +46,29 @@ def app_spec(**kwargs):
 
 
 def ingress(rules=None, metadata=None, expose=False):
-    default_rules = [
-        {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        },
-    ]
+    default_rules = [{
+        'host': "testapp.svc.test.example.com",
+        'http': {
+            'paths': [{
+                'path': '/',
+                'backend': {
+                    'serviceName': 'testapp',
+                    'servicePort': 80,
+                }
+            }]
+        }
+    }, {
+        'host': "testapp.127.0.0.1.xip.io",
+        'http': {
+            'paths': [{
+                'path': '/',
+                'backend': {
+                    'serviceName': 'testapp',
+                    'servicePort': 80,
+                }
+            }]
+        }
+    }]
     default_metadata = pytest.helpers.create_metadata('testapp', labels=LABELS, external=expose)
 
     expected_ingress = {
@@ -77,323 +80,375 @@ def ingress(rules=None, metadata=None, expose=False):
     }
     return expected_ingress
 
+
 TEST_DATA = (
     # (test_case_name, provided_app_spec, expected_ingress)
     ("only_default_hosts", app_spec(), ingress()),
     ("single_explicit_host",
-     app_spec(ingresses=[IngressItemSpec(host="foo.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
-     ingress(expose=True, rules=[
-         {'host': "foo.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        }])
-    ),
+     app_spec(ingresses=[
+         IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+     ingress(expose=True, rules=[{
+                'host': "foo.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }])),
     ("single_explicit_host_multiple_paths",
-     app_spec(ingresses=[IngressItemSpec(host="foo.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80),
-                                                       IngressPathMappingSpec(path="/other", port=5000)])],
+     app_spec(ingresses=[
+                IngressItemSpec(host="foo.example.com", pathmappings=[
+                        IngressPathMappingSpec(path="/", port=80),
+                        IngressPathMappingSpec(path="/other", port=5000)])],
               ports=[
-                  PortSpec(protocol="http", name="http", port=80, target_port=8080),
-                  PortSpec(protocol="http", name="other", port=5000, target_port=8081),
-              ]),
-     ingress(expose=True, rules=[
-         {'host': "foo.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/other',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/other',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }},{
-             'path': '/other',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 5000,
-             }}]
-         }
-        }])
-    ),
+                PortSpec(protocol="http", name="http", port=80, target_port=8080),
+                PortSpec(protocol="http", name="other", port=5000, target_port=8081)]),
+     ingress(expose=True, rules=[{
+                'host': "foo.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/other',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/other',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/other',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }])),
     ("multiple_explicit_hosts",
-     app_spec(ingresses=[IngressItemSpec(host="foo.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80)]),
-                         IngressItemSpec(host="bar.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
-     ingress(expose=True, rules=[
-         {'host': "foo.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-         },
-         {'host': "bar.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        }])
-    ),
+     app_spec(ingresses=[
+                IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)]),
+                IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+     ingress(expose=True, rules=[{
+                'host': "foo.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "bar.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }])),
     ("multiple_explicit_hosts_multiple_paths",
-     app_spec(ingresses=[IngressItemSpec(host="foo.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/one", port=80),
-                                                       IngressPathMappingSpec(path="/two", port=5000)]),
-                         IngressItemSpec(host="bar.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/three", port=80),
-                                                       IngressPathMappingSpec(path="/four", port=5000)])],
+     app_spec(ingresses=[
+                IngressItemSpec(host="foo.example.com", pathmappings=[
+                        IngressPathMappingSpec(path="/one", port=80),
+                        IngressPathMappingSpec(path="/two", port=5000)
+                    ]
+                ),
+                IngressItemSpec(host="bar.example.com", pathmappings=[
+                        IngressPathMappingSpec(path="/three", port=80),
+                        IngressPathMappingSpec(path="/four", port=5000)
+                    ])],
               ports=[
-                  PortSpec(protocol="http", name="http", port=80, target_port=8080),
-                  PortSpec(protocol="http", name="other", port=5000, target_port=8081),
-              ]),
-     ingress(expose=True, rules=[
-         {'host': "foo.example.com",
-          'http': {'paths': [{
-              'path': '/one',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/two',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-          }
-         },
-         {'host': "bar.example.com",
-          'http': {'paths': [{
-              'path': '/three',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/four',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/one',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/two',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }},{
-              'path': '/three',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/four',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-              'path': '/one',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/two',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }},{
-              'path': '/three',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }},{
-              'path': '/four',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 5000,
-              }}]
-         }
-        }])),
+                PortSpec(protocol="http", name="http", port=80, target_port=8080),
+                PortSpec(protocol="http", name="other", port=5000, target_port=8081),
+            ]),
+     ingress(expose=True, rules=[{
+                'host': "foo.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/one',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/two',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }, {
+                'host': "bar.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/three',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/four',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/one',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/two',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }, {
+                        'path': '/three',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/four',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/one',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/two',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }, {
+                        'path': '/three',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }, {
+                        'path': '/four',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 5000,
+                        }
+                    }]
+                }
+            }])),
     ("rewrite_host_simple",
-     app_spec(ingresses=[IngressItemSpec(host="rewrite.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
-     ingress(expose=True, rules=[
-         {'host': "test.rewrite.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        }])
-    ),
+     app_spec(ingresses=[
+                IngressItemSpec(host="rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+     ingress(expose=True, rules=[{
+                'host': "test.rewrite.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }])),
     ("rewrite_host_regex_substitution",
-     app_spec(ingresses=[IngressItemSpec(host="foo.rewrite.example.com",
-                                         pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
-     ingress(expose=True, rules=[
-         {'host': "test.foo.rewrite.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-         },
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': '/',
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': '/',
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        }])
-    ),
+     app_spec(ingresses=[
+         IngressItemSpec(host="foo.rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+     ingress(expose=True, rules=[{
+                'host': "test.foo.rewrite.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': '/',
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }])),
     ("custom_labels_and_annotations",
      app_spec(labels=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
-                                            ingress={"ingress_deployer": "pass through", "custom": "label"},
-                                            service={}),
+                                            ingress={"ingress_deployer": "pass through", "custom": "label"}, service={}),
               annotations=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
                                                  ingress={"custom": "annotation"}, service={})),
      ingress(metadata=pytest.helpers.create_metadata('testapp', external=False,
                                                      labels={"ingress_deployer": "pass through", "custom": "label"},
-                                                     annotations={"fiaas/expose": "false", "custom": "annotation"}))
-    ),
+                                                     annotations={"fiaas/expose": "false", "custom": "annotation"}))),
     ("regex_path",
-     app_spec(ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(
-         path="/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
-         port=80)]
-     )]),
-     ingress(expose=False, rules=[
-         {'host': "testapp.svc.test.example.com",
-          'http': {'paths': [{
-              'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
-              'backend': {
-                  'serviceName': 'testapp',
-                  'servicePort': 80,
-              }}]
-          }
-        },
-        {'host': "testapp.127.0.0.1.xip.io",
-         'http': {'paths': [{
-             'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
-             'backend': {
-                 'serviceName': 'testapp',
-                 'servicePort': 80,
-             }}]
-         }
-        }])
-    ),
+     app_spec(ingresses=[
+         IngressItemSpec(host=None, pathmappings=[
+             IngressPathMappingSpec(
+                            path="/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                            port=80)])]),
+     ingress(expose=False, rules=[{
+                'host': "testapp.svc.test.example.com",
+                'http': {
+                    'paths': [{
+                        'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }, {
+                'host': "testapp.127.0.0.1.xip.io",
+                'http': {
+                    'paths': [{
+                        'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                        'backend': {
+                            'serviceName': 'testapp',
+                            'servicePort': 80,
+                        }
+                    }]
+                }
+            }])),
 )
 
 
@@ -404,9 +459,9 @@ class TestIngressDeployer(object):
         config.ingress_suffixes = ["svc.test.example.com", "127.0.0.1.xip.io"]
         config.host_rewrite_rules = [
             HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
-            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")]
+            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
+        ]
         return IngressDeployer(config)
-
 
     def pytest_generate_tests(self, metafunc):
         fixtures = ("app_spec", "expected_ingress")
@@ -433,11 +488,12 @@ class TestIngressDeployer(object):
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")
 
-
     def test_deploy_new_ingress_with_custom_labels_and_annotations(self, app_spec, post, deployer):
         expected_labels = {"ingress_deployer": "pass through", "custom": "label"}
         expected_annotations = {"fiaas/expose": "false", "custom": "annotation"}
 
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_labels, service={})
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_annotations, service={})
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_labels,
+                                        service={})
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
+                                             ingress=expected_annotations, service={})
         deployer.deploy(app_spec._replace(labels=labels, annotations=annotations), LABELS)

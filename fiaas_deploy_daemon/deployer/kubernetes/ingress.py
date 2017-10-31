@@ -10,7 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
 
 from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.factory import InvalidConfiguration
+from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
 LOG = logging.getLogger(__name__)
 

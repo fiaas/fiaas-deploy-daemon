@@ -477,7 +477,6 @@ class TestIngressDeployer(object):
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
 
     @pytest.mark.parametrize("spec_name", (
-        "app_spec_thrift_with_host",
         "app_spec_thrift",
         "app_spec_no_ports",
     ))

@@ -69,13 +69,6 @@ def app_spec_multiple_thrift_ports(app_spec_thrift):
     return app_spec_thrift._replace(ports=ports)
 
 
-# TODO: remove this testcase, as this doesn't make sense after removing the host field in app_spec - config with host
-# and no http ports will result in app_spec.ingresses == []
-@pytest.fixture
-def app_spec_thrift_with_host(app_spec_thrift):
-    return app_spec_thrift
-
-
 @pytest.fixture
 def app_spec_thrift_and_http(app_spec):
     return app_spec._replace(

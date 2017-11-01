@@ -488,13 +488,3 @@ class TestIngressDeployer(object):
 
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")
-
-    def test_deploy_new_ingress_with_custom_labels_and_annotations(self, app_spec, post, deployer):
-        expected_labels = {"ingress_deployer": "pass through", "custom": "label"}
-        expected_annotations = {"fiaas/expose": "false", "custom": "annotation"}
-
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress=expected_labels,
-                                        service={})
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
-                                             ingress=expected_annotations, service={})
-        deployer.deploy(app_spec._replace(labels=labels, annotations=annotations), LABELS)

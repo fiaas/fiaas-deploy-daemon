@@ -10,7 +10,6 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
 
 from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
 LOG = logging.getLogger(__name__)
 
@@ -76,25 +75,11 @@ class IngressDeployer(object):
 
     @staticmethod
     def _make_http_ingress_rule_value(app_spec, pathmappings):
-        default_path = "/"
-        default_port = _get_default_port(app_spec)
-        if not default_port:
-            raise InvalidConfiguration("Could not find any ports with protocol=http!")
-
         http_ingress_paths = [
-            HTTPIngressPath(path=pm.path if pm.path else default_path,
-                            backend=IngressBackend(serviceName=app_spec.name,
-                                                   servicePort=pm.port if pm.port else default_port))
+            HTTPIngressPath(path=pm.path, backend=IngressBackend(serviceName=app_spec.name, servicePort=pm.port))
             for pm in _deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
-
-
-def _get_default_port(app_spec):
-    for port in app_spec.ports:
-        if port.protocol == u"http":
-            return port
-    return None
 
 
 def _has_explicitly_set_host(app_spec):

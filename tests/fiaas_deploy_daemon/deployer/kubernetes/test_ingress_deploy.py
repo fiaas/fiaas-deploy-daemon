@@ -465,8 +465,8 @@ class TestIngressDeployer(object):
 
     def pytest_generate_tests(self, metafunc):
         fixtures = ("app_spec", "expected_ingress")
-        if (metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_ingress_deploy" and
-            all(fixname in metafunc.fixturenames for fixname in fixtures)):
+        if metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_ingress_deploy" and \
+           all(fixname in metafunc.fixturenames for fixname in fixtures):
             for test_id, app_spec, expected_ingress in TEST_DATA:
                 params = {"app_spec": app_spec, "expected_ingress": expected_ingress}
                 metafunc.addcall(params, test_id)

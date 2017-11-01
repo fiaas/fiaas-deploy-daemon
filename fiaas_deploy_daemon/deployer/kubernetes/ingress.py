@@ -59,7 +59,7 @@ class IngressDeployer(object):
             yield u"{}.{}".format(name, suffix)
 
     def _create_default_host_ingress_rules(self, app_spec):
-        all_pathmappings = chain(*(ingress_item.pathmappings for ingress_item in app_spec.ingresses))
+        all_pathmappings = chain.from_iterable(ingress_item.pathmappings for ingress_item in app_spec.ingresses)
         http_ingress_rule_value = self._make_http_ingress_rule_value(app_spec, all_pathmappings)
         return [IngressRule(host=host, http=http_ingress_rule_value)
                 for host in self._generate_default_hosts(app_spec.name)]

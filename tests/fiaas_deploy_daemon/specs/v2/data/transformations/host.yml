@@ -5,7 +5,7 @@ replicas:
   maximum: 2
   cpu_threshold_percentage: 50
 ingress:
-  - host: some.host.no
+  - host: some.example.com
     paths:
     - path: /
       port: http

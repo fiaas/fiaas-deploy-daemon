@@ -3,6 +3,8 @@
 import itertools
 
 import pytest
+import re
+from xdist.scheduler import LoadScopeScheduling
 
 pytest_plugins = ['helpers_namespace']
 
@@ -96,3 +98,33 @@ def _format_call(call):
         return 'call({}, {})'.format(call[0], call[1])
     else:
         return 'call({})'.format(call[0])
+
+
+class FixtureScheduling(LoadScopeScheduling):
+    def __init__(self, config, log=None):
+        LoadScopeScheduling.__init__(self, config, log)
+        self._assigned_scope = {}
+
+    def _split_scope(self, nodeid):
+        if nodeid in self._assigned_scope:
+            return self._assigned_scope[nodeid]
+        m = re.search(r".*\[(.*)\].*", nodeid)
+        if not m:
+            scope = LoadScopeScheduling._split_scope(self, nodeid)
+        else:
+            fixture_values = m.group(1).split("-")
+            if "test_e2e" in nodeid:
+                scope = "-".join(fixture_values[-2:])
+            else:
+                scope = self._select_scope(fixture_values)
+        self._assigned_scope[nodeid] = scope
+        return scope
+
+    def _select_scope(self, fixture_values):
+        groups = itertools.izip_longest(fillvalue="", *([iter(fixture_values)] * 3))
+        return "-".join(next(groups))
+
+
+@pytest.mark.tryfirst
+def pytest_xdist_make_scheduler(config, log):
+    return FixtureScheduling(config, log)

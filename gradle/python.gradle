@@ -200,9 +200,8 @@ task test(type: PewTask) {
         'test',
         '--addopts=' +
             '-m "not integration_test" ' +
-            '-p no:sugar ' +
+            '-n auto ' +
             '-rxs ' +
-            '--cov=k8s ' +
             '--cov=fiaas_deploy_daemon ' +
             '--cov=minikube ' +
             '--cov-report html ' +
@@ -226,7 +225,7 @@ task integrationTest(type: PewTask) {
         'test',
         '--addopts=' +
             '-m integration_test ' +
-            '-p no:sugar ' +
+            '-n 4 ' +
             '-rxs ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html'

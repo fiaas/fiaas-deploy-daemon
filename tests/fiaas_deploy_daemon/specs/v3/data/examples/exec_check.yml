@@ -1,0 +1,9 @@
+---
+version: 3
+healthchecks:
+  liveness:
+    execute:
+      command: /bin/alive
+  readiness:
+    execute:
+      command: "/bin/ready"

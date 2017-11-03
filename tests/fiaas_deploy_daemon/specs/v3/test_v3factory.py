@@ -60,6 +60,39 @@ TEST_DATA = {
         "secrets_in_environment": False,
         "admin_access": False,
     },
+    "autoscaling_disabled": {
+        "replicas": 3,
+        "autoscaler.enabled": False,
+        "autoscaler.min_replicas": 3,
+        "autoscaler.cpu_threshold_percentage": 50,
+    },
+    "multiple_hosts_multiple_paths": {
+        "ingresses[0].host": None,
+        "ingresses[0].pathmappings[0].path": "/0noport",
+        "ingresses[0].pathmappings[0].port": 80,
+        "ingresses[0].pathmappings[1].path": "/0portname",
+        "ingresses[0].pathmappings[1].port": 80,
+        "ingresses[0].pathmappings[2].path": "/0portnumber",
+        "ingresses[0].pathmappings[2].port": 80,
+        "ingresses[1].host": "foo.example.com",
+        "ingresses[1].pathmappings[0].path": "/1noport",
+        "ingresses[1].pathmappings[0].port": 80,
+        "ingresses[1].pathmappings[1].path": "/1portname",
+        "ingresses[1].pathmappings[1].port": 80,
+        "ingresses[1].pathmappings[2].path": "/1portnumber",
+        "ingresses[1].pathmappings[2].port": 80,
+        "ingresses[2].host": "bar.example.com",
+        "ingresses[2].pathmappings[0].path": "/2noport",
+        "ingresses[2].pathmappings[0].port": 80,
+        "ingresses[2].pathmappings[1].path": "/2portname",
+        "ingresses[2].pathmappings[1].port": 80,
+        "ingresses[2].pathmappings[2].path": "/2portnumber",
+        "ingresses[2].pathmappings[2].port": 80,
+    },
+    "exec_check": {
+        "health_checks.liveness.execute.command": "/bin/alive",
+        "health_checks.readiness.execute.command": "/bin/ready",
+    },
 }
 
 
@@ -90,8 +123,10 @@ class TestFactory(object):
     @pytest.mark.parametrize("filename", (
             "no_health_check_defined_http",
             "no_health_check_defined_tcp",
+            "invalid_ingress_port_number",
+            "invalid_ingress_port_name",
     ))
-    def test_no_health_check(self, load_app_config_testdata, factory, filename):
+    def test_invalid_configuration(self, load_app_config_testdata, factory, filename):
         with pytest.raises(InvalidConfiguration):
             factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id")
 

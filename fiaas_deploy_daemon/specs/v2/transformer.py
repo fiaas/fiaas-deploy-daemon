@@ -6,7 +6,7 @@ import pkgutil
 
 import yaml
 
-from .lookup import LookupMapping
+from ..lookup import LookupMapping
 from ..factory import BaseTransformer, InvalidConfiguration
 
 

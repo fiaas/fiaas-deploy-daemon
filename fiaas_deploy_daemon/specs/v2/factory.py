@@ -6,7 +6,7 @@ import pkgutil
 
 import yaml
 
-from .lookup import LookupMapping
+from ..lookup import LookupMapping
 from ..factory import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \

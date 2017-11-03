@@ -3,6 +3,8 @@
 
 import hashlib
 import logging
+import random
+import string
 import subprocess
 import tempfile
 import time
@@ -68,7 +70,10 @@ class MinikubeInstaller(object):
         return digest
 
     def new(self, k8s_version=None, profile=None):
-        vm = Minikube(self._workdir, self._driver, k8s_version, profile)
+        letters = list(string.ascii_letters)
+        random.shuffle(letters)
+        id = profile + "".join(letters)
+        vm = Minikube(self._workdir, self._driver, k8s_version, id)
         return vm
 
     def cleanup(self):

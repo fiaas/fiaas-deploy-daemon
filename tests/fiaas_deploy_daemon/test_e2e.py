@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import traceback
+from distutils.version import StrictVersion
 from urlparse import urljoin
 
 import pytest
@@ -95,10 +96,14 @@ def service_type(request):
 
 @pytest.mark.integration_test
 class TestE2E(object):
-    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5"))
-    def kubernetes(self, minikube_installer, service_type, request):
+    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5", "v1.8.0"))
+    def k8s_version(self, request):
+        yield request.param
+
+    @pytest.fixture(scope="module")
+    def kubernetes(self, minikube_installer, service_type, k8s_version):
         try:
-            minikube = minikube_installer.new(profile=service_type, k8s_version=request.param)
+            minikube = minikube_installer.new(profile=service_type, k8s_version=k8s_version)
             minikube.delete()
             minikube.start()
             yield {
@@ -145,7 +150,8 @@ class TestE2E(object):
             self._end_popen(fdd)
 
     @pytest.fixture(scope="module")
-    def fdd_tpr_support_enabled(self, kubernetes, service_type):
+    def fdd_tpr_support_enabled(self, kubernetes, service_type, k8s_version):
+        _skip_if_tpr_not_supported(k8s_version)
         port = self._get_open_port()
         fdd = subprocess.Popen(["fiaas-deploy-daemon",
                                 "--port", str(port),
@@ -314,6 +320,11 @@ def _deploy_success(name, kinds, service_type, image):
         assert svc.spec.type == service_type
 
     return action
+
+
+def _skip_if_tpr_not_supported(k8s_version):
+    if not (StrictVersion("1.6.0") < StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")):
+        pytest.skip("TPR not supported in version %s of kubernetes, skipping this test" % k8s_version)
 
 
 def plog(message):

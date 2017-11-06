@@ -1,0 +1,28 @@
+---
+version: 3
+labels:
+  deployment:
+    a: b
+    c: d
+  horizontal_pod_autoscaler:
+    e: f
+    g: h
+  ingress:
+    i: j
+    k: l
+  service:
+    m: n
+    o: p
+annotations:
+  service:
+    a: b
+    c: d
+  ingress:
+    e: f
+    g: h
+  horizontal_pod_autoscaler:
+    i: j
+    k: l
+  deployment:
+    m: n
+    o: p

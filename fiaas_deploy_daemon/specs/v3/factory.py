@@ -157,5 +157,8 @@ class Factory(BaseFactory):
             ]
             return IngressItemSpec(host=host, pathmappings=ingress_path_mapping_specs)
 
-        return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"])
-                for host_path_mapping in ingress_lookup]
+        if len(http_ports.items()) > 0:
+            return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"])
+                    for host_path_mapping in ingress_lookup]
+        else:
+            return []

@@ -1,0 +1,11 @@
+---
+version: 3
+ingress:
+  - paths:
+      - path: /
+        port: thing
+ports:
+  - protocol: http
+    name: thing
+    port: 1337
+    target_port: 31337

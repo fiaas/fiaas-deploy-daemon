@@ -1,0 +1,26 @@
+---
+version: 3
+ingress:
+  - paths:
+      - path: /a
+        port: a
+      - path: /b
+        port: b
+ports:
+  - protocol: http
+    name: a
+    port: 1337
+    target_port: 31337
+  - protocol: http
+    name: b
+    port: 1338
+    target_port: 31338
+healthchecks:
+  liveness:
+    http:
+      port: a
+      path: /a
+  readiness:
+    http:
+      port: b
+      path: /b

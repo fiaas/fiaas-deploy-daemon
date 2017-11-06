@@ -92,12 +92,16 @@ class Factory(BaseFactory):
         exec_check_spec = http_check_spec = tcp_check_spec = None
         if healthcheck_lookup.get_config_value("execute"):
             exec_check_spec = self._exec_check_spec(healthcheck_lookup["execute"])
-        elif healthcheck_lookup.get_config_value("http") or first_port_lookup["protocol"] == "http":
-            http_check_spec = self._http_check_spec(healthcheck_lookup["http"])
-        elif healthcheck_lookup.get_config_value("tcp") or first_port_lookup["protocol"] == "tcp":
+        elif healthcheck_lookup.get_config_value("http"):
+            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup)
+        elif healthcheck_lookup.get_config_value("tcp"):
             tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup)
         elif len(ports_lookup) > 1:
             raise InvalidConfiguration("Must specify health check when more than one ports defined")
+        elif first_port_lookup["protocol"] == "http":
+            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup)
+        elif first_port_lookup["protocol"] == "tcp":
+            tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup)
 
         return CheckSpec(
             exec_check_spec,
@@ -110,10 +114,14 @@ class Factory(BaseFactory):
         )
 
     @staticmethod
-    def _http_check_spec(check_lookup):
+    def _http_check_spec(check_lookup, first_port_lookup):
+        if check_lookup.get_config_value("port"):
+            port = check_lookup["port"]
+        else:
+            port = first_port_lookup["port"]
         return HttpCheckSpec(
             path=check_lookup["path"],
-            port=check_lookup["port"],
+            port=port,
             http_headers=check_lookup["http_headers"].raw(),
         )
 

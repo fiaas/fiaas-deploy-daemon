@@ -1,0 +1,10 @@
+---
+version: 3
+healthchecks:
+  liveness:
+    execute:
+      command: /bin/alive
+  readiness:
+    http:
+      port: http
+      path: /ready

@@ -263,6 +263,7 @@ def pytest_generate_tests(metafunc):
                 metafunc.addcall(fixture_args, "{}/{}=={}".format(filename, attribute.replace(".", "_"),
                                                                   repr(value).replace(".", "_")))
 
+
 class TestFactory(object):
     @pytest.fixture
     def factory(self):

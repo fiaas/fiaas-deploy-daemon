@@ -22,7 +22,7 @@ class Factory(BaseFactory):
         return 3
 
     def __call__(self, name, image, teams, tags, app_config, deployment_id):
-        namespace = "default" # TODO: this will be a parameter to this function (DOCD-1060)
+        namespace = "default"  # TODO: this will be a parameter to this function (DOCD-1060)
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
             namespace=namespace,
@@ -149,6 +149,7 @@ class Factory(BaseFactory):
     @staticmethod
     def _ingress_items(ingress_lookup, ports_lookup):
         http_ports = {port["name"]: port["port"] for port in ports_lookup if port["protocol"] == "http"}
+
         def resolve_port_number(port):
             port_number = http_ports.get(port)
             if port_number:
@@ -159,7 +160,7 @@ class Factory(BaseFactory):
                 raise InvalidConfiguration("{} is not a valid port name or port number".format(port))
 
         def ingress_item(host, paths):
-            ingress_path_mapping_specs  = [
+            ingress_path_mapping_specs = [
                 IngressPathMappingSpec(path=pathmapping["path"], port=resolve_port_number(pathmapping["port"]))
                 for pathmapping in paths
             ]

@@ -20,6 +20,7 @@ GENERIC_REQ = [
     "dnspython == 1.15.0",
     "k8s == 0.3.2",
     "monotonic == 1.3",
+    "appdirs == 1.4.3",
 ]
 
 WEB_REQ = [

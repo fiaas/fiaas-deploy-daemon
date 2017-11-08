@@ -14,12 +14,11 @@ from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirement
 
 
 class Factory(BaseFactory):
+
+    version = 3
+
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
-
-    @property
-    def version(self):
-        return 3
 
     def __call__(self, name, image, teams, tags, app_config, deployment_id):
         namespace = "default"  # TODO: this will be a parameter to this function (DOCD-1060)

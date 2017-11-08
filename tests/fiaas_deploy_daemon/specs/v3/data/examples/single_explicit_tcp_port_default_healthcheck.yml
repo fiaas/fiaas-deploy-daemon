@@ -1,0 +1,7 @@
+---
+version: 3
+ports:
+  - protocol: tcp
+    name: thing
+    port: 1337
+    target_port: 31337

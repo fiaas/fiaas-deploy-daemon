@@ -6,7 +6,7 @@ import pkgutil
 
 import yaml
 
-from .lookup import LookupMapping
+from ..lookup import LookupMapping
 from ..factory import BaseTransformer, InvalidConfiguration
 
 
@@ -48,7 +48,7 @@ class Transformer(BaseTransformer):
     def _health_check(lookup, ports_lookup):
         value = {key: value for key, value in lookup.iteritems() if key not in ("execute", "http", "tcp")}
         for check in ("execute", "http", "tcp"):
-            if lookup.get_c_value(check):
+            if lookup.get_config_value(check):
                 value[check] = lookup[check]
                 return value
         if len(ports_lookup) > 1:

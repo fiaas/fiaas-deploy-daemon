@@ -11,20 +11,20 @@ class _Lookup(object):
         self._defaults = defaults
 
     def __getitem__(self, key):
-        c_value = self.get_c_value(key)
-        d_value = self.get_d_value(key)
-        if isinstance(d_value, (list, tuple)):
-            return _LookupList(c_value, d_value)
-        if isinstance(d_value, collections.Mapping):
-            return LookupMapping(c_value, d_value)
-        if c_value is None:
-            return d_value
-        return c_value
+        config_value = self.get_config_value(key)
+        default_value = self.get_default_value(key)
+        if isinstance(default_value, (list, tuple)):
+            return _LookupList(config_value, default_value)
+        if isinstance(default_value, collections.Mapping):
+            return LookupMapping(config_value, default_value)
+        if config_value is None:
+            return default_value
+        return config_value
 
-    def get_d_value(self, key):
+    def get_default_value(self, key):
         return self._get_value(self._defaults, key)
 
-    def get_c_value(self, key):
+    def get_config_value(self, key):
         return self._get_value(self._config, key) if self._config else None
 
     def _get_value(self, col, key):
@@ -42,8 +42,8 @@ class _Lookup(object):
 
 class LookupMapping(_Lookup, collections.Mapping):
     def _get_value(self, col, key):
-        d_value = col.get(key)
-        return d_value
+        default_value = col.get(key)
+        return default_value
 
     def __iter__(self):
         return iter(self._defaults) if _len(self._defaults) > _len(self._config) else iter(self._config)
@@ -58,8 +58,8 @@ class _LookupList(_Lookup, collections.Sequence):
             raise StopIteration()
         return super(_LookupList, self).__getitem__(idx)
 
-    def get_d_value(self, idx):
-        return super(_LookupList, self).get_d_value(0)
+    def get_default_value(self, idx):
+        return super(_LookupList, self).get_default_value(0)
 
     def _get_value(self, col, idx):
         if idx >= len(col):

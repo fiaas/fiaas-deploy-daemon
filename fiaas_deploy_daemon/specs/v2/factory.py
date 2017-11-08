@@ -6,7 +6,7 @@ import pkgutil
 
 import yaml
 
-from .lookup import LookupMapping
+from ..lookup import LookupMapping
 from ..factory import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
@@ -80,7 +80,7 @@ class Factory(object):
 
     def _health_checks_spec(self, lookup, ports_lookup):
         liveness = self._check_spec(lookup[u"liveness"], ports_lookup)
-        if not lookup.get_c_value(u"readiness"):
+        if not lookup.get_config_value(u"readiness"):
             readiness = liveness
         else:
             readiness = self._check_spec(lookup[u"readiness"], ports_lookup)
@@ -89,11 +89,11 @@ class Factory(object):
     def _check_spec(self, lookup, ports_lookup):
         first_port_lookup = ports_lookup[0]
         exec_check_spec = http_check_spec = tcp_check_spec = None
-        if lookup.get_c_value(u"execute"):
+        if lookup.get_config_value(u"execute"):
             exec_check_spec = self._exec_check_spec(lookup[u"execute"])
-        elif lookup.get_c_value(u"http"):
+        elif lookup.get_config_value(u"http"):
             http_check_spec = self._http_check_spec(lookup[u"http"], first_port_lookup)
-        elif lookup.get_c_value(u"tcp"):
+        elif lookup.get_config_value(u"tcp"):
             tcp_check_spec = self._tcp_check_spec(lookup[u"tcp"], first_port_lookup)
         elif len(ports_lookup) > 1:
             raise InvalidConfiguration("Must specify health check when more than one ports defined")
@@ -113,11 +113,11 @@ class Factory(object):
 
     @staticmethod
     def _http_check_spec(lookup, first_port_lookup):
-        if lookup.get_c_value(u"port"):
+        if lookup.get_config_value(u"port"):
             port = lookup[u"port"]
         else:
             port = first_port_lookup[u"name"]
-        if lookup.get_c_value(u"path"):
+        if lookup.get_config_value(u"path"):
             path = lookup[u"path"]
         else:
             path = first_port_lookup[u"path"]
@@ -129,7 +129,7 @@ class Factory(object):
 
     @staticmethod
     def _tcp_check_spec(lookup, first_port_lookup):
-        if lookup.get_c_value(u"port"):
+        if lookup.get_config_value(u"port"):
             port = lookup[u"port"]
         else:
             port = first_port_lookup[u"port"]

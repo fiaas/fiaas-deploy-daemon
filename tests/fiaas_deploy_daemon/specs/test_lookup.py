@@ -4,7 +4,7 @@ from __future__ import unicode_literals, absolute_import
 
 import pytest
 
-from fiaas_deploy_daemon.specs.v2.lookup import LookupMapping
+from fiaas_deploy_daemon.specs.lookup import LookupMapping
 
 
 CONFIG = {

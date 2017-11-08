@@ -1,0 +1,70 @@
+---
+version: 3
+replicas:
+  minimum: 10
+  maximum: 20
+  cpu_threshold_percentage: 60
+ingress:
+  - host: www.example.com
+    paths:
+      - path: /a
+        port: a
+healthchecks:
+  liveness:
+    http:
+      port: a
+      path: /health
+      http_headers:
+        X-Custom-Header: liveness-stuff
+  readiness:
+    tcp:
+      port: b
+resources:
+  limits:
+    cpu: 2
+    memory: 1024Mi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+metrics:
+  prometheus:
+    enabled: true
+    port: a
+    path: /prometheus-metrics-here
+ports:
+  - protocol: http
+    name: a
+    port: 1337
+    target_port: 31337
+  - protocol: tcp
+    name: b
+    port: 1338
+    target_port: 31338
+labels:
+  deployment:
+    a: b
+    c: d
+  horizontal_pod_autoscaler:
+    e: f
+    g: h
+  ingress:
+    i: j
+    k: l
+  service:
+    m: n
+    o: p
+annotations:
+  service:
+    a: b
+    c: d
+  ingress:
+    e: f
+    g: h
+  horizontal_pod_autoscaler:
+    i: j
+    k: l
+  deployment:
+    m: n
+    o: p
+secrets_in_environment: true
+admin_access: true

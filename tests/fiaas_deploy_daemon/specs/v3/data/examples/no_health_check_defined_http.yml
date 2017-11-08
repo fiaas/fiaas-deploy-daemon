@@ -1,0 +1,11 @@
+---
+version: 3
+ports:
+  - protocol: http
+    name: main_port
+    port: 8080
+    target_port: 5000
+  - protocol: http
+    name: other_port
+    port: 8081
+    target_port: 5001

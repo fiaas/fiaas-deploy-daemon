@@ -1,0 +1,23 @@
+---
+version: 3
+ingress:
+  - paths:
+      - path: /0noport
+      - path: /0portname
+        port: http
+      - path: /0portnumber
+        port: 80
+  - host: foo.example.com
+    paths:
+      - path: /1noport
+      - path: /1portname
+        port: http
+      - path: /1portnumber
+        port: 80
+  - host: bar.example.com
+    paths:
+      - path: /2noport
+      - path: /2portname
+        port: http
+      - path: /2portnumber
+        port: 80

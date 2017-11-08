@@ -11,7 +11,6 @@ IMAGE = "finntech/docker-image:some-version"
 NAME = "application-name"
 
 TEST_DATA = {
-    # v2minimal should test "all" possible default values
     "v3minimal": {
         "replicas": 5,
         "autoscaler.enabled": True,

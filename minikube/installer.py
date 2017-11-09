@@ -38,11 +38,7 @@ class MinikubeInstaller(object):
         if wanted_digest != downloaded_digest:
             msg = "Downloaded binary differ! (Wanted: %s != Downloaded: %s)" % (wanted_digest, downloaded_digest)
             raise MinikubeError(msg)
-        mode = os.stat(path).st_mode
-        mode |= (mode & 0o444) >> 2  # copy R bits to X
-        os.chmod(path, mode)
-        LOG.debug("Downloaded minikube-%s-%s to %s", self._driver.os, self._driver.arch, path)
-        return path
+        shutil.copy(path, os.path.join(self._workdir, "minikube"))
 
     def _download_binary(self):
         filename = "minikube-{os}-{arch}".format(os=self._driver.os, arch=self._driver.arch)
@@ -62,6 +58,10 @@ class MinikubeInstaller(object):
             for chunk in resp.iter_content(chunk_size=16 * 1024):
                 sha.update(chunk)
                 fobj.write(chunk)
+        mode = os.stat(cache_path).st_mode
+        mode |= (mode & 0o444) >> 2  # copy R bits to X
+        os.chmod(cache_path, mode)
+        LOG.debug("Downloaded minikube-%s-%s to %s", self._driver.os, self._driver.arch, cache_path)
         return cache_path, sha.hexdigest()
 
     def _get_wanted_checksum(self):

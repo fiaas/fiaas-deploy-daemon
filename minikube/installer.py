@@ -49,7 +49,7 @@ class MinikubeInstaller(object):
         cache_path = os.path.join(self._cachedir, filename)
         sha = hashlib.sha256()
         if os.path.exists(cache_path):
-            with open(cache_path) as fobj:
+            with open(cache_path, "rb") as fobj:
                 sha.update(fobj.read())
             return cache_path, sha.hexdigest()
         url = "https://storage.googleapis.com/minikube/releases/{version}/{filename}".format(

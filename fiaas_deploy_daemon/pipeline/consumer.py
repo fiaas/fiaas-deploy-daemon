@@ -18,6 +18,7 @@ from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
+DEFAULT_NAMESPACE = u"default"
 
 
 class Consumer(DaemonThread):
@@ -99,7 +100,8 @@ class Consumer(DaemonThread):
 
         app_config = self._app_config_downloader.get(fiaas_url)
 
-        return self._spec_factory(name, image, app_config, teams, tags, image.split(":")[-1][:63].lower())
+        return self._spec_factory(name, image, app_config, teams, tags, image.split(":")[-1][:63].lower(),
+                                  DEFAULT_NAMESPACE)
 
     def _build_connect_string(self, service):
         host, port = self._config.resolve_service(service)

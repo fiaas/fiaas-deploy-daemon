@@ -11,6 +11,7 @@ NAME = u"application-name"
 TEAMS = "IO"
 TAGS = "Foo"
 DEPLOYMENT_ID = "deployment_id"
+NAMESPACE = "namespace"
 
 
 class TestSpecFactory(object):
@@ -43,15 +44,15 @@ class TestSpecFactory(object):
         minimal_config = {}
         if version:
             minimal_config["version"] = version
-        factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID)
+        factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
         mock_factory = request.getfuncargvalue(mock_to_call)
         mock_factory.assert_called_with(minimal_config)
 
     @pytest.mark.parametrize("version", [1, 2, 3])
     def test_parsed_by_current_version(self, factory, version, v3):
-        factory(NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID)
-        v3.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID)
+        factory(NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+        v3.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE)
 
     def test_raise_invalid_config_if_version_not_supported(self, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID)
+            factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)

@@ -19,10 +19,10 @@ class Factory(object):
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
 
-    def __call__(self, name, image, teams, tags, app_config, deployment_id):
+    def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace):
         lookup = LookupMapping(app_config, self._defaults)
         return AppSpec(
-            lookup[u"namespace"],
+            lookup[u"namespace"],  # v2 intentionally uses namespace from app_config, not from the namespace parameter
             name,
             image,
             lookup[u"replicas"],

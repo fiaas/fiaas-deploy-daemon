@@ -194,16 +194,16 @@ class TestFactory(object):
             "full_config"
     ))
     def test_name_and_image(self, load_app_config_testdata, factory, filename):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id")
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id", "namespace")
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
     def test_no_health_check(self, load_app_config_testdata, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, load_app_config_testdata("no_health_check_defined"), "IO", "foo", "deployment_id")
+            factory(NAME, IMAGE, load_app_config_testdata("no_health_check_defined"), "IO", "foo", "deployment_id", "namespace")
 
     def test(self, load_app_config_testdata, factory, filename, attribute, value):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id")
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id", "namespace")
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)

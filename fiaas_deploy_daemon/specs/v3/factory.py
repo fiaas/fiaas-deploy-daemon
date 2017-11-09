@@ -20,8 +20,7 @@ class Factory(BaseFactory):
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
 
-    def __call__(self, name, image, teams, tags, app_config, deployment_id):
-        namespace = "default"  # TODO: this will be a parameter to this function (DOCD-1060)
+    def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace):
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
             namespace=namespace,

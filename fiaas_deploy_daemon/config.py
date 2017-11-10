@@ -4,6 +4,7 @@ from argparse import Namespace
 
 import configargparse
 import dns.resolver
+import dns.exception
 import os
 import logging
 import re
@@ -166,7 +167,7 @@ class Configuration(Namespace):
     def resolve_service(self, service_name, port_name=None):
         try:
             return self._resolve_service_from_srv_record(service_name, port_name)
-        except dns.resolver.NXDOMAIN as e:
+        except (dns.resolver.NXDOMAIN, dns.exception.Timeout) as e:
             self._logger.warn("Failed to lookup SRV. %s", str(e))
         return self._resolve_service_from_env(service_name)
 

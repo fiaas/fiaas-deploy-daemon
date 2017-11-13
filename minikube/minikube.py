@@ -93,11 +93,19 @@ class Minikube(object):
         if self._profile:
             cmd.extend(("--profile", self._profile))
         try:
-            subprocess.check_call(cmd, env=self._env)
+            subprocess.check_output(cmd, stderr=subprocess.STDOUT, env=self._env)
         except subprocess.CalledProcessError as e:
             if not ignore_errors:
-                raise MinikubeError(e)
+                raise MinikubeError(e, output=e.output)
 
 
 class MinikubeError(Exception):
-    pass
+    def __init__(self, arg, output=""):
+        super(MinikubeError, self).__init__(arg)
+        self._output = output
+
+    def __str__(self):
+        desc = super(MinikubeError, self).__str__()
+        if self._output:
+            return "\n".join((desc, "Output from command:", self._output))
+        return desc

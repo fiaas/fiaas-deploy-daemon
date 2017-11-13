@@ -28,6 +28,7 @@ from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
                                            PaasApplicationConfig, PaasbetaStatus)
 from minikube import MinikubeInstaller, MinikubeError
+from minikube.drivers import MinikubeDriverError
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -84,9 +85,11 @@ def minikube_installer():
         mki.install()
         yield mki
         mki.cleanup()
+    except MinikubeDriverError as e:
+        pytest.skip(str(e))
     except MinikubeError as e:
         msg = "Unable to install minikube: %s"
-        pytest.skip(msg % str(e))
+        pytest.fail(msg % str(e))
 
 
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
@@ -104,18 +107,19 @@ class TestE2E(object):
     def kubernetes(self, minikube_installer, service_type, k8s_version):
         try:
             minikube = minikube_installer.new(profile=service_type, k8s_version=k8s_version)
-            minikube.delete()
-            minikube.start()
-            yield {
-                "server": minikube.server,
-                "client-cert": minikube.client_cert,
-                "client-key": minikube.client_key,
-                "api-cert": minikube.api_cert
-            }
-            minikube.delete()
+            try:
+                minikube.start()
+                yield {
+                    "server": minikube.server,
+                    "client-cert": minikube.client_cert,
+                    "client-key": minikube.client_key,
+                    "api-cert": minikube.api_cert
+                }
+            finally:
+                minikube.delete()
         except MinikubeError as e:
             msg = "Unable to run minikube: %s"
-            pytest.skip(msg % str(e))
+            pytest.fail(msg % str(e))
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):

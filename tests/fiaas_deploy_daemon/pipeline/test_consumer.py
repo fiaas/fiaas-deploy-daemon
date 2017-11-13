@@ -6,13 +6,13 @@ from copy import deepcopy
 
 import kafka
 import pytest
-from mock import create_autospec
+from mock import create_autospec, patch
 
 from fiaas_deploy_daemon import config
 from fiaas_deploy_daemon.pipeline import consumer as pipeline_consumer
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
 from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
-from fiaas_deploy_daemon.specs.factory import SpecFactory
+
 
 DummyMessage = namedtuple("DummyMessage", ("value",))
 EVENT = {
@@ -54,14 +54,18 @@ class TestConsumer(object):
 
     @pytest.fixture
     def factory(self, app_spec):
-        mock = create_autospec(SpecFactory, instance=True)
-        mock.return_value = app_spec
-        return mock
+        with patch('fiaas_deploy_daemon.specs.factory.SpecFactory') as mock:
+            mock.return_value = app_spec
+            yield mock
 
     @pytest.fixture
-    def app_config_downloader(self):
+    def app_config(self):
+        return {'version': 2}  # minimal v2 yaml
+
+    @pytest.fixture
+    def app_config_downloader(self, app_config):
         mock = create_autospec(AppConfigDownloader, instance=True)
-        mock.get.return_value = {'version': 2}  # minimal v2 yaml
+        mock.get.return_value = app_config
         return mock
 
     @pytest.fixture
@@ -80,13 +84,15 @@ class TestConsumer(object):
 
         assert e.value.message == "FakeConfig"
 
-    def test_create_spec_from_event(self, consumer, factory, app_config_downloader):
+    def test_create_spec_from_event(self, consumer, factory, app_config_downloader, app_config):
         consumer._create_spec(EVENT)
 
         assert app_config_downloader.get.called
         assert app_config_downloader.get.call_count == 1
-        assert factory.called
-        assert factory.call_count == 1
+
+        image = EVENT[u"artifacts_by_type"][u"docker"]
+        factory.assert_called_once_with(EVENT[u"project_name"], image, app_config, EVENT[u"teams"], EVENT[u"tags"],
+                                        image.split(":")[-1], pipeline_consumer.DEFAULT_NAMESPACE)
 
     def test_fail_if_no_docker_image(self, consumer):
         event = deepcopy(EVENT)

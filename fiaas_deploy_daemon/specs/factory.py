@@ -16,7 +16,7 @@ class SpecFactory(object):
         self._supported_versions = [factory.version] + transformers.keys()
         self._fiaas_counter = Counter("fiaas_yml_version", "The version of fiaas.yml used", ["version"])
 
-    def __call__(self, name, image, app_config, teams, tags, deployment_id):
+    def __call__(self, name, image, app_config, teams, tags, deployment_id, namespace):
         """Create an app_spec from app_config"""
         fiaas_version = app_config.get(u"version", 1)
         self._fiaas_counter.labels(fiaas_version).inc()
@@ -25,7 +25,7 @@ class SpecFactory(object):
             raise InvalidConfiguration("Requested version %s, but the only supported versions are: %r" %
                                        (fiaas_version, self._supported_versions))
         app_config = self._transform(app_config)
-        return self._factory(name, image, teams, tags, app_config, deployment_id)
+        return self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
 
     def _transform(self, app_config):
         current_version = app_config.get(u"version", 1)

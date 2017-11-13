@@ -14,3 +14,4 @@ class DeployForm(FlaskForm):
     teams = StringField(u"Teams to label pods with (comma separated)", [InputRequired()])
     tags = StringField(u"Tags to label pods with (comma separated)", [InputRequired()])
     deployment_id = StringField(u"Deployment identifier", [InputRequired()])
+    namespace = StringField(u"Namespace to deploy to. Used for FIAAS-config version 3 and later.", [])

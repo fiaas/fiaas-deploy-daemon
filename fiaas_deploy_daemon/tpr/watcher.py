@@ -63,7 +63,7 @@ class Watcher(DaemonThread):
         app_spec = self._spec_factory(
             name=application.spec.application, image=application.spec.image,
             app_config=application.spec.config.as_dict(), teams=[], tags=[],
-            deployment_id=deployment_id
+            deployment_id=deployment_id, namespace=application.metadata.namespace
         )
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
@@ -72,7 +72,7 @@ class Watcher(DaemonThread):
         app_spec = self._spec_factory(
             name=application.spec.application, image=application.spec.image,
             app_config=application.spec.config.as_dict(), teams=[], tags=[],
-            deployment_id=None
+            deployment_id=None, namespace=application.metadata.namespace
         )
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
         LOG.debug("Queued delete for %s", application.spec.application)

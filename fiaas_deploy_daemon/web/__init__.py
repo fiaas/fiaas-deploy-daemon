@@ -8,7 +8,7 @@ import pkgutil
 import pinject
 import re
 from flask import Flask, Blueprint, current_app, render_template, request, flash, url_for, redirect, make_response, \
-    request_started, request_finished, got_request_exception
+    request_started, request_finished, got_request_exception, abort
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 from .forms import DeployForm
@@ -22,6 +22,7 @@ Also, endpoints to manually generate AppSpecs and send to deployer for when no p
 PLATFORM_COLLECTOR.collect()
 LOG = logging.getLogger(__name__)
 SPLITTER = re.compile(ur"\s*,\s*")
+DEFAULT_NAMESPACE = u"default"
 
 web = Blueprint("web", __name__, template_folder="templates")
 fiaas_counter = Counter("web_fiaas_deploy", "Fiaas App deploy requested through web")
@@ -50,8 +51,17 @@ def fiaas():
         app_config = current_app.app_config_downloader.get(fiaas_url)
         teams = SPLITTER.split(form.teams.data)
         tags = SPLITTER.split(form.tags.data)
+
+        if app_config["version"] == 2:
+            namespace = DEFAULT_NAMESPACE
+        elif form.namespace:
+            namespace = form.namespace
+        else:
+            LOG.error("namespace is required if version is not 2")
+            abort(400)
+
         app_spec = current_app.spec_factory(form.name.data, form.image.data, app_config, teams, tags,
-                                            form.deployment_id.data)
+                                            form.deployment_id.data, namespace)
         current_app.deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         flash("Deployment request sent...")
         LOG.info("Deployment request sent...")

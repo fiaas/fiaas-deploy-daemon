@@ -15,5 +15,8 @@ def select_driver(minikube_version):
         if driver.supported(minikube_version):
             LOG.debug("Selected driver %s", driver.name)
             return driver
-    from minikube import MinikubeError
-    raise MinikubeError("No supported drivers available")
+    raise MinikubeDriverError("No supported drivers available")
+
+
+class MinikubeDriverError(Exception):
+    pass

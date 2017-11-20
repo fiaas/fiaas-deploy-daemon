@@ -201,7 +201,7 @@ task test(type: PewTask) {
         '--addopts=' +
             '-m "not integration_test" ' +
             '-n auto ' +
-            '-rxs ' +
+            '-ra ' +
             '--cov=fiaas_deploy_daemon ' +
             '--cov=minikube ' +
             '--cov-report html ' +
@@ -226,7 +226,7 @@ task integrationTest(type: PewTask) {
         '--addopts=' +
             '-m integration_test ' +
             '-n 4 ' +
-            '-rxs ' +
+            '-ra ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html'
     ]

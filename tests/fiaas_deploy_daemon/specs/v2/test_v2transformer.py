@@ -29,6 +29,7 @@ class TestTransformer(object):
         "host",
         "multiple_ports",
         "tcp_config",
+        "partial_override",
     ))
     def test_transformation(self, filename, transformer, load_app_config_testdata, load_app_config_transformations):
         config = load_app_config_testdata(filename)

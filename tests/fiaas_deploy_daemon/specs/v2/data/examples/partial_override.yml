@@ -1,0 +1,21 @@
+---
+version: 2
+has_secrets: true
+replicas: 2
+ports:
+  - target_port: 80
+    path: /foo
+host: www.example.com
+autoscaler:
+  enabled: true
+  min_replicas: 1
+healthchecks:
+  liveness:
+    http:
+      path: /
+  readiness:
+    http:
+      path: /
+config:
+  envs:
+    - SPRING_PROFILES_ACTIVE

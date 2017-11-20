@@ -12,7 +12,7 @@ from k8s.client import NotFound
 from requests import Response
 
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.tpr import Watcher
+from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.specs.models import AppSpec
 
 ADD_EVENT = {
@@ -61,7 +61,7 @@ class TestWatcher(object):
 
     @pytest.fixture
     def watcher(self, spec_factory, deploy_queue):
-        return Watcher(spec_factory, deploy_queue)
+        return TprWatcher(spec_factory, deploy_queue)
 
     def test_creates_third_party_resource_if_not_exists_when_watching_it(self, get, post, watcher):
         get.side_effect = NotFound("Something")

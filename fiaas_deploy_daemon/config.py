@@ -111,6 +111,8 @@ class Configuration(Namespace):
                             default=5000)
         parser.add_argument("--enable-tpr-support", help="Enable third party resource support (experimental).",
                             action="store_true")
+        parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support (experimental).",
+                            action="store_true")
         parser.add_argument("--secrets-init-container-image",
                             help="Use specified docker image as init container for secrets (experimental)", default=None)
         parser.add_argument("--secrets-service-account-name",

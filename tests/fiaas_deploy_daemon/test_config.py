@@ -88,10 +88,13 @@ class TestConfig(object):
 
         assert config.infrastructure == "gke"
 
-    def test_debug(self):
-        config = Configuration(["--debug"])
-
-        assert config.debug
+    @pytest.mark.parametrize("key", ("debug", "enable_tpr_support", "enable_crd_support"))
+    def test_flags(self, key):
+        flag = "--{}".format(key.replace("_", "-"))
+        config = Configuration([])
+        assert getattr(config, key) is False
+        config = Configuration([flag])
+        assert getattr(config, key) is True
 
     def test_resolve_service_from_dns(self, dns_resolver):
         dns_resolver.side_effect = None
@@ -174,14 +177,6 @@ class TestConfig(object):
     def test_mutually_exclusive_lists(self):
         with pytest.raises(SystemExit):
             Configuration(["--blacklist", "blacklisted", "--whitelist", "whitelisted"])
-
-    def test_enable_thirdpartyresource_support(self):
-        config = Configuration(["--enable-tpr-support"])
-        assert config.enable_tpr_support is True
-
-    def test_enable_thirdpartyresource_support_default(self):
-        config = Configuration([])
-        assert config.enable_tpr_support is False
 
     def test_global_env_keyvalue(self):
         args = ("pattern=value", "FIAAS_ENV=test")

@@ -5,7 +5,7 @@ import mock
 from fiaas_deploy_daemon import HealthCheck
 from fiaas_deploy_daemon.base_thread import DaemonThread
 
-THREADS = ["deployer", "consumer", "scheduler", "tpr_watcher"]
+THREADS = ["deployer", "consumer", "scheduler", "tpr_watcher", "crd_watcher"]
 
 
 def _create_mock(failing):

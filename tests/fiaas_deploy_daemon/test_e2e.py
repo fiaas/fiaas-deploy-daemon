@@ -189,6 +189,9 @@ class TestE2E(object):
             "data/v2minimal.yml",
             "v2/data/examples/host.yml",
             "v2/data/examples/exec_config.yml",
+            "v3/data/examples/v3minimal.yml",
+            "v3/data/examples/full.yml",
+            "v3/data/examples/multiple_hosts_multiple_paths.yml",
     ))
     def fiaas_yml(self, request):
         port = self._get_open_port()
@@ -237,6 +240,9 @@ class TestE2E(object):
                 Ingress: "e2e_expected/partial_override-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
             }),
+            ("v3/data/examples/v3minimal.yml", {}),
+            ("v3/data/examples/full.yml", {}),
+            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {}),
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
@@ -333,7 +339,8 @@ class TestE2E(object):
             "fiaas": url,
             "teams": ["testteam"],
             "tags": ["testtags"],
-            "deployment_id": DEPLOYMENT_ID1
+            "deployment_id": DEPLOYMENT_ID1,
+            "namespace": "default",
         }
         resp = requests.post(fdd, data)
         resp.raise_for_status()

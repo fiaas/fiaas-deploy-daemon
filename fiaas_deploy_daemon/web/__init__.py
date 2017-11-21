@@ -84,7 +84,7 @@ def metrics():
 
 @web.route("/defaults")
 def defaults():
-    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
+    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
     resp.mimetype = "text/vnd.yaml; charset=utf-8"
     return resp
 

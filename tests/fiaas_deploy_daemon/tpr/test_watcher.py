@@ -114,8 +114,6 @@ class TestWatcher(object):
         deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
                          if deployer_event_type != "DELETE" else None)
         app_config = spec["config"]
-        # ports is ListField, so we will get an empty list because the event is serialized and then deserialized again
-        app_config["ports"] = []
         spec_factory.assert_called_once_with(name=spec["application"], image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,

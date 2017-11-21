@@ -5,6 +5,8 @@ import pytest
 
 from fiaas_deploy_daemon.specs.v2.factory import Factory
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
+from fiaas_deploy_daemon.specs.lookup import _Lookup
+
 
 IMAGE = u"finntech/docker-image:some-version"
 NAME = u"application-name"
@@ -207,4 +209,5 @@ class TestFactory(object):
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)
+        assert isinstance(actual, _Lookup) == False  # _Lookup objects should not leak to AppSpec
         assert actual == value

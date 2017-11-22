@@ -404,11 +404,11 @@ def _skip_if_crd_not_supported(k8s_version):
 
 
 def _tpr_supported(k8s_version):
-    return StrictVersion("1.6.0") < StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")
+    return StrictVersion("1.6.0") <= StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")
 
 
 def _crd_supported(k8s_version):
-    return StrictVersion("1.7.0") < StrictVersion(k8s_version[1:])
+    return StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
 
 
 def plog(message):

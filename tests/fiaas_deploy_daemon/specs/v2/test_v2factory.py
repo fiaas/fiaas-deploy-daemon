@@ -209,5 +209,5 @@ class TestFactory(object):
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)
-        assert isinstance(actual, _Lookup) == False  # _Lookup objects should not leak to AppSpec
+        assert isinstance(actual, _Lookup) is False  # _Lookup objects should not leak to AppSpec
         assert actual == value

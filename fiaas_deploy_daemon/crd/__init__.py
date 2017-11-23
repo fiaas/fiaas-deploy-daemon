@@ -4,22 +4,22 @@ from __future__ import absolute_import
 
 import pinject
 
-from .watcher import TprWatcher
+from .watcher import CrdWatcher
 from .status import connect_signals
 
 
-class ThirdPartyResourceBindings(pinject.BindingSpec):
+class CustomResourceDefinitionBindings(pinject.BindingSpec):
     def configure(self, bind, require):
         require("config")
         require("deploy_queue")
 
-        bind("tpr_watcher", to_class=TprWatcher)
+        bind("crd_watcher", to_class=CrdWatcher)
         connect_signals()
 
 
-class DisabledThirdPartyResourceBindings(pinject.BindingSpec):
+class DisabledCustomResourceDefinitionBindings(pinject.BindingSpec):
     def configure(self, bind):
-        bind("tpr_watcher", to_class=FakeWatcher)
+        bind("crd_watcher", to_class=FakeWatcher)
 
 
 class FakeWatcher(object):

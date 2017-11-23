@@ -12,7 +12,7 @@ from k8s.client import NotFound
 from requests import Response
 
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.tpr import TprWatcher
+from fiaas_deploy_daemon.crd import CrdWatcher
 from fiaas_deploy_daemon.specs.models import AppSpec
 
 ADD_EVENT = {
@@ -61,28 +61,42 @@ class TestWatcher(object):
 
     @pytest.fixture
     def watcher(self, spec_factory, deploy_queue):
-        return TprWatcher(spec_factory, deploy_queue)
+        return CrdWatcher(spec_factory, deploy_queue)
 
-    def test_creates_third_party_resource_if_not_exists_when_watching_it(self, get, post, watcher):
+    def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, watcher):
         get.side_effect = NotFound("Something")
 
         watcher._watch()
 
         calls = [
-            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {'namespace': 'default', 'name': 'paasbeta-application.schibsted.io'},
-                'description': 'A paas application definition',
-                'versions': [{'name': 'v1beta'}]
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
+                'metadata': {'namespace': 'default', 'name': 'applications.fiaas.schibsted.io'},
+                'spec': {
+                    'version': 'v1',
+                    'group': 'fiaas.schibsted.io',
+                    'names': {
+                        'shortNames': ['app', 'fa'],
+                        'kind': 'Application',
+                        'plural': 'applications'
+                    }
+                }
             }),
-            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {'namespace': 'default', 'name': 'paasbeta-status.schibsted.io'},
-                'description': 'A paas application status',
-                'versions': [{'name': 'v1beta'}]
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
+                'metadata': {'namespace': 'default', 'name': 'statuses.fiaas.schibsted.io'},
+                'spec': {
+                    'version': 'v1',
+                    'group': 'fiaas.schibsted.io',
+                    'names': {
+                        'shortNames': ['status', 'fs'],
+                        'kind': 'Status',
+                        'plural': 'statuses'
+                    }
+                }
             })
         ]
         assert post.call_args_list == calls
 
-    def test_is_able_to_watch_third_party_resource(self, get, watcher, deploy_queue):
+    def test_is_able_to_watch_custom_resource_definition(self, get, watcher, deploy_queue):
         response = Response()
         get.return_value = response
         get.side_effect = None
@@ -115,8 +129,6 @@ class TestWatcher(object):
         deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
                          if deployer_event_type != "DELETE" else None)
         app_config = spec["config"]
-        # ports is ListField, so we will get an empty list because the event is serialized and then deserialized again
-        app_config["ports"] = []
         spec_factory.assert_called_once_with(name=spec["application"], image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,

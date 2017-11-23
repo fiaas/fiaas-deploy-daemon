@@ -41,6 +41,7 @@ class TestService(object):
             "spec": _create_default_paasbetaapplicationspec().as_dict()
         }
         get.return_value = get_response
+        get.side_effect = None
 
         spec = _create_default_paasbetaapplicationspec(
             replicas=2, host='example.org', ports=[Port(protocol='tcp', target_port=1992)]

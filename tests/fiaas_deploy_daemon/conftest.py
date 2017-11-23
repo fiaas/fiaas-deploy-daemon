@@ -2,6 +2,9 @@
 # -*- coding: utf-8
 
 import pytest
+import mock
+from k8s import config
+from k8s.client import NotFound
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
@@ -12,6 +15,8 @@ AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_pe
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
 
+
+# App specs
 
 @pytest.fixture
 def app_spec():
@@ -103,3 +108,39 @@ def app_spec_no_ports(app_spec):
     return app_spec._replace(ports=[],
                              health_checks=HealthCheckSpec(liveness=exec_check, readiness=exec_check),
                              ingresses=[])
+
+
+# k8s client library mocks
+
+
+@pytest.fixture(autouse=True)
+def k8s_config(monkeypatch):
+    """Configure k8s for test-runs"""
+    monkeypatch.setattr(config, "api_server", "https://10.0.0.1")
+    monkeypatch.setattr(config, "api_token", "password")
+    monkeypatch.setattr(config, "verify_ssl", False)
+
+
+@pytest.fixture(autouse=True)
+def get():
+    with mock.patch('k8s.client.Client.get') as mockk:
+        mockk.side_effect = NotFound()
+        yield mockk
+
+
+@pytest.fixture(autouse=True)
+def post():
+    with mock.patch('k8s.client.Client.post') as mockk:
+        yield mockk
+
+
+@pytest.fixture(autouse=True)
+def put():
+    with mock.patch('k8s.client.Client.put') as mockk:
+        yield mockk
+
+
+@pytest.fixture(autouse=True)
+def delete():
+    with mock.patch('k8s.client.Client.delete') as mockk:
+        yield mockk

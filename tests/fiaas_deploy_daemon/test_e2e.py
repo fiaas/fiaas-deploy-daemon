@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import traceback
+from datetime import datetime
 from distutils.version import StrictVersion
 from urlparse import urljoin
 
@@ -24,6 +25,7 @@ from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
 
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
                                            PaasApplicationConfig, PaasbetaStatus)
@@ -46,7 +48,7 @@ def _wait_until(action, description=None, exception_class=AssertionError, patien
     cause = []
     if not description:
         description = action.__doc__ or action.__name__
-    message = ["Gave up waiting for {} after {} seconds".format(description, patience)]
+    message = []
     while time_monotonic() < (start + patience):
         try:
             action()
@@ -57,6 +59,8 @@ def _wait_until(action, description=None, exception_class=AssertionError, patien
     if cause:
         message.append("\nThe last exception was:\n")
         message.extend(cause)
+    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
+    message.insert(0, header)
     raise exception_class("".join(message))
 
 
@@ -76,6 +80,24 @@ def _tpr_available(kubernetes):
             plog("!!!!! %s is available !!!!" % url)
 
     return tpr_available
+
+
+def _crd_available(kubernetes):
+    app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["server"], FiaasStatus._meta.url_template.format(namespace="default", name=""))
+    session = requests.Session()
+    session.verify = kubernetes["api-cert"]
+    session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
+
+    def crd_available():
+        plog("Checking if CRDs are available")
+        for url in (app_url, status_url):
+            plog("Checking %s" % url)
+            resp = session.get(url, timeout=TIMEOUT)
+            resp.raise_for_status()
+            plog("!!!!! %s is available !!!!" % url)
+
+    return crd_available
 
 
 @pytest.fixture(scope="session")
@@ -130,18 +152,23 @@ class TestE2E(object):
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     @pytest.fixture(scope="module")
-    def fdd(self, kubernetes, service_type):
+    def fdd(self, kubernetes, service_type, k8s_version):
         port = self._get_open_port()
-        fdd = subprocess.Popen(["fiaas-deploy-daemon",
-                                "--port", str(port),
-                                "--api-server", kubernetes["server"],
-                                "--api-cert", kubernetes["api-cert"],
-                                "--client-cert", kubernetes["client-cert"],
-                                "--client-key", kubernetes["client-key"],
-                                "--service-type", service_type,
-                                "--ingress-suffix", "svc.test.example.com",
-                                "--environment", "test"
-                                ])
+        args = ["fiaas-deploy-daemon",
+                "--port", str(port),
+                "--api-server", kubernetes["server"],
+                "--api-cert", kubernetes["api-cert"],
+                "--client-cert", kubernetes["client-cert"],
+                "--client-key", kubernetes["client-key"],
+                "--service-type", service_type,
+                "--ingress-suffix", "svc.test.example.com",
+                "--environment", "test",
+                ]
+        if _tpr_supported(k8s_version):
+            args.append("--enable-tpr-support")
+        if _crd_supported(k8s_version):
+            args.append("--enable-crd-support")
+        fdd = subprocess.Popen(args)
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
@@ -149,27 +176,10 @@ class TestE2E(object):
 
         try:
             _wait_until(ready, "web-interface healthy", RuntimeError)
-            yield "http://localhost:{}/fiaas".format(port)
-        finally:
-            self._end_popen(fdd)
-
-    @pytest.fixture(scope="module")
-    def fdd_tpr_support_enabled(self, kubernetes, service_type, k8s_version):
-        _skip_if_tpr_not_supported(k8s_version)
-        port = self._get_open_port()
-        fdd = subprocess.Popen(["fiaas-deploy-daemon",
-                                "--port", str(port),
-                                "--api-server", kubernetes["server"],
-                                "--api-cert", kubernetes["api-cert"],
-                                "--client-cert", kubernetes["client-cert"],
-                                "--client-key", kubernetes["client-key"],
-                                "--service-type", service_type,
-                                "--ingress-suffix", "svc.test.example.com",
-                                "--environment", "test",
-                                "--enable-tpr-support"
-                                ])
-        try:
-            _wait_until(_tpr_available(kubernetes), "TPR available", RuntimeError)
+            if _tpr_supported(k8s_version):
+                _wait_until(_tpr_available(kubernetes), "TPR available", RuntimeError)
+            if _crd_supported(k8s_version):
+                _wait_until(_crd_available(kubernetes), "CRD available", RuntimeError)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(fdd)
@@ -201,7 +211,8 @@ class TestE2E(object):
             "v2/data/examples/host.yml",
             "v2/data/examples/exec_config.yml",
     ))
-    def third_party_resource(self, request):
+    def third_party_resource(self, request, k8s_version):
+        _skip_if_tpr_not_supported(k8s_version)
         fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
         with open(fiaas_yml_path, 'r') as fobj:
             fiaas_yml = yaml.safe_load(fobj)
@@ -211,6 +222,22 @@ class TestE2E(object):
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
                                        config=PaasApplicationConfig.from_dict(fiaas_yml))
         return name, PaasbetaApplication(metadata=metadata, spec=spec)
+
+    @pytest.fixture(params=(
+            "data/v2minimal.yml",
+            "v2/data/examples/host.yml",
+            "v2/data/examples/exec_config.yml",
+    ))
+    def custom_resource_definition(self, request, k8s_version):
+        _skip_if_crd_not_supported(k8s_version)
+        fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
+        with open(fiaas_yml_path, 'r') as fobj:
+            fiaas_yml = yaml.safe_load(fobj)
+
+        name = self._sanitize(request.param)
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        return name, FiaasApplication(metadata=metadata, spec=spec)
 
     @staticmethod
     def _sanitize(param):
@@ -271,8 +298,8 @@ class TestE2E(object):
         for kind in kinds:
             kind.delete(name)
 
-    def test_third_party_resource_deploy(self, fdd_tpr_support_enabled,
-                                         third_party_resource, service_type):
+    @pytest.mark.usefixtures("fdd")
+    def test_third_party_resource_deploy(self, third_party_resource, service_type):
         name, paasbetaapplication = third_party_resource
 
         # check that k8s objects for name doesn't already exist
@@ -285,7 +312,11 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check that deployment status is RUNNING
-        _wait_until(lambda: _assert_status(name, DEPLOYMENT_ID1, u"RUNNING"))
+        def _assert_status():
+            status = PaasbetaStatus.get(create_name(name, DEPLOYMENT_ID1))
+            assert status.result == u"RUNNING"
+
+        _wait_until(_assert_status)
 
         # Check deploy success
         _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
@@ -308,10 +339,46 @@ class TestE2E(object):
 
         _wait_until(cleanup_complete)
 
+    @pytest.mark.usefixtures("fdd")
+    def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):
+        name, fiaas_application = custom_resource_definition
 
-def _assert_status(name, deployment_id, result):
-    status = PaasbetaStatus.get(create_name(name, deployment_id))
-    assert status.result == result
+        # check that k8s objects for name doesn't already exist
+        kinds = self._select_kinds(name)
+        for kind in kinds:
+            with pytest.raises(NotFound):
+                kind.get(name)
+
+        # First deploy
+        fiaas_application.save()
+
+        # Check that deployment status is RUNNING
+        def _assert_status():
+            status = FiaasStatus.get(create_name(name, DEPLOYMENT_ID1))
+            assert status.result == u"RUNNING"
+
+        _wait_until(_assert_status)
+
+        # Check deploy success
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
+
+        # Redeploy, new image
+        fiaas_application.spec.image = IMAGE2
+        fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        fiaas_application.save()
+
+        # Check success
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
+
+        # Cleanup
+        FiaasApplication.delete(name)
+
+        def cleanup_complete():
+            for kind in kinds:
+                with pytest.raises(NotFound):
+                    kind.get(name)
+
+        _wait_until(cleanup_complete)
 
 
 def _deploy_success(name, kinds, service_type, image):
@@ -327,8 +394,21 @@ def _deploy_success(name, kinds, service_type, image):
 
 
 def _skip_if_tpr_not_supported(k8s_version):
-    if not (StrictVersion("1.6.0") < StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")):
+    if not _tpr_supported(k8s_version):
         pytest.skip("TPR not supported in version %s of kubernetes, skipping this test" % k8s_version)
+
+
+def _skip_if_crd_not_supported(k8s_version):
+    if not _crd_supported(k8s_version):
+        pytest.skip("CRD not supported in version %s of kubernetes, skipping this test" % k8s_version)
+
+
+def _tpr_supported(k8s_version):
+    return StrictVersion("1.6.0") <= StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")
+
+
+def _crd_supported(k8s_version):
+    return StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
 
 
 def plog(message):

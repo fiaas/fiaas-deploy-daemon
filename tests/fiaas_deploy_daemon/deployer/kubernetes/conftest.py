@@ -1,35 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import mock
 import pytest
-
-from k8s.client import NotFound
-
-
-@pytest.fixture(autouse=True)
-def get():
-    with mock.patch("k8s.client.Client.get") as m:
-        m.side_effect = NotFound()
-        yield m
-
-
-@pytest.fixture(autouse=True)
-def post():
-    with mock.patch("k8s.client.Client.post") as m:
-        yield m
-
-
-@pytest.fixture(autouse=True)
-def put():
-    with mock.patch("k8s.client.Client.put") as m:
-        yield m
-
-
-@pytest.fixture(autouse=True)
-def delete():
-    with mock.patch("k8s.client.Client.delete") as m:
-        yield m
 
 
 @pytest.helpers.register

@@ -7,9 +7,10 @@ from Queue import Queue
 
 import pinject
 import requests
-
 from k8s import config as k8s_config
+
 from .config import Configuration
+from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
 from .fake_consumer import FakeConsumerBindings
@@ -42,7 +43,7 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, tpr_watcher):
+    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher):
         pass
 
     def is_healthy(self):
@@ -51,12 +52,13 @@ class HealthCheck(object):
             self._consumer.is_alive(),
             self._scheduler.is_alive(),
             self._tpr_watcher.is_alive(),
+            self._crd_watcher.is_alive(),
         ))
 
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher):
+    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher, crd_watcher):
         pass
 
     def run(self):
@@ -64,6 +66,7 @@ class Main(object):
         self._consumer.start()
         self._scheduler.start()
         self._tpr_watcher.start()
+        self._crd_watcher.start()
         # Run web-app in main thread
         self._webapp.run("0.0.0.0", self._config.port)
 
@@ -92,14 +95,11 @@ def main():
             DeployerBindings(),
             K8sAdapterBindings(),
             WebBindings(),
-            SpecBindings()
+            SpecBindings(),
+            PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
+            ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
+            CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
         ]
-        if cfg.has_service("kafka_pipeline"):
-            binding_specs.append(PipelineBindings())
-        else:
-            binding_specs.append(FakeConsumerBindings())
-        binding_specs.append(ThirdPartyResourceBindings() if cfg.enable_tpr_support
-                             else DisabledThirdPartyResourceBindings())
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()
     except BaseException:

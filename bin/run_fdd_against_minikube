@@ -15,4 +15,5 @@ fiaas-deploy-daemon \
     --service-type ClusterIP \
     --ingress-suffix svc.example.com \
     --environment test \
-    --enable-tpr-support
+    --enable-tpr-support \
+    --enable-crd-support

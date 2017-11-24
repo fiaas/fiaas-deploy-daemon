@@ -7,8 +7,7 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 
 from fiaas_deploy_daemon.tpr.types import (
-    PaasbetaApplication, PaasbetaApplicationSpec, PaasApplicationConfig, Autoscaler, Prometheus, Resources,
-    ResourceRequirements, Port, HealthChecks, HealthCheck, HttpCheck, Config
+    PaasbetaApplication, PaasbetaApplicationSpec
 )
 
 RESOURCE = 'paasbetaapplications'
@@ -44,16 +43,16 @@ class TestService(object):
         get.side_effect = None
 
         spec = _create_default_paasbetaapplicationspec(
-            replicas=2, host='example.org', ports=[Port(protocol='tcp', target_port=1992)]
+            replicas=2, host='example.org', ports=[{'protocol': 'tcp', 'target_port': 1992}]
         )
         pba = PaasbetaApplication.get_or_create(metadata=_create_default_metadata(), spec=spec)
 
         assert not pba._new
-        assert pba.spec.config.namespace == NAMESPACE
-        assert pba.spec.config.replicas == 2
-        assert pba.spec.config.host == 'example.org'
-        assert pba.spec.config.ports[0].protocol == 'tcp'
-        assert pba.spec.config.ports[0].target_port == 1992
+        assert pba.spec.config['namespace'] == NAMESPACE
+        assert pba.spec.config['replicas'] == 2
+        assert pba.spec.config['host'] == 'example.org'
+        assert pba.spec.config['ports'][0]['protocol'] == 'tcp'
+        assert pba.spec.config['ports'][0]['target_port'] == 1992
         call_params = pba.as_dict()
         pba.save()
         pytest.helpers.assert_any_call(put, API_INSTANCE_PATH, call_params)
@@ -77,28 +76,40 @@ def _create_default_paasbetaapplicationspec(**kwargs):
             False,
         'replicas':
             10,
-        'autoscaler':
-            Autoscaler(enabled=True, min_replicas=2, cpu_threshold_percentage=75),
+        'autoscaler': {
+            'enabled': True,
+            'min_replicas': 2,
+            'cpu_threshold_percentage': 75,
+        },
         'host':
             'example.com',
-        'prometheus':
-            Prometheus(enabled=True, port='http', path='/metrics/be/here'),
-        'resources':
-            Resources(
-                limits=ResourceRequirements(memory='256M', cpu='200m'),
-                requests=ResourceRequirements(memory='128M', cpu='100m')
-            ),
-        'ports': [Port(protocol='http', target_port=1337, path='/my_name')],
-        'healthchecks':
-            HealthChecks(
-                liveness=HealthCheck(http=HttpCheck(path='/healthz', port='http', http_headers={'X-Foo': 'bar'}))
-            ),
-        'config':
-            Config(volume=False, envs=['CONFIG_THING', 'ANOTHER_CONFIG_THING'])
+        'prometheus': {
+            'enabled': True,
+            'port': 'http',
+            'path': '/metrics/be/here',
+        },
+        'resources': {
+            'limits': {'memory': '256M', 'cpu': '200m'},
+            'requests': {'memory': '128M', 'cpu': '100m'},
+        },
+        'ports': [{'protocol': 'http', 'target_port': 1337, 'path': '/my_name'}],
+        'healthchecks': {
+            'liveness': {
+                'http': {
+                    'path': '/healthz',
+                    'port': 'http',
+                    'http_headers': {'X-Foo': 'bar'},
+                },
+            },
+        },
+        'config': {
+            'volume': False,
+            'envs': ['CONFIG_THING', 'ANOTHER_CONFIG_THING']
+        }
     }
     config.update(kwargs)
     return PaasbetaApplicationSpec(application=NAME, image='example.com/group/image:tag',
-                                   config=PaasApplicationConfig(**config))
+                                   config=config)
 
 
 def _create_default_metadata():

@@ -27,8 +27,7 @@ from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
-from fiaas_deploy_daemon.tpr.types import (PaasbetaApplication, PaasbetaApplicationSpec,
-                                           PaasApplicationConfig, PaasbetaStatus)
+from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
 from minikube import MinikubeInstaller, MinikubeError
 from minikube.drivers import MinikubeDriverError
 
@@ -220,7 +219,7 @@ class TestE2E(object):
         name = self._sanitize(request.param)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
-                                       config=PaasApplicationConfig.from_dict(fiaas_yml))
+                                       config=fiaas_yml)
         return name, PaasbetaApplication(metadata=metadata, spec=spec)
 
     @pytest.fixture(params=(

@@ -1,0 +1,48 @@
+---
+version: 3
+replicas:
+  minimum: 1
+  maximum: 2
+  cpu_threshold_percentage: 50
+ports:
+  - target_port: 80
+    port: 80
+    name: http
+    protocol: http
+healthchecks:
+  liveness:
+    http:
+      path: /
+      port: http
+      http_headers: {}
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    timeout_seconds: 1
+  readiness:
+    http:
+      path: /
+      port: http
+      http_headers: {}
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    timeout_seconds: 1
+resources:
+  limits:
+    cpu:
+    memory:
+  requests:
+    cpu:
+    memory:
+metrics:
+  prometheus:
+    enabled: true
+    port: http
+    path: /internal-backstage/prometheus
+admin_access: false
+ingress:
+  - host: www.example.com
+    paths:
+    - path: /foo
+      port: http

@@ -138,10 +138,10 @@ class Factory(BaseFactory):
     @staticmethod
     def _labels_annotations_spec(labels_annotations_lookup):
         return LabelAndAnnotationSpec(
-            deployment=labels_annotations_lookup["deployment"],
-            horizontal_pod_autoscaler=labels_annotations_lookup["horizontal_pod_autoscaler"],
-            ingress=labels_annotations_lookup["ingress"],
-            service=labels_annotations_lookup["service"]
+            deployment=dict(labels_annotations_lookup["deployment"]),
+            horizontal_pod_autoscaler=dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
+            ingress=dict(labels_annotations_lookup["ingress"]),
+            service=dict(labels_annotations_lookup["service"])
         )
 
     @staticmethod

@@ -134,9 +134,7 @@ Create the resource by saving this in a file like e.g. `example.yml` and then ru
 
 #### Deploying an application via http
 
-either by accessing the web UI at
-http://localhost:5000
-
+Applications can be deployed by accessing the web UI at http://localhost:5000
 
 
 IntelliJ runconfigs

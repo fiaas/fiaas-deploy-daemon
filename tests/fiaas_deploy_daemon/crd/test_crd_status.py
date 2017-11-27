@@ -45,7 +45,7 @@ class TestStatusReport(object):
                     test_id = "{} status on {}".format(action, signal_name)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
-    def test_action_on_signal(self, request, get_or_create, app_spec, test_data, signal):
+    def test_action_on_signal(self, request, get_or_create, post, put, app_spec, test_data, signal):
         app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
         app_spec = app_spec._replace(name=test_data.signal_name)
         metadata = ObjectMeta(name=app_name, namespace="default", labels={

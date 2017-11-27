@@ -25,7 +25,7 @@ class TestServiceDeployer(object):
         config.service_type = service_type
         return ServiceDeployer(config)
 
-    def test_deploy_new_service(self, deployer, service_type, post, app_spec):
+    def test_deploy_new_service(self, deployer, service_type, get, post, app_spec):
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
         expected_service = {
@@ -47,7 +47,7 @@ class TestServiceDeployer(object):
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 
-    def test_deploy_new_service_with_custom_labels_and_annotations(self, deployer, service_type, post, app_spec):
+    def test_deploy_new_service_with_custom_labels_and_annotations(self, deployer, service_type, get, post, app_spec):
         expected_labels = {"custom": "label"}
         expected_annotations = {"custom": "annotation"}
 
@@ -76,7 +76,7 @@ class TestServiceDeployer(object):
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 
-    def test_deploy_new_service_with_multiple_ports(self, deployer, service_type, post, app_spec_thrift_and_http):
+    def test_deploy_new_service_with_multiple_ports(self, deployer, service_type, get, post, app_spec_thrift_and_http):
         deployer.deploy(app_spec_thrift_and_http, SELECTOR, LABELS)
 
         expected_service = {
@@ -105,7 +105,7 @@ class TestServiceDeployer(object):
         }
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 
-    def test_deploy_new_service_with_multiple_tcp_ports(self, deployer, service_type, post,
+    def test_deploy_new_service_with_multiple_tcp_ports(self, deployer, service_type, get, post,
                                                         app_spec_multiple_thrift_ports):
         deployer.deploy(app_spec_multiple_thrift_ports, SELECTOR, LABELS)
 

@@ -40,7 +40,7 @@ class TestAutoscalerDeployer(object):
     def deployer(self):
         return AutoscalerDeployer()
 
-    def test_new_autoscaler(self, deployer, post, app_spec):
+    def test_new_autoscaler(self, deployer, get, post, app_spec):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
         app_spec = app_spec._replace(replicas=4)
@@ -65,7 +65,7 @@ class TestAutoscalerDeployer(object):
         }
         pytest.helpers.assert_any_call(post, AUTOSCALER_API, expected_autoscaler)
 
-    def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, post, app_spec):
+    def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, get, post, app_spec):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
         app_spec = app_spec._replace(replicas=4)
@@ -94,10 +94,10 @@ class TestAutoscalerDeployer(object):
         }
         pytest.helpers.assert_any_call(post, AUTOSCALER_API, expected_autoscaler)
 
-    def test_no_autoscaler_gives_no_post(self, deployer, post, app_spec):
+    def test_no_autoscaler_gives_no_post(self, deployer, delete, post, app_spec):
         deployer.deploy(app_spec, LABELS)
         pytest.helpers.assert_no_calls(post)
 
-    def test_no_autoscaler_gives_no_pust(self, deployer, put, app_spec):
+    def test_no_autoscaler_gives_no_put(self, deployer, delete, put, app_spec):
         deployer.deploy(app_spec, LABELS)
         pytest.helpers.assert_no_calls(put)

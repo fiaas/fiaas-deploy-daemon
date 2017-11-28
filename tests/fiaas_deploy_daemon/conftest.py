@@ -121,26 +121,26 @@ def k8s_config(monkeypatch):
     monkeypatch.setattr(config, "verify_ssl", False)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def get():
     with mock.patch('k8s.client.Client.get') as mockk:
         mockk.side_effect = NotFound()
         yield mockk
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def post():
     with mock.patch('k8s.client.Client.post') as mockk:
         yield mockk
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def put():
     with mock.patch('k8s.client.Client.put') as mockk:
         yield mockk
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 def delete():
     with mock.patch('k8s.client.Client.delete') as mockk:
         yield mockk

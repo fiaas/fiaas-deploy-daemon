@@ -208,18 +208,43 @@ class TestE2E(object):
             self._end_popen(httpd)
 
     @pytest.fixture(params=(
-            "data/v2minimal.yml",
-            "v2/data/examples/host.yml",
-            "v2/data/examples/exec_config.yml",
+            ("data/v2minimal.yml", {
+                Service: "e2e_expected/v2minimal-service.yml",
+                Deployment: "e2e_expected/v2minimal-deployment.yml",
+                Ingress: "e2e_expected/v2minimal-ingress.yml",
+            }),
+            ("v2/data/examples/host.yml", {
+                Service: "e2e_expected/host-service.yml",
+                Deployment: "e2e_expected/host-deployment.yml",
+                Ingress: "e2e_expected/host-ingress.yml",
+            }),
+            ("v2/data/examples/exec_config.yml", {
+                Service: "e2e_expected/exec-service.yml",
+                Deployment: "e2e_expected/exec-deployment.yml",
+                Ingress: "e2e_expected/exec-ingress.yml",
+            }),
+            ("v2/data/examples/tcp_ports.yml", {
+                Service: "e2e_expected/tcp_ports-service.yml",
+                Deployment: "e2e_expected/tcp_ports-deployment.yml",
+            }),
+            ("v2/data/examples/partial_override.yml", {
+                Service: "e2e_expected/partial_override-service.yml",
+                Deployment: "e2e_expected/partial_override-deployment.yml",
+                Ingress: "e2e_expected/partial_override-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
+            }),
     ))
     def third_party_resource(self, request, k8s_version):
+        fiaas_path, expected = request.param
         _skip_if_tpr_not_supported(k8s_version)
-        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(request.param).strpath)
-        name = self._sanitize(request.param)
+
+        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {kind: _read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+
+        name = self._sanitize(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,
-                                       config=fiaas_yml)
-        return name, PaasbetaApplication(metadata=metadata, spec=spec)
+        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
 
     @pytest.fixture(params=(
             ("data/v2minimal.yml", {
@@ -322,8 +347,7 @@ class TestE2E(object):
 
     @pytest.mark.usefixtures("fdd")
     def test_third_party_resource_deploy(self, third_party_resource, service_type):
-        name, paasbetaapplication = third_party_resource
-        expected = {}
+        name, paasbetaapplication, expected = third_party_resource
 
         # check that k8s objects for name doesn't already exist
         kinds = self._select_kinds(expected)

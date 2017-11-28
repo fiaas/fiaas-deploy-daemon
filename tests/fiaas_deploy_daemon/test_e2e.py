@@ -24,6 +24,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
+from k8s.models.autoscaler import HorizontalPodAutoscaler
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
@@ -231,7 +232,21 @@ class TestE2E(object):
                 Deployment: "e2e_expected/host-deployment.yml",
                 Ingress: "e2e_expected/host-ingress.yml",
             }),
-            ("v2/data/examples/exec_config.yml", {}),
+            ("v2/data/examples/exec_config.yml", {
+                Service: "e2e_expected/exec-service.yml",
+                Deployment: "e2e_expected/exec-deployment.yml",
+                Ingress: "e2e_expected/exec-ingress.yml",
+            }),
+            ("v2/data/examples/tcp_ports.yml", {
+                Service: "e2e_expected/tcp_ports-service.yml",
+                Deployment: "e2e_expected/tcp_ports-deployment.yml",
+            }),
+            ("v2/data/examples/partial_override.yml", {
+                Service: "e2e_expected/partial_override-service.yml",
+                Deployment: "e2e_expected/partial_override-deployment.yml",
+                Ingress: "e2e_expected/partial_override-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
+            }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected = request.param

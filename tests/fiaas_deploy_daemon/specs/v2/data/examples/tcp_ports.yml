@@ -1,0 +1,23 @@
+---
+version: 2
+ports:
+  - protocol: tcp
+    name: main-port
+    port: 5000
+    target_port: 5000
+  - protocol: http
+    name: prom-port
+    port: 8081
+    target_port: 5001
+    path: /prometheus
+  - protocol: tcp
+    name: thrift-port
+    port: 7000
+    target_port: 7000
+healthchecks:
+  liveness:
+    tcp:
+      port: main-port
+  readiness:
+    tcp:
+      port: main-port

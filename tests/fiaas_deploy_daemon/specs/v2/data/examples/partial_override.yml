@@ -16,6 +16,9 @@ healthchecks:
   readiness:
     http:
       path: /
+resources:
+  requests:
+    cpu: 100m
 config:
   envs:
     - SPRING_PROFILES_ACTIVE

@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "true"
+  labels:
+    app: v2-data-examples-partial-override
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-partial-override
+  namespace: default
+spec:
+  rules:
+  - host: www.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v2-data-examples-partial-override
+          servicePort: "80"
+        path: /foo
+  - host: v2-data-examples-partial-override.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v2-data-examples-partial-override
+          servicePort: "80"
+        path: /foo

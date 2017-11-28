@@ -1,0 +1,113 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: v2-data-examples-partial-override
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-partial-override
+  namespace: default
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: v2-data-examples-partial-override
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /internal-backstage/prometheus
+        prometheus.io/port: "80"
+        prometheus.io/scrape: "true"
+      labels:
+        app: v2-data-examples-partial-override
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/status: active
+        fiaas/version: VERSION
+      name: v2-data-examples-partial-override
+      namespace: default
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: ARTIFACT_NAME
+          value: v2-data-examples-partial-override
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-test,kubernetes,test
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_ENVIRONMENT
+          value: test
+        - name: LOG_FORMAT
+          value: json
+        - name: IMAGE
+          value: IMAGE
+        - name: FINN_ENV
+          value: test
+        envFrom:
+        - configMapRef:
+            name: v2-data-examples-partial-override
+            optional: true
+        image: IMAGE
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: v2-data-examples-partial-override
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          requests:
+            cpu: 100m
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v2-data-examples-partial-override-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v2-data-examples-partial-override-config
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: v2-data-examples-partial-override-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: v2-data-examples-partial-override
+      - configMap:
+          defaultMode: 420
+          name: v2-data-examples-partial-override
+          optional: true
+        name: v2-data-examples-partial-override-config

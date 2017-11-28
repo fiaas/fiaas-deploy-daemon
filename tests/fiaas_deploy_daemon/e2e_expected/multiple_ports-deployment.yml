@@ -1,0 +1,116 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: v2-data-examples-multiple-ports
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-multiple-ports
+  namespace: default
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: v2-data-examples-multiple-ports
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /internal-backstage/prometheus
+        prometheus.io/port: "80"
+        prometheus.io/scrape: "true"
+      labels:
+        app: v2-data-examples-multiple-ports
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/status: active
+        fiaas/version: VERSION
+      name: v2-data-examples-multiple-ports
+      namespace: default
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - env:
+        - name: ARTIFACT_NAME
+          value: v2-data-examples-multiple-ports
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-test,kubernetes,test
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_ENVIRONMENT
+          value: test
+        - name: LOG_FORMAT
+          value: json
+        - name: IMAGE
+          value: IMAGE
+        - name: FINN_ENV
+          value: test
+        envFrom:
+        - configMapRef:
+            name: v2-data-examples-multiple-ports
+            optional: true
+        image: IMAGE
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: main_port
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: v2-data-examples-multiple-ports
+        ports:
+        - containerPort: 8080
+          name: main_port
+          protocol: TCP
+        - containerPort: 8081
+          name: prom_port
+          protocol: TCP
+        - containerPort: 7000
+          name: thrift_port
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: main_port
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v2-data-examples-multiple-ports-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v2-data-examples-multiple-ports-config
+          readOnly: true
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: v2-data-examples-multiple-ports-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: v2-data-examples-multiple-ports
+      - configMap:
+          defaultMode: 420
+          name: v2-data-examples-multiple-ports
+          optional: true
+        name: v2-data-examples-multiple-ports-config

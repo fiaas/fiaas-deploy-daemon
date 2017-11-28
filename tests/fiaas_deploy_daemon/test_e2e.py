@@ -264,14 +264,16 @@ class TestE2E(object):
             return s.getsockname()[1]
 
     @staticmethod
-    def _select_kinds(name):
-        kinds = [Service, Deployment, Ingress]
-        return kinds
+    def _select_kinds(expected):
+        if len(expected.keys()) > 0:
+            return expected.keys()
+        else:
+            return [Service, Deployment, Ingress]
 
     def test_post_to_web(self, fdd, fiaas_yml, service_type):
         name, url = fiaas_yml
         expected = {}
-        kinds = self._select_kinds(name)
+        kinds = self._select_kinds(expected)
         for kind in kinds:
             with pytest.raises(NotFound):
                 kind.get(name)
@@ -309,7 +311,7 @@ class TestE2E(object):
         expected = {}
 
         # check that k8s objects for name doesn't already exist
-        kinds = self._select_kinds(name)
+        kinds = self._select_kinds(expected)
         for kind in kinds:
             with pytest.raises(NotFound):
                 kind.get(name)
@@ -350,7 +352,7 @@ class TestE2E(object):
         name, fiaas_application, expected = custom_resource_definition
 
         # check that k8s objects for name doesn't already exist
-        kinds = self._select_kinds(name)
+        kinds = self._select_kinds(expected)
         for kind in kinds:
             with pytest.raises(NotFound):
                 kind.get(name)

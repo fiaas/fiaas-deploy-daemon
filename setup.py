@@ -53,7 +53,7 @@ TESTS_REQ = [
     'pytest-html',
     'pytest-cov',
     'pytest-helpers-namespace',
-    'pytest >= 3.0',
+    'pytest == 3.2.5',  # Pinned because 3.3.0 doesn't seem to work with pluggy
     'requests-file',
 ]
 

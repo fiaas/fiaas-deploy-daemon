@@ -1,0 +1,21 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "false"
+  labels:
+    app: data-v2minimal
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: data-v2minimal
+  namespace: default
+spec:
+  rules:
+  - host: data-v2minimal.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: data-v2minimal
+          servicePort: "80"
+        path: /

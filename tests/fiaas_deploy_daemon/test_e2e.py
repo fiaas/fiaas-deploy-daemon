@@ -227,6 +227,7 @@ class TestE2E(object):
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
+                Ingress: "e2e_expected/v2minimal-ingress.yml",
             }),
             ("v2/data/examples/host.yml", {}),
             ("v2/data/examples/exec_config.yml", {}),
@@ -263,9 +264,7 @@ class TestE2E(object):
 
     @staticmethod
     def _select_kinds(name):
-        kinds = [Service, Deployment]
-        if "host" in name:
-            kinds.append(Ingress)
+        kinds = [Service, Deployment, Ingress]
         return kinds
 
     def test_post_to_web(self, fdd, fiaas_yml, service_type):

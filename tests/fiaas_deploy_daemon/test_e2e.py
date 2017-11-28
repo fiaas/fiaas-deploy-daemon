@@ -213,10 +213,7 @@ class TestE2E(object):
     ))
     def third_party_resource(self, request, k8s_version):
         _skip_if_tpr_not_supported(k8s_version)
-        fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
-        with open(fiaas_yml_path, 'r') as fobj:
-            fiaas_yml = yaml.safe_load(fobj)
-
+        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(request.param).strpath)
         name = self._sanitize(request.param)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1,

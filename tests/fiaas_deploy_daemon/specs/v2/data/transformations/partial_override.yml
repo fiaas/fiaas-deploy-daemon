@@ -33,7 +33,7 @@ resources:
     cpu:
     memory:
   requests:
-    cpu:
+    cpu: 100m
     memory:
 metrics:
   prometheus:

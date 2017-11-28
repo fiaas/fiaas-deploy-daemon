@@ -226,7 +226,11 @@ class TestE2E(object):
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
                 Ingress: "e2e_expected/v2minimal-ingress.yml",
             }),
-            ("v2/data/examples/host.yml", {}),
+            ("v2/data/examples/host.yml", {
+                Service: "e2e_expected/host-service.yml",
+                Deployment: "e2e_expected/host-deployment.yml",
+                Ingress: "e2e_expected/host-ingress.yml",
+            }),
             ("v2/data/examples/exec_config.yml", {}),
     ))
     def custom_resource_definition(self, request, k8s_version):

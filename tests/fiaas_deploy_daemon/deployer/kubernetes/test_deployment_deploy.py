@@ -110,11 +110,12 @@ class TestDeploymentDeployer(object):
         config.secrets_service_account_name = "secretsmanager"
         return DeploymentDeployer(config)
 
+    @pytest.mark.usefixtures("get")
     @pytest.mark.parametrize("deployer_name", (
             "deployer",
             "secrets_init_container_deployer",
     ))
-    def test_deploy_new_deployment(self, request, infra, global_env, get, post, deployer_name, app_spec, admin_access,
+    def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
                                    prometheus, has_ports, secrets_in_environment):
         if has_ports:
             ports = app_spec.ports
@@ -240,7 +241,8 @@ class TestDeploymentDeployer(object):
         }
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
-    def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, get, post, app_spec,
+    @pytest.mark.usefixtures("get")
+    def test_deploy_new_deployment_with_custom_labels_and_annotations(self, request, infra, global_env, post, app_spec,
                                                                       prometheus):
         labels = LabelAndAnnotationSpec(deployment={"custom": "label"}, horizontal_pod_autoscaler={}, ingress={}, service={})
         annotations = LabelAndAnnotationSpec(deployment={"custom": "annotation"}, horizontal_pod_autoscaler={}, ingress={}, service={})

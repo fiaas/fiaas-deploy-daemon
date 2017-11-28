@@ -471,7 +471,8 @@ class TestIngressDeployer(object):
                 params = {"app_spec": app_spec, "expected_ingress": expected_ingress}
                 metafunc.addcall(params, test_id)
 
-    def test_ingress_deploy(self, get, post, deployer, app_spec, expected_ingress):
+    @pytest.mark.usefixtures("get")
+    def test_ingress_deploy(self, post, deployer, app_spec, expected_ingress):
         deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)

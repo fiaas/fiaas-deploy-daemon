@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import contextlib
+from copy import deepcopy
 import socket
 import subprocess
 import sys
@@ -223,20 +224,24 @@ class TestE2E(object):
         return name, PaasbetaApplication(metadata=metadata, spec=spec)
 
     @pytest.fixture(params=(
-            "data/v2minimal.yml",
-            "v2/data/examples/host.yml",
-            "v2/data/examples/exec_config.yml",
+            ("data/v2minimal.yml", {
+                Service: "e2e_expected/v2minimal-service.yml",
+                Deployment: "e2e_expected/v2minimal-deployment.yml",
+            }),
+            ("v2/data/examples/host.yml", {}),
+            ("v2/data/examples/exec_config.yml", {}),
     ))
     def custom_resource_definition(self, request, k8s_version):
-        _skip_if_crd_not_supported(k8s_version)
-        fiaas_yml_path = request.fspath.dirpath().join("specs").join(request.param).strpath
-        with open(fiaas_yml_path, 'r') as fobj:
-            fiaas_yml = yaml.safe_load(fobj)
+        fiaas_path, expected = request.param
 
-        name = self._sanitize(request.param)
+        _skip_if_crd_not_supported(k8s_version)
+        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {kind: _read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+
+        name = self._sanitize(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
-        return name, FiaasApplication(metadata=metadata, spec=spec)
+        return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
     @staticmethod
     def _sanitize(param):
@@ -265,6 +270,7 @@ class TestE2E(object):
 
     def test_post_to_web(self, fdd, fiaas_yml, service_type):
         name, url = fiaas_yml
+        expected = {}
         kinds = self._select_kinds(name)
         for kind in kinds:
             with pytest.raises(NotFound):
@@ -283,7 +289,7 @@ class TestE2E(object):
         resp.raise_for_status()
 
         # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
 
         # Redeploy, new image
         data["image"] = IMAGE2
@@ -291,7 +297,7 @@ class TestE2E(object):
         resp.raise_for_status()
 
         # Check redeploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
 
         # Cleanup
         for kind in kinds:
@@ -300,6 +306,7 @@ class TestE2E(object):
     @pytest.mark.usefixtures("fdd")
     def test_third_party_resource_deploy(self, third_party_resource, service_type):
         name, paasbetaapplication = third_party_resource
+        expected = {}
 
         # check that k8s objects for name doesn't already exist
         kinds = self._select_kinds(name)
@@ -318,7 +325,7 @@ class TestE2E(object):
         _wait_until(_assert_status)
 
         # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
 
         # Redeploy, new image
         paasbetaapplication.spec.image = IMAGE2
@@ -326,7 +333,7 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
 
         # Cleanup
         PaasbetaApplication.delete(name)
@@ -340,7 +347,7 @@ class TestE2E(object):
 
     @pytest.mark.usefixtures("fdd")
     def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):
-        name, fiaas_application = custom_resource_definition
+        name, fiaas_application, expected = custom_resource_definition
 
         # check that k8s objects for name doesn't already exist
         kinds = self._select_kinds(name)
@@ -359,7 +366,7 @@ class TestE2E(object):
         _wait_until(_assert_status)
 
         # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
 
         # Redeploy, new image
         fiaas_application.spec.image = IMAGE2
@@ -367,7 +374,7 @@ class TestE2E(object):
         fiaas_application.save()
 
         # Check success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2))
+        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
 
         # Cleanup
         FiaasApplication.delete(name)
@@ -380,7 +387,7 @@ class TestE2E(object):
         _wait_until(cleanup_complete)
 
 
-def _deploy_success(name, kinds, service_type, image):
+def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
     def action():
         for kind in kinds:
             assert kind.get(name)
@@ -388,6 +395,10 @@ def _deploy_success(name, kinds, service_type, image):
         assert dep.spec.template.spec.containers[0].image == image
         svc = Service.get(name)
         assert svc.spec.type == service_type
+
+        for kind, expected_dict in expected.items():
+            actual = kind.get(name)
+            _assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id)
 
     return action
 
@@ -413,3 +424,69 @@ def _crd_supported(k8s_version):
 def plog(message):
     """Primitive logging"""
     print("%s: %s" % (time.asctime(), message))
+
+
+def _read_yml(yml_path):
+    with open(yml_path, 'r') as fobj:
+        yml = yaml.safe_load(fobj)
+    return yml
+
+
+def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id):
+    actual_dict = resource.as_dict()
+    expected_dict = deepcopy(expected_dict)
+
+    # set expected test parameters
+    _set_labels(expected_dict, image, deployment_id)
+
+    if expected_dict["kind"] == "Deployment":
+        _set_image(expected_dict, image)
+        _set_env(expected_dict, image)
+        _set_labels(expected_dict["spec"]["template"], image, deployment_id)
+
+    if expected_dict["kind"] == "Service":
+        _set_service_type(expected_dict, service_type)
+
+    # the k8s client library doesn't return apiVersion or kind, so ignore those fields
+    _ensure_key_missing(expected_dict, 'apiVersion')
+    _ensure_key_missing(expected_dict, 'kind')
+
+    plog("actual_dict: {}".format(actual_dict))
+    plog("expected_dict: {}".format(expected_dict))
+
+    pytest.helpers.deep_assert_dicts(actual_dict, expected_dict)
+
+
+def _set_image(expected_dict, image):
+    expected_dict["spec"]["template"]["spec"]["containers"][0]["image"] = image
+
+
+def _set_env(expected_dict, image):
+    def generate_updated_env():
+        for item in expected_dict["spec"]["template"]["spec"]["containers"][0]["env"]:
+            if item["name"] == "VERSION":
+                item["value"] = image.split(":")[-1]
+            if item["name"] == "IMAGE":
+                item["value"] = image
+            yield item
+    expected_dict["spec"]["template"]["spec"]["containers"][0]["env"] = list(generate_updated_env())
+
+
+def _set_labels(expected_dict, image, deployment_id):
+    expected_dict["metadata"]["labels"]["fiaas/version"] = image.split(":")[-1]
+    expected_dict["metadata"]["labels"]["fiaas/deployment_id"] = deployment_id
+
+
+def _set_service_type(expected_dict, service_type):
+    expected_dict["spec"]["type"] = service_type
+
+
+def _ensure_key_missing(d, *keys):
+    key = keys[0]
+    try:
+        if len(keys) > 1:
+            _ensure_key_missing(d[key], *keys[1:])
+        else:
+            del d[key]
+    except KeyError:
+        pass  # key was already missing

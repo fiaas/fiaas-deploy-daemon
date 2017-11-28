@@ -468,9 +468,6 @@ def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, d
     _ensure_key_missing(expected_dict, 'apiVersion')
     _ensure_key_missing(expected_dict, 'kind')
 
-    plog("actual_dict: {}".format(actual_dict))
-    plog("expected_dict: {}".format(expected_dict))
-
     pytest.helpers.deep_assert_dicts(actual_dict, expected_dict)
 
 

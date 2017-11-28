@@ -60,10 +60,13 @@ To run fiaas-deploy-daemon locally and connect it to a minikube cluster, do the 
 * Run `$ bin/run_fdd_against_minikube`
 
 There should be a bunch of logging while fiaas-deploy-daemon starts and initializes the required
-ThirdPartyResources. This is normal.
+ThirdPartyResources and/or CustomResourceDefinitions. This is normal.
 
-If you need to test some behavior manually you can deploy applications either by accessing the web UI at
-http://localhost:5000 or by creating a PaasbetaApplication resource.
+If you need to test some behavior manually you can deploy applications into minikube via fiaas-deploy-daemon in a few ways:
+
+#### Deploying an application via ThirdPartyResource
+
+In Kubernetes 1.6 and 1.7 you can deploy applications by creating a PaasbetaApplication ThirdPartyResource.
 
 An example PaasbetaApplication:
 
@@ -95,6 +98,43 @@ spec:
 
 Create the resource by saving this in a file like e.g. `example.yml` and then run
 `$ kubectl --context minikube create -f example.yml`.
+
+#### Deploying an application via CustomResourceDefinition
+
+In Kubernetes 1.7 and later you can deploy applications by creating a Application CustomResource
+
+```yaml
+apiVersion: fiaas.schibsted.io/v1
+kind: Application
+metadata:
+  labels:
+    app: example
+    fiaas/deployment_id: test
+  name: example
+  namespace: default
+spec:
+  application: example
+  image: nginx:1.13.0
+  config:
+    version: 2
+    host: example.com
+    prometheus:
+      enabled: false
+    resources:
+      limits:
+        memory: 128M
+        cpu: 200m
+      requests:
+        memory: 64M
+        cpu: 100m
+```
+
+Create the resource by saving this in a file like e.g. `example.yml` and then run
+`$ kubectl --context minikube create -f example.yml`.
+
+#### Deploying an application via http
+
+Applications can be deployed by accessing the web UI at http://localhost:5000
 
 
 IntelliJ runconfigs

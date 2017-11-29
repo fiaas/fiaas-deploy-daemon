@@ -30,6 +30,7 @@ def app_spec():
         admin_access=False,
         secrets_in_environment=False,
         prometheus=PROMETHEUS_SPEC,
+        datadog=False,
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
         ],

@@ -25,6 +25,7 @@ def app_spec(**kwargs):
         admin_access=False,
         secrets_in_environment=False,
         prometheus=PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus'),
+        datadog=False,
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
         ],

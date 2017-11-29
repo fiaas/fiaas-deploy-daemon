@@ -14,6 +14,7 @@ class AppSpec(namedtuple("AppSpec", [
         "admin_access",
         "secrets_in_environment",
         "prometheus",
+        "datadog",
         "ports",
         "health_checks",
         "teams",

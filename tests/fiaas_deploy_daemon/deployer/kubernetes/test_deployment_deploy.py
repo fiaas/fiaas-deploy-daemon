@@ -13,6 +13,7 @@ from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckS
 from fiaas_deploy_daemon.tools import merge_dicts
 
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
+DATADOG_CONTAINER_NAME = 'fiaas-datadog-container'
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -83,6 +84,10 @@ class TestDeploymentDeployer(object):
         yield PrometheusSpec(enabled, port, '/internal-backstage/prometheus')
 
     @pytest.fixture(params=(True, False))
+    def datadog(self, request):
+        yield request.param
+
+    @pytest.fixture(params=(True, False))
     def has_ports(self, request):
         yield request.param
 
@@ -116,7 +121,7 @@ class TestDeploymentDeployer(object):
             "secrets_init_container_deployer",
     ))
     def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
-                                   prometheus, has_ports, secrets_in_environment):
+                                   prometheus, datadog, has_ports, secrets_in_environment):
         if has_ports:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
@@ -130,6 +135,7 @@ class TestDeploymentDeployer(object):
         app_spec = app_spec._replace(
             admin_access=admin_access,
             prometheus=prometheus,
+            datadog=datadog,
             ports=ports,
             health_checks=health_checks,
             secrets_in_environment=secrets_in_environment
@@ -206,6 +212,34 @@ class TestDeploymentDeployer(object):
                 }
             })
 
+        containers = [{
+            'livenessProbe': expected_liveness_check,
+            'name': app_spec.name,
+            'image': 'finntech/testimage:version',
+            'volumeMounts': expected_volume_mounts,
+            'env': create_environment_variables(infra, global_env=global_env),
+            'envFrom': expected_env_from,
+            'imagePullPolicy': 'IfNotPresent',
+            'readinessProbe': expected_readiness_check,
+            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
+            'resources': {}
+        }]
+        if datadog:
+            containers.append({
+                'name': DATADOG_CONTAINER_NAME,
+                'image': 'containers.schibsted.io/spt-infrastructure/fiaas-datadog:7260c73afd1dfe457dc2a57bf137f7d0516ed946',
+                'volumeMounts': [],
+                'env': [
+                    {'name': 'K8S_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}},
+                    {'name': 'K8S_POD', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
+                    {'name': 'APP', 'value': app_spec.name},
+                    {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}}
+                ],
+                'envFrom': [],
+                'imagePullPolicy': 'IfNotPresent',
+                'ports': [{'protocol': 'TCP', 'containerPort': 8125, 'name': 'datadog'}],
+            })
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata(app_spec.name, labels=LABELS),
             'spec': {
@@ -218,18 +252,7 @@ class TestDeploymentDeployer(object):
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
-                        'containers': [{
-                            'livenessProbe': expected_liveness_check,
-                            'name': app_spec.name,
-                            'image': 'finntech/testimage:version',
-                            'volumeMounts': expected_volume_mounts,
-                            'env': create_environment_variables(infra, global_env=global_env),
-                            'envFrom': expected_env_from,
-                            'imagePullPolicy': 'IfNotPresent',
-                            'readinessProbe': expected_readiness_check,
-                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
-                            'resources': {}
-                        }],
+                        'containers': containers,
                         'initContainers': init_containers
                     },
                     'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,

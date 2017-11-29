@@ -31,6 +31,7 @@ class Factory(object):
             lookup[u"admin_access"],
             False,
             self._prometheus_spec(lookup[u"prometheus"]),
+            False,
             self._ports(lookup[u"ports"]),
             self._health_checks_spec(lookup[u"healthchecks"], lookup[u"ports"]),
             teams,

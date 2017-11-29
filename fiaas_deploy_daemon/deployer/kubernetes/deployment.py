@@ -10,7 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, ObjectFieldSelector, SecretKeySelector
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
@@ -20,6 +20,7 @@ LOG = logging.getLogger(__name__)
 
 class DeploymentDeployer(object):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
+    DATADOG_CONTAINER_NAME = "fiaas-datadog-container"
 
     def __init__(self, config):
         self._fiaas_env = {
@@ -47,16 +48,20 @@ class DeploymentDeployer(object):
         env_from = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
         if app_spec.secrets_in_environment:
             env_from.append(EnvFromSource(secretRef=SecretEnvSource(name=app_spec.name, optional=True)))
-        container = Container(name=app_spec.name,
-                              image=app_spec.image,
-                              ports=container_ports,
-                              env=env,
-                              envFrom=env_from,
-                              livenessProbe=_make_probe(app_spec.health_checks.liveness),
-                              readinessProbe=_make_probe(app_spec.health_checks.readiness),
-                              imagePullPolicy=pull_policy,
-                              volumeMounts=self._make_volume_mounts(app_spec),
-                              resources=_make_resource_requirements(app_spec.resources))
+        containers = [
+            Container(name=app_spec.name,
+                      image=app_spec.image,
+                      ports=container_ports,
+                      env=env,
+                      envFrom=env_from,
+                      livenessProbe=_make_probe(app_spec.health_checks.liveness),
+                      readinessProbe=_make_probe(app_spec.health_checks.readiness),
+                      imagePullPolicy=pull_policy,
+                      volumeMounts=self._make_volume_mounts(app_spec),
+                      resources=_make_resource_requirements(app_spec.resources))
+        ]
+        if app_spec.datadog:
+            containers.append(self._create_datadog_container(app_spec))
 
         automount_service_account_token = app_spec.admin_access
         init_containers = []
@@ -69,7 +74,7 @@ class DeploymentDeployer(object):
             if self._secrets_service_account_name:
                 service_account_name = self._secrets_service_account_name
 
-        pod_spec = PodSpec(containers=[container],
+        pod_spec = PodSpec(containers=containers,
                            initContainers=init_containers,
                            volumes=self._make_volumes(app_spec),
                            serviceAccountName=service_account_name,
@@ -96,6 +101,22 @@ class DeploymentDeployer(object):
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         deployment.save()
+
+    def _create_datadog_container(self, app_spec):
+        return Container(
+            name=self.DATADOG_CONTAINER_NAME,
+            image="containers.schibsted.io/spt-infrastructure/fiaas-datadog:7260c73afd1dfe457dc2a57bf137f7d0516ed946",
+            imagePullPolicy="IfNotPresent",
+            ports=[
+                ContainerPort(name="datadog", containerPort=8125)
+            ],
+            env=[
+                EnvVar(name="K8S_NAMESPACE", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
+                EnvVar(name="K8S_POD", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
+                EnvVar(name="APP", value=app_spec.name),
+                EnvVar(name="API_KEY", valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey")))
+            ]
+        )
 
     def delete(self, app_spec):
         LOG.info("Deleting deployment for %s", app_spec.name)

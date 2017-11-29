@@ -348,6 +348,36 @@ Name of HTTP port Prometheus metrics are served on.
 
 HTTP endpoint where metrics are exposed.
 
+### datadog
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Configure datadog.
+
+Default value:
+```yaml
+metrics:
+  datadog:
+    enabled: false
+```
+
+#### enabled
+| **Type** | **Required** |
+|----------|--------------|
+| boolean  | no           |
+
+Attach a datadog sidecar for metrics collection. The sidecar will run DogStatsD, configured to accept metrics on
+`localhost:8125`. In order for this to send metrics to the correct datadog account, a secret must be created in the namespace which
+contains the datadog API key. This key decides where the metrics end up.
+
+Three additional tags are attached to the collected metrics automatically:
+
+- namespace name
+- application name
+- pod name
+
 ## ports
 
 | **Type** | **Required** |

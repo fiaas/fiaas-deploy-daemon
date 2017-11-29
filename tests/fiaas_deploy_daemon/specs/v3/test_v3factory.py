@@ -215,6 +215,7 @@ TEST_DATA = {
         "prometheus.enabled": True,
         "prometheus.port": "a",
         "prometheus.path": "/prometheus-metrics-here",
+        "datadog": True,
         "ports[0].protocol": "http",
         "ports[0].name": "a",
         "ports[0].port": 1337,

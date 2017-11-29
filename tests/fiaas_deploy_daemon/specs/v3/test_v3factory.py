@@ -3,7 +3,9 @@
 from __future__ import absolute_import, unicode_literals
 
 import pytest
+import mock
 
+from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.v3.factory import Factory
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import _Lookup
@@ -271,7 +273,8 @@ def pytest_generate_tests(metafunc):
 class TestFactory(object):
     @pytest.fixture
     def factory(self):
-        return SpecFactory(Factory(), {})
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        return SpecFactory(Factory(), {}, config)
 
     @pytest.mark.parametrize("filename", (
             "v3minimal",

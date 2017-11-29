@@ -34,6 +34,7 @@ class DeploymentDeployer(object):
         self._global_env = config.global_env
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
+        self._datadog_container_image = config.datadog_container_image
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -105,7 +106,7 @@ class DeploymentDeployer(object):
     def _create_datadog_container(self, app_spec):
         return Container(
             name=self.DATADOG_CONTAINER_NAME,
-            image="containers.schibsted.io/spt-infrastructure/fiaas-datadog:7260c73afd1dfe457dc2a57bf137f7d0516ed946",
+            image=self._datadog_container_image,
             imagePullPolicy="IfNotPresent",
             ports=[
                 ContainerPort(name="datadog", containerPort=8125)

@@ -10,9 +10,10 @@ LOG = logging.getLogger(__name__)
 
 
 class SpecFactory(object):
-    def __init__(self, factory, transformers):
+    def __init__(self, factory, transformers, config):
         self._factory = factory
         self._transformers = transformers
+        self._config = config
         self._supported_versions = [factory.version] + transformers.keys()
         self._fiaas_counter = Counter("fiaas_yml_version", "The version of fiaas.yml used", ["version"])
 
@@ -25,7 +26,9 @@ class SpecFactory(object):
             raise InvalidConfiguration("Requested version %s, but the only supported versions are: %r" %
                                        (fiaas_version, self._supported_versions))
         app_config = self._transform(app_config)
-        return self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
+        app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
+        self._validate(app_spec)
+        return app_spec
 
     def _transform(self, app_config):
         current_version = app_config.get(u"version", 1)
@@ -33,6 +36,10 @@ class SpecFactory(object):
             app_config = self._transformers[current_version](app_config)
             current_version = app_config.get(u"version", 1)
         return app_config
+
+    def _validate(self, app_spec):
+        if app_spec.datadog and self._config.datadog_container_image is None:
+            raise InvalidConfiguration("Requested datadog sidecar, but datadog-container-image is undefined")
 
 
 class BaseFactory(object):

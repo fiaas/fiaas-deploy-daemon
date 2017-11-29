@@ -115,6 +115,8 @@ class Configuration(Namespace):
                             help="Use specified docker image as init container for secrets (experimental)", default=None)
         parser.add_argument("--secrets-service-account-name",
                             help="The service account that is passed to secrets init containers", default=None)
+        parser.add_argument("--datadog-container-image",
+                            help="Use specified docker image as datadog sidecar for apps", default=None)
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

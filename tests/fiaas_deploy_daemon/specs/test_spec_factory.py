@@ -4,6 +4,7 @@
 import pytest
 from mock import ANY, create_autospec
 
+from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration, BaseFactory, BaseTransformer
 
 IMAGE = u"finntech/docker-image:some-version"
@@ -24,16 +25,22 @@ class TestSpecFactory(object):
         return create_autospec(BaseTransformer, spec_set=True, return_value={"version": 3})
 
     @pytest.fixture
-    def v3(self):
-        return create_autospec(BaseFactory, spec_set=True, version=3)
+    def v3(self, app_spec):
+        return create_autospec(BaseFactory, spec_set=True, version=3, return_value=app_spec)
 
     @pytest.fixture
     def transformers(self, v1, v2):
         return {1: v1, 2: v2}
 
-    @pytest.fixture()
-    def factory(self, v3, transformers):
-        return SpecFactory(v3, transformers)
+    @pytest.fixture
+    def config(self):
+        config = create_autospec(Configuration([]), spec_set=True)
+        config.datadog_container_image = None
+        return config
+
+    @pytest.fixture
+    def factory(self, v3, transformers, config):
+        return SpecFactory(v3, transformers, config)
 
     @pytest.mark.parametrize("version,mock_to_call", [
         (None, "v1"),
@@ -56,3 +63,15 @@ class TestSpecFactory(object):
     def test_raise_invalid_config_if_version_not_supported(self, factory):
         with pytest.raises(InvalidConfiguration):
             factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+
+    def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v3, app_spec):
+        v3.return_value = app_spec._replace(datadog=True)
+        with pytest.raises(InvalidConfiguration):
+            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+
+    def test_accept_config_if_datadog_defined_and_requested(self, factory, v3, app_spec, config):
+        config.datadog_container_image = "datadog"
+        expected = app_spec._replace(datadog=True)
+        v3.return_value = expected
+        actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+        assert actual == expected

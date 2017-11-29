@@ -12,6 +12,9 @@ from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckS
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 
+SECRET_IMAGE = "fiaas/secret_image:version"
+DATADOG_IMAGE = "fiaas/datadog_image:version"
+
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
 DATADOG_CONTAINER_NAME = 'fiaas-datadog-container'
 
@@ -103,6 +106,7 @@ class TestDeploymentDeployer(object):
         config.global_env = global_env
         config.secrets_init_container_image = None
         config.secrets_service_account_name = None
+        config.datadog_container_image = DATADOG_IMAGE
         return DeploymentDeployer(config)
 
     @pytest.fixture
@@ -111,8 +115,9 @@ class TestDeploymentDeployer(object):
         config.infrastructure = infra
         config.environment = "test"
         config.global_env = global_env
-        config.secrets_init_container_image = "finntech/testimage:version"
+        config.secrets_init_container_image = SECRET_IMAGE
         config.secrets_service_account_name = "secretsmanager"
+        config.datadog_container_image = DATADOG_IMAGE
         return DeploymentDeployer(config)
 
     @pytest.mark.usefixtures("get")
@@ -148,8 +153,8 @@ class TestDeploymentDeployer(object):
 
         if deployer._uses_secrets_init_container():
             init_containers = [{
-                'name': (INIT_CONTAINER_NAME),
-                'image': 'finntech/testimage:version',
+                'name': INIT_CONTAINER_NAME,
+                'image': SECRET_IMAGE,
                 'volumeMounts': expected_init_volume_mounts,
                 'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
                 'envFrom': [{
@@ -227,7 +232,7 @@ class TestDeploymentDeployer(object):
         if datadog:
             containers.append({
                 'name': DATADOG_CONTAINER_NAME,
-                'image': 'containers.schibsted.io/spt-infrastructure/fiaas-datadog:7260c73afd1dfe457dc2a57bf137f7d0516ed946',
+                'image': DATADOG_IMAGE,
                 'volumeMounts': [],
                 'env': [
                     {'name': 'K8S_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}},

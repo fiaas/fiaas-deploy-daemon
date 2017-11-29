@@ -503,10 +503,13 @@ def _get_expected_volumes(app_spec, deployer):
             'optional': True
         }
     }
+    tmp_volume = {
+        'name': "tmp"
+    }
     if deployer._uses_secrets_init_container():
-        expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume]
+        expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume, tmp_volume]
     else:
-        expected_volumes = [secret_volume, config_map_volume]
+        expected_volumes = [secret_volume, config_map_volume, tmp_volume]
     return expected_volumes
 
 
@@ -531,9 +534,14 @@ def _get_expected_volume_mounts(app_spec, deployer):
         'readOnly': True,
         'mountPath': "/var/run/config/{}/".format(INIT_CONTAINER_NAME)
     }
-    expected_volume_mounts = [secret_volume_mount, config_map_volume_mount]
+    tmp_volume_mount = {
+        'name': "tmp",
+        'readOnly': False,
+        'mountPath': "/tmp"
+    }
+    expected_volume_mounts = [secret_volume_mount, config_map_volume_mount, tmp_volume_mount]
     if deployer._uses_secrets_init_container():
-        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount]
+        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount, tmp_volume_mount]
     else:
         expected_init_volume_mounts = []
     return expected_init_volume_mounts, expected_volume_mounts

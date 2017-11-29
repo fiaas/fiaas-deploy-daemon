@@ -54,8 +54,8 @@ def fiaas():
 
         if app_config["version"] == 2:
             namespace = DEFAULT_NAMESPACE
-        elif form.namespace:
-            namespace = form.namespace
+        elif form.namespace.data:
+            namespace = form.namespace.data
         else:
             LOG.error("namespace is required if version is not 2")
             abort(400)

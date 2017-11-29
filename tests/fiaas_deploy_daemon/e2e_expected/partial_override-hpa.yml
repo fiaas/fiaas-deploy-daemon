@@ -1,0 +1,18 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: v2-data-examples-partial-override
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-partial-override
+  namespace: default
+spec:
+  maxReplicas: 2
+  minReplicas: 1
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: v2-data-examples-partial-override
+  targetCPUUtilizationPercentage: 50

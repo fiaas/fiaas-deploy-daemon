@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: data-v2minimal
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: data-v2minimal
+  namespace: default
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: "80"
+  selector:
+    app: data-v2minimal
+  sessionAffinity: None
+  type: SERVICE_TYPE

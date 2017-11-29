@@ -1,0 +1,28 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "true"
+  labels:
+    app: v2-data-examples-host
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-host
+  namespace: default
+spec:
+  rules:
+  - host: some.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v2-data-examples-host
+          servicePort: "80"
+        path: /
+  - host: v2-data-examples-host.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v2-data-examples-host
+          servicePort: "80"
+        path: /

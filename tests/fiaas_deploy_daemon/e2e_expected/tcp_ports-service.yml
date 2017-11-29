@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: v2-data-examples-tcp-ports
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v2-data-examples-tcp-ports
+  namespace: default
+spec:
+  ports:
+  - name: main-port
+    port: 5000
+    protocol: TCP
+    targetPort: "5000"
+  - name: prom-port
+    port: 8081
+    protocol: TCP
+    targetPort: "5001"
+  - name: thrift-port
+    port: 7000
+    protocol: TCP
+    targetPort: "7000"
+  selector:
+    app: v2-data-examples-tcp-ports
+  sessionAffinity: None
+  type: SERVICE_TYPE

@@ -48,6 +48,30 @@ def assert_dicts(actual, expected):
         raise AssertionError(ae.message + _add_argument_diff(actual, expected))
 
 
+@pytest.helpers.register
+def deep_assert_dicts(actual, expected):
+    """
+    Asserts that actual has all of expected's items. ignores items in actual that are not in expected.
+    Does the same recursively for any item that has a dict as its value.
+    """
+    __tracebackhide__ = True
+
+    try:
+        for key, value in expected.items():
+            if isinstance(value, dict):
+                deep_assert_dicts(actual[key], expected[key])
+            elif isinstance(value, list):
+                for actual_item, expected_item in zip(actual[key], expected[key]):
+                    if isinstance(actual_item, dict):
+                        deep_assert_dicts(actual_item, expected_item)
+                    else:
+                        assert actual_item == expected_item
+            else:
+                assert actual[key] == expected[key]
+    except (AssertionError, KeyError) as e:
+        raise e.__class__(e.message + _add_argument_diff(actual, expected))
+
+
 def _add_useful_error_message(assertion, mockk, first, args):
     """
     If an AssertionError is raised in the assert, find any other calls on mock where the first parameter is uri and

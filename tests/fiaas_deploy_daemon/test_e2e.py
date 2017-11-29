@@ -240,9 +240,24 @@ class TestE2E(object):
                 Ingress: "e2e_expected/partial_override-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
             }),
-            ("v3/data/examples/v3minimal.yml", {}),
-            ("v3/data/examples/full.yml", {}),
-            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {}),
+            ("v3/data/examples/v3minimal.yml", {
+                Service: "e2e_expected/v3minimal-service.yml",
+                Deployment: "e2e_expected/v3minimal-deployment.yml",
+                Ingress: "e2e_expected/v3minimal-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+            }),
+            ("v3/data/examples/full.yml", {
+                Service: "e2e_expected/v3full-service.yml",
+                Deployment: "e2e_expected/v3full-deployment.yml",
+                Ingress: "e2e_expected/v3full-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
+            }),
+            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
+                Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
+                Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
+                Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
+            }),
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
@@ -285,6 +300,24 @@ class TestE2E(object):
                 Deployment: "e2e_expected/partial_override-deployment.yml",
                 Ingress: "e2e_expected/partial_override-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
+            }),
+            ("v3/data/examples/v3minimal.yml", {
+                Service: "e2e_expected/v3minimal-service.yml",
+                Deployment: "e2e_expected/v3minimal-deployment.yml",
+                Ingress: "e2e_expected/v3minimal-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+            }),
+            ("v3/data/examples/full.yml", {
+                Service: "e2e_expected/v3full-service.yml",
+                Deployment: "e2e_expected/v3full-deployment.yml",
+                Ingress: "e2e_expected/v3full-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
+            }),
+            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
+                Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
+                Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
+                Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):

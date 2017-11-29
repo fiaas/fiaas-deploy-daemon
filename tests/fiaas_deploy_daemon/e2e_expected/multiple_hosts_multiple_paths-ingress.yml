@@ -1,0 +1,83 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "true"
+  labels:
+    app: v3-data-examples-multiple-hosts-multiple-paths
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-multiple-hosts-multiple-paths
+  namespace: default
+spec:
+  rules:
+  - host: foo.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1noport
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1portname
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1portnumber
+  - host: bar.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2noport
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2portname
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2portnumber
+  - host: v3-data-examples-multiple-hosts-multiple-paths.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /0noport
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /0portname
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /0portnumber
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1noport
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1portname
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /1portnumber
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2noport
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2portname
+      - backend:
+          serviceName: v3-data-examples-multiple-hosts-multiple-paths
+          servicePort: '80'
+        path: /2portnumber

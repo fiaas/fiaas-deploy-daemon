@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    a: b
+    c: d
+    fiaas/tcp_port_names: b
+  labels:
+    app: v3-data-examples-full
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+    m: "n"
+    o: p
+  name: v3-data-examples-full
+  namespace: default
+spec:
+  ports:
+  - name: a
+    port: 1337
+    protocol: TCP
+    targetPort: '31337'
+  - name: b
+    port: 1338
+    protocol: TCP
+    targetPort: '31338'
+  selector:
+    app: v3-data-examples-full
+  sessionAffinity: None
+  type: SERVICE_TYPE

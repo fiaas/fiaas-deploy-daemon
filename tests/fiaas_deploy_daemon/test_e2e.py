@@ -489,8 +489,8 @@ def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, d
         _set_service_type(expected_dict, service_type)
 
     # the k8s client library doesn't return apiVersion or kind, so ignore those fields
-    _ensure_key_missing(expected_dict, 'apiVersion')
-    _ensure_key_missing(expected_dict, 'kind')
+    del expected_dict['apiVersion']
+    del expected_dict['kind']
 
     pytest.helpers.deep_assert_dicts(actual_dict, expected_dict)
 
@@ -517,14 +517,3 @@ def _set_labels(expected_dict, image, deployment_id):
 
 def _set_service_type(expected_dict, service_type):
     expected_dict["spec"]["type"] = service_type
-
-
-def _ensure_key_missing(d, *keys):
-    key = keys[0]
-    try:
-        if len(keys) > 1:
-            _ensure_key_missing(d[key], *keys[1:])
-        else:
-            del d[key]
-    except KeyError:
-        pass  # key was already missing

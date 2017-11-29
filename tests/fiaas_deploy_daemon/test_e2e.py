@@ -227,6 +227,10 @@ class TestE2E(object):
                 Service: "e2e_expected/tcp_ports-service.yml",
                 Deployment: "e2e_expected/tcp_ports-deployment.yml",
             }),
+            ("v2/data/examples/single_tcp_port.yml", {
+                Service: "e2e_expected/single_tcp_port-service.yml",
+                Deployment: "e2e_expected/single_tcp_port-deployment.yml",
+            }),
             ("v2/data/examples/partial_override.yml", {
                 Service: "e2e_expected/partial_override-service.yml",
                 Deployment: "e2e_expected/partial_override-deployment.yml",
@@ -265,6 +269,10 @@ class TestE2E(object):
             ("v2/data/examples/tcp_ports.yml", {
                 Service: "e2e_expected/tcp_ports-service.yml",
                 Deployment: "e2e_expected/tcp_ports-deployment.yml",
+            }),
+            ("v2/data/examples/single_tcp_port.yml", {
+                Service: "e2e_expected/single_tcp_port-service.yml",
+                Deployment: "e2e_expected/single_tcp_port-deployment.yml",
             }),
             ("v2/data/examples/partial_override.yml", {
                 Service: "e2e_expected/partial_override-service.yml",

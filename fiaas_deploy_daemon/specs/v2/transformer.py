@@ -60,7 +60,7 @@ class Transformer(BaseTransformer):
             }
         elif ports_lookup[0]["protocol"] == "tcp":
             value["tcp"] = {
-                    "port": ports_lookup[0]["port"]
+                    "port": ports_lookup[0]["name"]
                 }
         return value
 

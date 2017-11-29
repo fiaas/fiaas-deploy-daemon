@@ -1,0 +1,7 @@
+---
+version: 2
+ports:
+  - protocol: tcp
+    name: main-port
+    port: 5000
+    target_port: 6000

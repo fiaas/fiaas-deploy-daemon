@@ -7,7 +7,10 @@ We are happy to accept pull requests that fix bugs or introduce new features.
 If you have a new feature in mind, it is a good idea to discuss it in [#fiaas on
 Slack](https://sch-chat.slack.com/messages/C6P6D9CDR) or even in the [fiaas contributors
 meeting](https://confluence.schibsted.io/display/SPTINF/FiaaS+contributors+meeting) before starting to work on a pull
-request.
+request.  If you're not entirely sure about your idea or how to proceed, or if you want to have it discussed in the
+fiaas contributors meeting, we encourage [creating a Github
+issue](https://github.schibsted.io/finn/fiaas-deploy-daemon/issues/new) giving some background for your idea or
+usecase.
 
 
 ## Contributing code

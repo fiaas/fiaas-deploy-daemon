@@ -24,8 +24,9 @@ reviewers, but we also encourage assigning specific people to review your PR if 
 
 We try to keep test coverage [stable or
 increasing](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange),
-and use [QualityGate](https://confluence.schibsted.io/display/SPTP/Quality+Gate) to manage this. Pull requests must
-pass QualityGate unless there is a good reason not to - and the PR reviewer agrees to this reason.
+and use [QualityGate](https://confluence.schibsted.io/display/SPTP/Quality+Gate) to manage this. Ensure that your
+change has test coverage at the unit and ideally also at the integration/end to end level. Pull requests must pass
+QualityGate unless there is a good reason not to - and the PR reviewer agrees to this reason.
 
 Additionally your change must pass the end to end (e2e) test before merging. This test is unfortunately not run in the
 CI system due to technical constraints, and must be run manually.

@@ -115,7 +115,8 @@ class DeploymentDeployer(object):
                 EnvVar(name="K8S_NAMESPACE", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
                 EnvVar(name="K8S_POD", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
                 EnvVar(name="APP", value=app_spec.name),
-                EnvVar(name="API_KEY", valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey")))
+                EnvVar(name="API_KEY", valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
+                EnvVar(name="NON_LOCAL_TRAFFIC", value="false")
             ]
         )
 
@@ -177,6 +178,10 @@ class DeploymentDeployer(object):
             else:
                 LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
         env.extend(global_env)
+
+        if app_spec.datadog:
+            env.append(EnvVar(name="DOGSTATSD_HOSTNAME", value="localhost"))
+            env.append(EnvVar(name="DOGSTATSD_PORT", value="8125"))
         return env
 
     def _uses_secrets_init_container(self):

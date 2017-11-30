@@ -222,7 +222,7 @@ class TestDeploymentDeployer(object):
             'name': app_spec.name,
             'image': 'finntech/testimage:version',
             'volumeMounts': expected_volume_mounts,
-            'env': create_environment_variables(infra, global_env=global_env),
+            'env': create_environment_variables(infra, global_env=global_env, datadog=datadog),
             'envFrom': expected_env_from,
             'imagePullPolicy': 'IfNotPresent',
             'readinessProbe': expected_readiness_check,
@@ -238,7 +238,8 @@ class TestDeploymentDeployer(object):
                     {'name': 'K8S_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}},
                     {'name': 'K8S_POD', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
                     {'name': 'APP', 'value': app_spec.name},
-                    {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}}
+                    {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
+                    {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'}
                 ],
                 'envFrom': [],
                 'imagePullPolicy': 'IfNotPresent',
@@ -482,7 +483,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version"):
+def create_environment_variables(infrastructure, global_env=None, version="version", datadog=False):
     environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'},
                    {'name': 'LOG_STDOUT', 'value': 'true'},
                    {'name': 'VERSION', 'value': version},
@@ -497,6 +498,9 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+    if datadog:
+        environment.append({'name': 'DOGSTATSD_HOSTNAME', 'value': 'localhost'})
+        environment.append({'name': 'DOGSTATSD_PORT', 'value': '8125'})
     return environment
 
 

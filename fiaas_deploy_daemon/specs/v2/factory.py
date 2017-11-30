@@ -132,7 +132,7 @@ class Factory(object):
         if lookup.get_config_value(u"port"):
             port = lookup[u"port"]
         else:
-            port = first_port_lookup[u"port"]
+            port = first_port_lookup[u"name"]
         return TcpCheckSpec(port)
 
     @staticmethod

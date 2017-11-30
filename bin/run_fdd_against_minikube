@@ -2,18 +2,30 @@
 set -euo pipefail
 IFS=$'\n\t'
 
-export KUBECONFIG_JSON="$(kubectl config view -o json)"
+KUBECONFIG_JSON="$(kubectl config view -o json)"
+export KUBECONFIG_JSON
 API_SERVER="$(jq -r '.clusters[] | select(.name == "minikube") | .cluster.server' <<< "$KUBECONFIG_JSON")"
 CLIENT_CERT="$(jq -r '.users[] | select(.name == "minikube") | .user."client-certificate"' <<< "$KUBECONFIG_JSON")"
 CLIENT_KEY="$(jq -r '.users[] | select(.name == "minikube") | .user."client-key"' <<< "$KUBECONFIG_JSON")"
+SERVER_MINOR_VERSION="$(kubectl version -o json | jq -r '.serverVersion.minor')"
+ARGS=(
+'--debug'
+'--api-server' "$API_SERVER"
+'--client-cert' "$CLIENT_CERT"
+'--client-key' "$CLIENT_KEY"
+'--service-type' 'ClusterIP'
+'--ingress-suffix' 'svc.example.com'
+'--environment' 'test'
+)
 
-fiaas-deploy-daemon \
-    --debug \
-    --api-server "$API_SERVER" \
-    --client-cert "$CLIENT_CERT" \
-    --client-key "$CLIENT_KEY" \
-    --service-type ClusterIP \
-    --ingress-suffix svc.example.com \
-    --environment test \
-    --enable-tpr-support \
-    --enable-crd-support
+if [[ "$SERVER_MINOR_VERSION" -gt 6 ]]
+then
+    ARGS=("${ARGS[@]}" '--enable-crd-support')
+fi
+
+if [[ "$SERVER_MINOR_VERSION" -lt 7 ]]
+then
+    ARGS=("${ARGS[@]}" '--enable-tpr-support')
+fi
+
+fiaas-deploy-daemon "${ARGS[@]}"

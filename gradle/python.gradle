@@ -225,8 +225,8 @@ task integrationTest(type: PewTask) {
         'test',
         '--addopts=' +
             '-m integration_test ' +
-            '-n 4 ' +
-            '-ra ' +
+            '-n ' + (Runtime.runtime.availableProcessors() / 2) +
+            ' -ra ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html'
     ]

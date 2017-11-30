@@ -14,7 +14,7 @@ ARGS=(
 '--client-cert' "$CLIENT_CERT"
 '--client-key' "$CLIENT_KEY"
 '--service-type' 'ClusterIP'
-'--ingress-suffix' 'svc.example.com'
+'--ingress-suffix' "$(minikube ip).xip.io"
 '--environment' 'test'
 )
 

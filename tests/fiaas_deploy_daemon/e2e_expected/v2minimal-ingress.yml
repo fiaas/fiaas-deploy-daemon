@@ -19,3 +19,4 @@ spec:
           serviceName: data-v2minimal
           servicePort: "80"
         path: /
+  tls: []

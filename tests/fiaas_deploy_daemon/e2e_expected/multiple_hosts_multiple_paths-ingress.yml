@@ -11,6 +11,7 @@ metadata:
   name: v3-data-examples-multiple-hosts-multiple-paths
   namespace: default
 spec:
+  tls: []
   rules:
   - host: foo.example.com
     http:

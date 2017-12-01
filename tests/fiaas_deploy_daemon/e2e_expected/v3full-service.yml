@@ -28,3 +28,4 @@ spec:
     app: v3-data-examples-full
   sessionAffinity: None
   type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

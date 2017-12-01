@@ -18,3 +18,4 @@ spec:
     app: v3-data-examples-v3minimal
   sessionAffinity: None
   type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

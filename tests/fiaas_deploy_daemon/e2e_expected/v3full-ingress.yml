@@ -15,6 +15,7 @@ metadata:
   name: v3-data-examples-full
   namespace: default
 spec:
+  tls: []
   rules:
   - host: www.example.com
     http:

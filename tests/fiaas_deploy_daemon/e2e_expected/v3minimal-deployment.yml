@@ -1,6 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  annotations: {}
   labels:
     app: v3-data-examples-v3minimal
     fiaas/deployed_by: ""
@@ -67,6 +68,7 @@ spec:
             path: /_/health
             port: 80
             scheme: HTTP
+            httpHeaders: []
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
@@ -82,6 +84,7 @@ spec:
             path: /_/ready
             port: 80
             scheme: HTTP
+            httpHeaders: []
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
@@ -115,3 +118,5 @@ spec:
           name: v3-data-examples-v3minimal
           optional: true
         name: v3-data-examples-v3minimal-config
+      initContainers: []
+      imagePullSecrets: []

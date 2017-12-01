@@ -11,6 +11,7 @@ metadata:
   name: v3-data-examples-v3minimal
   namespace: default
 spec:
+  tls: []
   rules:
   - host: v3-data-examples-v3minimal.svc.test.example.com
     http:

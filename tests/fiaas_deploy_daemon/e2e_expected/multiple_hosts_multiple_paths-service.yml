@@ -18,3 +18,4 @@ spec:
     app: v3-data-examples-multiple-hosts-multiple-paths
   sessionAffinity: None
   type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

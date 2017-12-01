@@ -1,6 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  annotations: {}
   labels:
     app: v2-data-examples-partial-override
     fiaas/deployed_by: ""
@@ -67,6 +68,7 @@ spec:
             path: /
             port: http
             scheme: HTTP
+            httpHeaders: []
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
@@ -82,6 +84,7 @@ spec:
             path: /
             port: http
             scheme: HTTP
+            httpHeaders: []
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
@@ -111,3 +114,5 @@ spec:
           name: v2-data-examples-partial-override
           optional: true
         name: v2-data-examples-partial-override-config
+      initContainers: []
+      imagePullSecrets: []

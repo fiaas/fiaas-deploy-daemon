@@ -3,7 +3,6 @@
 from __future__ import absolute_import, unicode_literals
 
 import pkgutil
-import uuid
 
 import yaml
 
@@ -11,7 +10,7 @@ from ..lookup import LookupMapping
 from ..factory import BaseTransformer, InvalidConfiguration
 
 
-RESOURCE_UNDEFINED_UGLYHACK = "RESOURCE_UNDEFINED_" + str(uuid.uuid4())
+RESOURCE_UNDEFINED_UGLYHACK = object()
 """
 This is a special value that the fields resources.{limits,requests}.{cpu,memory} can be set to to indicate to the
 v3 AppSpec factory that the application should not have the default resource requirements set for the given field even
@@ -22,9 +21,6 @@ resources explicitly specified in its config will have the undefined fields set 
 because the configuration is transparently transformed to that version.
 This is unexpected behavior, so by setting the undefined fields to this value, the v3 AppSpec factory knows that it
 should leave the fields unset and not apply the defaults.
-
-The reason it has a random component is to avoid having some magic value that developers can use to avoid specifying
-resources.
 """
 
 

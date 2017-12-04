@@ -1,6 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  annotations: {}
   labels:
     app: v2-data-examples-tcp-ports
     fiaas/deployed_by: ""
@@ -106,3 +107,5 @@ spec:
           name: v2-data-examples-tcp-ports
           optional: true
         name: v2-data-examples-tcp-ports-config
+      initContainers: []
+      imagePullSecrets: []

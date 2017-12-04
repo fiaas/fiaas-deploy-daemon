@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: Service
 metadata:
+  annotations:
+    fiaas/tcp_port_names: "main-port,thrift-port"
   labels:
     app: v2-data-examples-tcp-ports
     fiaas/deployed_by: ""
@@ -26,3 +28,4 @@ spec:
     app: v2-data-examples-tcp-ports
   sessionAffinity: None
   type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

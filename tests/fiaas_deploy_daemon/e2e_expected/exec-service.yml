@@ -18,3 +18,4 @@ spec:
     app: v2-data-examples-exec-config
   sessionAffinity: None
   type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

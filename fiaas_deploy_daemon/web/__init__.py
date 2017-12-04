@@ -68,12 +68,8 @@ def _connect_signals():
 
 
 class WebBindings(pinject.BindingSpec):
-    def configure(self, require):
-        require("config")
-
     def provide_webapp(self, deploy_queue, config, spec_factory, health_check, app_config_downloader):
         app = Flask(__name__)
-        app.config.from_object(config)
         app.health_check = health_check
         app.register_blueprint(web)
         _connect_signals()

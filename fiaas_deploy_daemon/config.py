@@ -72,14 +72,12 @@ override defaults.
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
-    WTF_CSRF_ENABLED = False
 
     def __init__(self, args=None, **kwargs):
         super(Configuration, self).__init__(**kwargs)
         self._logger = logging.getLogger(__name__)
         self.image = ""
         self.version = ""
-        self.SECRET_KEY = os.urandom(24)
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()

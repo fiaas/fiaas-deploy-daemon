@@ -127,12 +127,6 @@ class TestConfig(object):
 
         assert service_exists == config.has_service(service)
 
-    def test_new_secret_key_every_time(self):
-        cfg1 = Configuration([])
-        cfg2 = Configuration([])
-
-        assert cfg1.SECRET_KEY != cfg2.SECRET_KEY
-
     @pytest.mark.parametrize("cmdline,envvar,expected", [
         ([], "", None),
         (["--infrastructure", "gke"], "", None),

@@ -84,9 +84,12 @@ def metrics():
 
 @web.route("/defaults")
 def defaults():
-    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
-    resp.mimetype = "text/vnd.yaml; charset=utf-8"
-    return resp
+    return _render_defaults("fiaas_deploy_daemon.specs.v3", "defaults.yml")
+
+
+@web.route("/defaults/<int:version>")
+def defaults_versioned(version):
+    return _render_defaults("fiaas_deploy_daemon.specs.v{}".format(version), "defaults.yml")
 
 
 @web.route("/healthz")
@@ -104,6 +107,16 @@ def _connect_signals():
     request_finished.connect(lambda s, *a, **e: rf_counter.inc(), weak=False)
     re_counter = Counter("web_request_exception", "Failed HTTP requests")
     got_request_exception.connect(lambda s, *a, **e: re_counter.inc(), weak=False)
+
+
+def _render_defaults(*args):
+    data = pkgutil.get_data(*args)
+    if data:
+        resp = make_response(data)
+        resp.mimetype = "text/vnd.yaml; charset=utf-8"
+        return resp
+    else:
+        abort(404)
 
 
 class WebBindings(pinject.BindingSpec):

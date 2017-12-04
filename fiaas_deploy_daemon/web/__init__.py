@@ -25,6 +25,7 @@ DEFAULT_NAMESPACE = u"default"
 web = Blueprint("web", __name__, template_folder="templates")
 
 request_histogram = Histogram("web_request_latency", "Request latency in seconds", ["page"])
+defaults_histogram = request_histogram.labels("defaults")
 frontpage_histogram = request_histogram.labels("frontpage")
 metrics_histogram = request_histogram.labels("metrics")
 
@@ -44,6 +45,7 @@ def metrics():
 
 
 @web.route("/defaults")
+@defaults_histogram.time()
 def defaults():
     resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
     resp.mimetype = "text/vnd.yaml; charset=utf-8"

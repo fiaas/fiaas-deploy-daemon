@@ -186,28 +186,6 @@ class TestE2E(object):
             self._end_popen(fdd)
 
     @pytest.fixture(params=(
-            "data/v2minimal.yml",
-            "v2/data/examples/host.yml",
-            "v2/data/examples/exec_config.yml",
-    ))
-    def fiaas_yml(self, request):
-        port = self._get_open_port()
-        data_dir = request.fspath.dirpath().join("specs")
-        httpd = subprocess.Popen(["python", "-m", "SimpleHTTPServer", str(port)],
-                                 cwd=data_dir.strpath)
-        fiaas_yml_url = "http://localhost:{}/{}".format(port, request.param)
-
-        try:
-            def ready():
-                resp = requests.get(fiaas_yml_url, timeout=TIMEOUT)
-                resp.raise_for_status()
-
-            _wait_until(ready, "web-interface healthy", RuntimeError)
-            yield (self._sanitize(request.param), fiaas_yml_url)
-        finally:
-            self._end_popen(httpd)
-
-    @pytest.fixture(params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
@@ -317,41 +295,6 @@ class TestE2E(object):
             return expected.keys()
         else:
             return [Service, Deployment, Ingress]
-
-    def test_post_to_web(self, fdd, fiaas_yml, service_type):
-        name, url = fiaas_yml
-        expected = {}
-        kinds = self._select_kinds(expected)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
-
-        # First deploy
-        data = {
-            "name": name,
-            "image": IMAGE1,
-            "fiaas": url,
-            "teams": ["testteam"],
-            "tags": ["testtags"],
-            "deployment_id": DEPLOYMENT_ID1
-        }
-        resp = requests.post(fdd, data)
-        resp.raise_for_status()
-
-        # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
-
-        # Redeploy, new image
-        data["image"] = IMAGE2
-        resp = requests.post(fdd, data)
-        resp.raise_for_status()
-
-        # Check redeploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
-
-        # Cleanup
-        for kind in kinds:
-            kind.delete(name)
 
     @pytest.mark.usefixtures("fdd")
     def test_third_party_resource_deploy(self, third_party_resource, service_type):

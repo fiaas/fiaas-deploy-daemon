@@ -10,7 +10,7 @@ This file represents how your application will be deployed into Kubernetes.
 | int      | yes          |
 
 Which version of this spec to be used. This field must be set to `3` to use the features described below.
-Documentation for [version 2 can be found here](docs/v2_spec.md).
+Documentation for [version 2 can be found here](/docs/v2_spec.md).
 
 ```yaml
 version: 3

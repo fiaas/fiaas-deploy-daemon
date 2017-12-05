@@ -186,31 +186,6 @@ class TestE2E(object):
             self._end_popen(fdd)
 
     @pytest.fixture(params=(
-            "data/v2minimal.yml",
-            "v2/data/examples/host.yml",
-            "v2/data/examples/exec_config.yml",
-            "v3/data/examples/v3minimal.yml",
-            "v3/data/examples/full.yml",
-            "v3/data/examples/multiple_hosts_multiple_paths.yml",
-    ))
-    def fiaas_yml(self, request):
-        port = self._get_open_port()
-        data_dir = request.fspath.dirpath().join("specs")
-        httpd = subprocess.Popen(["python", "-m", "SimpleHTTPServer", str(port)],
-                                 cwd=data_dir.strpath)
-        fiaas_yml_url = "http://localhost:{}/{}".format(port, request.param)
-
-        try:
-            def ready():
-                resp = requests.get(fiaas_yml_url, timeout=TIMEOUT)
-                resp.raise_for_status()
-
-            _wait_until(ready, "web-interface healthy", RuntimeError)
-            yield (self._sanitize(request.param), fiaas_yml_url)
-        finally:
-            self._end_popen(httpd)
-
-    @pytest.fixture(params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
@@ -357,42 +332,6 @@ class TestE2E(object):
         else:
             return [Service, Deployment, Ingress]
 
-    def test_post_to_web(self, fdd, fiaas_yml, service_type):
-        name, url = fiaas_yml
-        expected = {}
-        kinds = self._select_kinds(expected)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
-
-        # First deploy
-        data = {
-            "name": name,
-            "image": IMAGE1,
-            "fiaas": url,
-            "teams": ["testteam"],
-            "tags": ["testtags"],
-            "deployment_id": DEPLOYMENT_ID1,
-            "namespace": "default",
-        }
-        resp = requests.post(fdd, data)
-        resp.raise_for_status()
-
-        # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
-
-        # Redeploy, new image
-        data["image"] = IMAGE2
-        resp = requests.post(fdd, data)
-        resp.raise_for_status()
-
-        # Check redeploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
-
-        # Cleanup
-        for kind in kinds:
-            kind.delete(name)
-
     @pytest.mark.usefixtures("fdd")
     def test_third_party_resource_deploy(self, third_party_resource, service_type):
         name, paasbetaapplication, expected = third_party_resource
@@ -522,7 +461,7 @@ def _read_yml(yml_path):
 
 
 def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id):
-    actual_dict = resource.as_dict()
+    actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
 
     # set expected test parameters
@@ -540,7 +479,25 @@ def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, d
     del expected_dict['apiVersion']
     del expected_dict['kind']
 
-    pytest.helpers.deep_assert_dicts(actual_dict, expected_dict)
+    # delete auto-generated k8s fields that we can't control in test data and/or don't care about testing
+    _ensure_key_missing(actual_dict, "metadata", "creationTimestamp")  # the time at which the resource was created
+    # indicates how many times the resource has been modified
+    _ensure_key_missing(actual_dict, "metadata", "generation")
+    # resourceVersion is used to handle concurrent updates to the same resource
+    _ensure_key_missing(actual_dict, "metadata", "resourceVersion")
+    _ensure_key_missing(actual_dict, "metadata", "selfLink")   # a API link to the resource itself
+    # a unique id randomly for the resource generated on the Kubernetes side
+    _ensure_key_missing(actual_dict, "metadata", "uid")
+    # an internal annotation used to track ReplicaSets tied to a particular version of a Deployment
+    _ensure_key_missing(actual_dict, "metadata", "annotations", "deployment.kubernetes.io/revision")
+    # status is managed by Kubernetes itself, and is not part of the configuration of the resource
+    _ensure_key_missing(actual_dict, "status")
+    if isinstance(resource, Service):
+        _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
+        for port in actual_dict["spec"]["ports"]:
+            _ensure_key_missing(port, "nodePort")  # an available port is randomly picked from the nodePort range
+
+    pytest.helpers.assert_dicts(actual_dict, expected_dict)
 
 
 def _set_image(expected_dict, image):
@@ -565,3 +522,14 @@ def _set_labels(expected_dict, image, deployment_id):
 
 def _set_service_type(expected_dict, service_type):
     expected_dict["spec"]["type"] = service_type
+
+
+def _ensure_key_missing(d, *keys):
+    key = keys[0]
+    try:
+        if len(keys) > 1:
+            _ensure_key_missing(d[key], *keys[1:])
+        else:
+            del d[key]
+    except KeyError:
+        pass  # key was already missing

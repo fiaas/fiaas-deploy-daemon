@@ -18,3 +18,4 @@ spec:
     app: v2-data-examples-partial-override
   sessionAffinity: None
   type: ClusterIP
+  loadBalancerSourceRanges: []

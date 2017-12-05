@@ -3,7 +3,7 @@
 The FIAAS configuration format version 3 is the new and improved way to configure the infrastructure needs of your
 application when deploying to Kubernetes with FIAAS.
 
-See also [the defaults.yml for version 3](fiaas_deploy_daemon/specs/v3/defaults.yml).
+See also [the defaults.yml for version 3](/fiaas_deploy_daemon/specs/v3/defaults.yml).
 
 ## version 3
 

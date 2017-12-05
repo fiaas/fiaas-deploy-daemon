@@ -1,0 +1,33 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    e: f
+    fiaas/expose: "true"
+    g: h
+  labels:
+    app: v3-data-examples-full
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+    i: j
+    k: l
+  name: v3-data-examples-full
+  namespace: default
+spec:
+  tls: []
+  rules:
+  - host: www.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-full
+          servicePort: '1337'
+        path: /a
+  - host: v3-data-examples-full.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-full
+          servicePort: '1337'
+        path: /a

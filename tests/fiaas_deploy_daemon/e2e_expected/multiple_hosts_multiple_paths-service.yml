@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: v3-data-examples-multiple-hosts-multiple-paths
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-multiple-hosts-multiple-paths
+  namespace: default
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: '8080'
+  selector:
+    app: v3-data-examples-multiple-hosts-multiple-paths
+  sessionAffinity: None
+  type: SERVICE_TYPE
+  loadBalancerSourceRanges: []

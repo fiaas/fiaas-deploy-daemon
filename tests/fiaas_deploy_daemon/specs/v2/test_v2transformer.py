@@ -2,7 +2,7 @@
 # -*- coding: utf-8
 import pytest
 
-from fiaas_deploy_daemon.specs.v2.transformer import Transformer, _get, _set
+from fiaas_deploy_daemon.specs.v2.transformer import Transformer, _get, _set, RESOURCE_UNDEFINED_UGLYHACK
 
 
 class TestTransformer(object):
@@ -34,6 +34,11 @@ class TestTransformer(object):
     def test_transformation(self, filename, transformer, load_app_config_testdata, load_app_config_transformations):
         config = load_app_config_testdata(filename)
         expected = load_app_config_transformations(filename)
+        # See the docstring for RESOURCE_UNDEFINED_UGLYHACK
+        for requirement_type in ("limits", "requests"):
+            for resource in ("cpu", "memory"):
+                if expected["resources"][requirement_type][resource] is None:
+                    expected["resources"][requirement_type][resource] = RESOURCE_UNDEFINED_UGLYHACK
         actual = transformer(config)
         assert expected == actual
 

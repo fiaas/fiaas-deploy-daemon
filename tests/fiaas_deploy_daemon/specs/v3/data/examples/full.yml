@@ -51,7 +51,7 @@ labels:
     i: j
     k: l
   service:
-    m: n
+    m: "n"
     o: p
 annotations:
   service:
@@ -64,7 +64,7 @@ annotations:
     i: j
     k: l
   deployment:
-    m: n
+    m: "n"
     o: p
 secrets_in_environment: true
 admin_access: true

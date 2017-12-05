@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "false"
+  labels:
+    app: v3-data-examples-v3minimal
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-v3minimal
+  namespace: default
+spec:
+  tls: []
+  rules:
+  - host: v3-data-examples-v3minimal.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-v3minimal
+          servicePort: '80'
+        path: /

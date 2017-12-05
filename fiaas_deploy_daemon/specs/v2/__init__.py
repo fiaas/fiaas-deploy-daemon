@@ -3,3 +3,4 @@
 from __future__ import absolute_import
 
 from .factory import Factory  # NOQA
+from .transformer import Transformer  # NOQA

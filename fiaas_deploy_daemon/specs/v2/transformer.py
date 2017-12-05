@@ -10,10 +10,23 @@ from ..lookup import LookupMapping
 from ..factory import BaseTransformer, InvalidConfiguration
 
 
+RESOURCE_UNDEFINED_UGLYHACK = object()
+"""
+This is a special value that the fields resources.{limits,requests}.{cpu,memory} can be set to to indicate to the
+v3 AppSpec factory that the application should not have the default resource requirements set for the given field even
+though that is the default behavior for FIAAS version 3.
+
+This is neccessary because an application that is deployed using FIAAS v2 configuration but with no or partial
+resources explicitly specified in its config will have the undefined fields set to the default value in for FIAAS v3
+because the configuration is transparently transformed to that version.
+This is unexpected behavior, so by setting the undefined fields to this value, the v3 AppSpec factory knows that it
+should leave the fields unset and not apply the defaults.
+"""
+
+
 class Transformer(BaseTransformer):
     COPY_MAPPING = {
         # Old -> new
-        ("resources",): ("resources",),
         ("prometheus",): ("metrics", "prometheus"),
         ("admin_access",): ("admin_access",),
     }
@@ -41,6 +54,11 @@ class Transformer(BaseTransformer):
             _set(new_config, new, value)
         if lookup["autoscaler"]["enabled"]:
             new_config["replicas"]["minimum"] = lookup["autoscaler"]["min_replicas"]
+
+        new_config["resources"] = {}
+        for requirement_type in ("limits", "requests"):
+            new_config["resources"][requirement_type] = self._resource_requirement(lookup["resources"][requirement_type])
+
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
         return new_config
 
@@ -56,7 +74,7 @@ class Transformer(BaseTransformer):
         elif ports_lookup[0]["protocol"] == "http":
             value["http"] = {
                 "path": ports_lookup[0]["path"],
-                "port": ports_lookup[0]["port"]
+                "port": ports_lookup[0]["name"]
             }
         elif ports_lookup[0]["protocol"] == "tcp":
             value["tcp"] = {
@@ -87,6 +105,17 @@ class Transformer(BaseTransformer):
                 "paths": paths
             }] if paths else [],
             "ports": ports
+        }
+
+    @staticmethod
+    def _resource_requirement(lookup):
+        def get_config_value(lookup, key):
+            value = lookup.get_config_value(key)
+            return RESOURCE_UNDEFINED_UGLYHACK if value is None else value
+
+        return {
+            "cpu": get_config_value(lookup, "cpu"),
+            "memory": get_config_value(lookup, "memory"),
         }
 
 

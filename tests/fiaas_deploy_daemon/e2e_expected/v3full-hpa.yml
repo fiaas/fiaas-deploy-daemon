@@ -1,0 +1,23 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+    i: j
+    k: l
+  labels:
+    app: v3-data-examples-full
+    e: f
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+    g: h
+  name: v3-data-examples-full
+  namespace: default
+spec:
+  maxReplicas: 20
+  minReplicas: 10
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: v3-data-examples-full
+  targetCPUUtilizationPercentage: 60

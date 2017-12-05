@@ -38,7 +38,7 @@ class TestSpecFactory(object):
     @pytest.mark.parametrize("version,mock_to_call", [
         (None, "v1"),
         (1, "v1"),
-        (2, "v2")
+        (2, "v2"),
     ])
     def test_dispatch_to_correct_transformer(self, request, factory, version, mock_to_call):
         minimal_config = {}

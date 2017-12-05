@@ -17,7 +17,7 @@ class SpecBindings(pinject.BindingSpec):
         bind("app_config_downloader", to_class=AppConfigDownloader)
 
     def provide_factory(self):
-        from .v2 import Factory
+        from .v3 import Factory
         return Factory()
 
     def provide_transformers(self):

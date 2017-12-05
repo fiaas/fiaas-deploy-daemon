@@ -8,7 +8,7 @@ import pkgutil
 import pinject
 import re
 from flask import Flask, Blueprint, current_app,  render_template, make_response, request_started, request_finished, \
-    got_request_exception
+    got_request_exception, abort
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 from .platform_collector import PLATFORM_COLLECTOR
@@ -47,9 +47,12 @@ def metrics():
 @web.route("/defaults")
 @defaults_histogram.time()
 def defaults():
-    resp = make_response(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
-    resp.mimetype = "text/vnd.yaml; charset=utf-8"
-    return resp
+    return _render_defaults("fiaas_deploy_daemon.specs.v3", "defaults.yml")
+
+
+@web.route("/defaults/<int:version>")
+def defaults_versioned(version):
+    return _render_defaults("fiaas_deploy_daemon.specs.v{}".format(version), "defaults.yml")
 
 
 @web.route("/healthz")
@@ -67,6 +70,16 @@ def _connect_signals():
     request_finished.connect(lambda s, *a, **e: rf_counter.inc(), weak=False)
     re_counter = Counter("web_request_exception", "Failed HTTP requests")
     got_request_exception.connect(lambda s, *a, **e: re_counter.inc(), weak=False)
+
+
+def _render_defaults(*args):
+    data = pkgutil.get_data(*args)
+    if data:
+        resp = make_response(data)
+        resp.mimetype = "text/vnd.yaml; charset=utf-8"
+        return resp
+    else:
+        abort(404)
 
 
 class WebBindings(pinject.BindingSpec):

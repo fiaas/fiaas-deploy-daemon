@@ -11,6 +11,7 @@ from ..factory import BaseFactory, InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
     IngressPathMappingSpec
+from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 
 
 class Factory(BaseFactory):
@@ -59,7 +60,9 @@ class Factory(BaseFactory):
 
     @staticmethod
     def _resource_requirements_spec(resource_lookup):
-        return ResourceRequirementSpec(cpu=resource_lookup["cpu"], memory=resource_lookup["memory"])
+        cpu = None if resource_lookup["cpu"] == RESOURCE_UNDEFINED_UGLYHACK else resource_lookup["cpu"]
+        memory = None if resource_lookup["memory"] == RESOURCE_UNDEFINED_UGLYHACK else resource_lookup["memory"]
+        return ResourceRequirementSpec(cpu=cpu, memory=memory)
 
     @staticmethod
     def _prometheus_spec(prometheus_lookup):

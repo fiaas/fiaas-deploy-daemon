@@ -1,0 +1,18 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: v3-data-examples-multiple-hosts-multiple-paths
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-multiple-hosts-multiple-paths
+  namespace: default
+spec:
+  maxReplicas: 5
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: v3-data-examples-multiple-hosts-multiple-paths
+  targetCPUUtilizationPercentage: 50

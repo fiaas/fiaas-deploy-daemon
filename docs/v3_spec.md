@@ -374,6 +374,12 @@ should make use of the environment variables in order to be somewhat futureproof
 correct datadog account, a secret must be created in the namespace which contains the datadog API key. This key decides 
 where the metrics end up.
 
+Creating the datadog secret can be done using `kubectl` directly:
+
+```
+kubectl -n "${NAMESPACE}" create secret generic datadog --from-literal apikey="${DD_API_KEY}"
+```
+
 Three additional tags are attached to the collected metrics automatically:
 
 - namespace name

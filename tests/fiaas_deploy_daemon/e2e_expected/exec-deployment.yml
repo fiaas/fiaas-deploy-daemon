@@ -1,6 +1,7 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
+  annotations: {}
   labels:
     app: v2-data-examples-exec-config
     fiaas/deployed_by: ""
@@ -104,3 +105,5 @@ spec:
           name: v2-data-examples-exec-config
           optional: true
         name: v2-data-examples-exec-config-config
+      initContainers: []
+      imagePullSecrets: []

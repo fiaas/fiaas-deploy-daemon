@@ -425,7 +425,7 @@ def _read_yml(yml_path):
 
 
 def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id):
-    actual_dict = resource.as_dict()
+    actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
 
     # set expected test parameters
@@ -443,7 +443,25 @@ def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, d
     del expected_dict['apiVersion']
     del expected_dict['kind']
 
-    pytest.helpers.deep_assert_dicts(actual_dict, expected_dict)
+    # delete auto-generated k8s fields that we can't control in test data and/or don't care about testing
+    _ensure_key_missing(actual_dict, "metadata", "creationTimestamp")  # the time at which the resource was created
+    # indicates how many times the resource has been modified
+    _ensure_key_missing(actual_dict, "metadata", "generation")
+    # resourceVersion is used to handle concurrent updates to the same resource
+    _ensure_key_missing(actual_dict, "metadata", "resourceVersion")
+    _ensure_key_missing(actual_dict, "metadata", "selfLink")   # a API link to the resource itself
+    # a unique id randomly for the resource generated on the Kubernetes side
+    _ensure_key_missing(actual_dict, "metadata", "uid")
+    # an internal annotation used to track ReplicaSets tied to a particular version of a Deployment
+    _ensure_key_missing(actual_dict, "metadata", "annotations", "deployment.kubernetes.io/revision")
+    # status is managed by Kubernetes itself, and is not part of the configuration of the resource
+    _ensure_key_missing(actual_dict, "status")
+    if isinstance(resource, Service):
+        _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
+        for port in actual_dict["spec"]["ports"]:
+            _ensure_key_missing(port, "nodePort")  # an available port is randomly picked from the nodePort range
+
+    pytest.helpers.assert_dicts(actual_dict, expected_dict)
 
 
 def _set_image(expected_dict, image):
@@ -468,3 +486,14 @@ def _set_labels(expected_dict, image, deployment_id):
 
 def _set_service_type(expected_dict, service_type):
     expected_dict["spec"]["type"] = service_type
+
+
+def _ensure_key_missing(d, *keys):
+    key = keys[0]
+    try:
+        if len(keys) > 1:
+            _ensure_key_missing(d[key], *keys[1:])
+        else:
+            del d[key]
+    except KeyError:
+        pass  # key was already missing

@@ -13,9 +13,6 @@ healthchecks:
   liveness:
     http:
       path: /
-  readiness:
-    http:
-      path: /
 resources:
   requests:
     cpu: 100m

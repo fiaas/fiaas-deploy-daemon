@@ -37,6 +37,13 @@ class Transformer(BaseTransformer):
     def __call__(self, app_config):
         lookup = LookupMapping(app_config, self._defaults)
 
+        liveness = self._health_check(lookup["healthchecks"]["liveness"], lookup["ports"])
+        if not lookup["healthchecks"].get_config_value("readiness") \
+           and lookup["healthchecks"].get_config_value("liveness"):
+            readiness = liveness
+        else:
+            readiness = self._health_check(lookup["healthchecks"]["readiness"], lookup["ports"])
+
         new_config = {
             'version': 3,
             'replicas': {
@@ -45,8 +52,8 @@ class Transformer(BaseTransformer):
                 'cpu_threshold_percentage': lookup["autoscaler"]["cpu_threshold_percentage"],
             },
             "healthchecks": {
-                "liveness": self._health_check(lookup["healthchecks"]["liveness"], lookup["ports"]),
-                "readiness": self._health_check(lookup["healthchecks"]["readiness"], lookup["ports"])
+                "liveness": liveness,
+                "readiness": readiness,
             }
         }
         for old, new in Transformer.COPY_MAPPING.iteritems():

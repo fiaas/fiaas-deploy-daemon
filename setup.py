@@ -25,7 +25,6 @@ GENERIC_REQ = [
 
 WEB_REQ = [
     "Flask == 0.12",
-    "Flask-WTF == 0.14.2",
     "blinker == 1.4"
 ]
 

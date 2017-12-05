@@ -17,39 +17,9 @@
 {% endmacro %}
 
 {{ block_header() }}
-    <p>Welcome to the FIAAS deploy daemon. From here you can deploy applications into the cluster.</p>
-    <dl class="multicol">
-        <dt>Log format</dt><dd>{{ config.log_format }}</dd>
-        <dt>API server</dt><dd>{{ config.api_server }}</dd>
-        <dt>Environment</dt><dd>{{ config.environment }}</dd>
-        <dt>Infrastructure</dt><dd>{{ config.infrastructure }}</dd>
-        <dt>Debug</dt><dd>{{ config.debug }}</dd>
-        <dt>Image</dt><dd>{{ config.image }}</dd>
-    </dl>
-{{ block_footer() }}
+    <p>Welcome to the FIAAS deploy daemon.</p>
 
-{{ block_header() }}
-<div class="line">
-    <div class="unit size1of1">
-        <h4>Deploy from FIAAS-config</h4>
-        <form method="post" action="{{ url_for('web.fiaas') }}">
-            <fieldset>
-                {{ render_field(fiaas.name) }}
-                {{ render_field(fiaas.image) }}
-                {{ render_field(fiaas.fiaas) }}
-                {{ render_field(fiaas.teams) }}
-                {{ render_field(fiaas.tags) }}
-                {{ render_field(fiaas.deployment_id) }}
-                {{ render_field(fiaas.namespace) }}
-                <div class="formelement">
-                    <div class="fancyinput">
-                        <input type="submit" value="Deploy from FIAAS-config"/>
-                    </div>
-                </div>
-            </fieldset>
-        </form>
-    </div>
-</div>
+    <p><a href="/defaults">View default values for the FIAAS config format</a></p>
+    <p><a href="/internal-backstage/prometheus">View fiaas-deploy-daemon metrics</a></p>
 {{ block_footer() }}
-
 {% endblock %}

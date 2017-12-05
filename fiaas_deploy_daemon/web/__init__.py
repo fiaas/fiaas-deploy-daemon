@@ -8,7 +8,7 @@ import pkgutil
 import pinject
 import re
 from flask import Flask, Blueprint, current_app,  render_template, make_response, request_started, request_finished, \
-    got_request_exception
+    got_request_exception, abort
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
 from .platform_collector import PLATFORM_COLLECTOR

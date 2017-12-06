@@ -1,0 +1,11 @@
+---
+version: 3
+healthchecks:
+  liveness:
+    tcp:
+      port: liveness-port
+ports:
+  - protocol: tcp
+    name: liveness-port
+    port: 8889
+    target_port: 8882

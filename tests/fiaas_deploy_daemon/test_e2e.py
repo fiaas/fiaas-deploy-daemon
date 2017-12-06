@@ -101,6 +101,11 @@ def _crd_available(kubernetes):
     return crd_available
 
 
+def _fixture_names(fixture_value):
+    name, data = fixture_value
+    return name
+
+
 @pytest.fixture(scope="session")
 def minikube_installer():
     try:
@@ -185,7 +190,7 @@ class TestE2E(object):
         finally:
             self._end_popen(fdd)
 
-    @pytest.fixture(params=(
+    @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
@@ -246,7 +251,7 @@ class TestE2E(object):
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
         return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
 
-    @pytest.fixture(params=(
+    @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",

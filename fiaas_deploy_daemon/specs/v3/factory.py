@@ -120,7 +120,7 @@ class Factory(BaseFactory):
         if check_lookup.get_config_value("port"):
             port = check_lookup["port"]
         else:
-            port = first_port_lookup["port"]
+            port = first_port_lookup["name"]
         return HttpCheckSpec(
             path=check_lookup["path"],
             port=port,
@@ -132,7 +132,7 @@ class Factory(BaseFactory):
         if check_lookup.get_config_value("port"):
             port = check_lookup["port"]
         else:
-            port = first_port_lookup["port"]
+            port = first_port_lookup["name"]
         return TcpCheckSpec(port=port)
 
     @staticmethod

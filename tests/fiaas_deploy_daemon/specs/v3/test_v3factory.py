@@ -33,7 +33,7 @@ TEST_DATA = {
         "ports[0].port": 80,
         "ports[0].target_port": 8080,
         "health_checks.liveness.http.path": "/_/health",
-        "health_checks.liveness.http.port": 80,
+        "health_checks.liveness.http.port": "http",
         "health_checks.liveness.http.http_headers": {},
         "health_checks.liveness.initial_delay_seconds": 10,
         "health_checks.liveness.period_seconds": 10,
@@ -42,7 +42,7 @@ TEST_DATA = {
         "health_checks.liveness.execute": None,
         "health_checks.liveness.tcp": None,
         "health_checks.readiness.http.path": "/_/ready",
-        "health_checks.readiness.http.port": 80,
+        "health_checks.readiness.http.port": "http",
         "health_checks.readiness.http.http_headers": {},
         "health_checks.readiness.initial_delay_seconds": 10,
         "health_checks.readiness.period_seconds": 10,
@@ -108,8 +108,8 @@ TEST_DATA = {
         "ports[0].target_port": 31337,
         "health_checks.liveness.execute": None,
         "health_checks.readiness.execute": None,
-        "health_checks.liveness.tcp.port": 1337,
-        "health_checks.readiness.tcp.port": 1337,
+        "health_checks.liveness.tcp.port": "thing",
+        "health_checks.readiness.tcp.port": "thing",
         "health_checks.liveness.http": None,
         "health_checks.readiness.http": None,
     },
@@ -123,10 +123,10 @@ TEST_DATA = {
         "health_checks.liveness.tcp": None,
         "health_checks.readiness.tcp": None,
         "health_checks.readiness.http.path": "/_/ready",
-        "health_checks.readiness.http.port": 1337,
+        "health_checks.readiness.http.port": "thing",
         "health_checks.readiness.http.http_headers": {},
         "health_checks.liveness.http.path": "/_/health",
-        "health_checks.liveness.http.port": 1337,
+        "health_checks.liveness.http.port": "thing",
         "health_checks.liveness.http.http_headers": {},
     },
     "multiple_tcp_ports": {
@@ -255,6 +255,18 @@ TEST_DATA = {
         "health_checks.readiness.execute": None,
         "health_checks.readiness.tcp": None,
     },
+    "default_tcp_healthcheck": {
+        "ports[0].protocol": "tcp",
+        "ports[0].name": "liveness-port",
+        "ports[0].port": 8889,
+        "ports[0].target_port": 8882,
+        "health_checks.liveness.execute": None,
+        "health_checks.readiness.execute": None,
+        "health_checks.liveness.tcp.port": "liveness-port",
+        "health_checks.readiness.tcp.port": "liveness-port",
+        "health_checks.liveness.http": None,
+        "health_checks.readiness.http": None,
+    },
 }
 
 
@@ -285,8 +297,8 @@ class TestFactory(object):
         assert app_spec.image == IMAGE
 
     @pytest.mark.parametrize("filename", (
-            "no_health_check_defined_http",
-            "no_health_check_defined_tcp",
+            "invalid_no_health_check_defined_http",
+            "invalid_no_health_check_defined_tcp",
             "invalid_ingress_port_number",
             "invalid_ingress_port_name",
     ))

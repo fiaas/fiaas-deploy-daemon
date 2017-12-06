@@ -99,6 +99,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: v2-data-examples-multiple-ports-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -114,3 +116,4 @@ spec:
           name: v2-data-examples-multiple-ports
           optional: true
         name: v2-data-examples-multiple-ports-config
+      - name: tmp

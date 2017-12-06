@@ -96,6 +96,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: data-v2minimal-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -111,5 +113,6 @@ spec:
           name: data-v2minimal
           optional: true
         name: data-v2minimal-config
+      - name: tmp
       initContainers: []
       imagePullSecrets: []

@@ -86,6 +86,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: v2-data-examples-single-tcp-port-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -101,5 +103,6 @@ spec:
           name: v2-data-examples-single-tcp-port
           optional: true
         name: v2-data-examples-single-tcp-port-config
+      - name: tmp
       initContainers: []
       imagePullSecrets: []

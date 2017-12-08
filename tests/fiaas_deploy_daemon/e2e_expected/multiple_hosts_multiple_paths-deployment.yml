@@ -103,6 +103,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: v3-data-examples-multiple-hosts-multiple-paths-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -118,5 +120,6 @@ spec:
           name: v3-data-examples-multiple-hosts-multiple-paths
           optional: true
         name: v3-data-examples-multiple-hosts-multiple-paths-config
+      - name: tmp
       initContainers: []
       imagePullSecrets: []

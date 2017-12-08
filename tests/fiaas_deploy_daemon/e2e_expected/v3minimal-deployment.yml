@@ -103,6 +103,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: v3-data-examples-v3minimal-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -118,5 +120,6 @@ spec:
           name: v3-data-examples-v3minimal
           optional: true
         name: v3-data-examples-v3minimal-config
+      - name: tmp
       initContainers: []
       imagePullSecrets: []

@@ -235,15 +235,14 @@ class TestDeploymentDeployer(object):
                 'image': DATADOG_IMAGE,
                 'volumeMounts': [],
                 'env': [
-                    {'name': 'K8S_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}},
-                    {'name': 'K8S_POD', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}},
-                    {'name': 'APP', 'value': app_spec.name},
+                    {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
                     {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
-                    {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'}
+                    {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
+                    {'name': 'DD_LOGS_STDOUT', 'value': 'yes'}
                 ],
                 'envFrom': [],
                 'imagePullPolicy': 'IfNotPresent',
-                'ports': [{'protocol': 'TCP', 'containerPort': 8125, 'name': 'datadog'}],
+                'ports': [],
             })
 
         expected_deployment = {
@@ -499,8 +498,8 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
     if datadog:
-        environment.append({'name': 'DOGSTATSD_HOSTNAME', 'value': 'localhost'})
-        environment.append({'name': 'DOGSTATSD_PORT', 'value': '8125'})
+        environment.append({'name': 'STATSD_HOST', 'value': 'localhost'})
+        environment.append({'name': 'STATSD_PORT', 'value': '8125'})
     return environment
 
 

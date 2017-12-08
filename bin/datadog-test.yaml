@@ -1,0 +1,28 @@
+apiVersion: "fiaas.schibsted.io/v1"
+kind: Application
+metadata:
+  name: datadog-test
+  labels:
+    fiaas/deployment_id: 201712071259-1
+spec:
+  application: datadog-test
+  image: containers.schibsted.io/spt-infrastructure/datadog-test:201712071259
+  config:
+    version: 3
+    replicas:
+      minimum: 2 # Set minimum to the same as maximum for no autoscaling
+      maximum: 2
+    resources:
+      requests:
+        memory: 128m
+    ports:
+      - target_port: 5000
+    healthchecks:
+      liveness:
+        http:
+          path: /_/health
+    metrics:
+      datadog:
+        enabled: true
+      prometheus:
+        enabled: false

@@ -10,7 +10,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, ObjectFieldSelector, SecretKeySelector
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
@@ -108,15 +108,11 @@ class DeploymentDeployer(object):
             name=self.DATADOG_CONTAINER_NAME,
             image=self._datadog_container_image,
             imagePullPolicy="IfNotPresent",
-            ports=[
-                ContainerPort(name="datadog", containerPort=8125)
-            ],
             env=[
-                EnvVar(name="K8S_NAMESPACE", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
-                EnvVar(name="K8S_POD", valueFrom=EnvVarSource(fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
-                EnvVar(name="APP", value=app_spec.name),
+                EnvVar(name="DD_TAGS", value="app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)),
                 EnvVar(name="API_KEY", valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
-                EnvVar(name="NON_LOCAL_TRAFFIC", value="false")
+                EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
+                EnvVar(name="DD_LOGS_STDOUT", value="yes"),
             ]
         )
 
@@ -180,8 +176,8 @@ class DeploymentDeployer(object):
         env.extend(global_env)
 
         if app_spec.datadog:
-            env.append(EnvVar(name="DOGSTATSD_HOSTNAME", value="localhost"))
-            env.append(EnvVar(name="DOGSTATSD_PORT", value="8125"))
+            env.append(EnvVar(name="STATSD_HOST", value="localhost"))
+            env.append(EnvVar(name="STATSD_PORT", value="8125"))
         return env
 
     def _uses_secrets_init_container(self):

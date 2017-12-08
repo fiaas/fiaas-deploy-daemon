@@ -4,12 +4,12 @@
 from __future__ import print_function
 
 import contextlib
-from copy import deepcopy
 import socket
 import subprocess
 import sys
 import time
 import traceback
+from copy import deepcopy
 from datetime import datetime
 from distutils.version import StrictVersion
 from urlparse import urljoin
@@ -20,11 +20,11 @@ import requests
 import yaml
 from k8s import config
 from k8s.client import NotFound, Client
+from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
-from k8s.models.autoscaler import HorizontalPodAutoscaler
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
@@ -169,6 +169,7 @@ class TestE2E(object):
                 "--service-type", service_type,
                 "--ingress-suffix", "svc.test.example.com",
                 "--environment", "test",
+                "--datadog-container-image", "DATADOG_IMAGE",
                 ]
         if _tpr_supported(k8s_version):
             args.append("--enable-tpr-support")

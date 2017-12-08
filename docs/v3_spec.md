@@ -369,7 +369,7 @@ metrics:
 | boolean  | no           |
 
 Attach a datadog sidecar for metrics collection. The sidecar will run DogStatsD, and your application should send metrics
-to `${DOGSTATSD_HOSTNAME}:${DOGSTATSD_PORT}` (in the current incarnation, this is set to `localhost:8125`, but your application
+to `${STATSD_HOST}:${STATSD_PORT}` (in the current incarnation, this is set to `localhost:8125`, but your application
 should make use of the environment variables in order to be somewhat futureproof). In order for this to send metrics to the 
 correct datadog account, a secret must be created in the namespace which contains the datadog API key. This key decides 
 where the metrics end up.

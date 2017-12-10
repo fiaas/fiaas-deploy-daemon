@@ -175,7 +175,7 @@ class TestE2E(object):
             args.append("--enable-tpr-support")
         if _crd_supported(k8s_version):
             args.append("--enable-crd-support")
-        fdd = subprocess.Popen(args)
+        fdd = subprocess.Popen(args, stdout=sys.stderr)
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
@@ -457,7 +457,7 @@ def _crd_supported(k8s_version):
 
 def plog(message):
     """Primitive logging"""
-    print("%s: %s" % (time.asctime(), message))
+    print("%s: %s" % (time.asctime(), message), file=sys.stderr)
 
 
 def _read_yml(yml_path):

@@ -90,6 +90,8 @@ spec:
         - mountPath: /var/run/config/fiaas/
           name: v2-data-examples-exec-config-config
           readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
@@ -105,5 +107,6 @@ spec:
           name: v2-data-examples-exec-config
           optional: true
         name: v2-data-examples-exec-config-config
+      - name: tmp
       initContainers: []
       imagePullSecrets: []

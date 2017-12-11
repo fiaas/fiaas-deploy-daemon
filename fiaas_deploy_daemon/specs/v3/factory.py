@@ -33,6 +33,7 @@ class Factory(BaseFactory):
             admin_access=lookup["admin_access"],
             secrets_in_environment=lookup["secrets_in_environment"],
             prometheus=self._prometheus_spec(lookup["metrics"]["prometheus"]),
+            datadog=lookup["metrics"]["datadog"]["enabled"],
             ports=self._port_specs(lookup["ports"]),
             health_checks=self._health_checks_spec(lookup["healthchecks"], lookup["ports"]),
             teams=teams,

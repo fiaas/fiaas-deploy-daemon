@@ -348,6 +348,44 @@ Name of HTTP port Prometheus metrics are served on.
 
 HTTP endpoint where metrics are exposed.
 
+### datadog
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Configure datadog.
+
+Default value:
+```yaml
+metrics:
+  datadog:
+    enabled: false
+```
+
+#### enabled
+| **Type** | **Required** |
+|----------|--------------|
+| boolean  | no           |
+
+Attach a datadog sidecar for metrics collection. The sidecar will run DogStatsD, and your application should send metrics
+to `${STATSD_HOST}:${STATSD_PORT}` (in the current incarnation, this is set to `localhost:8125`, but your application
+should make use of the environment variables in order to be somewhat futureproof). In order for this to send metrics to the 
+correct datadog account, a secret must be created in the namespace which contains the datadog API key. This key decides 
+where the metrics end up.
+
+Creating the datadog secret can be done using `kubectl` directly:
+
+```
+kubectl -n "${NAMESPACE}" create secret generic datadog --from-literal apikey="${DD_API_KEY}"
+```
+
+Three additional tags are attached to the collected metrics automatically:
+
+- namespace name
+- application name
+- pod name
+
 ## ports
 
 | **Type** | **Required** |

@@ -28,6 +28,8 @@ spec:
         command:
         - fiaas-deploy-daemon
         - --enable-tpr-support
+        - --datadog-container-image
+        - datadog/docker-dd-agent:12.2.5172-alpine
         - --ingress-suffix
         - "{{ .Values.ingress.domainName }}"
         env:

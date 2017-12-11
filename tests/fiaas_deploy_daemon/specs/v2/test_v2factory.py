@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import mock
 import pytest
 
+from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.v2.factory import Factory
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import _Lookup
@@ -189,7 +191,8 @@ def pytest_generate_tests(metafunc):
 class TestFactory(object):
     @pytest.fixture
     def factory(self):
-        return SpecFactory(Factory(), {})
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        return SpecFactory(Factory(), {}, config)
 
     @pytest.mark.parametrize("filename", (
             "v2minimal",

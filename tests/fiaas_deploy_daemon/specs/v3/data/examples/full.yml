@@ -31,6 +31,8 @@ metrics:
     enabled: true
     port: a
     path: /prometheus-metrics-here
+  datadog:
+    enabled: true
 ports:
   - protocol: http
     name: a

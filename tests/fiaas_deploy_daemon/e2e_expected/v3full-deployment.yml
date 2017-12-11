@@ -60,6 +60,10 @@ spec:
           value: IMAGE
         - name: FINN_ENV
           value: test
+        - name: STATSD_HOST
+          value: localhost
+        - name: STATSD_PORT
+          value: "8125"
         envFrom:
         - configMapRef:
             name: v3-data-examples-full
@@ -117,6 +121,24 @@ spec:
           readOnly: true
         - mountPath: /tmp
           name: tmp
+      - env:
+        - name: DD_TAGS
+          value: app:v3-data-examples-full,k8s_namespace:default
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: datadog
+              key: apikey
+        - name: NON_LOCAL_TRAFFIC
+          value: "false"
+        - name: DD_LOGS_STDOUT
+          value: "yes"
+        envFrom: []
+        image: DATADOG_IMAGE
+        volumeMounts: []
+        imagePullPolicy: IfNotPresent
+        name: fiaas-datadog-container
+        ports: []
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default

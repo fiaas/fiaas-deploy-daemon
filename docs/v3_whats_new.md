@@ -208,6 +208,14 @@ metrics:
     path: /_/metrics
 ```
 
+## new datadog section under metrics
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Enables a datadog sidecar that will accept metrics from localhost. See the full [documentation](v3_spec.md) for details.
+
 ## config configuration object removed
 
 If there is a ConfigMap matching the name of the application in the namespace an application is deployed to, it will

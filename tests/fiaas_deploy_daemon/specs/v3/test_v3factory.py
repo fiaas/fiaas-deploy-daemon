@@ -3,7 +3,9 @@
 from __future__ import absolute_import, unicode_literals
 
 import pytest
+import mock
 
+from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.v3.factory import Factory
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import _Lookup
@@ -215,6 +217,7 @@ TEST_DATA = {
         "prometheus.enabled": True,
         "prometheus.port": "a",
         "prometheus.path": "/prometheus-metrics-here",
+        "datadog": True,
         "ports[0].protocol": "http",
         "ports[0].name": "a",
         "ports[0].port": 1337,
@@ -282,7 +285,8 @@ def pytest_generate_tests(metafunc):
 class TestFactory(object):
     @pytest.fixture
     def factory(self):
-        return SpecFactory(Factory(), {})
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        return SpecFactory(Factory(), {}, config)
 
     @pytest.mark.parametrize("filename", (
             "v3minimal",

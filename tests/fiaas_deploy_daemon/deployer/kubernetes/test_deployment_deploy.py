@@ -12,7 +12,11 @@ from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckS
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 
+SECRET_IMAGE = "fiaas/secret_image:version"
+DATADOG_IMAGE = "fiaas/datadog_image:version"
+
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
+DATADOG_CONTAINER_NAME = 'fiaas-datadog-container'
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through"}
@@ -83,6 +87,10 @@ class TestDeploymentDeployer(object):
         yield PrometheusSpec(enabled, port, '/internal-backstage/prometheus')
 
     @pytest.fixture(params=(True, False))
+    def datadog(self, request):
+        yield request.param
+
+    @pytest.fixture(params=(True, False))
     def has_ports(self, request):
         yield request.param
 
@@ -98,6 +106,7 @@ class TestDeploymentDeployer(object):
         config.global_env = global_env
         config.secrets_init_container_image = None
         config.secrets_service_account_name = None
+        config.datadog_container_image = DATADOG_IMAGE
         return DeploymentDeployer(config)
 
     @pytest.fixture
@@ -106,8 +115,9 @@ class TestDeploymentDeployer(object):
         config.infrastructure = infra
         config.environment = "test"
         config.global_env = global_env
-        config.secrets_init_container_image = "finntech/testimage:version"
+        config.secrets_init_container_image = SECRET_IMAGE
         config.secrets_service_account_name = "secretsmanager"
+        config.datadog_container_image = DATADOG_IMAGE
         return DeploymentDeployer(config)
 
     @pytest.mark.usefixtures("get")
@@ -116,7 +126,7 @@ class TestDeploymentDeployer(object):
             "secrets_init_container_deployer",
     ))
     def test_deploy_new_deployment(self, request, infra, global_env, post, deployer_name, app_spec, admin_access,
-                                   prometheus, has_ports, secrets_in_environment):
+                                   prometheus, datadog, has_ports, secrets_in_environment):
         if has_ports:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
@@ -130,6 +140,7 @@ class TestDeploymentDeployer(object):
         app_spec = app_spec._replace(
             admin_access=admin_access,
             prometheus=prometheus,
+            datadog=datadog,
             ports=ports,
             health_checks=health_checks,
             secrets_in_environment=secrets_in_environment
@@ -142,8 +153,8 @@ class TestDeploymentDeployer(object):
 
         if deployer._uses_secrets_init_container():
             init_containers = [{
-                'name': (INIT_CONTAINER_NAME),
-                'image': 'finntech/testimage:version',
+                'name': INIT_CONTAINER_NAME,
+                'image': SECRET_IMAGE,
                 'volumeMounts': expected_init_volume_mounts,
                 'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
                 'envFrom': [{
@@ -206,6 +217,34 @@ class TestDeploymentDeployer(object):
                 }
             })
 
+        containers = [{
+            'livenessProbe': expected_liveness_check,
+            'name': app_spec.name,
+            'image': 'finntech/testimage:version',
+            'volumeMounts': expected_volume_mounts,
+            'env': create_environment_variables(infra, global_env=global_env, datadog=datadog),
+            'envFrom': expected_env_from,
+            'imagePullPolicy': 'IfNotPresent',
+            'readinessProbe': expected_readiness_check,
+            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
+            'resources': {}
+        }]
+        if datadog:
+            containers.append({
+                'name': DATADOG_CONTAINER_NAME,
+                'image': DATADOG_IMAGE,
+                'volumeMounts': [],
+                'env': [
+                    {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
+                    {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
+                    {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
+                    {'name': 'DD_LOGS_STDOUT', 'value': 'yes'}
+                ],
+                'envFrom': [],
+                'imagePullPolicy': 'IfNotPresent',
+                'ports': [],
+            })
+
         expected_deployment = {
             'metadata': pytest.helpers.create_metadata(app_spec.name, labels=LABELS),
             'spec': {
@@ -218,18 +257,7 @@ class TestDeploymentDeployer(object):
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
-                        'containers': [{
-                            'livenessProbe': expected_liveness_check,
-                            'name': app_spec.name,
-                            'image': 'finntech/testimage:version',
-                            'volumeMounts': expected_volume_mounts,
-                            'env': create_environment_variables(infra, global_env=global_env),
-                            'envFrom': expected_env_from,
-                            'imagePullPolicy': 'IfNotPresent',
-                            'readinessProbe': expected_readiness_check,
-                            'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if has_ports else [],
-                            'resources': {}
-                        }],
+                        'containers': containers,
                         'initContainers': init_containers
                     },
                     'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=prometheus.enabled,
@@ -454,7 +482,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version"):
+def create_environment_variables(infrastructure, global_env=None, version="version", datadog=False):
     environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'},
                    {'name': 'LOG_STDOUT', 'value': 'true'},
                    {'name': 'VERSION', 'value': version},
@@ -469,6 +497,9 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+    if datadog:
+        environment.append({'name': 'STATSD_HOST', 'value': 'localhost'})
+        environment.append({'name': 'STATSD_PORT', 'value': '8125'})
     return environment
 
 

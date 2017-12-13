@@ -25,7 +25,7 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     period_seconds: 10 # How often (in seconds) to perform the probe.
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
     timeout_seconds: 1 # Number of seconds after which the probe times out.
-  readiness: # If readiness is left out, the readiness settings are copied from liveness
+  readiness: # If readiness is left out and liveness is defined, the readiness settings are copied from liveness.
     # Valid configuration requires exactly one of execute|http|tcp
     execute:
       command: # Command to execute inside the container.

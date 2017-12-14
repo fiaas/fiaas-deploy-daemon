@@ -165,7 +165,7 @@ strongly recommended.
 | object   | no           |
 
 Application endpoints to be used by Kubernetes to determine [whether your application is up and/or ready to handle requests](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/).
-If `healthchecks.readiness` is not specified, `healthchecks.liveness` will be used as the value for `healthchecks.readiness`.
+If `healthchecks.liveness` is specified and `healthchecks.readiness` is not specified, `healthchecks.liveness` will be used as the value for `healthchecks.readiness`.
 
 ### liveness
 

@@ -120,9 +120,7 @@ publish.dependsOn(publishLatestImage)
  */
 
 task clean(type: Delete) {
-    delete fileTree(dir: 'fiaas_deploy_daemon', include: '**/*.pyc')
-    delete fileTree(dir: 'k8s', include: '**/*.pyc')
-    delete fileTree(dir: 'tests', include: '**/*.pyc')
+    delete fileTree(dir: '.', include: '**/*.pyc')
     delete build.outputs
     delete test.outputs
 }

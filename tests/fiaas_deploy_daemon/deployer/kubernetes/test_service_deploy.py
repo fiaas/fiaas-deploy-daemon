@@ -71,8 +71,10 @@ class TestServiceDeployer(object):
                                                        annotations=expected_annotations)
         }
 
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={}, service=expected_labels)
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={}, service=expected_annotations)
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
+                                        service=expected_labels, pod={})
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
+                                             service=expected_annotations, pod={})
         app_spec_custom_labels_and_annotations = app_spec._replace(labels=labels, annotations=annotations)
         deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
 

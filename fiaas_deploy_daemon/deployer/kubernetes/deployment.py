@@ -38,9 +38,9 @@ class DeploymentDeployer(object):
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
-        custom_labels = merge_dicts(app_spec.labels.deployment, labels)
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=(
-            app_spec.annotations.deployment))
+        deployment_labels = merge_dicts(app_spec.labels.deployment, labels)
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=deployment_labels,
+                              annotations=app_spec.annotations.deployment)
         container_ports = [ContainerPort(name=port_spec.name, containerPort=port_spec.target_port) for port_spec in
                            app_spec.ports]
         env = self._make_env(app_spec)
@@ -81,12 +81,13 @@ class DeploymentDeployer(object):
                            serviceAccountName=service_account_name,
                            automountServiceAccountToken=automount_service_account_token)
 
-        prom_annotations = _make_prometheus_annotations(app_spec) \
-            if app_spec.prometheus and app_spec.prometheus.enabled else None
+        prometheus_annotations = _make_prometheus_annotations(app_spec) \
+            if app_spec.prometheus and app_spec.prometheus.enabled else {}
+        pod_annotations = merge_dicts(app_spec.annotations.pod, prometheus_annotations)
 
-        pod_labels = _add_status_label(labels)
+        pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
-                                  annotations=prom_annotations)
+                                  annotations=pod_annotations)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
         replicas = app_spec.replicas
         # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value

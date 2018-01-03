@@ -254,6 +254,7 @@ labels:
   horizontal_pod_autoscaler: {}
   ingress: {}
   service: {}
+  pod: {}
 ```
 
 The labels are organized under the Kubernetes resource they will be applied to. To specify custom labels, set
@@ -284,6 +285,7 @@ annotations:
   horizontal_pod_autoscaler: {}
   ingress: {}
   service: {}
+  pod: {}
 ```
 
 Like labels, annotations are organized under the Kubernetes resource they will be applied to. To specify custom

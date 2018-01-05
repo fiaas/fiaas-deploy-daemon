@@ -18,7 +18,7 @@ GENERIC_REQ = [
     "pinject == 0.10.2",
     "six == 1.10.0",
     "dnspython == 1.15.0",
-    "k8s == 0.3.4",
+    "k8s == 0.4.0",
     "monotonic == 1.3",
     "appdirs == 1.4.3",
 ]

@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+import logging
 from argparse import Namespace
 
 import configargparse
-import dns.resolver
 import dns.exception
+import dns.resolver
 import os
-import logging
 import re
 
 DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
@@ -112,11 +112,15 @@ class Configuration(Namespace):
         parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support.",
                             action="store_true")
         parser.add_argument("--secrets-init-container-image",
-                            help="Use specified docker image as init container for secrets (experimental)", default=None)
+                            help="Use specified docker image as init container for secrets (experimental)",
+                            default=None)
         parser.add_argument("--secrets-service-account-name",
                             help="The service account that is passed to secrets init containers", default=None)
         parser.add_argument("--datadog-container-image",
                             help="Use specified docker image as datadog sidecar for apps", default=None)
+        parser.add_argument("--pre-stop-delay", type=int,
+                            help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
+                            default=0)
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

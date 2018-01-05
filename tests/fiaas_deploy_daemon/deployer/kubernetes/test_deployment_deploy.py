@@ -2,8 +2,6 @@
 # -*- coding: utf-8
 from collections import defaultdict
 
-from copy import deepcopy
-
 import mock
 import pytest
 from mock import create_autospec

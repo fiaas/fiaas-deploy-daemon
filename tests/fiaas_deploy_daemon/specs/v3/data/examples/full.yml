@@ -55,6 +55,9 @@ labels:
   service:
     m: "n"
     o: p
+  pod:
+    q: r
+    s: u
 annotations:
   service:
     a: b
@@ -68,5 +71,8 @@ annotations:
   deployment:
     m: "n"
     o: p
+  pod:
+    x: y
+    z: y
 secrets_in_environment: true
 admin_access: true

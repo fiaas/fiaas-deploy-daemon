@@ -37,8 +37,8 @@ class Factory(object):
             teams,
             tags,
             deployment_id,
-            LabelAndAnnotationSpec({}, {}, {}, {}),
-            LabelAndAnnotationSpec({}, {}, {}, {}),
+            LabelAndAnnotationSpec({}, {}, {}, {}, {}),
+            LabelAndAnnotationSpec({}, {}, {}, {}, {}),
             self._ingress_items(lookup)
         )
 

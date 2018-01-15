@@ -73,8 +73,10 @@ class TestAutoscalerDeployer(object):
         app_spec = app_spec._replace(replicas=4)
         app_spec = app_spec._replace(
             resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "label"}, ingress={}, service={})
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "annotation"}, ingress={}, service={})
+        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "label"}, ingress={},
+                                        service={}, pod={})
+        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "annotation"},
+                                             ingress={}, service={}, pod={})
         app_spec = app_spec._replace(labels=labels, annotations=annotations)
 
         deployer.deploy(app_spec, LABELS)

@@ -30,12 +30,16 @@ spec:
         prometheus.io/path: /prometheus-metrics-here
         prometheus.io/port: "31337"
         prometheus.io/scrape: "true"
+        x: y
+        z: y
       labels:
         app: v3-data-examples-full
         fiaas/deployed_by: ""
         fiaas/deployment_id: DEPLOYMENT_ID
         fiaas/status: active
         fiaas/version: VERSION
+        q: r
+        s: u
       name: v3-data-examples-full
       namespace: default
     spec:

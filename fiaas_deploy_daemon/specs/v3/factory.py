@@ -145,7 +145,8 @@ class Factory(BaseFactory):
             deployment=dict(labels_annotations_lookup["deployment"]),
             horizontal_pod_autoscaler=dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
             ingress=dict(labels_annotations_lookup["ingress"]),
-            service=dict(labels_annotations_lookup["service"])
+            service=dict(labels_annotations_lookup["service"]),
+            pod=dict(labels_annotations_lookup["pod"])
         )
 
     @staticmethod

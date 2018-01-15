@@ -38,8 +38,8 @@ def app_spec(**kwargs):
         teams=[u'foo'],
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",
-        labels=LabelAndAnnotationSpec({}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, {}, {}),
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])]
     )
 
@@ -415,9 +415,10 @@ TEST_DATA = (
             }])),
     ("custom_labels_and_annotations",
      app_spec(labels=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
-                                            ingress={"ingress_deployer": "pass through", "custom": "label"}, service={}),
+                                            ingress={"ingress_deployer": "pass through", "custom": "label"},
+                                            service={}, pod={}),
               annotations=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
-                                                 ingress={"custom": "annotation"}, service={})),
+                                                 ingress={"custom": "annotation"}, service={}, pod={})),
      ingress(metadata=pytest.helpers.create_metadata('testapp', external=False,
                                                      labels={"ingress_deployer": "pass through", "custom": "label"},
                                                      annotations={"fiaas/expose": "false", "custom": "annotation"}))),

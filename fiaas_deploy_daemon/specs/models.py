@@ -89,7 +89,8 @@ LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
   "deployment",
   "horizontal_pod_autoscaler",
   "ingress",
-  "service"
+  "service",
+  "pod",
 ])
 
 IngressItemSpec = namedtuple("IngressItemSpec", [

@@ -82,17 +82,20 @@ class TestDeploymentDeployer(object):
         yield config
 
     @pytest.fixture(params=(
-        (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"}),
-        (True, "8080", {"foo": "bar"}, {"bar": "baz"}),
-        (True, "http", {"foo": "bar"}, {}),
-        (False, None, {}, {}),
+        (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
+         {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}),
+        (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}),
+        (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}),
+        (False, None, {}, {}, {}, {}),
     ))
     def app_spec(self, request, app_spec):
-        generic_toggle, prometheus_port, labels, annotations = request.param
-        labels = LabelAndAnnotationSpec(deployment=labels, horizontal_pod_autoscaler={}, ingress={}, service={})
-        annotations = LabelAndAnnotationSpec(deployment=annotations, horizontal_pod_autoscaler={}, ingress={},
-                                             service={})
+        generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations = request.param
+        labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
+                                        service={}, pod=pod_labels)
+        annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
+                                             service={}, pod=pod_annotations)
         if generic_toggle:
+
             ports = app_spec.ports
             health_checks = app_spec.health_checks
         else:
@@ -323,6 +326,7 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'ports': [],
         })
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
+    pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else None
     deployment = {
         'metadata': pytest.helpers.create_metadata(app_spec.name,
                                                    labels=merge_dicts(app_spec.labels.deployment, LABELS),
@@ -341,7 +345,8 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
                     'initContainers': init_containers
                 },
                 'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=app_spec.prometheus.enabled,
-                                                           labels=_get_expected_template_labels())
+                                                           labels=_get_expected_template_labels(app_spec.labels.pod),
+                                                           annotations=pod_annotations)
             },
             'replicas': replicas if replicas else app_spec.replicas,
             'revisionHistoryLimit': 5
@@ -371,10 +376,8 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
     return environment
 
 
-def _get_expected_template_labels():
-    expected_template_labels = {"fiaas/status": "active"}
-    expected_template_labels.update(LABELS)
-    return expected_template_labels
+def _get_expected_template_labels(custom_labels):
+    return merge_dicts(custom_labels, {"fiaas/status": "active"}, LABELS)
 
 
 def _get_expected_volumes(app_spec, uses_secrets_init_container):
@@ -444,3 +447,7 @@ def _get_expected_volume_mounts(app_spec, uses_secrets_init_container):
     else:
         expected_init_volume_mounts = []
     return expected_init_volume_mounts, expected_volume_mounts
+
+
+def _none_if_empty(thing):
+    return thing if thing else None

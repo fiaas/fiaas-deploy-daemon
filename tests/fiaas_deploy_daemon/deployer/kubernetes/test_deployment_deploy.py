@@ -79,6 +79,7 @@ class TestDeploymentDeployer(object):
         config.secrets_init_container_image = SECRET_IMAGE if secret_init_container else None
         config.secrets_service_account_name = "secretsmanager" if secret_init_container else None
         config.datadog_container_image = DATADOG_IMAGE
+        config.pre_stop_delay = 1
         yield config
 
     @pytest.fixture(params=(
@@ -302,6 +303,13 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
         'name': app_spec.name,
         'image': image,
         'volumeMounts': expected_volume_mounts,
+        'lifecycle': {
+            'preStop': {
+                'exec': {
+                    'command': ['sleep', '1']
+                }
+            }
+        },
         'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
                                             datadog=app_spec.datadog, version=version),
         'envFrom': expected_env_from,

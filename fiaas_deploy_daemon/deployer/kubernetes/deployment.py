@@ -10,7 +10,8 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector, \
+    Lifecycle, Handler
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
@@ -35,6 +36,10 @@ class DeploymentDeployer(object):
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
         self._datadog_container_image = config.datadog_container_image
+        self._lifecycle = None
+        if config.pre_stop_delay > 0:
+            self._lifecycle = Lifecycle(preStop=Handler(
+                _exec=ExecAction(command=["sleep", str(config.pre_stop_delay)])))
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -55,6 +60,7 @@ class DeploymentDeployer(object):
                       ports=container_ports,
                       env=env,
                       envFrom=env_from,
+                      lifecycle=self._lifecycle,
                       livenessProbe=_make_probe(app_spec.health_checks.liveness),
                       readinessProbe=_make_probe(app_spec.health_checks.readiness),
                       imagePullPolicy=pull_policy,

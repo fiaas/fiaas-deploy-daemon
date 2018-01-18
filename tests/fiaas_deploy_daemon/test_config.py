@@ -51,6 +51,7 @@ class TestConfig(object):
         assert config.image == ""
         assert config.blacklist == []
         assert config.whitelist == []
+        assert config.enable_deprecated_multi_namespace_support is False
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
@@ -88,7 +89,12 @@ class TestConfig(object):
 
         assert config.infrastructure == "gke"
 
-    @pytest.mark.parametrize("key", ("debug", "enable_tpr_support", "enable_crd_support"))
+    @pytest.mark.parametrize("key", (
+        "debug",
+        "enable_tpr_support",
+        "enable_crd_support",
+        "enable_deprecated_multi_namespace_support",
+    ))
     def test_flags(self, key):
         flag = "--{}".format(key.replace("_", "-"))
         config = Configuration([])

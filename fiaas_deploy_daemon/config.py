@@ -54,6 +54,10 @@ When whitelisting, only applications in the whitelist is deployed.
 When blacklisting, applications in the blacklist will not be deployed.
 """
 
+MULTI_NAMESPACE_HELP = """
+Make fiaas-deploy-daemon watch for TPRs and/or CRDs and execute deployments in all namespaces. The default behavior is
+ to only watch the namespace fiaas-deploy-daemon runs in. This feature is deprecated and will soon be removed."""
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
@@ -121,6 +125,8 @@ class Configuration(Namespace):
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)
+        parser.add_argument("--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP,
+                            action="store_true")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

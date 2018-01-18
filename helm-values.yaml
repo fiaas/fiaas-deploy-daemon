@@ -6,3 +6,9 @@ ingress:
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
     schibsted.io/heimdall: "true"
+environment: pro
+infrastructure: aws
+TPR: true
+CRD: false
+dataDogImage: datadog/docker-dd-agent:12.2.5172-alpine
+preStopDelay: 15

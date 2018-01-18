@@ -10,3 +10,10 @@ ingress:
 deployment:
   # include the resource requests and limits
   includeResourceUsage: true
+environment: dev
+infrastructure: diy
+TPR: false
+CRD: false
+# Define to override defaults
+#dataDogImage:
+#preStopDelay:

@@ -104,7 +104,7 @@ class Configuration(Namespace):
                             choices=("ClusterIP", "NodePort", "LoadBalancer"), default="ClusterIP")
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
-                            env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
+                            env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke", "aws"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
         parser.add_argument("--enable-tpr-support", help="Enable Third Party Resource support.",

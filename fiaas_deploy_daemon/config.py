@@ -85,6 +85,7 @@ class Configuration(Namespace):
         self._parse_args(args)
         self._resolve_api_config()
         self._resolve_env()
+        self.namespace = self._resolve_namespace()
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(auto_env_var_prefix="",
@@ -212,6 +213,23 @@ class Configuration(Namespace):
             raise InvalidConfigurationException(
                 "{} is not set in environment, unable to resolve service {}".format(key, service_name))
         return value
+
+    @staticmethod
+    def _resolve_namespace():
+        namespace_file_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+        namespace_env_variable = "NAMESPACE"
+        try:
+            with open(namespace_file_path, 'r') as fobj:
+                namespace = fobj.read().strip()
+                if namespace:
+                    return namespace
+        except IOError:
+            namespace = os.getenv(namespace_env_variable)
+            if namespace:
+                return namespace
+        raise InvalidConfigurationException(
+            "Could not determine namespace: could not read {path}, and ${env_var} was not set".format(
+                path=namespace_file_path, env_var=namespace_env_variable))
 
     def __repr__(self):
         return "Configuration({})".format(

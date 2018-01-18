@@ -6,16 +6,35 @@ import mock
 import pyaml
 import pytest
 
-from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue
+from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue, InvalidConfigurationException
 
 
 class TestConfig(object):
+
+    @pytest.fixture
+    def getenv(self):
+        with mock.patch("os.getenv") as getenv:
+            yield getenv
+
+    @pytest.fixture
+    def namespace_file_does_not_exist(self):
+        with mock.patch("fiaas_deploy_daemon.config.open", new_callable=mock.mock_open) as _open:
+            _open.side_effect = IOError("does not exist")
+            yield _open
+
+    @pytest.fixture
+    def namespace_file_with_data(self):
+        with mock.patch("fiaas_deploy_daemon.config.open", new_callable=mock.mock_open,
+                        read_data="namespace-from-file") as _open:
+            yield _open
+
     @pytest.fixture(autouse=True)
     def dns_resolver(self):
         with mock.patch("dns.resolver.query") as mock_resolver:
             mock_resolver.side_effect = dns.resolver.NXDOMAIN
             yield mock_resolver
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("format", ["plain", "json"])
     def test_resolve_log_format_env(self, monkeypatch, format):
         monkeypatch.setenv("LOG_FORMAT", format)
@@ -23,22 +42,26 @@ class TestConfig(object):
 
         assert config.log_format == format
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_invalid_log_format_env(self, monkeypatch):
         monkeypatch.setenv("LOG_FORMAT", "fail")
 
         with pytest.raises(SystemExit):
             Configuration([])
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("format", ["plain", "json"])
     def test_log_format_param(self, format):
         config = Configuration(["--log-format", format])
 
         assert config.log_format == format
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_invalid_log_format_param(self):
         with pytest.raises(SystemExit):
             Configuration(["--log-format", "fail"])
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_default_parameter_values(self):
         config = Configuration([])
 
@@ -53,6 +76,7 @@ class TestConfig(object):
         assert config.whitelist == []
         assert config.enable_deprecated_multi_namespace_support is False
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
         ("--api-token", "api_token"),
@@ -65,11 +89,13 @@ class TestConfig(object):
 
         assert getattr(config, key) == "value"
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_infrastructure_param(self):
         config = Configuration(["--infrastructure", "gke"])
 
         assert config.infrastructure == "gke"
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("env,key", [
         ("API_SERVER", "api_server"),
         ("API_TOKEN", "api_token"),
@@ -83,12 +109,14 @@ class TestConfig(object):
 
         assert getattr(config, key) == "value"
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_infrastructure_env(self, monkeypatch):
         monkeypatch.setenv("FIAAS_INFRASTRUCTURE", "gke")
         config = Configuration([])
 
         assert config.infrastructure == "gke"
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("key", (
         "debug",
         "enable_tpr_support",
@@ -102,6 +130,7 @@ class TestConfig(object):
         config = Configuration([flag])
         assert getattr(config, key) is True
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_resolve_service_from_dns(self, dns_resolver):
         dns_resolver.side_effect = None
         dns_resolver.return_value = dns.rdataset.from_text('IN', 'SRV', 3600,
@@ -113,6 +142,7 @@ class TestConfig(object):
         assert target == 'kafka-pipeline.default.svc.cluster.local'
         assert port == 7794
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("service", ["kafka_pipeline"])
     def test_resolve_service_from_env(self, monkeypatch, service):
         monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
@@ -123,6 +153,7 @@ class TestConfig(object):
         assert host == "host"
         assert port == 1234
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("service_exists", [True, False])
     def test_has_service(self, monkeypatch, service_exists):
         service = "service"
@@ -133,6 +164,7 @@ class TestConfig(object):
 
         assert service_exists == config.has_service(service)
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("cmdline,envvar,expected", [
         ([], "", None),
         (["--infrastructure", "gke"], "", None),
@@ -147,6 +179,7 @@ class TestConfig(object):
 
         assert config.proxy == expected
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     @pytest.mark.parametrize("key,attr,value", [
         ("environment", "environment", "gke"),
         ("proxy", "proxy", "http://proxy.example.com"),
@@ -161,11 +194,13 @@ class TestConfig(object):
         config = Configuration(["--config-file", config_file.strpath])
         assert getattr(config, attr) == value
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_host_rewrite_rules(self):
         args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config = Configuration(["--host-rewrite-rule=%s" % arg for arg in args])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_host_rewrite_rules_from_file(self, tmpdir):
         args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config_file = tmpdir.join("config.yaml")
@@ -174,14 +209,35 @@ class TestConfig(object):
         config = Configuration(["--config-file", config_file.strpath])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_mutually_exclusive_lists(self):
         with pytest.raises(SystemExit):
             Configuration(["--blacklist", "blacklisted", "--whitelist", "whitelisted"])
 
+    @pytest.mark.usefixtures("namespace_file_with_data")
     def test_global_env_keyvalue(self):
         args = ("pattern=value", "FIAAS_ENV=test")
         config = Configuration(["--global-env=%s" % arg for arg in args])
         assert config.global_env == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
+
+    @pytest.mark.usefixtures("namespace_file_with_data")
+    def test_resolve_namespace_file_should_take_precedence_over_env(self):
+        config = Configuration([])
+        assert config.namespace == "namespace-from-file"
+
+    @pytest.mark.usefixtures("namespace_file_does_not_exist")
+    def test_resolve_namespace_env_should_be_used_if_unable_to_open_file(self, getenv):
+        expected = "namespace-from-env"
+        getenv.side_effect = lambda key: expected if key == "NAMESPACE" else None
+
+        config = Configuration([])
+        assert config.namespace == expected
+
+    @pytest.mark.usefixtures("namespace_file_does_not_exist")
+    def test_resolve_namespace_raise_if_unable_to_open_file_and_no_env_var(self, getenv):
+        getenv.return_value = None
+        with pytest.raises(InvalidConfigurationException):
+            Configuration([])
 
 
 class TestHostRewriteRule(object):

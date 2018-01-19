@@ -4,7 +4,9 @@
 [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/travis/finn/fiaas-deploy-daemon)](https://travis.schibsted.io/finn/fiaas-deploy-daemon) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/coverage/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/issues/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/engprod/finn/fiaas-deploy-daemon)](https://github.schibsted.io/spt-engprod/badger)
 <!-- Badger end badges -->
 
-===================
+![FIAAS logo](https://raw.githubusercontent.com/fiaas/design-assets/master/logo/Logo_Fiaas_colour.png)
+
+---
 
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
 

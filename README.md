@@ -1,3 +1,5 @@
+![FIAAS logo](https://raw.githubusercontent.com/fiaas/design-assets/master/logo/Logo_Fiaas_colour.png)
+
 # fiaas-deploy-daemon
 
 <!-- Badger start badges -->

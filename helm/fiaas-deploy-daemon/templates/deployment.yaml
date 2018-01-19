@@ -18,6 +18,7 @@ spec:
         prometheus.io/path: /internal-backstage/prometheus
         prometheus.io/port: http5000
         prometheus.io/scrape: "true"
+        checksum/config: {{ include (print $.Template.BasePath "/config_map.yaml") . | sha256sum }}
       labels:
         app: "{{ .Values.name }}"
     spec:
@@ -25,22 +26,7 @@ spec:
       - name: "{{ .Values.name }}"
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         imagePullPolicy: "{{ .Values.image.pullPolicy }}"
-        command:
-        - fiaas-deploy-daemon
-        - --enable-tpr-support
-        - --datadog-container-image
-        - datadog/docker-dd-agent:12.2.5172-alpine
-        - --ingress-suffix
-        - "{{ .Values.ingress.domainName }}"
         env:
-        - name: LOG_STDOUT
-          value: "true"
-        - name: FIAAS_INFRASTRUCTURE
-          value: diy
-        - name: FIAAS_ENVIRONMENT
-          value: pro
-        - name: LOG_FORMAT
-          value: plain
         - name: IMAGE
           value: "{{ .Values.image.repository }}"
         - name: VERSION
@@ -70,4 +56,11 @@ spec:
             cpu: 125m
             memory: 64Mi
 {{- end }}
+        volumeMounts:
+        - name: {{ .Chart.Name }}
+          mountPath: /var/run/config/fiaas
+      volumes:
+      - name: {{ .Chart.Name }}
+        configMap:
+          name: {{ .Chart.Name }}
       restartPolicy: Always

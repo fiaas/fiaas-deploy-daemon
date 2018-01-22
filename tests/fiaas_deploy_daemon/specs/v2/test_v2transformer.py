@@ -2,7 +2,9 @@
 # -*- coding: utf-8
 import pytest
 
-from fiaas_deploy_daemon.specs.v2.transformer import Transformer, _get, _set, RESOURCE_UNDEFINED_UGLYHACK
+from fiaas_deploy_daemon.specs.lookup import LookupMapping
+from fiaas_deploy_daemon.specs.v2.transformer import Transformer, _get, _set, RESOURCE_UNDEFINED_UGLYHACK, \
+    _flatten
 
 
 class TestTransformer(object):
@@ -54,3 +56,10 @@ class TestTransformer(object):
         assert data["first"]["two"] == "two"
         _set(data, ("first", "alternative", "crazy"), "crazy")
         assert data["first"]["alternative"]["crazy"] == "crazy"
+
+    def test_flatten_creates_dicts(self):
+        x = {'prometheus': LookupMapping(
+                config={'path': '/xxx'},
+                defaults={'path': '/internal-backstage/prometheus', 'enabled': True, 'port': 'http'})}
+        assert _flatten(x) == {'prometheus': {'path': '/xxx', 'enabled': True, 'port': 'http'}}
+

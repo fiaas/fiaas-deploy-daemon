@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 from __future__ import absolute_import, unicode_literals
 
+import collections
 import pkgutil
 
 import yaml
@@ -67,6 +68,7 @@ class Transformer(BaseTransformer):
             new_config["resources"][requirement_type] = self._resource_requirement(lookup["resources"][requirement_type])
 
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
+        new_config = _flatten(new_config)
         return new_config
 
     @staticmethod
@@ -138,3 +140,9 @@ def _set(d, keys, value):
             d[k] = {}
         d = d[k]
     d[keys[-1]] = value
+
+
+def _flatten(d):
+    if isinstance(d, collections.Mapping):
+        return {k: _flatten(v) for k, v in d.items()}
+    return d

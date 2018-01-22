@@ -1,0 +1,49 @@
+---
+version: 3
+admin_access: true
+replicas:
+  maximum: 20
+  minimum: 3
+  cpu_threshold_percentage: 60
+metrics:
+  prometheus:
+    enabled: true
+    port: prom-port
+    path: /prometheus
+resources:
+  limits:
+    memory: 128Mi
+    cpu: 100m
+  requests:
+    memory: 64Mi
+    cpu: 50m
+ingress:
+  - host: some.example.com
+    paths:
+      - path: /
+        port: prom-port
+ports:
+  - name: prom-port
+    port: 8080
+    target_port: 5000
+healthchecks:
+  liveness:
+    http:
+      path: /liveness
+      port: 1111
+      http_headers:
+        key: value
+    initial_delay_seconds: 100
+    period_seconds: 100
+    success_threshold: 10
+    timeout_seconds: 10
+  readiness:
+    http:
+      path: /readiness
+      port: 2222
+      http_headers:
+        key2: value2
+    initial_delay_seconds: 20
+    period_seconds: 20
+    success_threshold: 2
+    timeout_seconds: 2

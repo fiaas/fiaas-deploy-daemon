@@ -1,0 +1,37 @@
+---
+version: 3
+replicas:
+  minimum: 2
+  maximum: 2
+  cpu_threshold_percentage: 50
+ingress:
+  - host:
+    paths:
+    - path: /
+      port: http
+healthchecks:
+  liveness:
+    http:
+      path: /liveness
+      port: 1111
+      http_headers:
+        key: value
+    initial_delay_seconds: 100
+    period_seconds: 100
+    success_threshold: 10
+    timeout_seconds: 10
+  readiness:
+    http:
+      path: /liveness
+      port: 1111
+      http_headers:
+        key: value
+    initial_delay_seconds: 100
+    period_seconds: 100
+    success_threshold: 10
+    timeout_seconds: 10
+metrics:
+  prometheus:
+    enabled: true
+    port: http
+    path: /internal-backstage/prometheus

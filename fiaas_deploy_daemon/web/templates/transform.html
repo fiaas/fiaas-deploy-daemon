@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Fiaas Deploy Daemon{% endblock %}
+{% block content %}
+
+{{ block_header() }}
+    <p>Transform fiaas applicaton config.</p>
+
+    <p>This will help transform any previous application config version to the latest version</p>
+
+    <pre>curl -H"Content-type: application/x-yaml" --data-binary @/path/to/config.yml -XPOST {{ url_for(request.endpoint) }}</pre>
+{{ block_footer() }}
+{% endblock %}

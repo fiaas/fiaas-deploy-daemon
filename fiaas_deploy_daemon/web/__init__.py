@@ -67,10 +67,16 @@ def healthz():
         return "I don't feel so good...", 500
 
 
-@web.route("/transform", methods=['POST'])
+@web.route("/transform", methods=['GET', 'POST'])
 @transform_histogram.time()
 def transform():
-    app_config = yaml.safe_load(request.get_data())
+    if request.method == 'GET':
+        return render_template("transform.html")
+    elif request.method == 'POST':
+        return _transform(yaml.safe_load(request.get_data()))
+
+
+def _transform(app_config):
     try:
         converted_app_config = current_app.spec_factory.transform(app_config, strip_defaults=True)
         data = yaml.safe_dump(converted_app_config, explicit_start=True, default_flow_style=False)
@@ -79,7 +85,7 @@ def transform():
         else:
             abort(500)
     except InvalidConfiguration:
-        abort(403)
+        abort(400)
 
 
 def _connect_signals():

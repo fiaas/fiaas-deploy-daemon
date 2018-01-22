@@ -5,15 +5,15 @@ from __future__ import absolute_import, unicode_literals
 import json
 from Queue import Queue
 
-from mock import mock, Mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
+from mock import mock, Mock
 from requests import Response
 
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.specs.models import AppSpec
+from fiaas_deploy_daemon.tpr import TprWatcher
 
 ADD_EVENT = {
     "object": {
@@ -48,7 +48,7 @@ DELETED_EVENT = {
 }
 
 
-class TestWatcher(object):
+class TestTprWatcher(object):
 
     @pytest.fixture
     def spec_factory(self):

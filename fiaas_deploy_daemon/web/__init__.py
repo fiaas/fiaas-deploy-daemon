@@ -7,10 +7,13 @@ import pkgutil
 
 import pinject
 import re
+
+import yaml
 from flask import Flask, Blueprint, current_app,  render_template, make_response, request_started, request_finished, \
-    got_request_exception, abort
+    got_request_exception, abort, request
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
+from ..specs.factory import InvalidConfiguration
 from .platform_collector import PLATFORM_COLLECTOR
 
 """Web app that provides metrics and other ways to inspect the action.
@@ -28,6 +31,7 @@ request_histogram = Histogram("web_request_latency", "Request latency in seconds
 defaults_histogram = request_histogram.labels("defaults")
 frontpage_histogram = request_histogram.labels("frontpage")
 metrics_histogram = request_histogram.labels("metrics")
+transform_histogram = request_histogram.labels("transform")
 
 
 @web.route("/")
@@ -63,6 +67,21 @@ def healthz():
         return "I don't feel so good...", 500
 
 
+@web.route("/transform", methods=['POST'])
+@transform_histogram.time()
+def transform():
+    app_config = yaml.safe_load(request.get_data())
+    try:
+        converted_app_config = current_app.spec_factory.transform(app_config, strip_defaults=True)
+        data = yaml.safe_dump(converted_app_config, explicit_start=True, default_flow_style=False)
+        if data:
+            return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
+        else:
+            abort(500)
+    except InvalidConfiguration:
+        abort(403)
+
+
 def _connect_signals():
     rs_counter = Counter("web_request_started", "HTTP requests received")
     request_started.connect(lambda s, *a, **e: rs_counter.inc(), weak=False)
@@ -87,5 +106,6 @@ class WebBindings(pinject.BindingSpec):
         app = Flask(__name__)
         app.health_check = health_check
         app.register_blueprint(web)
+        app.spec_factory = spec_factory
         _connect_signals()
         return app

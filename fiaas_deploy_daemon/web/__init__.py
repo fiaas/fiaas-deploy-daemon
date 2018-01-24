@@ -15,6 +15,7 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, His
 
 from ..specs.factory import InvalidConfiguration
 from .platform_collector import PLATFORM_COLLECTOR
+from .transformer import Transformer
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
@@ -78,8 +79,7 @@ def transform():
 
 def _transform(app_config):
     try:
-        converted_app_config = current_app.spec_factory.transform(app_config, strip_defaults=True)
-        data = yaml.safe_dump(converted_app_config, explicit_start=True, default_flow_style=False)
+        data = current_app.transformer.transform(app_config)
         if data:
             return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
         else:
@@ -113,5 +113,6 @@ class WebBindings(pinject.BindingSpec):
         app.health_check = health_check
         app.register_blueprint(web)
         app.spec_factory = spec_factory
+        app.transformer = Transformer(spec_factory)
         _connect_signals()
         return app

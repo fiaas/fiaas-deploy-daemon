@@ -171,7 +171,7 @@ task setup(type: PewTask) {
     group 'setup'
     helper = pewHelper
     executable = 'python'
-    args = [file('setup.py'), 'develop']
+    args = [file('setup.py'), 'develop', '--always-unzip']
     dependsOn createVirtualEnv
 }
 

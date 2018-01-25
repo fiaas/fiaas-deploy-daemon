@@ -2,6 +2,7 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+export NAMESPACE="${NAMESPACE:-default}"
 KUBECONFIG_JSON="$(kubectl config view -o json)"
 export KUBECONFIG_JSON
 API_SERVER="$(jq -r '.clusters[] | select(.name == "minikube") | .cluster.server' <<< "$KUBECONFIG_JSON")"

@@ -7,6 +7,8 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
+from k8s.watcher import Watcher
+
 from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -19,6 +21,7 @@ class TprWatcher(DaemonThread):
         super(TprWatcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
+        self._watcher = Watcher(PaasbetaApplication)
 
     def __call__(self):
         while True:
@@ -26,7 +29,7 @@ class TprWatcher(DaemonThread):
 
     def _watch(self):
         try:
-            for event in PaasbetaApplication.watch_list():
+            for event in self._watcher.watch():
                 self._handle_watch_event(event)
         except NotFound:
             self._create_third_party_resource()

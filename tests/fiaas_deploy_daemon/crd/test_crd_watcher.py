@@ -2,17 +2,17 @@
 # -*- coding: utf-8
 from __future__ import absolute_import, unicode_literals
 
-import json
 from Queue import Queue
 
-from mock import mock, Mock
+import mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
-from requests import Response
+from k8s.watcher import Watcher
 
-from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.crd import CrdWatcher
+from fiaas_deploy_daemon.crd.types import FiaasApplication
+from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.specs.models import AppSpec
 
 ADD_EVENT = {
@@ -60,13 +60,20 @@ class TestWatcher(object):
         return Queue()
 
     @pytest.fixture
-    def watcher(self, spec_factory, deploy_queue):
-        return CrdWatcher(spec_factory, deploy_queue)
+    def watcher(self):
+        return mock.create_autospec(spec=Watcher, spec_set=True, instance=True)
 
-    def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, watcher):
+    @pytest.fixture
+    def crd_watcher(self, spec_factory, deploy_queue, watcher):
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue)
+        crd_watcher._watcher = watcher
+        return crd_watcher
+
+    def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
         get.side_effect = NotFound("Something")
+        watcher.watch.side_effect = NotFound("Something")
 
-        watcher._watch()
+        crd_watcher._watch()
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
@@ -96,16 +103,11 @@ class TestWatcher(object):
         ]
         assert post.call_args_list == calls
 
-    def test_is_able_to_watch_custom_resource_definition(self, get, watcher, deploy_queue):
-        response = Response()
-        get.return_value = response
-        get.side_effect = None
-
-        response.iter_content = Mock(return_value=[json.dumps(ADD_EVENT)])
-        response.status_code = Mock(return_value=200)
+    def test_is_able_to_watch_custom_resource_definition(self, crd_watcher, deploy_queue, watcher):
+        watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]
 
         assert deploy_queue.qsize() == 0
-        watcher._watch()
+        crd_watcher._watch()
         assert deploy_queue.qsize() == 1
 
     @pytest.mark.parametrize("event,deployer_event_type", [
@@ -113,17 +115,13 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE"),
         (DELETED_EVENT, "DELETE"),
     ])
-    def test_deploy(self, get, watcher, deploy_queue, spec_factory, event, deployer_event_type):
-        response = Response()
-        response.iter_content = Mock(return_value=[json.dumps(event)])
-        response.status_code = Mock(return_value=200)
-        get.return_value = response
-        get.side_effect = None
+    def test_deploy(self, get, crd_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type):
+        watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         app_spec = mock.create_autospec(AppSpec, instance=True, set_spec=True)
         spec_factory.return_value = app_spec
 
-        watcher._watch()
+        crd_watcher._watch()
 
         spec = event["object"]["spec"]
         deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]

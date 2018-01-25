@@ -2,18 +2,18 @@
 # -*- coding: utf-8
 from __future__ import absolute_import, unicode_literals
 
-import json
 from Queue import Queue
 
-from mock import mock, Mock
+import mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
-from requests import Response
+from k8s.watcher import Watcher
 
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.specs.models import AppSpec
+from fiaas_deploy_daemon.tpr import TprWatcher
+from fiaas_deploy_daemon.tpr.types import PaasbetaApplication
 
 ADD_EVENT = {
     "object": {
@@ -48,7 +48,7 @@ DELETED_EVENT = {
 }
 
 
-class TestWatcher(object):
+class TestTprWatcher(object):
 
     @pytest.fixture
     def spec_factory(self):
@@ -60,13 +60,20 @@ class TestWatcher(object):
         return Queue()
 
     @pytest.fixture
-    def watcher(self, spec_factory, deploy_queue):
-        return TprWatcher(spec_factory, deploy_queue)
+    def watcher(self):
+        return mock.create_autospec(spec=Watcher, spec_set=True, instance=True)
 
-    def test_creates_third_party_resource_if_not_exists_when_watching_it(self, get, post, watcher):
+    @pytest.fixture
+    def tpr_watcher(self, spec_factory, deploy_queue, watcher):
+        mock_watcher = TprWatcher(spec_factory, deploy_queue)
+        mock_watcher._watcher = watcher
+        return mock_watcher
+
+    def test_creates_third_party_resource_if_not_exists_when_watching_it(self, get, post, tpr_watcher, watcher):
         get.side_effect = NotFound("Something")
+        watcher.watch.side_effect = NotFound("Something")
 
-        watcher._watch()
+        tpr_watcher._watch()
 
         calls = [
             mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
@@ -82,16 +89,11 @@ class TestWatcher(object):
         ]
         assert post.call_args_list == calls
 
-    def test_is_able_to_watch_third_party_resource(self, get, watcher, deploy_queue):
-        response = Response()
-        get.return_value = response
-        get.side_effect = None
-
-        response.iter_content = Mock(return_value=[json.dumps(ADD_EVENT)])
-        response.status_code = Mock(return_value=200)
+    def test_is_able_to_watch_third_party_resource(self, tpr_watcher, deploy_queue, watcher):
+        watcher.watch.return_value = [WatchEvent(ADD_EVENT, PaasbetaApplication)]
 
         assert deploy_queue.qsize() == 0
-        watcher._watch()
+        tpr_watcher._watch()
         assert deploy_queue.qsize() == 1
 
     @pytest.mark.parametrize("event,deployer_event_type", [
@@ -99,21 +101,17 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE"),
         (DELETED_EVENT, "DELETE"),
     ])
-    def test_deploy(self, get, watcher, deploy_queue, spec_factory, event, deployer_event_type):
-        response = Response()
-        response.iter_content = Mock(return_value=[json.dumps(event)])
-        response.status_code = Mock(return_value=200)
-        get.return_value = response
-        get.side_effect = None
+    def test_deploy(self, tpr_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type):
+        watcher.watch.return_value = [WatchEvent(event, PaasbetaApplication)]
 
         app_spec = mock.create_autospec(AppSpec, instance=True, set_spec=True)
         spec_factory.return_value = app_spec
 
-        watcher._watch()
+        tpr_watcher._watch()
 
         spec = event["object"]["spec"]
-        deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
-                         if deployer_event_type != "DELETE" else None)
+        event_deployment_id = event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
+        deployment_id = event_deployment_id if deployer_event_type != "DELETE" else None
         app_config = spec["config"]
         spec_factory.assert_called_once_with(name=spec["application"], image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],

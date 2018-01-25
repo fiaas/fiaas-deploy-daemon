@@ -6,7 +6,10 @@ import logging
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
-from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionSpec, CustomResourceDefinitionNames
+from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionSpec, \
+    CustomResourceDefinitionNames
+from k8s.watcher import Watcher
+
 from .types import FiaasApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -19,6 +22,7 @@ class CrdWatcher(DaemonThread):
         super(CrdWatcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
+        self._watcher = Watcher(FiaasApplication)
 
     def __call__(self):
         while True:
@@ -26,7 +30,7 @@ class CrdWatcher(DaemonThread):
 
     def _watch(self):
         try:
-            for event in FiaasApplication.watch_list():
+            for event in self._watcher.watch():
                 self._handle_watch_event(event)
         except NotFound:
             self._create_custom_resource_definitions()

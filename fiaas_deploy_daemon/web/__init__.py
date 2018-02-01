@@ -80,12 +80,9 @@ def transform():
 def _transform(app_config):
     try:
         data = current_app.transformer.transform(app_config)
-        if data:
-            return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
-        else:
-            abort(500)
-    except InvalidConfiguration:
-        abort(400)
+        return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
+    except InvalidConfiguration as err:
+        abort(400, err.message)
 
 
 def _connect_signals():

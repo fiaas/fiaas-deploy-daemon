@@ -127,7 +127,7 @@ def service_type(request):
 
 @pytest.mark.integration_test
 class TestE2E(object):
-    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5", "v1.8.0"))
+    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5", "v1.8.0", "v1.9.0"))
     def k8s_version(self, request):
         yield request.param
 

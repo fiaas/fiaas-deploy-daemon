@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 from __future__ import absolute_import, unicode_literals
 
+import collections
 import pkgutil
 
 import yaml
@@ -34,7 +35,7 @@ class Transformer(BaseTransformer):
     def __init__(self):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v2", "defaults.yml"))
 
-    def __call__(self, app_config):
+    def __call__(self, app_config, strip_defaults=False):
         lookup = LookupMapping(app_config, self._defaults)
 
         liveness = self._health_check(lookup["healthchecks"]["liveness"], lookup["ports"])
@@ -67,7 +68,24 @@ class Transformer(BaseTransformer):
             new_config["resources"][requirement_type] = self._resource_requirement(lookup["resources"][requirement_type])
 
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
+        new_config = _flatten(new_config)
+        if strip_defaults:
+            new_config = self._strip_defaults(new_config)
         return new_config
+
+    def _strip_defaults(self, app_config):
+        try:
+            for requirement_type in ("limits", "requests"):
+                for resource in ("cpu", "memory"):
+                    if app_config["resources"][requirement_type][resource] == RESOURCE_UNDEFINED_UGLYHACK:
+                        del app_config["resources"][requirement_type][resource]
+            if not app_config['resources']:
+                del app_config['resources']
+        except KeyError:
+            pass
+        return dict(
+            [("version", app_config["version"])] +
+            _remove_intersect(app_config, self._defaults).items())
 
     @staticmethod
     def _health_check(lookup, ports_lookup):
@@ -138,3 +156,26 @@ def _set(d, keys, value):
             d[k] = {}
         d = d[k]
     d[keys[-1]] = value
+
+
+def _flatten(d):
+    if isinstance(d, collections.Mapping):
+        return {k: _flatten(v) for k, v in d.items()}
+    return d
+
+
+def _remove_intersect(dict1, dict2):
+    map(dict1.pop, filter(lambda k: k in dict2 and dict2[k] == dict1[k], dict1))
+    keys_dict1 = set(dict1.keys())
+    keys_dict2 = set(dict2.keys())
+    for k in keys_dict1 & keys_dict2:
+        if all(isinstance(x, collections.Mapping) for x in [dict1[k], dict2[k]]):
+            dict1[k].update(_remove_intersect(dict1[k], dict2[k]))
+        elif all(_single_dict_list(x) for x in [dict1[k], dict2[k]]):
+            dict1[k] = [item for item in [_remove_intersect(x, y) for x, y in zip(dict1[k], dict2[k])] if item]
+    map(dict1.pop, filter(lambda k: not dict1[k], dict1))
+    return dict1
+
+
+def _single_dict_list(x):
+    return isinstance(x, collections.Sequence) and len(x) == 1 and isinstance(x[0], collections.Mapping)

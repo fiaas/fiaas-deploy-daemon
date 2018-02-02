@@ -70,10 +70,12 @@ class Transformer(BaseTransformer):
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
         new_config = _flatten(new_config)
         if strip_defaults:
-            new_config = self._strip_defaults(new_config)
+            new_config = self._strip_v3_defaults(new_config)
         return new_config
 
-    def _strip_defaults(self, app_config):
+    def _strip_v3_defaults(self, app_config):
+        v3defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
+
         try:
             for requirement_type in ("limits", "requests"):
                 for resource in ("cpu", "memory"):
@@ -85,7 +87,7 @@ class Transformer(BaseTransformer):
             pass
         return dict(
             [("version", app_config["version"])] +
-            _remove_intersect(app_config, self._defaults).items())
+            _remove_intersect(app_config, v3defaults).items())
 
     @staticmethod
     def _health_check(lookup, ports_lookup):

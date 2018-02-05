@@ -1,16 +1,18 @@
 ---
 version: 3
 replicas:
-  minimum: 2
   maximum: 2
-  cpu_threshold_percentage: 50
 ingress:
   - host: some.example.com
-    paths:
-    - path: /
-      port: http
 metrics:
   prometheus:
-    enabled: true
-    port: http
     path: /internal-backstage/prometheus
+healthchecks:
+  readiness:
+    http:
+      path: /
+  liveness:
+    http:
+      path: /
+ports:
+  - target_port: 80

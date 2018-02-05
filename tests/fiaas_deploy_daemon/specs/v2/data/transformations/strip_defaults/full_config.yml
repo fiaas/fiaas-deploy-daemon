@@ -7,7 +7,6 @@ replicas:
   cpu_threshold_percentage: 60
 metrics:
   prometheus:
-    enabled: true
     port: prom-port
     path: /prometheus
 resources:
@@ -20,8 +19,7 @@ resources:
 ingress:
   - host: some.example.com
     paths:
-      - path: /
-        port: prom-port
+      - port: prom-port
 ports:
   - name: prom-port
     port: 8080

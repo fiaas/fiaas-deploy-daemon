@@ -11,12 +11,10 @@ import requests
 
 from .. import init_k8s_client
 from ..config import Configuration
-from ..crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
 from ..deployer import DeployerBindings
 from ..deployer.kubernetes import K8sAdapterBindings
 from ..logsetup import init_logging
 from ..specs import SpecBindings
-from ..tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 
 
 class MainBindings(pinject.BindingSpec):
@@ -40,14 +38,12 @@ class MainBindings(pinject.BindingSpec):
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, scheduler, config, tpr_watcher, crd_watcher):
+    def __init__(self, deployer, scheduler, config):
         pass
 
     def run(self):
         self._deployer.start()
         self._scheduler.start()
-        self._tpr_watcher.start()
-        self._crd_watcher.start()
         print("Running!")  # TODO: actually run something in the main thread
 
 
@@ -63,8 +59,6 @@ def main():
             DeployerBindings(),
             K8sAdapterBindings(),
             SpecBindings(),
-            ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
-            CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()

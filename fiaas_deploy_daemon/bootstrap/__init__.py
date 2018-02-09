@@ -15,6 +15,7 @@ from ..deployer import DeployerBindings
 from ..deployer.kubernetes import K8sAdapterBindings
 from ..logsetup import init_logging
 from ..specs import SpecBindings
+from .bootstrapper import Bootstrapper
 
 
 class MainBindings(pinject.BindingSpec):
@@ -25,6 +26,7 @@ class MainBindings(pinject.BindingSpec):
     def configure(self, bind):
         bind("config", to_instance=self._config)
         bind("deploy_queue", to_instance=self._deploy_queue)
+        bind("bootstrapper", to_class=Bootstrapper)
 
     def provide_session(self, config):
         session = requests.Session()
@@ -44,7 +46,7 @@ class Main(object):
     def run(self):
         self._deployer.start()
         self._scheduler.start()
-        print("Running!")  # TODO: actually run something in the main thread
+        self._bootstrapper.run()  # run bootstrapper on main thread
 
 
 def main():

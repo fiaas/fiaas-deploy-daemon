@@ -78,7 +78,8 @@ setup(
     # Entrypoints
     entry_points={
         "console_scripts": [
-            "fiaas-deploy-daemon = fiaas_deploy_daemon:main"
+            "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
+            "bootstrap-fiaas-deploy-daemon = fiaas_deploy_daemon.bootstrap:main",
         ]
     }
 )

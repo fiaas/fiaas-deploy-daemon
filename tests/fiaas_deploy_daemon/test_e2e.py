@@ -457,7 +457,7 @@ def _crd_supported(k8s_version):
 
 def plog(message):
     """Primitive logging"""
-    print("%s: %s" % (time.asctime(), message), file=sys.stderr)
+    print("%s: %s" % (time.asctime(), message), file=sys.stderr)  # noqa: T001
 
 
 def _read_yml(yml_path):

@@ -1,0 +1,9 @@
+---
+version: 3
+extensions:
+  strongbox:
+    iam_role: arn:aws:iam::12345678:role/the-role-name
+    groups:
+      - secretgroup1
+      - secretgroup2
+      - secretgroup3

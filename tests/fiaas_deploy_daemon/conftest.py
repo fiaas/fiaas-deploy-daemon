@@ -8,7 +8,7 @@ from k8s.client import NotFound
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
@@ -45,7 +45,8 @@ def app_spec():
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])]
+        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
+        strongbox=StrongboxSpec(enabled=False, iam_role=None, groups=None)
     )
 
 

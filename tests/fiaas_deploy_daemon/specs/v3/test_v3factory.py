@@ -65,6 +65,9 @@ TEST_DATA = {
         "ingresses[0].pathmappings[0].port": 80,
         "secrets_in_environment": False,
         "admin_access": False,
+        "strongbox.enabled": False,
+        "strongbox.iam_role": None,
+        "strongbox.groups": None,
     },
     "autoscaling_disabled": {
         "replicas": 3,
@@ -242,6 +245,11 @@ TEST_DATA = {
         "annotations.pod": {"x": "y", "z": "y"},
         "secrets_in_environment": True,
         "admin_access": True,
+        "strongbox.enabled": True,
+        "strongbox.iam_role": "arn:aws:iam::12345678:role/the-role-name",
+        "strongbox.groups[0]": "secretgroup1",
+        "strongbox.groups[1]": "secretgroup2",
+
     },
     "liveness_exec_readiness_http": {
         "health_checks.liveness.execute.command": "/bin/alive",
@@ -272,6 +280,12 @@ TEST_DATA = {
         "health_checks.readiness.tcp.port": "liveness-port",
         "health_checks.liveness.http": None,
         "health_checks.readiness.http": None,
+    },
+    "strongbox": {
+        "strongbox.iam_role": "arn:aws:iam::12345678:role/the-role-name",
+        "strongbox.groups[0]": "secretgroup1",
+        "strongbox.groups[1]": "secretgroup2",
+        "strongbox.groups[2]": "secretgroup3",
     },
 }
 

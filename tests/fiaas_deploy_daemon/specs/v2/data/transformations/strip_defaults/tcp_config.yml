@@ -1,0 +1,16 @@
+---
+version: 3
+replicas:
+  maximum: 2
+healthchecks:
+  liveness:
+    tcp:
+      port: 1111
+  readiness:
+    tcp:
+      port: 2222
+metrics:
+  prometheus:
+    path: /internal-backstage/prometheus
+ports:
+  - target_port: 80

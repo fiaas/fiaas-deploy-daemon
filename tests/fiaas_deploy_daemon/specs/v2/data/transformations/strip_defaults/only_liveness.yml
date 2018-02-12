@@ -1,0 +1,30 @@
+---
+version: 3
+replicas:
+  maximum: 2
+healthchecks:
+  liveness:
+    http:
+      path: /liveness
+      port: 1111
+      http_headers:
+        key: value
+    initial_delay_seconds: 100
+    period_seconds: 100
+    success_threshold: 10
+    timeout_seconds: 10
+  readiness:
+    http:
+      path: /liveness
+      port: 1111
+      http_headers:
+        key: value
+    initial_delay_seconds: 100
+    period_seconds: 100
+    success_threshold: 10
+    timeout_seconds: 10
+metrics:
+  prometheus:
+    path: /internal-backstage/prometheus
+ports:
+  - target_port: 80

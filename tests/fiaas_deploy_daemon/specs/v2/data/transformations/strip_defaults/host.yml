@@ -1,0 +1,18 @@
+---
+version: 3
+replicas:
+  maximum: 2
+ingress:
+  - host: some.example.com
+metrics:
+  prometheus:
+    path: /internal-backstage/prometheus
+healthchecks:
+  readiness:
+    http:
+      path: /
+  liveness:
+    http:
+      path: /
+ports:
+  - target_port: 80

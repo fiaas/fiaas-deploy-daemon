@@ -22,18 +22,19 @@ class SpecFactory(object):
         fiaas_version = app_config.get(u"version", 1)
         self._fiaas_counter.labels(fiaas_version).inc()
         LOG.info("Attempting to create app_spec for %s from fiaas.yml version %s", name, fiaas_version)
-        if fiaas_version not in self._supported_versions:
-            raise InvalidConfiguration("Requested version %s, but the only supported versions are: %r" %
-                                       (fiaas_version, self._supported_versions))
-        app_config = self._transform(app_config)
+        app_config = self.transform(app_config)
         app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
         self._validate(app_spec)
         return app_spec
 
-    def _transform(self, app_config):
-        current_version = app_config.get(u"version", 1)
+    def transform(self, app_config, strip_defaults=False):
+        fiaas_version = app_config.get(u"version", 1)
+        if fiaas_version not in self._supported_versions:
+            raise InvalidConfiguration("Requested version %s, but the only supported versions are: %r" %
+                                       (fiaas_version, self._supported_versions))
+        current_version = fiaas_version
         while current_version < self._factory.version:
-            app_config = self._transformers[current_version](app_config)
+            app_config = self._transformers[current_version](app_config, strip_defaults=strip_defaults)
             current_version = app_config.get(u"version", 1)
         return app_config
 

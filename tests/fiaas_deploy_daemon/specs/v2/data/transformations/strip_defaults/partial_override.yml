@@ -1,0 +1,24 @@
+---
+version: 3
+replicas:
+  minimum: 1
+  maximum: 2
+resources:
+  requests:
+    cpu: 100m
+metrics:
+  prometheus:
+    path: /internal-backstage/prometheus
+ingress:
+  - host: www.example.com
+    paths:
+    - path: /foo
+ports:
+  - target_port: 80
+healthchecks:
+  liveness:
+    http:
+      path: /
+  readiness:
+    http:
+      path: /

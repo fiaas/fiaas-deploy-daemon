@@ -7,11 +7,15 @@ import pkgutil
 
 import pinject
 import re
+
+import yaml
 from flask import Flask, Blueprint, current_app,  render_template, make_response, request_started, request_finished, \
-    got_request_exception, abort
+    got_request_exception, abort, request
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
+from ..specs.factory import InvalidConfiguration
 from .platform_collector import PLATFORM_COLLECTOR
+from .transformer import Transformer
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
@@ -28,6 +32,7 @@ request_histogram = Histogram("web_request_latency", "Request latency in seconds
 defaults_histogram = request_histogram.labels("defaults")
 frontpage_histogram = request_histogram.labels("frontpage")
 metrics_histogram = request_histogram.labels("metrics")
+transform_histogram = request_histogram.labels("transform")
 
 
 @web.route("/")
@@ -63,6 +68,23 @@ def healthz():
         return "I don't feel so good...", 500
 
 
+@web.route("/transform", methods=['GET', 'POST'])
+@transform_histogram.time()
+def transform():
+    if request.method == 'GET':
+        return render_template("transform.html")
+    elif request.method == 'POST':
+        return _transform(yaml.safe_load(request.get_data()))
+
+
+def _transform(app_config):
+    try:
+        data = current_app.transformer.transform(app_config)
+        return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
+    except InvalidConfiguration as err:
+        abort(400, err.message)
+
+
 def _connect_signals():
     rs_counter = Counter("web_request_started", "HTTP requests received")
     request_started.connect(lambda s, *a, **e: rs_counter.inc(), weak=False)
@@ -87,5 +109,7 @@ class WebBindings(pinject.BindingSpec):
         app = Flask(__name__)
         app.health_check = health_check
         app.register_blueprint(web)
+        app.spec_factory = spec_factory
+        app.transformer = Transformer(spec_factory)
         _connect_signals()
         return app

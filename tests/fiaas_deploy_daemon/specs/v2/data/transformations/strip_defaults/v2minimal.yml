@@ -1,0 +1,16 @@
+---
+version: 3
+replicas:
+  maximum: 2
+metrics:
+  prometheus:
+    path: /internal-backstage/prometheus
+ports:
+  - target_port: 80
+healthchecks:
+  readiness:
+    http:
+      path: /
+  liveness:
+    http:
+      path: /

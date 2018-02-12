@@ -53,7 +53,7 @@ class TestSpecFactory(object):
             minimal_config["version"] = version
         factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
         mock_factory = request.getfuncargvalue(mock_to_call)
-        mock_factory.assert_called_with(minimal_config)
+        mock_factory.assert_called_with(minimal_config, strip_defaults=False)
 
     @pytest.mark.parametrize("version", [1, 2, 3])
     def test_parsed_by_current_version(self, factory, version, v3):

@@ -68,6 +68,7 @@ TEST_DATA = {
         "strongbox.enabled": False,
         "strongbox.iam_role": None,
         "strongbox.groups": None,
+        "strongbox.aws_region": "eu-west-1",
     },
     "autoscaling_disabled": {
         "replicas": 3,
@@ -283,6 +284,7 @@ TEST_DATA = {
     },
     "strongbox": {
         "strongbox.iam_role": "arn:aws:iam::12345678:role/the-role-name",
+        "strongbox.aws_region": "eu-central-1",
         "strongbox.groups[0]": "secretgroup1",
         "strongbox.groups[1]": "secretgroup2",
         "strongbox.groups[2]": "secretgroup3",

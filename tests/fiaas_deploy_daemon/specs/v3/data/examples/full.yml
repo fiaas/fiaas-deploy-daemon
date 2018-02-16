@@ -79,6 +79,7 @@ admin_access: true
 extensions:
   strongbox:
     iam_role: arn:aws:iam::12345678:role/the-role-name
+    aws_region: eu-central-1
     groups:
       - secretgroup1
       - secretgroup2

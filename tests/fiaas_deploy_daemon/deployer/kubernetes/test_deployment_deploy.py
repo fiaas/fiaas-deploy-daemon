@@ -110,9 +110,9 @@ class TestDeploymentDeployer(object):
 
         if strongbox_init_container:
             iam_role, groups = strongbox_init_container
-            strongbox = StrongboxSpec(enabled=True, iam_role=iam_role, groups=groups)
+            strongbox = StrongboxSpec(enabled=True, iam_role=iam_role, aws_region="eu-west-1", groups=groups)
         else:
-            strongbox = StrongboxSpec(enabled=False, iam_role=None, groups=None)
+            strongbox = StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
 
         if generic_toggle:
             ports = app_spec.ports
@@ -269,7 +269,8 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'volumeMounts': expected_init_volume_mounts,
             'env': [
                 {'name': 'K8S_DEPLOYMENT', 'value': app_spec.name},
-                {'name': 'SECRET_GROUPS', 'value': ','.join(app_spec.strongbox.groups)}
+                {'name': 'AWS_REGION', 'value': app_spec.strongbox.aws_region},
+                {'name': 'SECRET_GROUPS', 'value': ','.join(app_spec.strongbox.groups)},
             ],
             'envFrom': [{
                 'configMapRef': {

@@ -40,7 +40,7 @@ class Factory(object):
             LabelAndAnnotationSpec({}, {}, {}, {}, {}),
             LabelAndAnnotationSpec({}, {}, {}, {}, {}),
             self._ingress_items(lookup),
-            strongbox=StrongboxSpec(enabled=False, iam_role=None, groups=None)
+            strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
         )
 
     @staticmethod

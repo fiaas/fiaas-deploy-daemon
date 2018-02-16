@@ -181,4 +181,6 @@ class Factory(BaseFactory):
         iam_role = strongbox_lookup.get_config_value("iam_role")
         groups = strongbox_lookup.get_config_value("groups")
         enabled = iam_role is not None and groups is not None
-        return StrongboxSpec(enabled=enabled, iam_role=iam_role, groups=groups)
+        return StrongboxSpec(enabled=enabled, iam_role=iam_role,
+                             aws_region=strongbox_lookup["aws_region"],
+                             groups=groups)

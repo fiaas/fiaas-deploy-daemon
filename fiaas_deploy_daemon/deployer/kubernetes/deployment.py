@@ -82,8 +82,12 @@ class DeploymentDeployer(object):
             if self._secrets_service_account_name:
                 service_account_name = self._secrets_service_account_name
         elif self._uses_strongbox_init_container(app_spec):
+            strongbox_env = {
+                "AWS_REGION": app_spec.strongbox.aws_region,
+                "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
+            }
             init_container = self._make_secrets_init_container(app_spec, self._strongbox_init_container_image,
-                                                               env_vars={"SECRET_GROUPS": ",".join(app_spec.strongbox.groups)})
+                                                               env_vars=strongbox_env)
             init_containers.append(init_container)
 
         pod_spec = PodSpec(containers=containers,

@@ -109,5 +109,6 @@ IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
 StrongboxSpec = namedtuple("StrongboxSpec", [
     "enabled",
     "iam_role",
+    "aws_region",
     "groups",
 ])

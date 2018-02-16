@@ -57,7 +57,9 @@ class TestConfig(object):
         ("--api-token", "api_token"),
         ("--api-cert", "api_cert"),
         ("--environment", "environment"),
-        ("--proxy", "proxy")
+        ("--proxy", "proxy"),
+        ("--strongbox-init-container-image", "strongbox_init_container_image"),
+
     ])
     def test_parameters(self, arg, key):
         config = Configuration([arg, "value"])
@@ -74,7 +76,8 @@ class TestConfig(object):
         ("API_TOKEN", "api_token"),
         ("API_CERT", "api_cert"),
         ("FIAAS_ENVIRONMENT", "environment"),
-        ("IMAGE", "image")
+        ("IMAGE", "image"),
+        ("STRONGBOX_INIT_CONTAINER_IMAGE", "strongbox_init_container_image"),
     ])
     def test_env(self, monkeypatch, env, key):
         monkeypatch.setenv(env, "value")
@@ -147,6 +150,7 @@ class TestConfig(object):
         ("ingress-suffix", "ingress_suffixes", ["1\.example.com", "2.example.com"]),
         ("blacklist", "blacklist", ["app1", "app2"]),
         ("whitelist", "whitelist", ["app1", "app2"]),
+        ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
     ])
     def test_config_from_file(self, key, attr, value, tmpdir):
         config_file = tmpdir.join("config.yaml")

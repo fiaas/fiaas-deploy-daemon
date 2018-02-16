@@ -10,11 +10,12 @@ from requests import Response
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import _make_probe, DeploymentDeployer
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
-    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec
+    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec, StrongboxSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 
 SECRET_IMAGE = "fiaas/secret_image:version"
 DATADOG_IMAGE = "fiaas/datadog_image:version"
+STRONGBOX_IMAGE = 'fiaas/strongbox_image:version'
 
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
 DATADOG_CONTAINER_NAME = 'fiaas-datadog-container'
@@ -61,8 +62,13 @@ def test_make_probe_should_fail_when_no_healthcheck_is_defined():
 
 
 class TestDeploymentDeployer(object):
-    @pytest.fixture(params=(True, False))
-    def secret_init_container(self, request):
+    @pytest.fixture(params=(
+        (True, True),    # secrets init container is default when both strongbox and secrets init container is specified
+        (True, False),   # secrets init container
+        (False, True),   # strongbox
+        (False, False),  # kubernetes secrets
+    ))
+    def secrets_mode(self, request):
         yield request.param
 
     @pytest.fixture(params=(
@@ -70,7 +76,9 @@ class TestDeploymentDeployer(object):
         ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}),
         ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal', 'ARTIFACT_NAME': 'illegal'}),
     ))
-    def config(self, request, secret_init_container):
+    def config(self, request, secrets_mode):
+        secret_init_container, strongbox_init_container = secrets_mode
+
         infra, global_env = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
@@ -79,24 +87,34 @@ class TestDeploymentDeployer(object):
         config.secrets_init_container_image = SECRET_IMAGE if secret_init_container else None
         config.secrets_service_account_name = "secretsmanager" if secret_init_container else None
         config.datadog_container_image = DATADOG_IMAGE
+        config.strongbox_init_container_image = STRONGBOX_IMAGE if strongbox_init_container else None
         config.pre_stop_delay = 1
         yield config
 
     @pytest.fixture(params=(
         (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
-         {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}),
-        (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}),
-        (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}),
-        (False, None, {}, {}, {}, {}),
+         {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, ()),
+        (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, ()),
+        (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, ()),
+        (False, None, {}, {}, {}, {}, ()),
+        (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"])),
     ))
     def app_spec(self, request, app_spec):
-        generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations = request.param
+        generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
+            strongbox_init_container = request.param
+
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
                                         service={}, pod=pod_labels)
         annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
                                              service={}, pod=pod_annotations)
-        if generic_toggle:
 
+        if strongbox_init_container:
+            iam_role, groups = strongbox_init_container
+            strongbox = StrongboxSpec(enabled=True, iam_role=iam_role, groups=groups)
+        else:
+            strongbox = StrongboxSpec(enabled=False, iam_role=None, groups=None)
+
+        if generic_toggle:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
         else:
@@ -114,7 +132,8 @@ class TestDeploymentDeployer(object):
             secrets_in_environment=generic_toggle,
             prometheus=PrometheusSpec(generic_toggle, prometheus_port, '/internal-backstage/prometheus'),
             labels=labels,
-            annotations=annotations
+            annotations=annotations,
+            strongbox=strongbox
         )
 
     @pytest.mark.usefixtures("get")
@@ -148,8 +167,9 @@ class TestDeploymentDeployer(object):
                     limits=ResourceRequirementSpec(cpu=None, memory=None)))
 
         uses_secrets_init_container = bool(config.secrets_init_container_image)
-        expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container)
-        _, expected_volume_mounts = _get_expected_volume_mounts(app_spec, uses_secrets_init_container)
+        uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
+        expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
+        _, expected_volume_mounts = _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
 
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
@@ -220,9 +240,11 @@ class TestDeploymentDeployer(object):
 
 def create_expected_deployment(config, app_spec, image='finntech/testimage:version', version="version", replicas=None):
     uses_secrets_init_container = bool(config.secrets_init_container_image)
-    expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container)
+    uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
+    expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
     expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec,
-                                                                                      uses_secrets_init_container)
+                                                                                      uses_secrets_init_container,
+                                                                                      uses_strongbox_init_container)
 
     if uses_secrets_init_container:
         init_containers = [{
@@ -240,6 +262,25 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'ports': []
         }]
         service_account_name = "secretsmanager"
+    elif uses_strongbox_init_container:
+        init_containers = [{
+            'name': INIT_CONTAINER_NAME,
+            'image': STRONGBOX_IMAGE,
+            'volumeMounts': expected_init_volume_mounts,
+            'env': [
+                {'name': 'K8S_DEPLOYMENT', 'value': app_spec.name},
+                {'name': 'SECRET_GROUPS', 'value': ','.join(app_spec.strongbox.groups)}
+            ],
+            'envFrom': [{
+                'configMapRef': {
+                    'name': INIT_CONTAINER_NAME,
+                    'optional': True,
+                }
+            }],
+            'imagePullPolicy': 'IfNotPresent',
+            'ports': []
+        }]
+        service_account_name = "default"
     else:
         init_containers = []
         service_account_name = "default"
@@ -334,7 +375,11 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'ports': [],
         })
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
-    pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else None
+
+    pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else {}
+    strongbox_annotations = {"iam.amazonaws.com/role": app_spec.strongbox.iam_role} if uses_strongbox_init_container else {}
+    pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations))
+
     deployment = {
         'metadata': pytest.helpers.create_metadata(app_spec.name,
                                                    labels=merge_dicts(app_spec.labels.deployment, LABELS),
@@ -388,7 +433,7 @@ def _get_expected_template_labels(custom_labels):
     return merge_dicts(custom_labels, {"fiaas/status": "active"}, LABELS)
 
 
-def _get_expected_volumes(app_spec, uses_secrets_init_container):
+def _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container):
     secret_volume = {
         'name': "{}-secret".format(app_spec.name),
         'secret': {
@@ -416,14 +461,14 @@ def _get_expected_volumes(app_spec, uses_secrets_init_container):
     tmp_volume = {
         'name': "tmp"
     }
-    if uses_secrets_init_container:
+    if uses_secrets_init_container or uses_strongbox_init_container:
         expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume, tmp_volume]
     else:
         expected_volumes = [secret_volume, config_map_volume, tmp_volume]
     return expected_volumes
 
 
-def _get_expected_volume_mounts(app_spec, uses_secrets_init_container):
+def _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_strongbox_init_container):
     secret_volume_mount = {
         'name': "{}-secret".format(app_spec.name),
         'readOnly': True,
@@ -450,7 +495,7 @@ def _get_expected_volume_mounts(app_spec, uses_secrets_init_container):
         'mountPath': "/tmp"
     }
     expected_volume_mounts = [secret_volume_mount, config_map_volume_mount, tmp_volume_mount]
-    if uses_secrets_init_container:
+    if uses_secrets_init_container or uses_strongbox_init_container:
         expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount, tmp_volume_mount]
     else:
         expected_init_volume_mounts = []

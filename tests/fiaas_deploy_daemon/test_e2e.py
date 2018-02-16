@@ -170,6 +170,7 @@ class TestE2E(object):
                 "--ingress-suffix", "svc.test.example.com",
                 "--environment", "test",
                 "--datadog-container-image", "DATADOG_IMAGE",
+                "--strongbox-init-container-image", "STRONGBOX_IMAGE",
                 ]
         if _tpr_supported(k8s_version):
             args.append("--enable-tpr-support")
@@ -498,6 +499,20 @@ def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, d
     _ensure_key_missing(actual_dict, "metadata", "annotations", "deployment.kubernetes.io/revision")
     # status is managed by Kubernetes itself, and is not part of the configuration of the resource
     _ensure_key_missing(actual_dict, "status")
+    # autoscaling.alpha.kubernetes.io/conditions is automatically set when converting from
+    # autoscaling/v2beta.HorizontalPodAutoscaler to autoscaling/v1.HorizontalPodAutoscaler internally in Kubernetes
+    if isinstance(resource, HorizontalPodAutoscaler):
+        _ensure_key_missing(actual_dict, "metadata", "annotations", "autoscaling.alpha.kubernetes.io/conditions")
+    # pod.alpha.kubernetes.io/init-containers
+    # pod.beta.kubernetes.io/init-containers
+    # pod.alpha.kubernetes.io/init-container-statuses
+    # pod.beta.kubernetes.io/init-container-statuses
+    # are automatically set when converting from core.Pod to v1.Pod internally in Kubernetes (in some versions)
+    if isinstance(resource, Deployment):
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-container-statuses")
     if isinstance(resource, Service):
         _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
         for port in actual_dict["spec"]["ports"]:

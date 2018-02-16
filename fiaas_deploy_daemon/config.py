@@ -121,6 +121,9 @@ class Configuration(Namespace):
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)
+        parser.add_argument("--strongbox-init-container-image",
+                            help="Use specified docker image as init container for apps that are configured to use Strongbox",
+                            default=None)
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

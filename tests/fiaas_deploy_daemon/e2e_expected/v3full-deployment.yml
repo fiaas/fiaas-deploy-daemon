@@ -30,6 +30,7 @@ spec:
         prometheus.io/path: /prometheus-metrics-here
         prometheus.io/port: "31337"
         prometheus.io/scrape: "true"
+        iam.amazonaws.com/role: arn:aws:iam::12345678:role/the-role-name
         x: y
         z: y
       labels:
@@ -149,15 +150,40 @@ spec:
       terminationGracePeriodSeconds: 30
       volumes:
       - name: v3-data-examples-full-secret
-        secret:
+      - configMap:
           defaultMode: 420
+          name: fiaas-secrets-init-container
           optional: true
-          secretName: v3-data-examples-full
+        name: fiaas-secrets-init-container-config
       - configMap:
           defaultMode: 420
           name: v3-data-examples-full
           optional: true
         name: v3-data-examples-full-config
       - name: tmp
-      initContainers: []
+      initContainers:
+      - name: fiaas-secrets-init-container
+        image: STRONGBOX_IMAGE
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v3-data-examples-full-secret
+        - mountPath: /var/run/config/fiaas-secrets-init-container/
+          name: fiaas-secrets-init-container-config
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v3-data-examples-full-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+        envFrom:
+        - configMapRef:
+            name: fiaas-secrets-init-container
+            optional: true
+        env:
+          - name: K8S_DEPLOYMENT
+            value: v3-data-examples-full
+          - name: SECRET_GROUPS
+            value: secretgroup1,secretgroup2
+        imagePullPolicy: IfNotPresent
+        ports: []
       imagePullSecrets: []

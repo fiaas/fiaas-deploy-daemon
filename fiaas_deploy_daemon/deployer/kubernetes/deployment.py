@@ -11,7 +11,7 @@ from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, L
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
     ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector, \
-    Lifecycle, Handler
+    Lifecycle, Handler, ResourceFieldSelector, ObjectFieldSelector
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from .autoscaler import should_have_autoscaler
@@ -183,6 +183,21 @@ class DeploymentDeployer(object):
             else:
                 LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
         env.extend(global_env)
+
+        env.extend([
+            EnvVar(name="FIAAS_REQUESTS_CPU", valueFrom=EnvVarSource(
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu"))),
+            EnvVar(name="FIAAS_REQUESTS_MEMORY", valueFrom=EnvVarSource(
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.memory"))),
+            EnvVar(name="FIAAS_LIMITS_CPU", valueFrom=EnvVarSource(
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.cpu"))),
+            EnvVar(name="FIAAS_LIMITS_MEMORY", valueFrom=EnvVarSource(
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.memory"))),
+            EnvVar(name="FIAAS_NAMESPACE", valueFrom=EnvVarSource(
+                fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
+            EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
+                fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
+        ])
 
         if app_spec.datadog:
             env.append(EnvVar(name="STATSD_HOST", value="localhost"))

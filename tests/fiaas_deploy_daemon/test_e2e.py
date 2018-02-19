@@ -37,7 +37,7 @@ IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
-PATIENCE = 300
+PATIENCE = 30
 TIMEOUT = 5
 
 

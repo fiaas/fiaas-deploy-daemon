@@ -186,13 +186,13 @@ class DeploymentDeployer(object):
 
         env.extend([
             EnvVar(name="FIAAS_REQUESTS_CPU", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu"))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu", divisor=1))),
             EnvVar(name="FIAAS_REQUESTS_MEMORY", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.memory"))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.memory", divisor=1))),
             EnvVar(name="FIAAS_LIMITS_CPU", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.cpu"))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.cpu", divisor=1))),
             EnvVar(name="FIAAS_LIMITS_MEMORY", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.memory"))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.memory", divisor=1))),
             EnvVar(name="FIAAS_NAMESPACE", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(

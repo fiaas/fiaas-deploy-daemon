@@ -64,6 +64,40 @@ spec:
           value: IMAGE
         - name: FINN_ENV
           value: test
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-full
+              resource: requests.cpu
+              divisor: "1"
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-full
+              resource: requests.memory
+              divisor: "1"
+        - name: FIAAS_LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-full
+              resource: limits.cpu
+              divisor: "1"
+        - name: FIAAS_LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-full
+              resource: limits.memory
+              divisor: "1"
+        - name: FIAAS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+              apiVersion: "v1"
+        - name: FIAAS_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+              apiVersion: "v1"
         - name: STATSD_HOST
           value: localhost
         - name: STATSD_PORT

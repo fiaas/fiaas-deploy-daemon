@@ -30,9 +30,11 @@ web = Blueprint("web", __name__, template_folder="templates")
 
 request_histogram = Histogram("web_request_latency", "Request latency in seconds", ["page"])
 defaults_histogram = request_histogram.labels("defaults")
+defaults_versioned_histogram = request_histogram.labels("defaults_versioned")
 frontpage_histogram = request_histogram.labels("frontpage")
 metrics_histogram = request_histogram.labels("metrics")
 transform_histogram = request_histogram.labels("transform")
+healthz_histogram = request_histogram.labels("healthz")
 
 
 @web.route("/")
@@ -56,11 +58,13 @@ def defaults():
 
 
 @web.route("/defaults/<int:version>")
+@defaults_versioned_histogram.time()
 def defaults_versioned(version):
     return _render_defaults("fiaas_deploy_daemon.specs.v{}".format(version), "defaults.yml")
 
 
 @web.route("/healthz")
+@healthz_histogram.time()
 def healthz():
     if current_app.health_check.is_healthy():
         return "OK", 200

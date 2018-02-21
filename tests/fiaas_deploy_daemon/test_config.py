@@ -6,10 +6,22 @@ import mock
 import pyaml
 import pytest
 
-from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue
+from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue, InvalidConfigurationException
 
 
 class TestConfig(object):
+
+    @pytest.fixture
+    def getenv(self):
+        with mock.patch("os.getenv") as getenv:
+            yield getenv
+
+    @pytest.fixture
+    def namespace_file_does_not_exist(self):
+        with mock.patch("__builtin__.open", new_callable=mock.mock_open) as _open:
+            _open.side_effect = IOError("does not exist")
+            yield _open
+
     @pytest.fixture(autouse=True)
     def dns_resolver(self):
         with mock.patch("dns.resolver.query") as mock_resolver:
@@ -51,6 +63,7 @@ class TestConfig(object):
         assert config.image == ""
         assert config.blacklist == []
         assert config.whitelist == []
+        assert config.enable_deprecated_multi_namespace_support is False
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
@@ -91,7 +104,12 @@ class TestConfig(object):
 
         assert config.infrastructure == "gke"
 
-    @pytest.mark.parametrize("key", ("debug", "enable_tpr_support", "enable_crd_support"))
+    @pytest.mark.parametrize("key", (
+        "debug",
+        "enable_tpr_support",
+        "enable_crd_support",
+        "enable_deprecated_multi_namespace_support",
+    ))
     def test_flags(self, key):
         flag = "--{}".format(key.replace("_", "-"))
         config = Configuration([])
@@ -180,6 +198,24 @@ class TestConfig(object):
         args = ("pattern=value", "FIAAS_ENV=test")
         config = Configuration(["--global-env=%s" % arg for arg in args])
         assert config.global_env == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
+
+    def test_resolve_namespace_file_should_take_precedence_over_env(self):
+        config = Configuration([])
+        assert config.namespace == "namespace-from-file"
+
+    @pytest.mark.usefixtures("namespace_file_does_not_exist")
+    def test_resolve_namespace_env_should_be_used_if_unable_to_open_file(self, getenv):
+        expected = "namespace-from-env"
+        getenv.side_effect = lambda key: expected if key == "NAMESPACE" else None
+
+        config = Configuration([])
+        assert config.namespace == expected
+
+    @pytest.mark.usefixtures("namespace_file_does_not_exist")
+    def test_resolve_namespace_raise_if_unable_to_open_file_and_no_env_var(self, getenv):
+        getenv.return_value = None
+        with pytest.raises(InvalidConfigurationException):
+            Configuration([])
 
 
 class TestHostRewriteRule(object):

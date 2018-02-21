@@ -19,6 +19,7 @@ class PaasbetaApplication(Model):
     class Meta:
         url_template = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetaapplications/{name}"
         watch_list_url = "/apis/schibsted.io/v1beta/watch/paasbetaapplications"
+        watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetaapplications"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
     apiVersion = Field(six.text_type, "schibsted.io/v1beta")
@@ -31,6 +32,8 @@ class PaasbetaApplication(Model):
 class PaasbetaStatus(Model):
     class Meta:
         url_template = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetastatuses/{name}"
+        watch_list_url = "/apis/schibsted.io/v1beta/watch/paasbetastatuses"
+        watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetastatuses"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
     apiVersion = Field(six.text_type, "schibsted.io/v1beta")

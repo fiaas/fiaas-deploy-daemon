@@ -10,6 +10,7 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
 
+from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.specs.models import AppSpec
 from fiaas_deploy_daemon.tpr import TprWatcher
@@ -65,7 +66,7 @@ class TestTprWatcher(object):
 
     @pytest.fixture
     def tpr_watcher(self, spec_factory, deploy_queue, watcher):
-        mock_watcher = TprWatcher(spec_factory, deploy_queue)
+        mock_watcher = TprWatcher(spec_factory, deploy_queue, Configuration([]))
         mock_watcher._watcher = watcher
         return mock_watcher
 
@@ -73,7 +74,7 @@ class TestTprWatcher(object):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
-        tpr_watcher._watch()
+        tpr_watcher._watch(None)
 
         calls = [
             mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
@@ -93,7 +94,7 @@ class TestTprWatcher(object):
         watcher.watch.return_value = [WatchEvent(ADD_EVENT, PaasbetaApplication)]
 
         assert deploy_queue.qsize() == 0
-        tpr_watcher._watch()
+        tpr_watcher._watch(None)
         assert deploy_queue.qsize() == 1
 
     @pytest.mark.parametrize("event,deployer_event_type", [
@@ -107,7 +108,7 @@ class TestTprWatcher(object):
         app_spec = mock.create_autospec(AppSpec, instance=True, set_spec=True)
         spec_factory.return_value = app_spec
 
-        tpr_watcher._watch()
+        tpr_watcher._watch(None)
 
         spec = event["object"]["spec"]
         event_deployment_id = event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
@@ -122,3 +123,8 @@ class TestTprWatcher(object):
         deployer_event = deploy_queue.get_nowait()
         assert deployer_event == DeployerEvent(deployer_event_type, app_spec)
         assert deploy_queue.empty()
+
+    @pytest.mark.parametrize("namespace", [None, "default"])
+    def test_watch_namespace(self, tpr_watcher, watcher, namespace):
+        tpr_watcher._watch(namespace)
+        watcher.watch.assert_called_once_with(namespace=namespace)

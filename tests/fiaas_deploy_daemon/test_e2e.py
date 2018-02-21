@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import contextlib
+import os
 import socket
 import subprocess
 import sys
@@ -30,6 +31,7 @@ from monotonic import monotonic as time_monotonic
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
+from fiaas_deploy_daemon.tools import merge_dicts
 from minikube import MinikubeInstaller, MinikubeError
 from minikube.drivers import MinikubeDriverError
 
@@ -37,7 +39,7 @@ IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
-PATIENCE = 300
+PATIENCE = 30
 TIMEOUT = 5
 
 
@@ -176,7 +178,7 @@ class TestE2E(object):
             args.append("--enable-tpr-support")
         if _crd_supported(k8s_version):
             args.append("--enable-crd-support")
-        fdd = subprocess.Popen(args, stdout=sys.stderr)
+        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)

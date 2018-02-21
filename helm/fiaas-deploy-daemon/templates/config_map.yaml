@@ -18,3 +18,4 @@ data:
     {{with .Values.preStopDelay}}pre-stop-delay: {{.}}{{end}}
     {{with .Values.TPR}}enable-tpr-support: {{.}}{{end}}
     {{with .Values.CRD}}enable-crd-support: {{.}}{{end}}
+    {{with .Values.deprecatedMultiNamespace}}enable-deprecated-multi-namespace-support: {{.}}{{end}}

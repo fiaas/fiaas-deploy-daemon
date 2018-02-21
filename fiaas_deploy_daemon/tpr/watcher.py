@@ -17,19 +17,24 @@ LOG = logging.getLogger(__name__)
 
 
 class TprWatcher(DaemonThread):
-    def __init__(self, spec_factory, deploy_queue):
+    def __init__(self, spec_factory, deploy_queue, config):
         super(TprWatcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
         self._watcher = Watcher(PaasbetaApplication)
+        self.namespace = config.namespace
+        self.enable_deprecated_multi_namespace_support = config.enable_deprecated_multi_namespace_support
 
     def __call__(self):
         while True:
-            self._watch()
+            if self.enable_deprecated_multi_namespace_support:
+                self._watch(namespace=None)
+            else:
+                self._watch(namespace=self.namespace)
 
-    def _watch(self):
+    def _watch(self, namespace):
         try:
-            for event in self._watcher.watch():
+            for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)
         except NotFound:
             self._create_third_party_resource()

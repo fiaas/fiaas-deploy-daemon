@@ -424,9 +424,22 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
         environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
         environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+
+    environment.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
+        'containerName': 'testapp', 'resource': 'requests.cpu', 'divisor': 1}}})
+    environment.append({'name': 'FIAAS_REQUESTS_MEMORY', 'valueFrom': {'resourceFieldRef': {
+        'containerName': 'testapp', 'resource': 'requests.memory', 'divisor': 1}}})
+    environment.append({'name': 'FIAAS_LIMITS_CPU', 'valueFrom': {'resourceFieldRef': {
+        'containerName': 'testapp', 'resource': 'limits.cpu', 'divisor': 1}}})
+    environment.append({'name': 'FIAAS_LIMITS_MEMORY', 'valueFrom': {'resourceFieldRef': {
+        'containerName': 'testapp', 'resource': 'limits.memory', 'divisor': 1}}})
+    environment.append({'name': 'FIAAS_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}})
+    environment.append({'name': 'FIAAS_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}})
+
     if datadog:
         environment.append({'name': 'STATSD_HOST', 'value': 'localhost'})
         environment.append({'name': 'STATSD_PORT', 'value': '8125'})
+
     return environment
 
 

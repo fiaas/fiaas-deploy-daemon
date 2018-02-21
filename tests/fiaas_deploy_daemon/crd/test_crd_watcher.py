@@ -10,6 +10,7 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
 
+from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication
 from fiaas_deploy_daemon.deployer import DeployerEvent
@@ -65,7 +66,7 @@ class TestWatcher(object):
 
     @pytest.fixture
     def crd_watcher(self, spec_factory, deploy_queue, watcher):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]))
         crd_watcher._watcher = watcher
         return crd_watcher
 
@@ -73,7 +74,7 @@ class TestWatcher(object):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
-        crd_watcher._watch()
+        crd_watcher._watch(None)
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
@@ -107,7 +108,7 @@ class TestWatcher(object):
         watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]
 
         assert deploy_queue.qsize() == 0
-        crd_watcher._watch()
+        crd_watcher._watch(None)
         assert deploy_queue.qsize() == 1
 
     @pytest.mark.parametrize("event,deployer_event_type", [
@@ -121,7 +122,7 @@ class TestWatcher(object):
         app_spec = mock.create_autospec(AppSpec, instance=True, set_spec=True)
         spec_factory.return_value = app_spec
 
-        crd_watcher._watch()
+        crd_watcher._watch(None)
 
         spec = event["object"]["spec"]
         deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
@@ -136,3 +137,8 @@ class TestWatcher(object):
         deployer_event = deploy_queue.get_nowait()
         assert deployer_event == DeployerEvent(deployer_event_type, app_spec)
         assert deploy_queue.empty()
+
+    @pytest.mark.parametrize("namespace", [None, "default"])
+    def test_watch_namespace(self, crd_watcher, watcher, namespace):
+        crd_watcher._watch(namespace)
+        watcher.watch.assert_called_once_with(namespace=namespace)

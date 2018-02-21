@@ -145,3 +145,24 @@ def put():
 def delete():
     with mock.patch('k8s.client.Client.delete') as mockk:
         yield mockk
+
+
+@pytest.fixture(autouse=True)
+def _open():
+    """
+    mock open() to return predefined namespace if the file we're trying to read is
+    /var/run/secrets/kubernetes.io/serviceaccount/namespace. Otherwise, pass all parameters to the real open() builtin
+    and call it
+    """
+    real_open = open
+
+    def _mock_namespace_file_open(name, *args, **kwargs):
+        namespace = "namespace-from-file"
+        if name == "/var/run/secrets/kubernetes.io/serviceaccount/namespace":
+            return mock.mock_open(read_data=namespace)()
+        else:
+            return real_open(name, *args, **kwargs)
+
+    with mock.patch("__builtin__.open") as mock_open:
+        mock_open.side_effect = _mock_namespace_file_open
+        yield mock_open

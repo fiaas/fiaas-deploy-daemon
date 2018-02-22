@@ -17,4 +17,5 @@ CRD: false
 deprecatedMultiNamespace: false
 # Define to override defaults
 #dataDogImage:
+#strongboxImage:
 #preStopDelay:

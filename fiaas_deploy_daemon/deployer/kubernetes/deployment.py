@@ -36,6 +36,7 @@ class DeploymentDeployer(object):
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
         self._datadog_container_image = config.datadog_container_image
+        self._strongbox_init_container_image = config.strongbox_init_container_image
         self._lifecycle = None
         if config.pre_stop_delay > 0:
             self._lifecycle = Lifecycle(preStop=Handler(
@@ -75,11 +76,19 @@ class DeploymentDeployer(object):
         service_account_name = "default"
 
         if self._uses_secrets_init_container():
-            init_container = self._make_secrets_init_container(app_spec)
+            init_container = self._make_secrets_init_container(app_spec, self._secrets_init_container_image)
             init_containers.append(init_container)
             automount_service_account_token = True
             if self._secrets_service_account_name:
                 service_account_name = self._secrets_service_account_name
+        elif self._uses_strongbox_init_container(app_spec):
+            strongbox_env = {
+                "AWS_REGION": app_spec.strongbox.aws_region,
+                "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
+            }
+            init_container = self._make_secrets_init_container(app_spec, self._strongbox_init_container_image,
+                                                               env_vars=strongbox_env)
+            init_containers.append(init_container)
 
         pod_spec = PodSpec(containers=containers,
                            initContainers=init_containers,
@@ -89,7 +98,8 @@ class DeploymentDeployer(object):
 
         prometheus_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else {}
-        pod_annotations = merge_dicts(app_spec.annotations.pod, prometheus_annotations)
+        strongbox_annotations = _make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(app_spec) else {}
+        pod_annotations = merge_dicts(app_spec.annotations.pod, prometheus_annotations, strongbox_annotations)
 
         pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
@@ -133,7 +143,7 @@ class DeploymentDeployer(object):
 
     def _make_volumes(self, app_spec):
         volumes = []
-        if self._uses_secrets_init_container():
+        if self._uses_secrets_init_container() or self._uses_strongbox_init_container(app_spec):
             volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
             volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
                                   configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)))
@@ -157,11 +167,13 @@ class DeploymentDeployer(object):
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))
         return volume_mounts
 
-    def _make_secrets_init_container(self, app_spec):
+    def _make_secrets_init_container(self, app_spec, image, env_vars={}):
+        env_vars.update({"K8S_DEPLOYMENT": app_spec.name})
+        environment = [EnvVar(name=k, value=v) for k, v in env_vars.items()]
         container = Container(name=self.SECRETS_INIT_CONTAINER_NAME,
-                              image=self._secrets_init_container_image,
+                              image=image,
                               imagePullPolicy="IfNotPresent",
-                              env=[EnvVar(name="K8S_DEPLOYMENT", value=app_spec.name)],
+                              env=environment,
                               envFrom=[
                                   EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True))
                               ],
@@ -207,6 +219,9 @@ class DeploymentDeployer(object):
     def _uses_secrets_init_container(self):
         return bool(self._secrets_init_container_image)
 
+    def _uses_strongbox_init_container(self, app_spec):
+        return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
+
 
 def _add_status_label(labels):
     copy = labels.copy()
@@ -232,6 +247,10 @@ def _make_prometheus_annotations(app_spec):
         "prometheus.io/port": str(port),
         "prometheus.io/path": prometheus_spec.path
     }
+
+
+def _make_strongbox_annotations(app_spec):
+    return {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}
 
 
 def _make_resource_requirements(resources_spec):

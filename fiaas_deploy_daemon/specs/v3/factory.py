@@ -10,7 +10,7 @@ from ..lookup import LookupMapping
 from ..factory import BaseFactory, InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
-    IngressPathMappingSpec
+    IngressPathMappingSpec, StrongboxSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 
 
@@ -41,7 +41,8 @@ class Factory(BaseFactory):
             deployment_id=deployment_id,
             labels=self._labels_annotations_spec(lookup["labels"]),
             annotations=self._labels_annotations_spec(lookup["annotations"]),
-            ingresses=self._ingress_items(lookup["ingress"], lookup["ports"])
+            ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
+            strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
         )
         return app_spec
 
@@ -174,3 +175,12 @@ class Factory(BaseFactory):
                     for host_path_mapping in ingress_lookup]
         else:
             return []
+
+    @staticmethod
+    def _strongbox(strongbox_lookup):
+        iam_role = strongbox_lookup.get_config_value("iam_role")
+        groups = strongbox_lookup.get_config_value("groups")
+        enabled = iam_role is not None and groups is not None
+        return StrongboxSpec(enabled=enabled, iam_role=iam_role,
+                             aws_region=strongbox_lookup["aws_region"],
+                             groups=groups)

@@ -22,7 +22,9 @@ class AppSpec(namedtuple("AppSpec", [
         "deployment_id",
         "labels",
         "annotations",
-        "ingresses"])):
+        "ingresses",
+        "strongbox",
+])):
 
     __slots__ = ()
 
@@ -101,4 +103,12 @@ IngressItemSpec = namedtuple("IngressItemSpec", [
 IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
     "path",
     "port",
+])
+
+
+StrongboxSpec = namedtuple("StrongboxSpec", [
+    "enabled",
+    "iam_role",
+    "aws_region",
+    "groups",
 ])

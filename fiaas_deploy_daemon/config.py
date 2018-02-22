@@ -126,6 +126,9 @@ class Configuration(Namespace):
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)
+        parser.add_argument("--strongbox-init-container-image",
+                            help="Use specified docker image as init container for apps that are configured to use Strongbox",
+                            default=None)
         parser.add_argument("--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP,
                             action="store_true")
         api_parser = parser.add_argument_group("API server")

@@ -3,11 +3,12 @@
 from __future__ import absolute_import
 
 import logging
-
+import sys
 from Queue import Queue
 
 import pinject
 import requests
+
 
 from .. import init_k8s_client
 from ..config import Configuration
@@ -40,13 +41,14 @@ class MainBindings(pinject.BindingSpec):
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, scheduler, config):
+    def __init__(self, deployer, scheduler, config, bootstrapper):
         pass
 
     def run(self):
         self._deployer.start()
         self._scheduler.start()
-        self._bootstrapper.run()  # run bootstrapper on main thread
+        if not self._bootstrapper.run():
+            sys.exit(1)
 
 
 def main():
@@ -66,6 +68,7 @@ def main():
         obj_graph.provide(Main).run()
     except BaseException:
         log.exception("General failure! Inspect traceback and make the code better!")
+        sys.exit(1)
 
 
 if __name__ == '__main__':

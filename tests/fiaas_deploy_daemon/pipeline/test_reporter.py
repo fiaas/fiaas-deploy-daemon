@@ -5,6 +5,7 @@ import pytest
 from blinker import signal
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
+from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from mock import create_autospec
 from requests import Session
 
@@ -26,9 +27,9 @@ class TestReporter(object):
         return mock_config
 
     @pytest.mark.parametrize("signal_name,url", [
-        ("deploy_started", u"fiaas_test-diy_deploy_started/success"),
-        ("deploy_failed", u"fiaas_test-diy_deploy_end/failure"),
-        ("deploy_success", u"fiaas_test-diy_deploy_end/success")
+        (DEPLOY_STARTED, u"fiaas_test-diy_deploy_started/success"),
+        (DEPLOY_FAILED, u"fiaas_test-diy_deploy_end/failure"),
+        (DEPLOY_SUCCESS, u"fiaas_test-diy_deploy_end/success")
     ])
     def test_signal_to_callback(self, session, config, signal_name, url, app_spec):
         reporter = Reporter(config, session)

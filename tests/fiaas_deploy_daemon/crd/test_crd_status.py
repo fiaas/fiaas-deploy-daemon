@@ -7,6 +7,7 @@ from blinker import Namespace
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.types import FiaasStatus
+from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from k8s.models.common import ObjectMeta
 
 DEPLOYMENT_ID = u"deployment_id"
@@ -31,15 +32,15 @@ class TestStatusReport(object):
         if metafunc.cls == self.__class__ and "test_data" in metafunc.fixturenames:
             TestData = namedtuple("TestData", ("signal_name", "action", "result", "new", "called_mock", "ignored_mock"))
             name2result = {
-                "deploy_started": u"RUNNING",
-                "deploy_failed": u"FAILED",
-                "deploy_success": u"SUCCESS"
+                DEPLOY_STARTED: u"RUNNING",
+                DEPLOY_FAILED: u"FAILED",
+                DEPLOY_SUCCESS: u"SUCCESS"
             }
             action2data = {
                 "create": (True, "post", "put"),
                 "update": (False, "put", "post")
             }
-            for signal_name in ("deploy_started", "deploy_failed", "deploy_success"):
+            for signal_name in (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS):
                 for action in ("create", "update"):
                     test_data = TestData(signal_name, action, name2result[signal_name], *action2data[action])
                     test_id = "{} status on {}".format(action, signal_name)

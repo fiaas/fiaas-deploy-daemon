@@ -8,12 +8,13 @@ from blinker import signal
 
 from k8s.models.common import ObjectMeta
 from .types import FiaasStatus
+from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 
 
 def connect_signals():
-    signal("deploy_started").connect(_handle_started)
-    signal("deploy_failed").connect(_handle_failed)
-    signal("deploy_success").connect(_handle_success)
+    signal(DEPLOY_STARTED).connect(_handle_started)
+    signal(DEPLOY_FAILED).connect(_handle_failed)
+    signal(DEPLOY_SUCCESS).connect(_handle_success)
 
 
 def _handle_signal(result, sender, app_spec):

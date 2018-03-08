@@ -84,8 +84,7 @@ class Bootstrapper(object):
         # 4. statuses for each deployed app should be printed as they arrive
         # 5. exit 0 if every status was SUCCESS, 1 otherwise
 
-        # TODO: base.list() is always namespaced
-        for application in self._resource_class.list():
+        for application in self._resource_class.find(name=None, namespace=None, labels={"fiaas/bootstrap": "true"}):
             try:
                 self._deploy(application)
             except BaseException:

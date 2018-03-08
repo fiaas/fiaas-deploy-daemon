@@ -16,6 +16,7 @@ class FiaasApplicationSpec(Model):
 
 class FiaasApplication(Model):
     class Meta:
+        list_url = "/apis/fiaas.schibsted.io/v1/applications"
         url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/applications/{name}"
         watch_list_url = "/apis/fiaas.schibsted.io/v1/watch/applications"
         watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/applications"
@@ -30,6 +31,7 @@ class FiaasApplication(Model):
 
 class FiaasStatus(Model):
     class Meta:
+        list_url = "/apis/fiaas.schibsted.io/v1/statuses"
         url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/statuses/{name}"
         watch_list_url = "/apis/fiaas.schibsted.io/v1/watch/statuses"
         watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/statuses"

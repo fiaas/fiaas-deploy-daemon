@@ -14,6 +14,8 @@ environment: dev
 infrastructure: diy
 TPR: false
 CRD: false
+deprecatedMultiNamespace: false
 # Define to override defaults
 #dataDogImage:
+#strongboxImage:
 #preStopDelay:

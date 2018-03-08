@@ -8,7 +8,7 @@ from k8s.client import NotFound
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
@@ -45,7 +45,8 @@ def app_spec():
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])]
+        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
+        strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
     )
 
 
@@ -145,3 +146,24 @@ def put():
 def delete():
     with mock.patch('k8s.client.Client.delete') as mockk:
         yield mockk
+
+
+@pytest.fixture(autouse=True)
+def _open():
+    """
+    mock open() to return predefined namespace if the file we're trying to read is
+    /var/run/secrets/kubernetes.io/serviceaccount/namespace. Otherwise, pass all parameters to the real open() builtin
+    and call it
+    """
+    real_open = open
+
+    def _mock_namespace_file_open(name, *args, **kwargs):
+        namespace = "namespace-from-file"
+        if name == "/var/run/secrets/kubernetes.io/serviceaccount/namespace":
+            return mock.mock_open(read_data=namespace)()
+        else:
+            return real_open(name, *args, **kwargs)
+
+    with mock.patch("__builtin__.open") as mock_open:
+        mock_open.side_effect = _mock_namespace_file_open
+        yield mock_open

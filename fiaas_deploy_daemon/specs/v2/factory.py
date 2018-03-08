@@ -10,7 +10,7 @@ from ..lookup import LookupMapping
 from ..factory import InvalidConfiguration
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
-    IngressPathMappingSpec
+    IngressPathMappingSpec, StrongboxSpec
 
 
 class Factory(object):
@@ -39,7 +39,8 @@ class Factory(object):
             deployment_id,
             LabelAndAnnotationSpec({}, {}, {}, {}, {}),
             LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-            self._ingress_items(lookup)
+            self._ingress_items(lookup),
+            strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
         )
 
     @staticmethod

@@ -7,7 +7,7 @@ from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -40,7 +40,8 @@ def app_spec(**kwargs):
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])]
+        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
+        strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
     )
 
     return default_app_spec._replace(**kwargs)

@@ -72,3 +72,8 @@ labels: # Labels to be set on generated objects
   pod: {}
 secrets_in_environment: false # If a Secret of the same name exists, it is exposed to the pod as environment variables
 admin_access: false # What access the pod has to the k8s api server
+extensions:
+  strongbox: # This is only enabled if fiaas-deploy-daemon runs with --strongbox-init-container-image set
+    iam_role: # AWS IAM role assumed before pulling secrets from Strongbox
+    aws_region: eu-west-1 # AWS region to get Strongbox secrets from
+    groups: [] # Strongbox secret groups. Will get all secrets present in each group

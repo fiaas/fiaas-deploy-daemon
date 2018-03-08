@@ -528,3 +528,67 @@ Kubernetes apiserver. If in doubt, leave this disabled.
 ```yaml
 admin_access: False
 ```
+
+
+## extensions
+
+### strongbox
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Configuration from pulling secrets from [Strongbox](https://schibsted.github.io/strongbox/) before application
+startup. Secrets will be made available as files under `/var/run/secrets/fiaas`, each secret in each secret group
+being stored under `/var/run/secrets/fiaas/$group_name/$secret_name`.
+
+Default values:
+```yaml
+extensions:
+  strongbox: # This is only enabled if fiaas-deploy-daemon runs with --strongbox-init-container-image set
+    iam_role: # AWS IAM role assumed before pulling secrets from Strongbox
+    aws_region: eu-west-1 # AWS region to get Strongbox secrets from
+    groups: [] # Strongbox secret groups. Will get all secrets present in each group
+```
+
+#### iam_role
+
+| **Type** | **Required** |
+|----------|--------------|
+| string   | no           |
+
+The [ARN](https://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html#arn-syntax-iam) for the AWS IAM
+role which should be assumed before pulling secrets from Strongbox. This role will need read access to the secrets you
+want to get.
+
+Required to get secrets from Strongbox.
+
+#### aws_region
+
+| **Type** | **Required** |
+|----------|--------------|
+| string   | no           |
+
+The AWS region to pull Strongbox secrets from. Defaults to `eu-west-1`.
+
+#### groups
+
+| **Type** | **Required** |
+|----------|--------------|
+| list     | no           |
+
+List of Strongbox Secret Groups to pull secrets from. All secrets from each group will be pulled.
+
+Required to get secrets from Strongbox.
+
+
+Example:
+```yaml
+extensions:
+  strongbox:
+    iam_role: arn:aws:iam::12345678:role/the-role-name
+    aws_region: eu-west-1
+    groups:
+    - group-name-1
+    - group-name-2
+```

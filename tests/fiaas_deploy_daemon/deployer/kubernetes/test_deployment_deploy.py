@@ -197,6 +197,7 @@ class TestDeploymentDeployer(object):
                             'name': 'testapp',
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
+                            'command': [],
                             'env': create_environment_variables(config.infrastructure, global_env=config.global_env),
                             'envFrom': [{
                                 'configMapRef': {
@@ -251,6 +252,7 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'name': INIT_CONTAINER_NAME,
             'image': SECRET_IMAGE,
             'volumeMounts': expected_init_volume_mounts,
+            'command': [],
             'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
             'envFrom': [{
                 'configMapRef': {
@@ -352,6 +354,7 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
                 }
             }
         },
+        'command': [],
         'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
                                             datadog=app_spec.datadog, version=version),
         'envFrom': expected_env_from,
@@ -365,6 +368,7 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'name': DATADOG_CONTAINER_NAME,
             'image': DATADOG_IMAGE,
             'volumeMounts': [],
+            'command': [],
             'env': [
                 {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
                 {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},

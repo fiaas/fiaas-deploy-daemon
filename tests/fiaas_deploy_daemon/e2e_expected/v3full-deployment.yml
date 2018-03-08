@@ -46,7 +46,8 @@ spec:
     spec:
       automountServiceAccountToken: true
       containers:
-      - env:
+      - command: []
+        env:
         - name: ARTIFACT_NAME
           value: v3-data-examples-full
         - name: LOG_STDOUT
@@ -160,7 +161,8 @@ spec:
           readOnly: true
         - mountPath: /tmp
           name: tmp
-      - env:
+      - command: []
+        env:
         - name: DD_TAGS
           value: app:v3-data-examples-full,k8s_namespace:default
         - name: API_KEY

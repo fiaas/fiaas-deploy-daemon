@@ -37,7 +37,8 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - env:
+      - command: []
+        env:
         - name: ARTIFACT_NAME
           value: v2-data-examples-host
         - name: LOG_STDOUT

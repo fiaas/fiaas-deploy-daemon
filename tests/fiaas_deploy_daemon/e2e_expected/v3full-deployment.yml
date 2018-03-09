@@ -215,6 +215,7 @@ spec:
         - configMapRef:
             name: fiaas-secrets-init-container
             optional: true
+        command: []
         env:
           - name: K8S_DEPLOYMENT
             value: v3-data-examples-full

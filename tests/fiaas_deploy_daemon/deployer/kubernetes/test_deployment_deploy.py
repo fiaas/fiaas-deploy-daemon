@@ -269,6 +269,7 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
             'name': INIT_CONTAINER_NAME,
             'image': STRONGBOX_IMAGE,
             'volumeMounts': expected_init_volume_mounts,
+            'command': [],
             'env': [
                 {'name': 'K8S_DEPLOYMENT', 'value': app_spec.name},
                 {'name': 'AWS_REGION', 'value': app_spec.strongbox.aws_region},

@@ -95,7 +95,7 @@ class TestWatcher(object):
                     'version': 'v1',
                     'group': 'fiaas.schibsted.io',
                     'names': {
-                        'shortNames': ['status', 'appstatus', 'fds'],
+                        'shortNames': ['status', 'appstatus', 'fs'],
                         'kind': 'ApplicationStatus',
                         'plural': 'application-statuses'
                     }

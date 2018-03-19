@@ -90,14 +90,14 @@ class TestWatcher(object):
                 }
             }),
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
-                'metadata': {'namespace': 'default', 'name': 'statuses.fiaas.schibsted.io'},
+                'metadata': {'namespace': 'default', 'name': 'application-statuses.fiaas.schibsted.io'},
                 'spec': {
                     'version': 'v1',
                     'group': 'fiaas.schibsted.io',
                     'names': {
-                        'shortNames': ['status', 'fs'],
-                        'kind': 'Status',
-                        'plural': 'statuses'
+                        'shortNames': ['status', 'appstatus', 'fds'],
+                        'kind': 'ApplicationStatus',
+                        'plural': 'application-statuses'
                     }
                 }
             })

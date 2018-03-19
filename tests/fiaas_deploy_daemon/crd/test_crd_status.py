@@ -6,7 +6,7 @@ import re
 from blinker import Namespace
 
 from fiaas_deploy_daemon.crd import status
-from fiaas_deploy_daemon.crd.types import FiaasStatus
+from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from k8s.models.common import ObjectMeta
 
 DEPLOYMENT_ID = u"deployment_id"
@@ -17,7 +17,7 @@ VALID_NAME = re.compile(r"^[a-z0-9.-]+$")
 class TestStatusReport(object):
     @pytest.fixture
     def get_or_create(self):
-        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasStatus.get_or_create", spec_set=True) as m:
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.get_or_create", spec_set=True) as m:
             yield m
 
     @pytest.fixture
@@ -53,21 +53,21 @@ class TestStatusReport(object):
             "app": test_data.signal_name,
             "fiaas/deployment_id": app_spec.deployment_id
         })
-        get_or_create.return_value = FiaasStatus(new=test_data.new, metadata=metadata, result=test_data.result)
+        get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata, result=test_data.result)
         status.connect_signals()
 
         signal(test_data.signal_name).send(app_spec=app_spec)
 
         get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
         if test_data.action == "create":
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/statuses/'
+            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
         else:
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/statuses/{}'.format(app_name)
+            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/{}'.format(app_name)
         called_mock = request.getfixturevalue(test_data.called_mock)
         ignored_mock = request.getfixturevalue(test_data.ignored_mock)
         called_mock.assert_called_once_with(url, {
             'apiVersion': 'fiaas.schibsted.io/v1',
-            'kind': 'Status',
+            'kind': 'ApplicationStatus',
             'result': test_data.result,
             'metadata': {
                 'labels': {

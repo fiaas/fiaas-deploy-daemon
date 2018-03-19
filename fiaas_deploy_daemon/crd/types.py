@@ -28,15 +28,15 @@ class FiaasApplication(Model):
     spec = Field(FiaasApplicationSpec)
 
 
-class FiaasStatus(Model):
+class FiaasApplicationStatus(Model):
     class Meta:
-        url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/statuses/{name}"
-        watch_list_url = "/apis/fiaas.schibsted.io/v1/watch/statuses"
-        watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/statuses"
+        url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/application-statuses/{name}"
+        watch_list_url = "/apis/fiaas.schibsted.io/v1/watch/application-statuses"
+        watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/application-statuses"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
     apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")
-    kind = Field(six.text_type, "Status")
+    kind = Field(six.text_type, "ApplicationStatus")
 
     metadata = Field(ObjectMeta)
     result = Field(six.text_type)

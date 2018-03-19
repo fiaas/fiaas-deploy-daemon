@@ -1,0 +1,26 @@
+apiVersion: "fiaas.schibsted.io/v1"
+kind: Application
+metadata:
+  name: fiaas-deploy-daemon
+  annotations:
+    fiaas/artifact_id: 20180313140557-9af2ccf
+  labels:
+    fiaas/deployment_id: 20180313140557-9af2ccf
+spec:
+  application: fiaas-deploy-daemon
+  image: registry:5000/fiaas-deploy-daemon:20180313140557-9af2ccf
+  config:
+    version: 2
+    admin_access: true
+    replicas: 1
+    resources:
+      requests:
+        memory: 128m
+    ports:
+      - target_port: 5000
+    healthchecks:
+      liveness:
+        http:
+          path: /healthz
+    config:
+      volume: true

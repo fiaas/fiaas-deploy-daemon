@@ -74,16 +74,6 @@ class Bootstrapper(object):
         signal(DEPLOY_FAILED).connect(self._store_failed)
 
     def run(self):
-        # 1. list all TPR/CRDs with label fiaas/control-plane=true
-        # 2. for each CRD, create app_spec and deploy it
-        # 3. wait for readiness checks to complete. This can be done by;
-        #    - implementing some sort of wait()-like mechanism in the scheduler, since it knows how many tasks it has
-        #      and can block untill it doesn't have any more tasks.
-        #    - subscribing to signals and maintaining a set of all the checks expected to succeed and connecting
-        #      statuses as they arrive. Essentially the same as above, except the state lives in the bootstrapper.
-        # 4. statuses for each deployed app should be printed as they arrive
-        # 5. exit 0 if every status was SUCCESS, 1 otherwise
-
         for application in self._resource_class.find(name=None, namespace=None, labels={"fiaas/bootstrap": "true"}):
             try:
                 self._deploy(application)

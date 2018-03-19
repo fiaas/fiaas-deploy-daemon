@@ -9,6 +9,8 @@ from k8s.client import NotFound
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
     LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
+from minikube import MinikubeInstaller, MinikubeError
+from minikube.drivers import MinikubeDriverError
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
@@ -167,3 +169,22 @@ def _open():
     with mock.patch("__builtin__.open") as mock_open:
         mock_open.side_effect = _mock_namespace_file_open
         yield mock_open
+
+
+@pytest.fixture(scope="session")
+def minikube_installer():
+    try:
+        mki = MinikubeInstaller()
+        mki.install()
+        yield mki
+        mki.cleanup()
+    except MinikubeDriverError as e:
+        pytest.skip(str(e))
+    except MinikubeError as e:
+        msg = "Unable to install minikube: %s"
+        pytest.fail(msg % str(e))
+
+
+@pytest.fixture(scope="session", params=("v1.6.4", "v1.7.5", "v1.8.0", "v1.9.0"))
+def k8s_version(request):
+    yield request.param

@@ -37,11 +37,12 @@ class TprWatcher(DaemonThread):
             for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)
         except NotFound:
-            self._create_third_party_resource()
+            self.create_third_party_resource()
         except Exception:
             LOG.exception("Error while watching for changes on PaasbetaApplications")
 
-    def _create_third_party_resource(self):
+    @staticmethod
+    def create_third_party_resource():
         metadata = ObjectMeta(name="paasbeta-application.schibsted.io")
         paasbeta_application_resource = ThirdPartyResource.get_or_create(
             metadata=metadata, description='A paas application definition', versions=[APIVersion(name='v1beta')])

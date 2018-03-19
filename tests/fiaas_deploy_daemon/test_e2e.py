@@ -1,19 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-from __future__ import print_function
-
 import contextlib
 import os
 import socket
 import subprocess
 import sys
 import time
-import traceback
 from copy import deepcopy
-from datetime import datetime
-from distutils.version import StrictVersion
-from urlparse import urljoin
+
 
 import pytest
 import re
@@ -26,14 +21,14 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
-from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
 from fiaas_deploy_daemon.tools import merge_dicts
-from minikube import MinikubeInstaller, MinikubeError
-from minikube.drivers import MinikubeDriverError
+from minikube import MinikubeError
+
+from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -43,83 +38,9 @@ PATIENCE = 30
 TIMEOUT = 5
 
 
-def _wait_until(action, description=None, exception_class=AssertionError, patience=PATIENCE):
-    """Attempt to call 'action' every 2 seconds, until it completes without exception or patience runs out"""
-    __tracebackhide__ = True
-
-    start = time_monotonic()
-    cause = []
-    if not description:
-        description = action.__doc__ or action.__name__
-    message = []
-    while time_monotonic() < (start + patience):
-        try:
-            action()
-            return
-        except BaseException:
-            cause = traceback.format_exception(*sys.exc_info())
-        time.sleep(2)
-    if cause:
-        message.append("\nThe last exception was:\n")
-        message.extend(cause)
-    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
-    message.insert(0, header)
-    raise exception_class("".join(message))
-
-
-def _tpr_available(kubernetes):
-    app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], PaasbetaStatus._meta.url_template.format(namespace="default", name=""))
-    session = requests.Session()
-    session.verify = kubernetes["api-cert"]
-    session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
-
-    def tpr_available():
-        plog("Checking if TPRs are available")
-        for url in (app_url, status_url):
-            plog("Checking %s" % url)
-            resp = session.get(url, timeout=TIMEOUT)
-            resp.raise_for_status()
-            plog("!!!!! %s is available !!!!" % url)
-
-    return tpr_available
-
-
-def _crd_available(kubernetes):
-    app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], FiaasStatus._meta.url_template.format(namespace="default", name=""))
-    session = requests.Session()
-    session.verify = kubernetes["api-cert"]
-    session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
-
-    def crd_available():
-        plog("Checking if CRDs are available")
-        for url in (app_url, status_url):
-            plog("Checking %s" % url)
-            resp = session.get(url, timeout=TIMEOUT)
-            resp.raise_for_status()
-            plog("!!!!! %s is available !!!!" % url)
-
-    return crd_available
-
-
 def _fixture_names(fixture_value):
     name, data = fixture_value
     return name
-
-
-@pytest.fixture(scope="session")
-def minikube_installer():
-    try:
-        mki = MinikubeInstaller()
-        mki.install()
-        yield mki
-        mki.cleanup()
-    except MinikubeDriverError as e:
-        pytest.skip(str(e))
-    except MinikubeError as e:
-        msg = "Unable to install minikube: %s"
-        pytest.fail(msg % str(e))
 
 
 @pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
@@ -129,9 +50,6 @@ def service_type(request):
 
 @pytest.mark.integration_test
 class TestE2E(object):
-    @pytest.fixture(scope="module", params=("v1.6.4", "v1.7.5", "v1.8.0", "v1.9.0"))
-    def k8s_version(self, request):
-        yield request.param
 
     @pytest.fixture(scope="module")
     def kubernetes(self, minikube_installer, service_type, k8s_version):
@@ -174,9 +92,9 @@ class TestE2E(object):
                 "--datadog-container-image", "DATADOG_IMAGE",
                 "--strongbox-init-container-image", "STRONGBOX_IMAGE",
                 ]
-        if _tpr_supported(k8s_version):
+        if tpr_supported(k8s_version):
             args.append("--enable-tpr-support")
-        if _crd_supported(k8s_version):
+        if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
 
@@ -185,11 +103,11 @@ class TestE2E(object):
             resp.raise_for_status()
 
         try:
-            _wait_until(ready, "web-interface healthy", RuntimeError)
-            if _tpr_supported(k8s_version):
-                _wait_until(_tpr_available(kubernetes), "TPR available", RuntimeError)
-            if _crd_supported(k8s_version):
-                _wait_until(_crd_available(kubernetes), "CRD available", RuntimeError)
+            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
+            if tpr_supported(k8s_version):
+                wait_until(tpr_available(kubernetes, timeout=TIMEOUT), "TPR available", RuntimeError, patience=PATIENCE)
+            if crd_supported(k8s_version):
+                wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(fdd)
@@ -359,10 +277,10 @@ class TestE2E(object):
             status = PaasbetaStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
 
-        _wait_until(_assert_status)
+        wait_until(_assert_status, patience=PATIENCE)
 
         # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
 
         # Redeploy, new image
         paasbetaapplication.spec.image = IMAGE2
@@ -370,7 +288,7 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2), patience=PATIENCE)
 
         # Cleanup
         PaasbetaApplication.delete(name)
@@ -380,7 +298,7 @@ class TestE2E(object):
                 with pytest.raises(NotFound):
                     kind.get(name)
 
-        _wait_until(cleanup_complete)
+        wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd")
     def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):
@@ -400,10 +318,10 @@ class TestE2E(object):
             status = FiaasStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
 
-        _wait_until(_assert_status)
+        wait_until(_assert_status, patience=PATIENCE)
 
         # Check deploy success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1))
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
 
         # Redeploy, new image
         fiaas_application.spec.image = IMAGE2
@@ -411,7 +329,7 @@ class TestE2E(object):
         fiaas_application.save()
 
         # Check success
-        _wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2))
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2), patience=PATIENCE)
 
         # Cleanup
         FiaasApplication.delete(name)
@@ -421,7 +339,7 @@ class TestE2E(object):
                 with pytest.raises(NotFound):
                     kind.get(name)
 
-        _wait_until(cleanup_complete)
+        wait_until(cleanup_complete, patience=PATIENCE)
 
 
 def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
@@ -441,26 +359,13 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
 
 
 def _skip_if_tpr_not_supported(k8s_version):
-    if not _tpr_supported(k8s_version):
+    if not tpr_supported(k8s_version):
         pytest.skip("TPR not supported in version %s of kubernetes, skipping this test" % k8s_version)
 
 
 def _skip_if_crd_not_supported(k8s_version):
-    if not _crd_supported(k8s_version):
+    if not crd_supported(k8s_version):
         pytest.skip("CRD not supported in version %s of kubernetes, skipping this test" % k8s_version)
-
-
-def _tpr_supported(k8s_version):
-    return StrictVersion("1.6.0") <= StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")
-
-
-def _crd_supported(k8s_version):
-    return StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
-
-
-def plog(message):
-    """Primitive logging"""
-    print("%s: %s" % (time.asctime(), message), file=sys.stderr)  # noqa: T001
 
 
 def _read_yml(yml_path):

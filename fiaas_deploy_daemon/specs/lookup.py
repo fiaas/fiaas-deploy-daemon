@@ -4,9 +4,13 @@
 import collections
 from itertools import izip_longest
 
+from .factory import InvalidConfiguration
+
 
 class _Lookup(object):
     def __init__(self, config, defaults):
+        if config and defaults and not isinstance(config, type(defaults)):
+            raise InvalidConfiguration("{!r} is not of the expected type {!r}".format(config, type(defaults)))
         self._config = config
         self._defaults = defaults
 

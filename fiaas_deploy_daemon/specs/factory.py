@@ -22,8 +22,11 @@ class SpecFactory(object):
         fiaas_version = app_config.get(u"version", 1)
         self._fiaas_counter.labels(fiaas_version).inc()
         LOG.info("Attempting to create app_spec for %s from fiaas.yml version %s", name, fiaas_version)
-        app_config = self.transform(app_config)
-        app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
+        try:
+            app_config = self.transform(app_config)
+            app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
+        except Exception as e:
+            raise InvalidConfiguration("Failed to parse configuration: {!s}".format(e))
         self._validate(app_spec)
         return app_spec
 

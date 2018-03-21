@@ -44,7 +44,7 @@ class CrdWatcher(DaemonThread):
 
     def _create_custom_resource_definitions(self):
         self._create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
-        self._create("Status", "statuses", ("status", "fs"), "fiaas.schibsted.io")
+        self._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
 
     def _create(self, kind, plural, short_names, group):
         name = "%s.%s" % (plural, group)

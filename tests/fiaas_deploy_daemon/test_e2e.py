@@ -28,7 +28,7 @@ from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
 
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
 from fiaas_deploy_daemon.tools import merge_dicts
@@ -87,7 +87,7 @@ def _tpr_available(kubernetes):
 
 def _crd_available(kubernetes):
     app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], FiaasStatus._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["server"], FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
@@ -397,7 +397,7 @@ class TestE2E(object):
 
         # Check that deployment status is RUNNING
         def _assert_status():
-            status = FiaasStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
 
         _wait_until(_assert_status)

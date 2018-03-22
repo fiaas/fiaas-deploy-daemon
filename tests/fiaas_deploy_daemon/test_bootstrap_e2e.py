@@ -24,27 +24,6 @@ from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicati
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
 
-# set up minikube
-# - wait for minikube being available
-# create TPR and/or CRD types
-# - wait for type being available
-# create Paasbeta/Fiaas application resource; keep total number of cases low
-# - check valid config
-# - check deploy to multiple namespaces
-# - check only deploy with correct label
-# - invalid config should cause bad exit status
-# run fiaas-deploy-daemon-bootstrap
-# - wait for execution to complete, check for exit status
-# wait for/assert results
-
-# dependencies/shared code
-# - minikube installer
-#   - can be shared and kept as per-session fixture = faster
-# - wait_for
-# - crd/tpr available
-# plog?
-
-# modify FixtureScheduling to run tests in parallell in the same way as test_e2e
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -78,11 +57,6 @@ TEST_CASES = (
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
 )
-
-
-def test_case_name(test_case):
-    name, _ = test_case
-    return name
 
 
 def file_relative_path(relative_path):

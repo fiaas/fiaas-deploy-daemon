@@ -80,6 +80,7 @@ class Bootstrapper(object):
             except BaseException:
                 LOG.exception("Caught exception when deploying {name} in namespace {namespace}".format(
                     name=application.metadata.name, namespace=application.metadata.namespace))
+                raise
 
         return self._wait_for_readiness(wait_time_seconds=2, timeout_seconds=60)
 
@@ -119,6 +120,6 @@ class Bootstrapper(object):
             message = "Timed out after waiting {}s  for applications to become ready.\n".format(timeout_seconds)
             message += "Applications which failed to become ready:\n"
             for name, namespace, status in self._status_collector.items():
-                message += "{} in namespace {} had final state {}".format(name, namespace, status)
+                message += "{} in namespace {} had final state {}\n".format(name, namespace, status)
             LOG.error(message)
             return False

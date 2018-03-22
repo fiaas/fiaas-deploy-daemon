@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "true"
+  labels:
+    app: specs-v2-data-examples-v2bootstrap
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: "1"
+    fiaas/version: 1.13.9-alpine
+  name: specs-v2-data-examples-v2bootstrap
+  namespace: default
+spec:
+  tls: []
+  rules:
+  - host: bootstrap.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: specs-v2-data-examples-v2bootstrap
+          servicePort: "80"
+        path: /

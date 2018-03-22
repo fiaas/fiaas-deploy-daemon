@@ -7,13 +7,10 @@ import socket
 import subprocess
 import sys
 import time
-from copy import deepcopy
 
 
 import pytest
-import re
 import requests
-import yaml
 from k8s import config
 from k8s.client import NotFound, Client
 from k8s.models.autoscaler import HorizontalPodAutoscaler
@@ -28,7 +25,9 @@ from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicati
 from fiaas_deploy_daemon.tools import merge_dicts
 from minikube import MinikubeError
 
-from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported
+from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
+
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -163,12 +162,12 @@ class TestE2E(object):
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
-        _skip_if_tpr_not_supported(k8s_version)
+        skip_if_tpr_not_supported(k8s_version)
 
-        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {kind: _read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
-        name = self._sanitize(fiaas_path)
+        name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
         return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
@@ -225,19 +224,14 @@ class TestE2E(object):
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected = request.param
 
-        _skip_if_crd_not_supported(k8s_version)
-        fiaas_yml = _read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {kind: _read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+        skip_if_crd_not_supported(k8s_version)
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
-        name = self._sanitize(fiaas_path)
+        name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
-
-    @staticmethod
-    def _sanitize(param):
-        """must match the regex [a-z]([-a-z0-9]*[a-z0-9])?"""
-        return re.sub("[^-a-z0-9]", "-", param.replace(".yml", ""))
 
     @staticmethod
     def _end_popen(popen):
@@ -353,111 +347,6 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
 
         for kind, expected_dict in expected.items():
             actual = kind.get(name)
-            _assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id)
+            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id)
 
     return action
-
-
-def _skip_if_tpr_not_supported(k8s_version):
-    if not tpr_supported(k8s_version):
-        pytest.skip("TPR not supported in version %s of kubernetes, skipping this test" % k8s_version)
-
-
-def _skip_if_crd_not_supported(k8s_version):
-    if not crd_supported(k8s_version):
-        pytest.skip("CRD not supported in version %s of kubernetes, skipping this test" % k8s_version)
-
-
-def _read_yml(yml_path):
-    with open(yml_path, 'r') as fobj:
-        yml = yaml.safe_load(fobj)
-    return yml
-
-
-def _assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id):
-    actual_dict = deepcopy(resource.as_dict())
-    expected_dict = deepcopy(expected_dict)
-
-    # set expected test parameters
-    _set_labels(expected_dict, image, deployment_id)
-
-    if expected_dict["kind"] == "Deployment":
-        _set_image(expected_dict, image)
-        _set_env(expected_dict, image)
-        _set_labels(expected_dict["spec"]["template"], image, deployment_id)
-
-    if expected_dict["kind"] == "Service":
-        _set_service_type(expected_dict, service_type)
-
-    # the k8s client library doesn't return apiVersion or kind, so ignore those fields
-    del expected_dict['apiVersion']
-    del expected_dict['kind']
-
-    # delete auto-generated k8s fields that we can't control in test data and/or don't care about testing
-    _ensure_key_missing(actual_dict, "metadata", "creationTimestamp")  # the time at which the resource was created
-    # indicates how many times the resource has been modified
-    _ensure_key_missing(actual_dict, "metadata", "generation")
-    # resourceVersion is used to handle concurrent updates to the same resource
-    _ensure_key_missing(actual_dict, "metadata", "resourceVersion")
-    _ensure_key_missing(actual_dict, "metadata", "selfLink")   # a API link to the resource itself
-    # a unique id randomly for the resource generated on the Kubernetes side
-    _ensure_key_missing(actual_dict, "metadata", "uid")
-    # an internal annotation used to track ReplicaSets tied to a particular version of a Deployment
-    _ensure_key_missing(actual_dict, "metadata", "annotations", "deployment.kubernetes.io/revision")
-    # status is managed by Kubernetes itself, and is not part of the configuration of the resource
-    _ensure_key_missing(actual_dict, "status")
-    # autoscaling.alpha.kubernetes.io/conditions is automatically set when converting from
-    # autoscaling/v2beta.HorizontalPodAutoscaler to autoscaling/v1.HorizontalPodAutoscaler internally in Kubernetes
-    if isinstance(resource, HorizontalPodAutoscaler):
-        _ensure_key_missing(actual_dict, "metadata", "annotations", "autoscaling.alpha.kubernetes.io/conditions")
-    # pod.alpha.kubernetes.io/init-containers
-    # pod.beta.kubernetes.io/init-containers
-    # pod.alpha.kubernetes.io/init-container-statuses
-    # pod.beta.kubernetes.io/init-container-statuses
-    # are automatically set when converting from core.Pod to v1.Pod internally in Kubernetes (in some versions)
-    if isinstance(resource, Deployment):
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-container-statuses")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-container-statuses")
-    if isinstance(resource, Service):
-        _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
-        for port in actual_dict["spec"]["ports"]:
-            _ensure_key_missing(port, "nodePort")  # an available port is randomly picked from the nodePort range
-
-    pytest.helpers.assert_dicts(actual_dict, expected_dict)
-
-
-def _set_image(expected_dict, image):
-    expected_dict["spec"]["template"]["spec"]["containers"][0]["image"] = image
-
-
-def _set_env(expected_dict, image):
-    def generate_updated_env():
-        for item in expected_dict["spec"]["template"]["spec"]["containers"][0]["env"]:
-            if item["name"] == "VERSION":
-                item["value"] = image.split(":")[-1]
-            if item["name"] == "IMAGE":
-                item["value"] = image
-            yield item
-    expected_dict["spec"]["template"]["spec"]["containers"][0]["env"] = list(generate_updated_env())
-
-
-def _set_labels(expected_dict, image, deployment_id):
-    expected_dict["metadata"]["labels"]["fiaas/version"] = image.split(":")[-1]
-    expected_dict["metadata"]["labels"]["fiaas/deployment_id"] = deployment_id
-
-
-def _set_service_type(expected_dict, service_type):
-    expected_dict["spec"]["type"] = service_type
-
-
-def _ensure_key_missing(d, *keys):
-    key = keys[0]
-    try:
-        if len(keys) > 1:
-            _ensure_key_missing(d[key], *keys[1:])
-        else:
-            del d[key]
-    except KeyError:
-        pass  # key was already missing

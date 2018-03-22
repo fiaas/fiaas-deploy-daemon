@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: specs-v3-data-examples-v3bootstrap
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: "1"
+    fiaas/version: 1.13.9-alpine
+  name: specs-v3-data-examples-v3bootstrap
+  namespace: kube-system
+spec:
+  ports:
+  - name: http
+    port: 80
+    protocol: TCP
+    targetPort: "80"
+  selector:
+    app: specs-v3-data-examples-v3bootstrap
+  sessionAffinity: None
+  type: ClusterIP
+  loadBalancerSourceRanges: []

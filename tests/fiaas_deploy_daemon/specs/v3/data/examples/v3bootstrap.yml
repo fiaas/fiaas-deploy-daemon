@@ -1,0 +1,10 @@
+---
+version: 3
+ingress:
+- host: bootstrap.example.com
+healthchecks:
+  liveness:
+    http:
+     path: /
+ports:
+- target_port: 80

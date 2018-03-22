@@ -1,0 +1,158 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    app: specs-v3-data-examples-v3bootstrap
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: "1"
+    fiaas/version: 1.13.9-alpine
+  name: specs-v3-data-examples-v3bootstrap
+  namespace: kube-system
+spec:
+  replicas: 5
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: specs-v3-data-examples-v3bootstrap
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "80"
+        prometheus.io/scrape: "true"
+      labels:
+        app: specs-v3-data-examples-v3bootstrap
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: "1"
+        fiaas/status: active
+        fiaas/version: 1.13.9-alpine
+      name: specs-v3-data-examples-v3bootstrap
+      namespace: kube-system
+    spec:
+      initContainers: []
+      automountServiceAccountToken: false
+      containers:
+      - command: []
+        env:
+        - name: ARTIFACT_NAME
+          value: specs-v3-data-examples-v3bootstrap
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: 1.13.9-alpine
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-,kubernetes,
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_ENVIRONMENT
+        - name: LOG_FORMAT
+          value: json
+        - name: IMAGE
+          value: nginx:1.13.9-alpine
+        - name: FINN_ENV
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v3-data-examples-v3bootstrap
+              divisor: "1"
+              resource: requests.cpu
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v3-data-examples-v3bootstrap
+              divisor: "1"
+              resource: requests.memory
+        - name: FIAAS_LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v3-data-examples-v3bootstrap
+              divisor: "1"
+              resource: limits.cpu
+        - name: FIAAS_LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v3-data-examples-v3bootstrap
+              divisor: "1"
+              resource: limits.memory
+        - name: FIAAS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        - name: FIAAS_POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        envFrom:
+        - configMapRef:
+            name: specs-v3-data-examples-v3bootstrap
+            optional: true
+        image: nginx:1.13.9-alpine
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: specs-v3-data-examples-v3bootstrap
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: specs-v3-data-examples-v3bootstrap-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: specs-v3-data-examples-v3bootstrap-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      imagePullSecrets: []
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: specs-v3-data-examples-v3bootstrap-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: specs-v3-data-examples-v3bootstrap
+      - configMap:
+          defaultMode: 420
+          name: specs-v3-data-examples-v3bootstrap
+          optional: true
+        name: specs-v3-data-examples-v3bootstrap-config
+      - name: tmp

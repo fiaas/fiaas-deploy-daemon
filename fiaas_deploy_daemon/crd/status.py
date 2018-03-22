@@ -7,8 +7,8 @@ import struct
 from blinker import signal
 
 from k8s.models.common import ObjectMeta
-from .types import FiaasStatus
 from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from .types import FiaasApplicationStatus
 
 
 def connect_signals():
@@ -23,7 +23,7 @@ def _handle_signal(result, sender, app_spec):
         "app": app_spec.name,
         "fiaas/deployment_id": app_spec.deployment_id
     })
-    status = FiaasStatus.get_or_create(metadata=metadata, result=result)
+    status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result)
     status.save()
 
 

@@ -4,8 +4,8 @@ from __future__ import unicode_literals, absolute_import
 
 import pytest
 
+from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import LookupMapping
-
 
 CONFIG = {
     "object": {
@@ -56,3 +56,28 @@ class TestLookup(object):
 
     def test_items(self, lookup):
         assert lookup["object"].items() == [("simple", 1), ("complex", {"first": 1, "second": 2})]
+
+    @pytest.mark.parametrize("config,defaults", (
+        (CONFIG, 1),
+        (CONFIG, True),
+        (CONFIG, "string"),
+        (1, DEFAULTS),
+        (True, DEFAULTS),
+        ("string", DEFAULTS)
+    ))
+    def test_incompatible_types(self, config, defaults):
+        with pytest.raises(InvalidConfiguration):
+            LookupMapping(config, defaults)
+
+    @pytest.mark.parametrize("config,defaults", (
+        (None, 1),
+        (None, True),
+        (None, "string"),
+        (None, DEFAULTS),
+        (1, None),
+        (True, None),
+        ("string", None),
+        (CONFIG, None)
+    ))
+    def test_ignore_empty(self, config, defaults):
+        LookupMapping(config, defaults)

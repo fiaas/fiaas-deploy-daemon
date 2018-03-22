@@ -19,7 +19,7 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus, FiaasApplicationSpec
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
 from fiaas_deploy_daemon.tools import merge_dicts
@@ -309,7 +309,7 @@ class TestE2E(object):
 
         # Check that deployment status is RUNNING
         def _assert_status():
-            status = FiaasStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
 
         wait_until(_assert_status, patience=PATIENCE)

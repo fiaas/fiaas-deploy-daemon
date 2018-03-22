@@ -18,7 +18,7 @@ import requests
 import yaml
 
 
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasStatus
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaStatus
 
 
@@ -71,7 +71,7 @@ def tpr_available(kubernetes, timeout=5):
 
 def crd_available(kubernetes, timeout=5):
     app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], FiaasStatus._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["server"], FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])

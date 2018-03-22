@@ -75,3 +75,16 @@ class TestSpecFactory(object):
         v3.return_value = expected
         actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
         assert actual == expected
+
+    @pytest.mark.parametrize("exception", (
+        AttributeError,
+        KeyError,
+        IndexError,
+        ValueError,
+        TypeError,
+        NameError
+    ))
+    def test_parse_errors_raises_invalid_config(self, factory, v3, exception):
+        v3.side_effect = exception
+        with pytest.raises(InvalidConfiguration):
+            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)

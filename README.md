@@ -8,6 +8,8 @@
 
 ---
 
+Note: The master branch of this repository will be synchronised to https://github.com/fiaas/fiaas-deploy-daemon regularly. Please consider this before committing internal or otherwise sensitive information.
+
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
 
 When you first run gradle, it will install `pew`, and use it to create a virtualenv

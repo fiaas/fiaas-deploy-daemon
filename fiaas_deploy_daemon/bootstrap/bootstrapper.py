@@ -116,10 +116,10 @@ class Bootstrapper(object):
                 return True
             else:
                 time.sleep(wait_time_seconds)
-        else:
-            message = "Timed out after waiting {}s  for applications to become ready.\n".format(timeout_seconds)
-            message += "Applications which failed to become ready:\n"
-            for name, namespace, status in self._status_collector.items():
-                message += "{} in namespace {} had final state {}\n".format(name, namespace, status)
-            LOG.error(message)
-            return False
+
+        message = "Timed out after waiting {}s  for applications to become ready.\n".format(timeout_seconds)
+        message += "Applications which failed to become ready:\n"
+        for name, namespace, status in self._status_collector.items():
+            message += "{} in namespace {} had final state {}\n".format(name, namespace, status)
+        LOG.error(message)
+        return False

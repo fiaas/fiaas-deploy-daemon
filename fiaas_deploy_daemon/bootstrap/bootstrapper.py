@@ -37,17 +37,12 @@ class StatusCollector(object):
 
     def items(self):
         for key, status in self._statuses.iteritems():
-            name, namespace = self._unkey(key)
+            name, namespace = key
             yield name, namespace, status
 
     @staticmethod
     def _key(app_spec):
-        return ".".join((app_spec.name, app_spec.namespace))
-
-    @staticmethod
-    def _unkey(key):
-        name, namespace = key.split(".")
-        return name, namespace
+        return (app_spec.name, app_spec.namespace)
 
 
 class Bootstrapper(object):

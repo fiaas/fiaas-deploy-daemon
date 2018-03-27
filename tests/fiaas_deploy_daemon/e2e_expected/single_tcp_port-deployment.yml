@@ -33,7 +33,8 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - env:
+      - command: []
+        env:
         - name: ARTIFACT_NAME
           value: v2-data-examples-single-tcp-port
         - name: LOG_STDOUT

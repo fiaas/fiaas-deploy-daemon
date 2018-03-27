@@ -4,15 +4,19 @@
 from blinker import signal
 from prometheus_client import Counter, Gauge, Histogram
 
+DEPLOY_FAILED = "deploy_failed"
+DEPLOY_STARTED = "deploy_started"
+DEPLOY_SUCCESS = "deploy_success"
+
 
 class Bookkeeper(object):
     """Measures time, fails and successes"""
     deploy_gauge = Gauge("deployer_requests", "Request to deploy an app", ["app"])
-    deploy_signal = signal("deploy_started", "Signals start of deployment")
+    deploy_signal = signal(DEPLOY_STARTED, "Signals start of deployment")
     error_counter = Counter("deployer_errors", "Deploy failed", ["app"])
-    error_signal = signal("deploy_failed", "Signals a failed deployment")
+    error_signal = signal(DEPLOY_FAILED, "Signals a failed deployment")
     success_counter = Counter("deployer_success", "Deploy successful", ["app"])
-    success_signal = signal("deploy_success", "Signals a successful deployment")
+    success_signal = signal(DEPLOY_SUCCESS, "Signals a successful deployment")
     deploy_histogram = Histogram("deployer_time_to_deploy", "Time spent on each deploy")
 
     def time(self, app_spec):

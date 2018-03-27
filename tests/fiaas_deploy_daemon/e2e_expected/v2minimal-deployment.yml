@@ -37,7 +37,8 @@ spec:
     spec:
       automountServiceAccountToken: false
       containers:
-      - env:
+      - command: []
+        env:
         - name: ARTIFACT_NAME
           value: data-v2minimal
         - name: LOG_STDOUT

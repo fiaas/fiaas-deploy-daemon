@@ -9,7 +9,6 @@ kubernetes_minor_version() {
     [[ $git_version =~ $regex ]] && echo "${BASH_REMATCH[1]}"
 }
 
-export NAMESPACE="${NAMESPACE:-default}"
 KUBECONFIG_JSON="$(kubectl config view -o json)"
 export KUBECONFIG_JSON
 API_SERVER="$(jq -r '.clusters[] | select(.name == "minikube") | .cluster.server' <<< "$KUBECONFIG_JSON")"
@@ -21,10 +20,6 @@ ARGS=(
 '--api-server' "$API_SERVER"
 '--client-cert' "$CLIENT_CERT"
 '--client-key' "$CLIENT_KEY"
-'--service-type' 'ClusterIP'
-'--ingress-suffix' "$(minikube ip).xip.io"
-'--environment' 'test'
-'--datadog-container-image' 'datadog/docker-dd-agent:12.2.5172-alpine'
 )
 
 if [[ "$SERVER_MINOR_VERSION" -gt 6 ]]
@@ -37,4 +32,4 @@ then
     ARGS=("${ARGS[@]}" '--enable-tpr-support')
 fi
 
-fiaas-deploy-daemon "${ARGS[@]}"
+fiaas-deploy-daemon-bootstrap "${ARGS[@]}"

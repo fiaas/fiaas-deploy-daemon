@@ -1,0 +1,19 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  annotations:
+  labels:
+    app: specs-v3-data-examples-v3bootstrap
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: "1"
+    fiaas/version: 1.13.9-alpine
+  name: specs-v3-data-examples-v3bootstrap
+  namespace: kube-system
+spec:
+  maxReplicas: 5
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: specs-v3-data-examples-v3bootstrap
+  targetCPUUtilizationPercentage: 50

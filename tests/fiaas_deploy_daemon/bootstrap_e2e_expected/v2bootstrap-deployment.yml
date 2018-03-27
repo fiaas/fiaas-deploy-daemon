@@ -3,18 +3,18 @@ kind: Deployment
 metadata:
   annotations: {}
   labels:
-    app: v2-data-examples-host
+    app: specs-v2-data-examples-v2bootstrap
     fiaas/deployed_by: ""
-    fiaas/deployment_id: DEPLOYMENT_ID
-    fiaas/version: VERSION
-  name: v2-data-examples-host
+    fiaas/deployment_id: "1"
+    fiaas/version: 1.13.9-alpine
+  name: specs-v2-data-examples-v2bootstrap
   namespace: default
 spec:
   replicas: 2
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      app: v2-data-examples-host
+      app: specs-v2-data-examples-v2bootstrap
   strategy:
     rollingUpdate:
       maxSurge: 1
@@ -27,75 +27,74 @@ spec:
         prometheus.io/port: "80"
         prometheus.io/scrape: "true"
       labels:
-        app: v2-data-examples-host
+        app: specs-v2-data-examples-v2bootstrap
         fiaas/deployed_by: ""
-        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/deployment_id: "1"
         fiaas/status: active
-        fiaas/version: VERSION
-      name: v2-data-examples-host
+        fiaas/version: 1.13.9-alpine
+      name: specs-v2-data-examples-v2bootstrap
       namespace: default
     spec:
+      initContainers: []
       automountServiceAccountToken: false
       containers:
       - command: []
         env:
         - name: ARTIFACT_NAME
-          value: v2-data-examples-host
+          value: specs-v2-data-examples-v2bootstrap
         - name: LOG_STDOUT
           value: "true"
         - name: VERSION
-          value: VERSION
+          value: 1.13.9-alpine
         - name: CONSTRETTO_TAGS
-          value: kubernetes-test,kubernetes,test
+          value: kubernetes-,kubernetes,
         - name: FIAAS_INFRASTRUCTURE
           value: diy
         - name: FIAAS_ENVIRONMENT
-          value: test
         - name: LOG_FORMAT
           value: json
         - name: IMAGE
-          value: IMAGE
+          value: nginx:1.13.9-alpine
         - name: FINN_ENV
-          value: test
         - name: FIAAS_REQUESTS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: requests.cpu
+              containerName: specs-v2-data-examples-v2bootstrap
               divisor: "1"
+              resource: requests.cpu
         - name: FIAAS_REQUESTS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: requests.memory
+              containerName: specs-v2-data-examples-v2bootstrap
               divisor: "1"
+              resource: requests.memory
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: limits.cpu
+              containerName: specs-v2-data-examples-v2bootstrap
               divisor: "1"
+              resource: limits.cpu
         - name: FIAAS_LIMITS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: limits.memory
+              containerName: specs-v2-data-examples-v2bootstrap
               divisor: "1"
+              resource: limits.memory
         - name: FIAAS_NAMESPACE
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.namespace
-              apiVersion: "v1"
         - name: FIAAS_POD_NAME
           valueFrom:
             fieldRef:
+              apiVersion: v1
               fieldPath: metadata.name
-              apiVersion: "v1"
         envFrom:
         - configMapRef:
-            name: v2-data-examples-host
+            name: specs-v2-data-examples-v2bootstrap
             optional: true
-        image: IMAGE
+        image: nginx:1.13.9-alpine
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -108,7 +107,7 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-        name: v2-data-examples-host
+        name: specs-v2-data-examples-v2bootstrap
         ports:
         - containerPort: 80
           name: http
@@ -126,28 +125,27 @@ spec:
           timeoutSeconds: 1
         volumeMounts:
         - mountPath: /var/run/secrets/fiaas/
-          name: v2-data-examples-host-secret
+          name: specs-v2-data-examples-v2bootstrap-secret
           readOnly: true
         - mountPath: /var/run/config/fiaas/
-          name: v2-data-examples-host-config
+          name: specs-v2-data-examples-v2bootstrap-config
           readOnly: true
         - mountPath: /tmp
           name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
+      imagePullSecrets: []
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: v2-data-examples-host-secret
+      - name: specs-v2-data-examples-v2bootstrap-secret
         secret:
           defaultMode: 420
           optional: true
-          secretName: v2-data-examples-host
+          secretName: specs-v2-data-examples-v2bootstrap
       - configMap:
           defaultMode: 420
-          name: v2-data-examples-host
+          name: specs-v2-data-examples-v2bootstrap
           optional: true
-        name: v2-data-examples-host-config
+        name: specs-v2-data-examples-v2bootstrap-config
       - name: tmp
-      initContainers: []
-      imagePullSecrets: []

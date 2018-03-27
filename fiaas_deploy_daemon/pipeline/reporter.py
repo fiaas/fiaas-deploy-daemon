@@ -6,6 +6,8 @@ import posixpath
 import logging
 from blinker import signal
 
+from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+
 
 class Reporter(object):
     """Report results of deployments to pipeline"""
@@ -15,9 +17,9 @@ class Reporter(object):
         self._session = session
         self._callback_urls = {}
         self._logger = logging.getLogger(__name__)
-        signal("deploy_started").connect(self._handle_started)
-        signal("deploy_success").connect(self._handle_success)
-        signal("deploy_failed").connect(self._handle_failure)
+        signal(DEPLOY_STARTED).connect(self._handle_started)
+        signal(DEPLOY_SUCCESS).connect(self._handle_success)
+        signal(DEPLOY_FAILED).connect(self._handle_failure)
 
     def register(self, app_spec, url):
         self._callback_urls[(app_spec.name, app_spec.deployment_id)] = url

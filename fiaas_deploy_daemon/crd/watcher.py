@@ -38,15 +38,17 @@ class CrdWatcher(DaemonThread):
             for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)
         except NotFound:
-            self._create_custom_resource_definitions()
+            self.create_custom_resource_definitions()
         except Exception:
             LOG.exception("Error while watching for changes on FiaasApplications")
 
-    def _create_custom_resource_definitions(self):
-        self._create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
-        self._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
+    @classmethod
+    def create_custom_resource_definitions(cls):
+        cls._create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
+        cls._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
 
-    def _create(self, kind, plural, short_names, group):
+    @staticmethod
+    def _create(kind, plural, short_names, group):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)

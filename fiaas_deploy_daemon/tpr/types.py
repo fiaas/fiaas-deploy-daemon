@@ -17,6 +17,7 @@ class PaasbetaApplicationSpec(Model):
 
 class PaasbetaApplication(Model):
     class Meta:
+        list_url = "/apis/schibsted.io/v1beta/paasbetaapplications"
         url_template = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetaapplications/{name}"
         watch_list_url = "/apis/schibsted.io/v1beta/watch/paasbetaapplications"
         watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetaapplications"
@@ -31,6 +32,7 @@ class PaasbetaApplication(Model):
 
 class PaasbetaStatus(Model):
     class Meta:
+        list_url = "/apis/schibsted.io/v1beta/paasbetastatuses"
         url_template = "/apis/schibsted.io/v1beta/namespaces/{namespace}/paasbetastatuses/{name}"
         watch_list_url = "/apis/schibsted.io/v1beta/watch/paasbetastatuses"
         watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetastatuses"

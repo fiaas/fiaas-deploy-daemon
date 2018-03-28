@@ -466,6 +466,16 @@ class TestIngressDeployer(object):
         ]
         return IngressDeployer(config)
 
+    @pytest.fixture
+    def deployer_no_suffix(self):
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.ingress_suffixes = []
+        config.host_rewrite_rules = [
+            HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
+            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
+        ]
+        return IngressDeployer(config)
+
     def pytest_generate_tests(self, metafunc):
         fixtures = ("app_spec", "expected_ingress")
         if metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_ingress_deploy" and \
@@ -488,6 +498,13 @@ class TestIngressDeployer(object):
         app_spec = request.getfuncargvalue(spec_name)
 
         deployer.deploy(app_spec, LABELS)
+
+        pytest.helpers.assert_no_calls(post, INGRESSES_URI)
+        pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")
+
+    @pytest.mark.usefixtures("get")
+    def test_no_ingress(self, delete, post, deployer_no_suffix, app_spec):
+        deployer_no_suffix.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")

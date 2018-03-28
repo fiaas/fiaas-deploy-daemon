@@ -69,9 +69,11 @@ class IngressDeployer(object):
                 return rule.apply(host)
         return host
 
-    @staticmethod
-    def _should_have_ingress(app_spec):
-        return len(app_spec.ingresses) > 0 and any(port.protocol == u"http" for port in app_spec.ports)
+    def _should_have_ingress(self, app_spec):
+        return self._can_generate_host(app_spec) and _has_ingress(app_spec) and _has_http_port(app_spec)
+
+    def _can_generate_host(self, app_spec):
+        return len(self._ingress_suffixes) > 0 or _has_explicitly_set_host(app_spec)
 
     @staticmethod
     def _make_http_ingress_rule_value(app_spec, pathmappings):
@@ -84,6 +86,14 @@ class IngressDeployer(object):
 
 def _has_explicitly_set_host(app_spec):
     return any(ingress.host is not None for ingress in app_spec.ingresses)
+
+
+def _has_http_port(app_spec):
+    return any(port.protocol == u"http" for port in app_spec.ports)
+
+
+def _has_ingress(app_spec):
+    return len(app_spec.ingresses) > 0
 
 
 def _deduplicate_in_order(iterator):

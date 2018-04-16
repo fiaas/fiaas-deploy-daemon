@@ -3,7 +3,7 @@ set -euo pipefail
 IFS=$'\n\t'
 
 kubernetes_minor_version() {
-    local regex='v[0-9]\.([0-9])\.[0-9]+'
+    local regex='v[0-9]\.([0-9]*)\.[0-9]+'
     local git_version
     git_version="$(kubectl version -o json | jq -r '.serverVersion.gitVersion')"
     [[ $git_version =~ $regex ]] && echo "${BASH_REMATCH[1]}"

@@ -6,7 +6,8 @@ ingress:
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
     schibsted.io/heimdall: "true"
-    fiaas/log-aggregation: sumologic
+annotations:
+  fiaas/log-aggregation: sumologic
 environment: pro
 TPR: true
 CRD: false

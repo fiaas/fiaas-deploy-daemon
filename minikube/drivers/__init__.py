@@ -5,9 +5,10 @@ import logging
 
 from .virtualbox import VBoxDriverLinux, VBoxDriverMac
 from .xhyve import XHyveDriver
+from .kvm import KVMDriver
 
 LOG = logging.getLogger(__name__)
-DRIVERS = [XHyveDriver(), VBoxDriverLinux(), VBoxDriverMac()]
+DRIVERS = [XHyveDriver(), KVMDriver(), VBoxDriverLinux(), VBoxDriverMac()]
 
 
 def select_driver(minikube_version):

@@ -23,7 +23,7 @@ spec:
         prometheus.io/port: http5000
         prometheus.io/scrape: "true"
         checksum/config: {{ include (print $.Template.BasePath "/config_map.yaml") . | sha256sum }}
-        {{- range $key, $value := .Values.annotations }}
+        {{- range $key, $value := .Values.pod.annotations }}
         {{ $key }}: {{ $value }}
         {{- end }}
       labels:

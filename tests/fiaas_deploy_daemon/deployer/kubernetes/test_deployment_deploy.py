@@ -137,7 +137,7 @@ class TestDeploymentDeployer(object):
         )
 
     @pytest.mark.usefixtures("get")
-    def test_deploy_new_deployment(self, request, post, config, app_spec):
+    def test_deploy_new_deployment(self, post, config, app_spec):
 
         expected_deployment = create_expected_deployment(config, app_spec)
 
@@ -145,6 +145,22 @@ class TestDeploymentDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
+
+    def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec):
+        old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
+        old_app_spec = app_spec._replace(replicas=10, strongbox=old_strongbox_spec)
+        old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = old_deployment
+        get.side_effect = None
+        get.return_value = mock_response
+
+        expected_deployment = create_expected_deployment(config, app_spec)
+
+        deployer = DeploymentDeployer(config)
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 3),
@@ -239,7 +255,12 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
-def create_expected_deployment(config, app_spec, image='finntech/testimage:version', version="version", replicas=None):
+def create_expected_deployment(config,
+                               app_spec,
+                               image='finntech/testimage:version',
+                               version="version",
+                               replicas=None,
+                               add_init_container_annotations=False):
     uses_secrets_init_container = bool(config.secrets_init_container_image)
     uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
     expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
@@ -384,7 +405,11 @@ def create_expected_deployment(config, app_spec, image='finntech/testimage:versi
 
     pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else {}
     strongbox_annotations = {"iam.amazonaws.com/role": app_spec.strongbox.iam_role} if uses_strongbox_init_container else {}
-    pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations))
+    init_container_annotations = {
+        "pod.alpha.kubernetes.io/init-containers": 'some data',
+        "pod.beta.kubernetes.io/init-containers":  'some data'
+    } if add_init_container_annotations else {}
+    pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations, init_container_annotations))
 
     deployment = {
         'metadata': pytest.helpers.create_metadata(app_spec.name,

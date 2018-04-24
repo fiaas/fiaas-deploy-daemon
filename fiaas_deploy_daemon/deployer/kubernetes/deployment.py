@@ -118,6 +118,7 @@ class DeploymentDeployer(object):
                               template=pod_template_spec, revisionHistoryLimit=5)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
+        _clear_pod_init_container_annotations(deployment)
         deployment.save()
 
     def _create_datadog_container(self, app_spec):
@@ -221,6 +222,23 @@ class DeploymentDeployer(object):
 
     def _uses_strongbox_init_container(self, app_spec):
         return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
+
+
+def _clear_pod_init_container_annotations(deployment):
+    """Kubernetes 1.5 implemented init-containers using annotations, and in order to preserve backwards compatibility in
+    1.6 and 1.7, those annotations take precedence over the actual initContainer element in the spec object. In order to
+    ensure that any changes we make take effect, we clear the annotations.
+    """
+    keys_to_clear = set()
+    try:
+        if deployment.spec.template.metadata.annotations:
+            for key, _ in deployment.spec.template.metadata.annotations.items():
+                if key.endswith("kubernetes.io/init-containers"):
+                    keys_to_clear.add(key)
+            for key in keys_to_clear:
+                del deployment.spec.template.metadata.annotations[key]
+    except AttributeError:
+        pass
 
 
 def _add_status_label(labels):

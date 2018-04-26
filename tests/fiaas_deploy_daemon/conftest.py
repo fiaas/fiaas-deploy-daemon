@@ -174,7 +174,7 @@ def _open():
 @pytest.fixture(scope="session")
 def minikube_installer():
     try:
-        mki = MinikubeInstaller()
+        mki = MinikubeInstaller(minikube_version="v0.25.2")
         mki.install()
         yield mki
         mki.cleanup()

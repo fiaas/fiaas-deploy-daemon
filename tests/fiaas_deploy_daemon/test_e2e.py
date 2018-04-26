@@ -159,6 +159,12 @@ class TestE2E(object):
                 Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
             }),
+            ("v3/data/examples/strongbox.yml", {
+                Service: "e2e_expected/strongbox-service.yml",
+                Deployment: "e2e_expected/strongbox-deployment.yml",
+                Ingress: "e2e_expected/strongbox-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
+            }),
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
@@ -170,6 +176,7 @@ class TestE2E(object):
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
 
     @pytest.fixture(ids=_fixture_names, params=(
@@ -220,6 +227,12 @@ class TestE2E(object):
                 Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
             }),
+            ("v3/data/examples/strongbox.yml", {
+                Service: "e2e_expected/strongbox-service.yml",
+                Deployment: "e2e_expected/strongbox-deployment.yml",
+                Ingress: "e2e_expected/strongbox-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
+            }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected = request.param
@@ -231,7 +244,16 @@ class TestE2E(object):
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
+
+    def _ensure_clean(self, name, expected):
+        kinds = self._select_kinds(expected)
+        for kind in kinds:
+            try:
+                kind.delete(name)
+            except NotFound:
+                pass
 
     @staticmethod
     def _end_popen(popen):
@@ -276,13 +298,17 @@ class TestE2E(object):
         # Check deploy success
         wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
 
-        # Redeploy, new image
+        # Redeploy, new image, possibly new init-container
         paasbetaapplication.spec.image = IMAGE2
         paasbetaapplication.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        strongbox_groups = []
+        if "strongbox" in name:
+            strongbox_groups = ["foo", "bar"]
+            paasbetaapplication.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
         paasbetaapplication.save()
 
         # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2), patience=PATIENCE)
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups), patience=PATIENCE)
 
         # Cleanup
         PaasbetaApplication.delete(name)
@@ -317,13 +343,17 @@ class TestE2E(object):
         # Check deploy success
         wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
 
-        # Redeploy, new image
+        # Redeploy, new image, possibly new init-container
         fiaas_application.spec.image = IMAGE2
         fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        strongbox_groups = []
+        if "strongbox" in name:
+            strongbox_groups = ["foo", "bar"]
+            fiaas_application.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
         fiaas_application.save()
 
         # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2), patience=PATIENCE)
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups), patience=PATIENCE)
 
         # Cleanup
         FiaasApplication.delete(name)
@@ -336,7 +366,7 @@ class TestE2E(object):
         wait_until(cleanup_complete, patience=PATIENCE)
 
 
-def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
+def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None):
     def action():
         for kind in kinds:
             assert kind.get(name)
@@ -347,6 +377,6 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id):
 
         for kind, expected_dict in expected.items():
             actual = kind.get(name)
-            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id)
+            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups)
 
     return action

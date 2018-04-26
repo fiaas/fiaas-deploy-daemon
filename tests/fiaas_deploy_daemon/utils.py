@@ -116,7 +116,7 @@ def sanitize_resource_name(yml_path):
     return re.sub("[^-a-z0-9]", "-", yml_path.replace(".yml", ""))
 
 
-def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id):
+def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id, strongbox_groups):
     actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
 
@@ -127,6 +127,8 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
         _set_image(expected_dict, image)
         _set_env(expected_dict, image)
         _set_labels(expected_dict["spec"]["template"], image, deployment_id)
+        if strongbox_groups:
+            _set_strongbox_groups(expected_dict, strongbox_groups)
 
     if expected_dict["kind"] == "Service":
         _set_service_type(expected_dict, service_type)
@@ -183,6 +185,15 @@ def _set_env(expected_dict, image):
                 item["value"] = image
             yield item
     expected_dict["spec"]["template"]["spec"]["containers"][0]["env"] = list(generate_updated_env())
+
+
+def _set_strongbox_groups(expected_dict, strongbox_groups):
+    def generate_updated_env():
+        for item in expected_dict["spec"]["template"]["spec"]["initContainers"][0]["env"]:
+            if item["name"] == "SECRET_GROUPS":
+                item["value"] = ",".join(strongbox_groups)
+            yield item
+    expected_dict["spec"]["template"]["spec"]["initContainers"][0]["env"] = list(generate_updated_env())
 
 
 def _set_labels(expected_dict, image, deployment_id):

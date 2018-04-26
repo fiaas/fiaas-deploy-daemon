@@ -1,0 +1,189 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    app: v3-data-examples-strongbox
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-strongbox
+  namespace: default
+spec:
+  replicas: 5
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: v3-data-examples-strongbox
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+        iam.amazonaws.com/role: "arn:aws:iam::12345678:role/the-role-name"
+      labels:
+        app: v3-data-examples-strongbox
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/status: active
+        fiaas/version: VERSION
+      name: v3-data-examples-strongbox
+      namespace: default
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - command: []
+        env:
+        - name: ARTIFACT_NAME
+          value: v3-data-examples-strongbox
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-test,kubernetes,test
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_ENVIRONMENT
+          value: test
+        - name: LOG_FORMAT
+          value: json
+        - name: IMAGE
+          value: IMAGE
+        - name: FINN_ENV
+          value: test
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-strongbox
+              resource: requests.cpu
+              divisor: "1"
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-strongbox
+              resource: requests.memory
+              divisor: "1"
+        - name: FIAAS_LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-strongbox
+              resource: limits.cpu
+              divisor: "1"
+        - name: FIAAS_LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-strongbox
+              resource: limits.memory
+              divisor: "1"
+        - name: FIAAS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+              apiVersion: "v1"
+        - name: FIAAS_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+              apiVersion: "v1"
+        envFrom:
+        - configMapRef:
+            name: v3-data-examples-strongbox
+            optional: true
+        image: IMAGE
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/health
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: v3-data-examples-strongbox
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/ready
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v3-data-examples-strongbox-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v3-data-examples-strongbox-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: v3-data-examples-strongbox-secret
+      - name: fiaas-secrets-init-container-config
+        configMap:
+          optional: true
+          name: fiaas-secrets-init-container
+          defaultMode: 420
+      - name: v3-data-examples-strongbox-config
+        configMap:
+          optional: true
+          name: v3-data-examples-strongbox
+          defaultMode: 420
+      - name: tmp
+      initContainers:
+      - name: 'fiaas-secrets-init-container'
+        envFrom:
+        - configMapRef:
+            optional: True
+            name: 'fiaas-secrets-init-container'
+        image: 'STRONGBOX_IMAGE'
+        volumeMounts:
+        - mountPath: '/var/run/secrets/fiaas/'
+          name: 'v3-data-examples-strongbox-secret'
+        - readOnly: True
+          mountPath: '/var/run/config/fiaas-secrets-init-container/'
+          name: 'fiaas-secrets-init-container-config'
+        - readOnly: True
+          mountPath: '/var/run/config/fiaas/'
+          name: 'v3-data-examples-strongbox-config'
+        - mountPath: '/tmp'
+          name: 'tmp'
+        command: []
+        env:
+        - name: 'K8S_DEPLOYMENT'
+          value: 'v3-data-examples-strongbox'
+        - name: 'AWS_REGION'
+          value: 'eu-central-1'
+        - name: 'SECRET_GROUPS'
+          value: 'secretgroup1,secretgroup2,secretgroup3'
+        imagePullPolicy: 'IfNotPresent'
+        ports: []
+      imagePullSecrets: []

@@ -71,7 +71,7 @@ def _add_useful_error_message(assertion, mockk, first, args):
 def _add_argument_diff(actual, expected, indent=0, acc=None):
     first = False
     if not acc:
-        acc = []
+        acc = ["Actual vs Expected"]
         first = True
     if type(actual) != type(expected):
         acc.append("{}{!r} {} {!r}".format(" " * indent * 2, actual, "==" if actual == expected else "!=", expected))

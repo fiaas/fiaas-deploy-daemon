@@ -210,4 +210,4 @@ def deploy_successful(name, namespace, expected):
                 kind.get(name, namespace=namespace)
         else:
             actual = kind.get(name, namespace=namespace)
-            assert_k8s_resource_matches(actual, expected_result, IMAGE, "ClusterIP", DEPLOYMENT_ID)
+            assert_k8s_resource_matches(actual, expected_result, IMAGE, "ClusterIP", DEPLOYMENT_ID, [])

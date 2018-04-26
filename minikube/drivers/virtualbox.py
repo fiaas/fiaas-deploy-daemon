@@ -6,7 +6,7 @@ from .common import has_utility, is_macos, LinuxDriver, MacDriver
 
 
 class VBoxDriverBase(object):
-    arguments = ("--vm-driver", "virtualbox")
+    name = "virtualbox"
 
     def supported(self, minikube_version):
         return self._is_correct_os() and has_utility("VBoxManage") and self._is_vtx_enabled()

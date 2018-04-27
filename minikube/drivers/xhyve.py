@@ -6,7 +6,7 @@ from .common import has_utility, MacDriver
 
 
 class XHyveDriver(MacDriver):
-    arguments = ("--vm-driver", "xhyve")
+    name = "xhyve"
 
     def supported(self, minikube_version):
         if minikube_version < StrictVersion("0.5"):

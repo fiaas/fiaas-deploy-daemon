@@ -6,7 +6,7 @@ from .common import has_utility, LinuxDriver
 
 
 class KVMDriver(LinuxDriver):
-    arguments = ("--vm-driver", "kvm")
+    name = "kvm"
 
     def supported(self, minikube_version):
         if minikube_version < StrictVersion("0.5"):

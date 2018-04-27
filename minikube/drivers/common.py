@@ -18,7 +18,11 @@ class Driver(object):
 
     @property
     def name(self):
-        return self.__class__.__name__
+        raise NotImplementedError("Subclass must set name")
+
+    @property
+    def arguments(self):
+        return "--vm-driver", self.name
 
 
 class LinuxDriver(Driver):

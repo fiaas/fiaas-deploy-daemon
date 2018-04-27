@@ -13,9 +13,13 @@ DRIVERS = [XHyveDriver(), KVMDriver(), VBoxDriverLinux(), VBoxDriverMac()]
 
 
 def _find_configured_driver():
-    with open(os.path.expanduser("~/.minikube/config/config.json")) as fobj:
-        config = json.load(fobj)
-        return config.get("vm-driver")
+    try:
+        with open(os.path.expanduser("~/.minikube/config/config.json")) as fobj:
+            config = json.load(fobj)
+            return config.get("vm-driver")
+    except IOError:
+        LOG.debug("Failed to open minikube config")
+        return None
 
 
 def select_driver(minikube_version):

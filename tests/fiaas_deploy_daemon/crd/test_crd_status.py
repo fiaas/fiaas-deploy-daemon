@@ -1,14 +1,13 @@
-from collections import namedtuple
-
 import mock
 import pytest
 import re
 from blinker import Namespace
+from collections import namedtuple
+from k8s.models.common import ObjectMeta
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
-from k8s.models.common import ObjectMeta
 
 DEPLOYMENT_ID = u"deployment_id"
 NAME = u"name"
@@ -54,7 +53,8 @@ class TestStatusReport(object):
             "app": test_data.signal_name,
             "fiaas/deployment_id": app_spec.deployment_id
         })
-        get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata, result=test_data.result)
+        get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata,
+                                                            result=test_data.result)
         status.connect_signals()
 
         signal(test_data.signal_name).send(app_spec=app_spec)
@@ -76,7 +76,9 @@ class TestStatusReport(object):
                     'fiaas/deployment_id': app_spec.deployment_id
                 },
                 'namespace': 'default',
-                'name': app_name}})
+                'name': app_name,
+                'ownerReferences': [],
+            }})
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (

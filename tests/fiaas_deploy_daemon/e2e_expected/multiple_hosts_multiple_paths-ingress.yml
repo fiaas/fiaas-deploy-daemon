@@ -10,6 +10,7 @@ metadata:
     fiaas/version: VERSION
   name: v3-data-examples-multiple-hosts-multiple-paths
   namespace: default
+  ownerReferences: []
 spec:
   tls: []
   rules:

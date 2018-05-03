@@ -8,6 +8,7 @@ metadata:
     fiaas/version: 1.13.9-alpine
   name: specs-v2-data-examples-v2bootstrap
   namespace: default
+  ownerReferences: []
 spec:
   ports:
   - name: http

@@ -8,6 +8,7 @@ metadata:
     fiaas/version: VERSION
   name: v2-data-examples-partial-override
   namespace: default
+  ownerReferences: []
 spec:
   maxReplicas: 2
   minReplicas: 1

@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import six
-
 from k8s.base import Model
 from k8s.fields import Field, RequiredField
 from k8s.models.common import ObjectMeta

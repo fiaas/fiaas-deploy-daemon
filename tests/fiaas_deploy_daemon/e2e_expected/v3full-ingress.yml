@@ -14,6 +14,7 @@ metadata:
     k: l
   name: v3-data-examples-full
   namespace: default
+  ownerReferences: []
 spec:
   tls: []
   rules:

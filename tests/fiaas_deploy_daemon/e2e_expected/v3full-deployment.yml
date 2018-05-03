@@ -13,6 +13,7 @@ metadata:
     fiaas/version: VERSION
   name: v3-data-examples-full
   namespace: default
+  ownerReferences: []
 spec:
   replicas: 20
   revisionHistoryLimit: 5
@@ -43,6 +44,7 @@ spec:
         s: u
       name: v3-data-examples-full
       namespace: default
+      ownerReferences: []
     spec:
       automountServiceAccountToken: true
       containers:
@@ -122,9 +124,6 @@ spec:
             path: /health
             port: a
             scheme: HTTP
-            httpHeaders:
-            - name: X-Custom-Header
-              value: liveness-stuff
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
@@ -217,12 +216,12 @@ spec:
             optional: true
         command: []
         env:
-          - name: K8S_DEPLOYMENT
-            value: v3-data-examples-full
-          - name: AWS_REGION
-            value: eu-central-1
-          - name: SECRET_GROUPS
-            value: secretgroup1,secretgroup2
+        - name: K8S_DEPLOYMENT
+          value: v3-data-examples-full
+        - name: AWS_REGION
+          value: eu-central-1
+        - name: SECRET_GROUPS
+          value: secretgroup1,secretgroup2
         imagePullPolicy: IfNotPresent
         ports: []
       imagePullSecrets: []

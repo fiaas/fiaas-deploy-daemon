@@ -9,6 +9,7 @@ metadata:
     fiaas/version: 1.13.9-alpine
   name: specs-v3-data-examples-v3bootstrap
   namespace: kube-system
+  ownerReferences: []
 spec:
   maxReplicas: 5
   minReplicas: 2

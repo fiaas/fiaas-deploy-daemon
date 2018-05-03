@@ -14,6 +14,7 @@ metadata:
     o: p
   name: v3-data-examples-full
   namespace: default
+  ownerReferences: []
 spec:
   ports:
   - name: a

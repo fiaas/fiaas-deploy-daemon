@@ -9,6 +9,7 @@ metadata:
     fiaas/version: VERSION
   name: data-v2minimal
   namespace: default
+  ownerReferences: []
 spec:
   replicas: 2
   revisionHistoryLimit: 5
@@ -34,6 +35,7 @@ spec:
         fiaas/version: VERSION
       name: data-v2minimal
       namespace: default
+      ownerReferences: []
     spec:
       automountServiceAccountToken: false
       containers:

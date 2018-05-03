@@ -78,7 +78,11 @@ class TestWatcher(object):
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
-                'metadata': {'namespace': 'default', 'name': 'applications.fiaas.schibsted.io'},
+                'metadata': {
+                    'namespace': 'default',
+                    'name': 'applications.fiaas.schibsted.io',
+                    'ownerReferences': [],
+                },
                 'spec': {
                     'version': 'v1',
                     'group': 'fiaas.schibsted.io',
@@ -90,7 +94,11 @@ class TestWatcher(object):
                 }
             }),
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
-                'metadata': {'namespace': 'default', 'name': 'application-statuses.fiaas.schibsted.io'},
+                'metadata': {
+                    'namespace': 'default',
+                    'name': 'application-statuses.fiaas.schibsted.io',
+                    'ownerReferences': [],
+                },
                 'spec': {
                     'version': 'v1',
                     'group': 'fiaas.schibsted.io',

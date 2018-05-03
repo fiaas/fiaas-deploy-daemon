@@ -76,7 +76,9 @@ class TestStatusReport(object):
                     'fiaas/deployment_id': app_spec.deployment_id
                 },
                 'namespace': 'default',
-                'name': app_name}})
+                'name': app_name,
+                'ownerReferences': [],
+            }})
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (

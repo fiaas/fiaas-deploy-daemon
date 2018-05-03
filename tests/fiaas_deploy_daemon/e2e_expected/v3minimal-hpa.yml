@@ -8,6 +8,7 @@ metadata:
     fiaas/version: VERSION
   name: v3-data-examples-v3minimal
   namespace: default
+  ownerReferences: []
 spec:
   maxReplicas: 5
   minReplicas: 2

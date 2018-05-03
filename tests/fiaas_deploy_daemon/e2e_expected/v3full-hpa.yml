@@ -13,6 +13,7 @@ metadata:
     g: h
   name: v3-data-examples-full
   namespace: default
+  ownerReferences: []
 spec:
   maxReplicas: 20
   minReplicas: 10

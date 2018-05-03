@@ -78,12 +78,20 @@ class TestTprWatcher(object):
 
         calls = [
             mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {'namespace': 'default', 'name': 'paasbeta-application.schibsted.io'},
+                'metadata': {
+                    'namespace': 'default',
+                    'name': 'paasbeta-application.schibsted.io',
+                    'ownerReferences': [],
+                },
                 'description': 'A paas application definition',
                 'versions': [{'name': 'v1beta'}]
             }),
             mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {'namespace': 'default', 'name': 'paasbeta-status.schibsted.io'},
+                'metadata': {
+                    'namespace': 'default',
+                    'name': 'paasbeta-status.schibsted.io',
+                    'ownerReferences': [],
+                },
                 'description': 'A paas application status',
                 'versions': [{'name': 'v1beta'}]
             })

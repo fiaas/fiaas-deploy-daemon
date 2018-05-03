@@ -8,6 +8,7 @@ metadata:
     fiaas/version: VERSION
   name: v2-data-examples-multiple-ports
   namespace: default
+  ownerReferences: []
 spec:
   ports:
   - name: main_port

@@ -9,6 +9,7 @@ metadata:
     fiaas/version: VERSION
   name: v3-data-examples-v3minimal
   namespace: default
+  ownerReferences: []
 spec:
   replicas: 5
   revisionHistoryLimit: 5
@@ -34,6 +35,7 @@ spec:
         fiaas/version: VERSION
       name: v3-data-examples-v3minimal
       namespace: default
+      ownerReferences: []
     spec:
       automountServiceAccountToken: false
       containers:

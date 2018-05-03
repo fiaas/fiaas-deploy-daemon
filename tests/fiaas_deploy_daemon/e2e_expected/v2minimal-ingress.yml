@@ -10,6 +10,7 @@ metadata:
     fiaas/version: VERSION
   name: data-v2minimal
   namespace: default
+  ownerReferences: []
 spec:
   tls: []
   rules:

@@ -9,6 +9,7 @@ metadata:
     fiaas/version: VERSION
   name: v2-data-examples-single-tcp-port
   namespace: default
+  ownerReferences: []
 spec:
   replicas: 2
   revisionHistoryLimit: 5
@@ -30,6 +31,7 @@ spec:
         fiaas/version: VERSION
       name: v2-data-examples-single-tcp-port
       namespace: default
+      ownerReferences: []
     spec:
       automountServiceAccountToken: false
       containers:

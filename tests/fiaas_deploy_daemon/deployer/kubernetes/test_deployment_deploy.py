@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-from collections import defaultdict
-
 import mock
 import pytest
+from collections import defaultdict
 from mock import create_autospec
 from requests import Response
 
@@ -89,6 +88,7 @@ class TestDeploymentDeployer(object):
         config.datadog_container_image = DATADOG_IMAGE
         config.strongbox_init_container_image = STRONGBOX_IMAGE if strongbox_init_container else None
         config.pre_stop_delay = 1
+        config.log_format = "json"
         yield config
 
     @pytest.fixture(params=(

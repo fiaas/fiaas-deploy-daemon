@@ -54,7 +54,7 @@ spec:
         - name: FIAAS_ENVIRONMENT
           value: test
         - name: LOG_FORMAT
-          value: json
+          value: plain
         - name: IMAGE
           value: IMAGE
         - name: FINN_ENV

@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import logging
 import shlex
-
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
@@ -30,7 +29,7 @@ class DeploymentDeployer(object):
             "FIAAS_ENVIRONMENT": config.environment,
             "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
             "LOG_STDOUT": "true",
-            "LOG_FORMAT": "json"
+            "LOG_FORMAT": config.log_format
         }
         self._global_env = config.global_env
         self._secrets_init_container_image = config.secrets_init_container_image

@@ -54,7 +54,7 @@ spec:
           value: diy
         - name: FIAAS_ENVIRONMENT
         - name: LOG_FORMAT
-          value: json
+          value: plain
         - name: IMAGE
           value: nginx:1.13.9-alpine
         - name: FINN_ENV

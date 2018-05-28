@@ -6,6 +6,7 @@ This document is for cluster operators who wish to install FIAAS in their cluste
 All configuration options have associated help-text in the fiaas-deploy-daemon CLI. Getting the latest help-text can be done using this command:
 
     docker run --rm containers.schibsted.io/finntech/fiaas-deploy-daemon:latest fiaas-deploy-daemon --help
+    
 
 How to set configuration options
 --------------------------------
@@ -26,7 +27,7 @@ The log format has very little practical effect unless your applications take ad
 1. The log format used by fiaas-deploy-daemon itself
 2. The value of the `LOG_FORMAT` environment variable passed to applications
 
-If the value is `json`, applications should adhere to a common set of keys and value types, in order for log aggregation solutions to give a better experience. We recommend the FIAAS logging contract, currently maintained in [confluence](https://confluence.schibsted.io/display/FI/Logging+contract). This contract is currently somewhat specific to FINN, but should be suitable for most other users.
+If the value is `json`, applications should adhere to a common set of keys and value types, in order for log aggregation solutions to give a better experience.
 
 Related to log format is the environment variable `LOG_STDOUT`, which is currently hardcoded to `true` for all applications deployed by FIAAS.
 

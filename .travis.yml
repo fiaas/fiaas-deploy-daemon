@@ -1,7 +1,6 @@
 language: finnbuild
 script:
   - run_finnbuild
-  - if [[ "$TRAVIS_BRANCH" == "master" ]] && [[ "$TRAVIS_PULL_REQUEST" == "false" ]]; then bin/install && bin/deploy ; fi
 
 after_failure:
   - reports-publisher

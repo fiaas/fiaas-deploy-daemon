@@ -72,7 +72,7 @@ Due to the way Kubernetes terminates instances, even a controlled shutdown might
 
 When creating Ingress objects for an application, a host may be specified, which will be used to match the request with the application. For each ingress suffix specified in the configuration, a host section is generated for the application in the form `<application name>.<ingress suffix>`. If the application specifies a `host` in its configuration, a section for that host will be generated *in addition* to the sections generated for each ingress suffix.
 
-As a cluster operator, it is your responsibility to create the needed DNS wildcard entries that point to your ingress controller. You can have as many DNS wildcards (aka ingress suffixes) as you like, but keep in mind that the ingress controller needs to handle the number of hosts this generates.
+As a cluster operator, it is your responsibility to create the needed DNS entries that point to your ingress controller. You can have as many DNS suffixes as you like, but keep in mind that the ingress controller needs to handle the number of hosts this generates. The easiest way to do this is to use DNS wildcards.
 
 ### host-rewrite-rules
 
@@ -100,9 +100,9 @@ FIAAS supports three different sources of secrets. All three options will provid
 
 ### Kubernetes Secret
 
-The default source is Kubernetes Secret objects. If a Secret with the same name as the application being deployed exists it is mounted in the container at a pre-defined location.
+The default source is Kubernetes Secret objects. If a Secret with the same name as the application being deployed exists in the same namespace it is mounted in the container at a pre-defined location.
 
-When using Kubernetes as a source of secrets it is possible to set the key `secrets_in_environment` in the application configuration to `true`, and each key-value pair in the Secret will be exposed as environment variables to your application. This flag is ignored for by other sources because of technical limits.
+When using Kubernetes as a source of secrets it is possible to set the key `secrets_in_environment` in the application configuration to `true`, and each key-value pair in the Secret will be exposed as environment variables to your application. This flag is ignored for by other sources because of technical limitations.
 
 ### Secrets init container
 

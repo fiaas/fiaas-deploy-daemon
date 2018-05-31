@@ -53,6 +53,7 @@ class Bootstrapper(object):
         self._store_started = partial(self._store_status, DEPLOY_STARTED)
         self._store_success = partial(self._store_status, DEPLOY_SUCCESS)
         self._store_failed = partial(self._store_status, DEPLOY_FAILED)
+        self._namespace = config.namespace
 
         if config.enable_crd_support:
             self._resource_class = FiaasApplication
@@ -69,7 +70,8 @@ class Bootstrapper(object):
         signal(DEPLOY_FAILED).connect(self._store_failed)
 
     def run(self):
-        for application in self._resource_class.find(name=None, namespace=None, labels={"fiaas/bootstrap": "true"}):
+        for application in self._resource_class.find(name=None, namespace=self._namespace,
+                                                     labels={"fiaas/bootstrap": "true"}):
             try:
                 self._deploy(application)
             except BaseException:

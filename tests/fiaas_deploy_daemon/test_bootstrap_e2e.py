@@ -44,7 +44,7 @@ TEST_CASES = (
         Ingress: SHOULD_NOT_EXIST,
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
-    ("specs/v3/data/examples/v3bootstrap.yml", "kube-system", {"fiaas/bootstrap": "true"}, {
+    ("specs/v3/data/examples/v3bootstrap.yml", "default", {"fiaas/bootstrap": "true"}, {
         Service: "bootstrap_e2e_expected/v3bootstrap-service.yml",
         Deployment: "bootstrap_e2e_expected/v3bootstrap-deployment.yml",
         Ingress: "bootstrap_e2e_expected/v3bootstrap-ingress.yml",
@@ -111,8 +111,7 @@ class TestBootstrapE2E(object):
 
     def custom_resource_definition_test_case(self, fiaas_path, namespace, labels, expected):
         fiaas_yml = read_yml(file_relative_path(fiaas_path))
-        expected = {kind: read_yml(file_relative_path(path)) for kind, path in expected.items()
-                    if path is not SHOULD_NOT_EXIST}
+        expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
 
@@ -123,8 +122,7 @@ class TestBootstrapE2E(object):
 
     def third_party_resource_test_case(self, fiaas_path, namespace, labels, expected):
         fiaas_yml = read_yml(file_relative_path(fiaas_path))
-        expected = {kind: read_yml(file_relative_path(path)) for kind, path in expected.items()
-                    if path is not SHOULD_NOT_EXIST}
+        expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
 
@@ -211,3 +209,10 @@ def deploy_successful(name, namespace, expected):
         else:
             actual = kind.get(name, namespace=namespace)
             assert_k8s_resource_matches(actual, expected_result, IMAGE, "ClusterIP", DEPLOYMENT_ID, [])
+
+
+def read_yml_if_exists(path):
+    if path == SHOULD_NOT_EXIST:
+        return path
+    else:
+        return read_yml(file_relative_path(path))

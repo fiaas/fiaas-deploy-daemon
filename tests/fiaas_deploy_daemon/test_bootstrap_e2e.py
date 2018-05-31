@@ -140,10 +140,7 @@ class TestBootstrapE2E(object):
         def prepare_test_case(test_case):
             name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case)
 
-            # check that k8s objects for name doesn't already exist
-            for kind in expected.keys():
-                with pytest.raises(NotFound):
-                    kind.get(name)
+            ensure_resources_not_exists(name, expected, fiaas_application.metadata.namespace)
 
             fiaas_application.save()
 
@@ -174,10 +171,7 @@ class TestBootstrapE2E(object):
         def prepare_test_case(test_case):
             name, paasbeta_application, expected = self.third_party_resource_test_case(*test_case)
 
-            # check that k8s objects for name doesn't already exist
-            for kind in expected.keys():
-                with pytest.raises(NotFound):
-                    kind.get(name)
+            ensure_resources_not_exists(name, expected, paasbeta_application.metadata.namespace)
 
             paasbeta_application.save()
 
@@ -199,6 +193,12 @@ class TestBootstrapE2E(object):
                     kind.delete(name, namespace=namespace)
                 except NotFound:
                     pass  # already missing
+
+
+def ensure_resources_not_exists(name, expected, namespace):
+    for kind in expected.keys():
+        with pytest.raises(NotFound):
+            kind.get(name, namespace=namespace)
 
 
 def deploy_successful(name, namespace, expected):

@@ -50,7 +50,13 @@ TEST_CASES = (
         Ingress: "bootstrap_e2e_expected/v3bootstrap-ingress.yml",
         HorizontalPodAutoscaler: "bootstrap_e2e_expected/v3bootstrap-hpa.yml",
     }),
-    ("specs/v3/data/examples/v3bootstrap.yml", "default", {}, {
+    ("specs/v3/data/examples/full.yml", "default", {}, {
+        Service: SHOULD_NOT_EXIST,
+        Deployment: SHOULD_NOT_EXIST,
+        Ingress: SHOULD_NOT_EXIST,
+        HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
+    }),
+    ("specs/v3/data/examples/v3minimal.yml", "kube-system", {"fiaas/bootstrap": "true"}, {
         Service: SHOULD_NOT_EXIST,
         Deployment: SHOULD_NOT_EXIST,
         Ingress: SHOULD_NOT_EXIST,

@@ -6,10 +6,11 @@ import logging
 
 from .virtualbox import VBoxDriverLinux, VBoxDriverMac
 from .xhyve import XHyveDriver
+from .hyperkit import HyperKitDriver
 from .kvm import KVMDriver
 
 LOG = logging.getLogger(__name__)
-DRIVERS = [XHyveDriver(), KVMDriver(), VBoxDriverLinux(), VBoxDriverMac()]
+DRIVERS = [HyperKitDriver(), XHyveDriver(), KVMDriver(), VBoxDriverLinux(), VBoxDriverMac()]
 
 
 def _find_configured_driver():

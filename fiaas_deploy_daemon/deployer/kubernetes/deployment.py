@@ -4,6 +4,7 @@ from __future__ import absolute_import
 
 import logging
 import shlex
+
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
@@ -23,14 +24,7 @@ class DeploymentDeployer(object):
     DATADOG_CONTAINER_NAME = "fiaas-datadog-container"
 
     def __init__(self, config):
-        self._fiaas_env = {
-            "FINN_ENV": config.environment,  # DEPRECATED. Remove in the future.
-            "FIAAS_INFRASTRUCTURE": config.infrastructure,
-            "FIAAS_ENVIRONMENT": config.environment,
-            "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
-            "LOG_STDOUT": "true",
-            "LOG_FORMAT": config.log_format
-        }
+        self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
@@ -97,7 +91,8 @@ class DeploymentDeployer(object):
 
         prometheus_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else {}
-        strongbox_annotations = _make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(app_spec) else {}
+        strongbox_annotations = _make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(
+            app_spec) else {}
         pod_annotations = merge_dicts(app_spec.annotations.pod, prometheus_annotations, strongbox_annotations)
 
         pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))
@@ -127,7 +122,8 @@ class DeploymentDeployer(object):
             imagePullPolicy="IfNotPresent",
             env=[
                 EnvVar(name="DD_TAGS", value="app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)),
-                EnvVar(name="API_KEY", valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
+                EnvVar(name="API_KEY",
+                       valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),
             ]
@@ -146,7 +142,8 @@ class DeploymentDeployer(object):
         if self._uses_secrets_init_container() or self._uses_strongbox_init_container(app_spec):
             volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
             volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                  configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)))
+                                  configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME,
+                                                                  optional=True)))
         else:
             volumes.append(Volume(name="{}-secret".format(app_spec.name),
                                   secret=SecretVolumeSource(secretName=app_spec.name, optional=True)))
@@ -162,8 +159,10 @@ class DeploymentDeployer(object):
                                          mountPath="/var/run/secrets/fiaas/"))
         if is_init_container:
             volume_mounts.append(VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                             readOnly=True, mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
-        volume_mounts.append(VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
+                                             readOnly=True,
+                                             mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
+        volume_mounts.append(
+            VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))
         return volume_mounts
 
@@ -175,7 +174,8 @@ class DeploymentDeployer(object):
                               imagePullPolicy="IfNotPresent",
                               env=environment,
                               envFrom=[
-                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True))
+                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME,
+                                                                                optional=True))
                               ],
                               volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
         return container
@@ -198,13 +198,16 @@ class DeploymentDeployer(object):
 
         env.extend([
             EnvVar(name="FIAAS_REQUESTS_CPU", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu", divisor=1))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu",
+                                                       divisor=1))),
             EnvVar(name="FIAAS_REQUESTS_MEMORY", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.memory", divisor=1))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.memory",
+                                                       divisor=1))),
             EnvVar(name="FIAAS_LIMITS_CPU", valueFrom=EnvVarSource(
                 resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.cpu", divisor=1))),
             EnvVar(name="FIAAS_LIMITS_MEMORY", valueFrom=EnvVarSource(
-                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.memory", divisor=1))),
+                resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="limits.memory",
+                                                       divisor=1))),
             EnvVar(name="FIAAS_NAMESPACE", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.namespace"))),
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
@@ -214,6 +217,7 @@ class DeploymentDeployer(object):
         if app_spec.datadog:
             env.append(EnvVar(name="STATSD_HOST", value="localhost"))
             env.append(EnvVar(name="STATSD_PORT", value="8125"))
+        env.sort(key=lambda x: x.name)
         return env
 
     def _uses_secrets_init_container(self):
@@ -292,3 +296,19 @@ def _make_probe(check_spec):
         raise RuntimeError("AppSpec must have exactly one health check, none was defined.")
 
     return probe
+
+
+def _build_fiaas_env(config):
+    env = {
+        "FIAAS_INFRASTRUCTURE": config.infrastructure,
+        "LOG_STDOUT": "true",
+        "LOG_FORMAT": config.log_format,
+        "CONSTRETTO_TAGS": "kubernetes",
+    }
+    if config.environment:
+        env.update({
+            "FINN_ENV": config.environment,  # DEPRECATED. Remove in the future.
+            "FIAAS_ENVIRONMENT": config.environment,
+            "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
+        })
+    return env

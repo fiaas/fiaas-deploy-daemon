@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+from collections import defaultdict
+
 import mock
 import pytest
-from collections import defaultdict
 from mock import create_autospec
 from requests import Response
 
@@ -62,26 +63,35 @@ def test_make_probe_should_fail_when_no_healthcheck_is_defined():
 
 class TestDeploymentDeployer(object):
     @pytest.fixture(params=(
-        (True, True),    # secrets init container is default when both strongbox and secrets init container is specified
-        (True, False),   # secrets init container
-        (False, True),   # strongbox
-        (False, False),  # kubernetes secrets
+            (True, True),
+            # secrets init container is default when both strongbox and secrets init container is specified
+            (True, False),  # secrets init container
+            (False, True),  # strongbox
+            (False, False),  # kubernetes secrets
     ))
     def secrets_mode(self, request):
         yield request.param
 
     @pytest.fixture(params=(
-        ("gke", {}),
-        ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}),
-        ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal', 'ARTIFACT_NAME': 'illegal'}),
+            None,
+            "test"
     ))
-    def config(self, request, secrets_mode):
+    def environment(self, request):
+        yield request.param
+
+    @pytest.fixture(params=(
+            ("gke", {}),
+            ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}),
+            ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal',
+                     'ARTIFACT_NAME': 'illegal'}),
+    ))
+    def config(self, request, secrets_mode, environment):
         secret_init_container, strongbox_init_container = secrets_mode
 
         infra, global_env = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
-        config.environment = "test"
+        config.environment = environment
         config.global_env = global_env
         config.secrets_init_container_image = SECRET_IMAGE if secret_init_container else None
         config.secrets_service_account_name = "secretsmanager" if secret_init_container else None
@@ -92,12 +102,12 @@ class TestDeploymentDeployer(object):
         yield config
 
     @pytest.fixture(params=(
-        (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
-         {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, ()),
-        (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, ()),
-        (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, ()),
-        (False, None, {}, {}, {}, {}, ()),
-        (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"])),
+            (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
+             {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, ()),
+            (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, ()),
+            (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, ()),
+            (False, None, {}, {}, {}, {}, ()),
+            (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"])),
     ))
     def app_spec(self, request, app_spec):
         generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
@@ -185,7 +195,8 @@ class TestDeploymentDeployer(object):
         uses_secrets_init_container = bool(config.secrets_init_container_image)
         uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
         expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
-        _, expected_volume_mounts = _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
+        _, expected_volume_mounts = _get_expected_volume_mounts(app_spec, uses_secrets_init_container,
+                                                                uses_strongbox_init_container)
 
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
@@ -214,7 +225,9 @@ class TestDeploymentDeployer(object):
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
                             'command': [],
-                            'env': create_environment_variables(config.infrastructure, global_env=config.global_env),
+                            'env': create_environment_variables(config.infrastructure,
+                                                                global_env=config.global_env,
+                                                                environment=config.environment),
                             'envFrom': [{
                                 'configMapRef': {
                                     'name': app_spec.name,
@@ -378,7 +391,7 @@ def create_expected_deployment(config,
         },
         'command': [],
         'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
-                                            datadog=app_spec.datadog, version=version),
+                                            datadog=app_spec.datadog, version=version, environment=config.environment),
         'envFrom': expected_env_from,
         'imagePullPolicy': 'IfNotPresent',
         'readinessProbe': expected_readiness_check,
@@ -404,10 +417,11 @@ def create_expected_deployment(config,
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
 
     pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else {}
-    strongbox_annotations = {"iam.amazonaws.com/role": app_spec.strongbox.iam_role} if uses_strongbox_init_container else {}
+    strongbox_annotations = {
+        "iam.amazonaws.com/role": app_spec.strongbox.iam_role} if uses_strongbox_init_container else {}
     init_container_annotations = {
         "pod.alpha.kubernetes.io/init-containers": 'some data',
-        "pod.beta.kubernetes.io/init-containers":  'some data'
+        "pod.beta.kubernetes.io/init-containers": 'some data'
     } if add_init_container_annotations else {}
     pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations, init_container_annotations))
 
@@ -439,38 +453,50 @@ def create_expected_deployment(config,
     return deployment
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version", datadog=False):
-    environment = [{'name': 'ARTIFACT_NAME', 'value': 'testapp'},
-                   {'name': 'LOG_STDOUT', 'value': 'true'},
-                   {'name': 'VERSION', 'value': version},
-                   {'name': 'CONSTRETTO_TAGS', 'value': 'kubernetes-test,kubernetes,test'},
-                   {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
-                   {'name': 'FIAAS_ENVIRONMENT', 'value': 'test'},
-                   {'name': 'LOG_FORMAT', 'value': 'json'},
-                   {'name': 'IMAGE', 'value': 'finntech/testimage:' + version},
-                   {'name': 'FINN_ENV', 'value': 'test'}, ]
+def create_environment_variables(infrastructure, global_env=None, version="version", datadog=False, environment=None):
+    env = [
+        {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
+        {'name': 'LOG_STDOUT', 'value': 'true'},
+        {'name': 'VERSION', 'value': version},
+        {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
+        {'name': 'LOG_FORMAT', 'value': 'json'},
+        {'name': 'IMAGE', 'value': 'finntech/testimage:' + version},
+        {'name': 'CONSTRETTO_TAGS', 'value': _create_constretto_tag(environment)},
+    ]
+    if environment:
+        env.extend([
+            {'name': 'FIAAS_ENVIRONMENT', 'value': environment},
+            {'name': 'FINN_ENV', 'value': environment},
+        ])
     if global_env:
-        environment.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        environment.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        environment.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
-        environment.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+        env.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
+        env.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
+        env.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+        env.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
 
-    environment.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
+    env.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'requests.cpu', 'divisor': 1}}})
-    environment.append({'name': 'FIAAS_REQUESTS_MEMORY', 'valueFrom': {'resourceFieldRef': {
+    env.append({'name': 'FIAAS_REQUESTS_MEMORY', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'requests.memory', 'divisor': 1}}})
-    environment.append({'name': 'FIAAS_LIMITS_CPU', 'valueFrom': {'resourceFieldRef': {
+    env.append({'name': 'FIAAS_LIMITS_CPU', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'limits.cpu', 'divisor': 1}}})
-    environment.append({'name': 'FIAAS_LIMITS_MEMORY', 'valueFrom': {'resourceFieldRef': {
+    env.append({'name': 'FIAAS_LIMITS_MEMORY', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'limits.memory', 'divisor': 1}}})
-    environment.append({'name': 'FIAAS_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}})
-    environment.append({'name': 'FIAAS_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}})
+    env.append({'name': 'FIAAS_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}})
+    env.append({'name': 'FIAAS_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}})
 
     if datadog:
-        environment.append({'name': 'STATSD_HOST', 'value': 'localhost'})
-        environment.append({'name': 'STATSD_PORT', 'value': '8125'})
+        env.append({'name': 'STATSD_HOST', 'value': 'localhost'})
+        env.append({'name': 'STATSD_PORT', 'value': '8125'})
 
-    return environment
+    env.sort(key=lambda x: x["name"])
+    return env
+
+
+def _create_constretto_tag(environment):
+    if environment:
+        return 'kubernetes-{},kubernetes,{}'.format(environment, environment)
+    return 'kubernetes'
 
 
 def _get_expected_template_labels(custom_labels):
@@ -540,7 +566,8 @@ def _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_stro
     }
     expected_volume_mounts = [secret_volume_mount, config_map_volume_mount, tmp_volume_mount]
     if uses_secrets_init_container or uses_strongbox_init_container:
-        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount, tmp_volume_mount]
+        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount,
+                                       tmp_volume_mount]
     else:
         expected_init_volume_mounts = []
     return expected_init_volume_mounts, expected_volume_mounts

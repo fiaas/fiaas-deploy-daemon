@@ -44,32 +44,10 @@ spec:
         env:
         - name: ARTIFACT_NAME
           value: specs-v2-data-examples-v2bootstrap
-        - name: LOG_STDOUT
-          value: "true"
-        - name: VERSION
-          value: 1.13.9-alpine
         - name: CONSTRETTO_TAGS
-          value: kubernetes-,kubernetes,
+          value: kubernetes
         - name: FIAAS_INFRASTRUCTURE
           value: diy
-        - name: FIAAS_ENVIRONMENT
-        - name: LOG_FORMAT
-          value: plain
-        - name: IMAGE
-          value: nginx:1.13.9-alpine
-        - name: FINN_ENV
-        - name: FIAAS_REQUESTS_CPU
-          valueFrom:
-            resourceFieldRef:
-              containerName: specs-v2-data-examples-v2bootstrap
-              divisor: "1"
-              resource: requests.cpu
-        - name: FIAAS_REQUESTS_MEMORY
-          valueFrom:
-            resourceFieldRef:
-              containerName: specs-v2-data-examples-v2bootstrap
-              divisor: "1"
-              resource: requests.memory
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:
@@ -92,6 +70,26 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.name
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v2-data-examples-v2bootstrap
+              divisor: "1"
+              resource: requests.cpu
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: specs-v2-data-examples-v2bootstrap
+              divisor: "1"
+              resource: requests.memory
+        - name: IMAGE
+          value: nginx:1.13.9-alpine
+        - name: LOG_FORMAT
+          value: plain
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: 1.13.9-alpine
         envFrom:
         - configMapRef:
             name: specs-v2-data-examples-v2bootstrap

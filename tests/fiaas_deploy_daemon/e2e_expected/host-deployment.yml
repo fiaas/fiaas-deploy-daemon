@@ -43,34 +43,12 @@ spec:
         env:
         - name: ARTIFACT_NAME
           value: v2-data-examples-host
-        - name: LOG_STDOUT
-          value: "true"
-        - name: VERSION
-          value: VERSION
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
-        - name: FIAAS_INFRASTRUCTURE
-          value: diy
         - name: FIAAS_ENVIRONMENT
           value: test
-        - name: LOG_FORMAT
-          value: plain
-        - name: IMAGE
-          value: IMAGE
-        - name: FINN_ENV
-          value: test
-        - name: FIAAS_REQUESTS_CPU
-          valueFrom:
-            resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: requests.cpu
-              divisor: "1"
-        - name: FIAAS_REQUESTS_MEMORY
-          valueFrom:
-            resourceFieldRef:
-              containerName: v2-data-examples-host
-              resource: requests.memory
-              divisor: "1"
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:
@@ -93,6 +71,28 @@ spec:
             fieldRef:
               fieldPath: metadata.name
               apiVersion: "v1"
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v2-data-examples-host
+              resource: requests.cpu
+              divisor: "1"
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v2-data-examples-host
+              resource: requests.memory
+              divisor: "1"
+        - name: FINN_ENV
+          value: test
+        - name: IMAGE
+          value: IMAGE
+        - name: LOG_FORMAT
+          value: plain
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
         envFrom:
         - configMapRef:
             name: v2-data-examples-host

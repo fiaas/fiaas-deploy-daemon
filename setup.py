@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 
 import os
+
 from setuptools import setup, find_packages
 
 
@@ -25,6 +26,7 @@ GENERIC_REQ = [
 
 WEB_REQ = [
     "Flask == 0.12",
+    "flask-talisman==0.5.1",
     "blinker == 1.4"
 ]
 

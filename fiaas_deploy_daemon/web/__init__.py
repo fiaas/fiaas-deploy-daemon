@@ -4,18 +4,18 @@ from __future__ import absolute_import
 
 import logging
 import pkgutil
-
-import pinject
 import re
 
+import pinject
 import yaml
-from flask import Flask, Blueprint, current_app,  render_template, make_response, request_started, request_finished, \
+from flask import Flask, Blueprint, current_app, render_template, make_response, request_started, request_finished, \
     got_request_exception, abort, request
+from flask_talisman import Talisman, DENY
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
-from ..specs.factory import InvalidConfiguration
 from .platform_collector import PLATFORM_COLLECTOR
 from .transformer import Transformer
+from ..specs.factory import InvalidConfiguration
 
 """Web app that provides metrics and other ways to inspect the action.
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
@@ -116,4 +116,10 @@ class WebBindings(pinject.BindingSpec):
         app.spec_factory = spec_factory
         app.transformer = Transformer(spec_factory)
         _connect_signals()
+
+        # TODO: These options are like this because we haven't set up TLS, but should be
+        # configurable if the operator wants to. Even better would be to somehow auto-detect.
+        csp = {"default-src": "'self'", "style-src": ["'self'", "*.finncdn.no"]}
+        Talisman(app, frame_options=DENY, content_security_policy=csp,
+                 force_https=False, strict_transport_security=False)
         return app

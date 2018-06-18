@@ -6,7 +6,6 @@ import subprocess
 import sys
 
 import pytest
-
 from k8s import config
 from k8s.client import Client, NotFound
 from k8s.models.autoscaler import HorizontalPodAutoscaler
@@ -14,16 +13,15 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
-from minikube import MinikubeError
-from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.tpr.watcher import TprWatcher
-from fiaas_deploy_daemon.crd.watcher import CrdWatcher
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
-from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec
 
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
+from fiaas_deploy_daemon.crd.watcher import CrdWatcher
+from fiaas_deploy_daemon.tools import merge_dicts
+from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec
+from fiaas_deploy_daemon.tpr.watcher import TprWatcher
+from minikube import MinikubeError
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
-
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -98,7 +96,7 @@ class TestBootstrapE2E(object):
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
-    def run_bootstrap(self, kubernetes, k8s_version, patience=PATIENCE):
+    def run_bootstrap(self, kubernetes, k8s_version):
         args = [
             "fiaas-deploy-daemon-bootstrap",
             "--debug",
@@ -160,7 +158,7 @@ class TestBootstrapE2E(object):
         def success():
             all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
 
-        wait_until(success, "TPR bootstrapping was successful", patience=PATIENCE)
+        wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
 
         for name, namespace, expected in expectations:
             for kind in expected.keys():

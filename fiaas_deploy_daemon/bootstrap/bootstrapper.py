@@ -1,10 +1,10 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
-from functools import partial
 import logging
 import threading
 import time
+from functools import partial
 
 from blinker import signal
 from monotonic import monotonic as time_monotonic
@@ -12,9 +12,8 @@ from monotonic import monotonic as time_monotonic
 from ..config import InvalidConfigurationException
 from ..crd.types import FiaasApplication
 from ..deployer import DeployerEvent
-from ..tpr.types import PaasbetaApplication
 from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
-
+from ..tpr.types import PaasbetaApplication
 
 LOG = logging.getLogger(__name__)
 DEPLOY_SCHEDULED = "deploy_scheduled"
@@ -79,7 +78,7 @@ class Bootstrapper(object):
                     name=application.metadata.name, namespace=application.metadata.namespace))
                 raise
 
-        return self._wait_for_readiness(wait_time_seconds=2, timeout_seconds=60)
+        return self._wait_for_readiness(wait_time_seconds=5, timeout_seconds=120)
 
     def _deploy(self, application):
         LOG.debug("Deploying %s", application.spec.application)

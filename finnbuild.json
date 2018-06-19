@@ -28,6 +28,7 @@
       {"command": "./gradlew bake"}
     ],
     "deploy": [
+      {"command": "sudo -E docker login --username=\"${DOCKER_USER}\" --password=\"${DOCKER_PASSWORD}\""},
       {
         "command": "./gradlew --console=plain --no-daemon clean publish",
         "test-pattern": "build/reports/xunit.xml",
@@ -51,7 +52,7 @@
       {"command": "pew in fiaas-deploy-daemon fiaas-deploy-daemon --debug"}
     ],
     "run-docker": [
-      {"command": "docker run -p 5000:5000 -e KAFKA_PIPELINE_SERVICE_HOST -e KAFKA_PIPELINE_SERVICE_PORT containers.schibsted.io/finntech/fiaas-deploy-daemon"}
+      {"command": "docker run -p 5000:5000 -e KAFKA_PIPELINE_SERVICE_HOST -e KAFKA_PIPELINE_SERVICE_PORT fiaas/fiaas-deploy-daemon"}
     ]
   }
 }

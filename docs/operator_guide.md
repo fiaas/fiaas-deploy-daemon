@@ -5,7 +5,7 @@ This document is for cluster operators who wish to install FIAAS in their cluste
 
 All configuration options have associated help-text in the fiaas-deploy-daemon CLI. Getting the latest help-text can be done using this command:
 
-    docker run --rm containers.schibsted.io/finntech/fiaas-deploy-daemon:latest fiaas-deploy-daemon --help
+    docker run --rm fiaas/fiaas-deploy-daemon:latest fiaas-deploy-daemon --help
     
 
 How to set configuration options

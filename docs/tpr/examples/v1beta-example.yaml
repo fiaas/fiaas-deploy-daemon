@@ -8,7 +8,7 @@ metadata:
     fiaas/deployment_id: v1beta-example-deployment-id
 spec:
   application: v1beta-example
-  image: containers.schibsted.io/finn/fiaas-deploy-daemon:latest
+  image: fiaas/fiaas-deploy-daemon:latest
   config:
     version: 2
     admin_access: true

@@ -1,6 +1,6 @@
 name: fiaas-deploy-daemon
 image:
-  repository: containers.schibsted.io/finntech/fiaas-deploy-daemon
+  repository: fiaas/fiaas-deploy-daemon
   tag: "latest"
   pullPolicy: Always
 ingress:

@@ -82,7 +82,7 @@ class TestStatusReport(object):
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (
-            u"containers.schibsted.io/finntech/fiaas-deploy-daemon:latest",
+            u"fiaas/fiaas-deploy-daemon:latest",
             u"1234123",
             u"The Ultimate Deployment ID",
             u"@${[]}!#%&/()=?"

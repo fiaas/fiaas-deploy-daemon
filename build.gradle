@@ -6,7 +6,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.bmuschko:gradle-docker-plugin:3.0.5'
+        classpath 'com.bmuschko:gradle-docker-plugin:3.3.5'
         classpath 'com.tkruse.gradle:gradle-groovysh-plugin:1.0.7'
         gradleApi()
     }
@@ -14,6 +14,7 @@ buildscript {
 
 repositories {
     mavenCentral()
+    jcenter()
 }
 
 apply plugin: 'com.bmuschko.docker-remote-api'
@@ -70,7 +71,7 @@ docker {
     }
 }
 
-def image_name = "containers.schibsted.io/finntech/${project.description}"
+def image_name = "fiaas/${project.description}"
 def image_tag = "${image_name}:${project.version}-${getGitHash()}"
 
 task bakeImage(type: DockerBuildImage) {

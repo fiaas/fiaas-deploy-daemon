@@ -1,14 +1,13 @@
-from collections import namedtuple
-
 import mock
 import pytest
 import re
 from blinker import Namespace
+from collections import namedtuple
+from k8s.models.common import ObjectMeta
 
+from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tpr import status
 from fiaas_deploy_daemon.tpr.types import PaasbetaStatus
-from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
-from k8s.models.common import ObjectMeta
 
 DEPLOYMENT_ID = u"deployment_id"
 NAME = u"name"
@@ -82,7 +81,7 @@ class TestStatusReport(object):
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (
-            u"containers.schibsted.io/finntech/fiaas-deploy-daemon:lastest",
+            u"fiaas/fiaas-deploy-daemon:latest",
             u"1234123",
             u"The Ultimate Deployment ID",
             u"@${[]}!#%&/()=?"

@@ -28,7 +28,7 @@
       {"command": "./gradlew bake"}
     ],
     "deploy": [
-      {"command": "sudo -E docker login --username=\"${DOCKER_USER}\" --password=\"${DOCKER_PASSWORD}\""},
+      {"command": "docker login --username=\"${DOCKER_USER}\" --password=\"${DOCKER_PASSWORD}\""},
       {
         "command": "./gradlew --console=plain --no-daemon clean publish",
         "test-pattern": "build/reports/xunit.xml",

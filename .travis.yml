@@ -1,5 +1,6 @@
 language: finnbuild
 script:
+  - sudo -E docker login --username="${DOCKER_USER}" --password="${DOCKER_PASSWORD}"
   - run_finnbuild
 after_failure:
   - reports-publisher

@@ -117,6 +117,19 @@ publish.dependsOn(publishImage)
 publish.dependsOn(publishLatestImage)
 
 /*****************
+ * Distribute fiaas.yml artifact
+ */
+
+task publishFiaasYmlArtifact(type: Exec) {
+    description 'Publish fiaas.yml file to s3'
+    group 'publishing'
+    executable "/bin/sh"
+    args "-c", "curl --user-agent ${System.env.S3_BUCKET_USERNAME} --referer ${System.env.S3_BUCKET_PASSWORD} --upload-file \"fiaas.yml\" --request PUT \"${System.env.S3_BUCKET_URL}/artifacts/${getGitHash()}/fiaas.yml\""
+}
+
+publish.dependsOn(publishFiaasYmlArtifact)
+
+/*****************
  * Misc tasks
  */
 

@@ -124,7 +124,7 @@ task publishFiaasYmlArtifact(type: Exec) {
     description 'Publish fiaas.yml file to s3'
     group 'publishing'
     executable "/bin/sh"
-    args "-c", "curl --user-agent ${System.env.S3_BUCKET_USERNAME} --referer ${System.env.S3_BUCKET_PASSWORD} --upload-file \"fiaas.yml\" --request PUT \"${System.env.S3_BUCKET_URL}/artifacts/${getGitHash()}/fiaas.yml\""
+    args "-c", "curl --user-agent ${System.env.S3_BUCKET_USERNAME} --referer ${System.env.S3_BUCKET_PASSWORD} --upload-file \"fiaas.yml\" --request PUT \"${System.env.S3_BUCKET_URL}/artifacts/${getFullGitHash()}/fiaas.yml\""
 }
 
 publish.dependsOn(publishFiaasYmlArtifact)
@@ -158,6 +158,15 @@ def getGitHash() {
     def stdout = new ByteArrayOutputStream()
     exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
+        standardOutput = stdout
+    }
+    return stdout.toString().trim()
+}
+
+def getFullGitHash() {
+    def stdout = new ByteArrayOutputStream()
+    exec {
+        commandLine 'git', 'rev-parse', 'HEAD'
         standardOutput = stdout
     }
     return stdout.toString().trim()

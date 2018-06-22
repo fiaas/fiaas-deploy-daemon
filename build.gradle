@@ -49,7 +49,8 @@ docker {
 }
 
 def image_name = "fiaas/${project.description}"
-def image_tag = "${image_name}:${project.version}-${getGitHash()}"
+def version_string = "${project.version}-${getGitHash()}"
+def image_tag = "${image_name}:${version_string}"
 
 task bakeImage(type: DockerBuildImage) {
     description 'Build docker image'
@@ -97,11 +98,14 @@ publish.dependsOn(publishLatestImage)
  * Distribute fiaas.yml artifact
  */
 
+def fiaas_yml_filename = "fiaas.yml"
+def fiaas_artifact_url = "${System.env.S3_BUCKET_URL}/artifacts/${version_string}/${fiaas_yml_filename}"
+
 task publishFiaasYmlArtifact(type: Exec) {
     description 'Publish fiaas.yml file to s3'
     group 'publishing'
     executable "/bin/sh"
-    args "-c", "curl --user-agent ${System.env.S3_BUCKET_USERNAME} --referer ${System.env.S3_BUCKET_PASSWORD} --upload-file \"fiaas.yml\" --request PUT \"${System.env.S3_BUCKET_URL}/artifacts/${getFullGitHash()}/fiaas.yml\""
+    args "-c", "curl --user-agent ${System.env.S3_BUCKET_USERNAME} --referer ${System.env.S3_BUCKET_PASSWORD} --upload-file ${fiaas_yml_filename} --request PUT ${fiaas_artifact_url}"
 }
 
 publish.dependsOn(publishFiaasYmlArtifact)
@@ -135,15 +139,6 @@ def getGitHash() {
     def stdout = new ByteArrayOutputStream()
     exec {
         commandLine 'git', 'rev-parse', '--short', 'HEAD'
-        standardOutput = stdout
-    }
-    return stdout.toString().trim()
-}
-
-def getFullGitHash() {
-    def stdout = new ByteArrayOutputStream()
-    exec {
-        commandLine 'git', 'rev-parse', 'HEAD'
         standardOutput = stdout
     }
     return stdout.toString().trim()

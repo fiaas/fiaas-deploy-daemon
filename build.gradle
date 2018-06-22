@@ -34,29 +34,6 @@ group = 'no.finntech'
 version = getDate()
 
 /*****************
- * Configure publishing for fiaas-artifact
- */
-
-publishing {
-    publications {
-        fiaas(MavenPublication) {
-            artifact('fiaas.yml') {
-                classifier 'fiaas'
-            }
-            groupId = 'no.finntech'
-            artifactId = 'fiaas-deploy-daemon'
-            version = '1.0-SNAPSHOT'
-        }
-    }
-
-    repositories {
-        maven {
-            url 'https://mavenproxy.finntech.no/finntech-internal-snapshot/'
-        }
-    }
-}
-
-/*****************
  * Docker tasks
  */
 

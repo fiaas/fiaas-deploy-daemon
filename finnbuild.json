@@ -39,7 +39,7 @@
             "related-artifacts": [
               {
                 "type": "fiaas",
-                "pattern": "Upload (https:.+/artifacts/.+/fiaas.yml)"
+                "pattern": "Uploaded paas-app-config: (https?:.+/artifacts/.+/fiaas.yml)"
               }
             ]
           }

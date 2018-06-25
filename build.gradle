@@ -99,7 +99,7 @@ publish.dependsOn(publishLatestImage)
  */
 
 def fiaas_artifact_url = "${System.env.S3_BUCKET_URL}/artifacts/${version_string}/fiaas.yml"
-def fiaas_artifact_url_public = "http:/fiaas-release.delivery-pro.schibsted.io/artifacts/${version_string}/fiaas.yml"
+def fiaas_artifact_url_public = "http://fiaas-release.delivery-pro.schibsted.io/artifacts/${version_string}/fiaas.yml"
 
 task publishFiaasYmlArtifact(type: Exec) {
     description 'Publish fiaas.yml file to s3'

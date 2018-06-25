@@ -66,7 +66,17 @@ It is designed to work with the `datadog/docker-dd-agent` container from [Datado
 
 ### pre-stop-delay
 
-Due to the way Kubernetes terminates instances, even a controlled shutdown might result in lost connections. As a way to mitigate this, the pre-stop-delay introduces a sleep in the shutdown sequence of applications, which will allow other cluster components time to take the instance out of rotation before it shuts down. The value to use depends on a number of components in your cluster, so you should tune it to your needs.
+When Kubernetes wants to terminate a pod, multiple things happen. For the purposes of this explanation, we can consider two "chains" of events that are triggered by Kubernetes when a pod is being shut down. Both chains are triggered/started at the same time, and run independently.
+
+The first chain is the removal from load balancers. This starts with the pod being removed from the list of endpoints registered for the service. Once the ingress controller notices this change, it must remove the endpoint from its list of backends and reload the configuration. How quickly the change in endpoints propagate to all watchers is dependent on a number of things in how the cluster is configured, and how quickly an ingress controller will react to such a change varies depending on which ingress controller is in use. Some clusters manage this chain in a few seconds, others need over half a minute to remove a pod from the load balancer.
+
+The second chain is the termination of the pod. This starts by executing any pre-stop handlers defined for the pod and waiting for them to complete. After that, all containers are sent the SIGTERM signal. After the "termination grace period" (which defaults to 30 seconds), containers are sent a SIGKILL.
+
+The upshot of this is that applications that quickly react to SIGTERM and exits cleanly might still be receiving traffic, leading to disconnects or connection refused for the clients until the ingress controller catches up.
+
+As a way to mitigate this, the pre-stop-delay introduces a sleep in the shutdown sequence of applications, which will allow other cluster components time to take the instance out of rotation before it shuts down. The value to use depends on a number of components in your cluster, so you should tune it to your needs.
+
+
 
 ### ingress-suffix
 

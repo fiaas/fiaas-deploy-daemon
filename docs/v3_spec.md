@@ -119,7 +119,7 @@ ingress:
 
 The hostname part of a host + path combination where your application expects requests.
 
-If fiaas-deploy-daemon in the cluster you are deploying to is set up with one or more default ingress suffixes , all
+If fiaas-deploy-daemon in the cluster you are deploying to is set up with one or more default ingress suffixes, all
 paths specified will be made available under these ingress suffixes.  E.g. if `foo.example.com` is the default ingress
 suffix, and your application is named `myapp`, your application will be available on `myapp.foo.example.com/`
 
@@ -131,6 +131,12 @@ Example:
 ingress:
   - host: your-app.example.com
 ```
+
+If the operator of your cluster has configured host-rewrite rules they will be applied to the hostname given in this 
+field. See [the operator guide](operator_guide.md#host-rewrite-rules) for details about how this feature works.
+
+In typical clusters, this value should be the host used by your application in production, and host-rewrite rules should
+be used to adapt the host to testing environments.
 
 ### paths
 

@@ -119,7 +119,7 @@ ingress:
 
 The hostname part of a host + path combination where your application expects requests.
 
-If fiaas-deploy-daemon in the cluster you are deploying to is set up with one or more default ingress suffixes, all
+If fiaas-deploy-daemon in the namespace you are deploying to is set up with one or more default ingress suffixes, all
 paths specified will be made available under these ingress suffixes.  E.g. if `foo.example.com` is the default ingress
 suffix, and your application is named `myapp`, your application will be available on `myapp.foo.example.com/`
 

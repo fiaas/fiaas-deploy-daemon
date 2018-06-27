@@ -22,6 +22,7 @@ LOG = logging.getLogger(__name__)
 class DeploymentDeployer(object):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
     DATADOG_CONTAINER_NAME = "fiaas-datadog-container"
+    MINIMUM_GRACE_PERIOD = 30
 
     def __init__(self, config):
         self._fiaas_env = _build_fiaas_env(config)
@@ -31,9 +32,11 @@ class DeploymentDeployer(object):
         self._datadog_container_image = config.datadog_container_image
         self._strongbox_init_container_image = config.strongbox_init_container_image
         self._lifecycle = None
+        self._grace_period = self.MINIMUM_GRACE_PERIOD
         if config.pre_stop_delay > 0:
             self._lifecycle = Lifecycle(preStop=Handler(
                 _exec=ExecAction(command=["sleep", str(config.pre_stop_delay)])))
+            self._grace_period += config.pre_stop_delay
 
     def deploy(self, app_spec, selector, labels):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -87,7 +90,8 @@ class DeploymentDeployer(object):
                            initContainers=init_containers,
                            volumes=self._make_volumes(app_spec),
                            serviceAccountName=service_account_name,
-                           automountServiceAccountToken=automount_service_account_token)
+                           automountServiceAccountToken=automount_service_account_token,
+                           terminationGracePeriodSeconds=self._grace_period)
 
         prometheus_annotations = _make_prometheus_annotations(app_spec) \
             if app_spec.prometheus and app_spec.prometheus.enabled else {}

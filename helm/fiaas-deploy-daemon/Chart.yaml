@@ -1,5 +1,0 @@
-apiVersion: v1
-description: Install fiaas deploy daemon
-name: fiaas-deploy-daemon
-home: https://github.schibsted.io/finn/fiaas-deploy-daemon
-version: 0.1.0

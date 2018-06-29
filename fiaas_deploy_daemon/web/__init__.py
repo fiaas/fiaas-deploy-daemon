@@ -119,7 +119,8 @@ class WebBindings(pinject.BindingSpec):
 
         # TODO: These options are like this because we haven't set up TLS, but should be
         # configurable if the operator wants to. Even better would be to somehow auto-detect.
-        csp = {"default-src": "'self'", "style-src": ["'self'", "finncdn.no", "*.finncdn.no"]}
+        csp = {"default-src": "'self'", "style-src": ["'self'", "finncdn.no", "*.finncdn.no"],
+               "script-src": ["'none'"], "object-src": ["'none'"]}
         Talisman(app, frame_options=DENY, content_security_policy=csp,
                  force_https=False, strict_transport_security=False)
         return app

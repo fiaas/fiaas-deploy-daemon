@@ -3,7 +3,6 @@
 from __future__ import absolute_import
 
 import logging
-
 from prometheus_client import Counter
 
 LOG = logging.getLogger(__name__)
@@ -25,6 +24,8 @@ class SpecFactory(object):
         try:
             app_config = self.transform(app_config)
             app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace)
+        except InvalidConfiguration:
+            raise
         except Exception as e:
             raise InvalidConfiguration("Failed to parse configuration: {!s}".format(e))
         self._validate(app_spec)

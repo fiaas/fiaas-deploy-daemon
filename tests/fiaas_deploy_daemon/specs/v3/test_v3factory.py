@@ -2,13 +2,13 @@
 # -*- coding: utf-8
 from __future__ import absolute_import, unicode_literals
 
-import pytest
 import mock
+import pytest
 
 from fiaas_deploy_daemon import Configuration
-from fiaas_deploy_daemon.specs.v3.factory import Factory
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import _Lookup
+from fiaas_deploy_daemon.specs.v3.factory import Factory
 
 IMAGE = "finntech/docker-image:some-version"
 NAME = "application-name"
@@ -188,10 +188,7 @@ TEST_DATA = {
         "health_checks.liveness.http.http_headers": {"X-Custom-Header": "stuff"},
     },
     "ports_empty_list": {
-        "ports[0].protocol": "http",
-        "ports[0].name": "http",
-        "ports[0].port": 80,
-        "ports[0].target_port": 8080,
+        "ports": [],
     },
     "labels_and_annotations": {
         "labels.deployment": {"a": "b", "c": "d"},
@@ -289,6 +286,9 @@ TEST_DATA = {
         "strongbox.groups[1]": "secretgroup2",
         "strongbox.groups[2]": "secretgroup3",
     },
+    "ingress_empty": {
+        "ingresses": [],
+    }
 }
 
 

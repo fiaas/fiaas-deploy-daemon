@@ -3,11 +3,10 @@
 from __future__ import absolute_import, unicode_literals
 
 import pkgutil
-
 import yaml
 
-from ..lookup import LookupMapping
 from ..factory import BaseFactory, InvalidConfiguration
+from ..lookup import LookupMapping
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
     IngressPathMappingSpec, StrongboxSpec
@@ -15,7 +14,6 @@ from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 
 
 class Factory(BaseFactory):
-
     version = 3
 
     def __init__(self):
@@ -83,28 +81,28 @@ class Factory(BaseFactory):
                 for port in ports_lookup]
 
     def _health_checks_spec(self, healthchecks_lookup, ports_lookup):
-        liveness = self._check_spec(healthchecks_lookup["liveness"], ports_lookup)
+        liveness = self._check_spec(healthchecks_lookup["liveness"], ports_lookup, "liveness")
         if not healthchecks_lookup.get_config_value("readiness") and healthchecks_lookup.get_config_value("liveness"):
             readiness = liveness
         else:
-            readiness = self._check_spec(healthchecks_lookup["readiness"], ports_lookup)
+            readiness = self._check_spec(healthchecks_lookup["readiness"], ports_lookup, "readiness")
         return HealthCheckSpec(liveness, readiness)
 
-    def _check_spec(self, healthcheck_lookup, ports_lookup):
-        first_port_lookup = ports_lookup[0]
+    def _check_spec(self, healthcheck_lookup, ports_lookup, check_type):
+        first_port_lookup = ports_lookup[0] if ports_lookup else None
         exec_check_spec = http_check_spec = tcp_check_spec = None
         if healthcheck_lookup.get_config_value("execute"):
             exec_check_spec = self._exec_check_spec(healthcheck_lookup["execute"])
         elif healthcheck_lookup.get_config_value("http"):
-            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup)
+            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup, check_type)
         elif healthcheck_lookup.get_config_value("tcp"):
-            tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup)
-        elif len(ports_lookup) > 1:
-            raise InvalidConfiguration("Must specify health check when more than one ports defined")
+            tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup, check_type)
+        elif len(ports_lookup) != 1:
+            raise InvalidConfiguration("Must specify {} check or exactly one port".format(check_type))
         elif first_port_lookup["protocol"] == "http":
-            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup)
+            http_check_spec = self._http_check_spec(healthcheck_lookup["http"], first_port_lookup, check_type)
         elif first_port_lookup["protocol"] == "tcp":
-            tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup)
+            tcp_check_spec = self._tcp_check_spec(healthcheck_lookup["tcp"], first_port_lookup, check_type)
 
         return CheckSpec(
             exec_check_spec,
@@ -117,11 +115,13 @@ class Factory(BaseFactory):
         )
 
     @staticmethod
-    def _http_check_spec(check_lookup, first_port_lookup):
+    def _http_check_spec(check_lookup, first_port_lookup, check_type):
         if check_lookup.get_config_value("port"):
             port = check_lookup["port"]
-        else:
+        elif first_port_lookup:
             port = first_port_lookup["name"]
+        else:
+            raise InvalidConfiguration("Unable to determine port to use for http {} check".format(check_type))
         return HttpCheckSpec(
             path=check_lookup["path"],
             port=port,
@@ -129,11 +129,13 @@ class Factory(BaseFactory):
         )
 
     @staticmethod
-    def _tcp_check_spec(check_lookup, first_port_lookup):
+    def _tcp_check_spec(check_lookup, first_port_lookup, check_type):
         if check_lookup.get_config_value("port"):
             port = check_lookup["port"]
-        else:
+        elif first_port_lookup:
             port = first_port_lookup["name"]
+        else:
+            raise InvalidConfiguration("Unable to determine port to use for tcp {} check".format(check_type))
         return TcpCheckSpec(port=port)
 
     @staticmethod

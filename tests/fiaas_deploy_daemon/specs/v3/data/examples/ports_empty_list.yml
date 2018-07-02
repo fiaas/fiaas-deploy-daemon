@@ -1,3 +1,7 @@
 ---
 version: 3
 ports: []
+healthchecks:
+  liveness:
+    execute:
+      command: sleep 1

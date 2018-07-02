@@ -37,9 +37,6 @@ class _Lookup(object):
     def raw(self):
         return self._config if self._config else self._defaults
 
-    def __len__(self):
-        return max(_len(self._defaults), _len(self._config))
-
     def __repr__(self):
         return "%s(config=%r, defaults=%r)" % (self.__class__.__name__, self._config, self._defaults)
 
@@ -49,18 +46,26 @@ class LookupMapping(_Lookup, collections.Mapping):
         default_value = col.get(key)
         return default_value
 
+    def __len__(self):
+        return max(_len(self._defaults), _len(self._config))
+
     def __iter__(self):
         return iter(self._defaults) if _len(self._defaults) > _len(self._config) else iter(self._config)
 
 
 class _LookupList(_Lookup, collections.Sequence):
     def __getitem__(self, idx):
-        if self._config:
+        if self._config is not None:
             if idx >= len(self._config):
-                raise StopIteration()
+                raise IndexError("Index {} out of bounds for sequence of length {}".format(idx, len(self._config)))
         elif idx >= len(self._defaults):
-            raise StopIteration()
+            raise IndexError("Index {} out of bounds for sequence of length {}".format(idx, len(self._defaults)))
         return super(_LookupList, self).__getitem__(idx)
+
+    def __len__(self):
+        if self._config is not None:
+            return len(self._config)
+        return len(self._defaults)
 
     def get_default_value(self, idx):
         return super(_LookupList, self).get_default_value(0)

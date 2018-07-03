@@ -1,13 +1,18 @@
+import random
+import re
+from collections import namedtuple
+
 import mock
 import pytest
-import re
 from blinker import Namespace
-from collections import namedtuple
 from k8s.models.common import ObjectMeta
 
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tpr import status
+from fiaas_deploy_daemon.tpr.status import LAST_UPDATED_KEY, _cleanup, OLD_STATUSES_TO_KEEP, now
 from fiaas_deploy_daemon.tpr.types import PaasbetaStatus
+
+LAST_UPDATE = now()
 
 DEPLOYMENT_ID = u"deployment_id"
 NAME = u"name"
@@ -18,6 +23,17 @@ class TestStatusReport(object):
     @pytest.fixture
     def get_or_create(self):
         with mock.patch("fiaas_deploy_daemon.tpr.status.PaasbetaStatus.get_or_create", spec_set=True) as m:
+            yield m
+
+    @pytest.fixture
+    def find(self):
+        with mock.patch("fiaas_deploy_daemon.tpr.status.PaasbetaStatus.find", spec_set=True) as m:
+            m.return_value = []
+            yield m
+
+    @pytest.fixture
+    def delete(self):
+        with mock.patch("fiaas_deploy_daemon.tpr.status.PaasbetaStatus.delete", spec_set=True) as m:
             yield m
 
     @pytest.fixture
@@ -45,18 +61,19 @@ class TestStatusReport(object):
                     test_id = "{} status on {}".format(action, signal_name)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
-    @pytest.mark.usefixtures("post", "put")
+    @pytest.mark.usefixtures("post", "put", "find")
     def test_action_on_signal(self, request, get_or_create, app_spec, test_data, signal):
         app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
         app_spec = app_spec._replace(name=test_data.signal_name)
-        metadata = ObjectMeta(name=app_name, namespace="default", labels={
-            "app": test_data.signal_name,
-            "fiaas/deployment_id": app_spec.deployment_id
-        })
+        labels = {"app": test_data.signal_name, "fiaas/deployment_id": app_spec.deployment_id}
+        annotations = {"fiaas/last_updated": LAST_UPDATE}
+        metadata = ObjectMeta(name=app_name, namespace="default", labels=labels, annotations=annotations)
         get_or_create.return_value = PaasbetaStatus(new=test_data.new, metadata=metadata, result=test_data.result)
         status.connect_signals()
 
-        signal(test_data.signal_name).send(app_spec=app_spec)
+        with mock.patch("fiaas_deploy_daemon.tpr.status.now") as mnow:
+            mnow.return_value = LAST_UPDATE
+            signal(test_data.signal_name).send(app_spec=app_spec)
 
         get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
         if test_data.action == "create":
@@ -74,6 +91,9 @@ class TestStatusReport(object):
                     'app': test_data.signal_name,
                     'fiaas/deployment_id': app_spec.deployment_id
                 },
+                'annotations': {
+                    'fiaas/last_updated': LAST_UPDATE
+                },
                 'namespace': 'default',
                 'name': app_name,
                 'ownerReferences': [],
@@ -89,3 +109,17 @@ class TestStatusReport(object):
     def test_create_name(self, deployment_id):
         final_name = status.create_name(NAME, deployment_id)
         assert VALID_NAME.match(final_name), "Name is not valid"
+
+    def test_clean_up(self, app_spec, find, delete):
+        returned_statuses = [_create_status(i) for i in range(20)]
+        random.shuffle(returned_statuses)
+        find.return_value = returned_statuses
+        _cleanup(app_spec)
+        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(OLD_STATUSES_TO_KEEP)]
+        assert delete.call_args_list == expected_calls
+
+
+def _create_status(i):
+    annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)}
+    metadata = ObjectMeta(name="name-{}".format(i), namespace="test", annotations=annotations)
+    return PaasbetaStatus(new=False, metadata=metadata, result=u"SUCCESS")

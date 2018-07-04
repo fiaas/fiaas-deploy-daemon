@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import pytest
 import mock
+import pytest
 from k8s import config
 from k8s.client import NotFound
 
@@ -38,9 +38,9 @@ def app_spec():
         ],
         health_checks=HealthCheckSpec(
             liveness=CheckSpec(tcp=TcpCheckSpec(port=8080), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, timeout_seconds=1),
+                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                                 timeout_seconds=1)),
         teams=[u'foo'],
         tags=[u'bar'],
@@ -60,9 +60,9 @@ def app_spec_thrift(app_spec):
         ],
         health_checks=HealthCheckSpec(
             liveness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, timeout_seconds=1),
+                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
             readiness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                                 timeout_seconds=1)
         ),
         ingresses=[]
@@ -87,9 +87,9 @@ def app_spec_thrift_and_http(app_spec):
         ],
         health_checks=HealthCheckSpec(
             liveness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, timeout_seconds=1),
+                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                                 timeout_seconds=1)),
     )
 
@@ -107,7 +107,7 @@ def app_spec_teams_and_tags(app_spec):
 @pytest.fixture
 def app_spec_no_ports(app_spec):
     exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
-                           initial_delay_seconds=10, period_seconds=10, success_threshold=1,
+                           initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                            timeout_seconds=1)
     return app_spec._replace(ports=[],
                              health_checks=HealthCheckSpec(liveness=exec_check, readiness=exec_check),

@@ -286,8 +286,11 @@ def _make_resource_requirements(resources_spec):
 
 
 def _make_probe(check_spec):
-    probe = Probe(initialDelaySeconds=check_spec.initial_delay_seconds, timeoutSeconds=check_spec.timeout_seconds,
-                  successThreshold=check_spec.success_threshold, periodSeconds=check_spec.period_seconds)
+    probe = Probe(initialDelaySeconds=check_spec.initial_delay_seconds,
+                  timeoutSeconds=check_spec.timeout_seconds,
+                  successThreshold=check_spec.success_threshold,
+                  failureThreshold=check_spec.failure_threshold,
+                  periodSeconds=check_spec.period_seconds)
     if check_spec.http:
         probe.httpGet = HTTPGetAction(path=check_spec.http.path, port=check_spec.http.port,
                                       httpHeaders=[HTTPHeader(name=name, value=value)

@@ -31,10 +31,10 @@ def app_spec(**kwargs):
         ],
         health_checks=HealthCheckSpec(
             liveness=CheckSpec(tcp=TcpCheckSpec(port=8080), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, timeout_seconds=1),
+                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
-                                timeout_seconds=1)),
+                                failure_threshold=3, timeout_seconds=1)),
         teams=[u'foo'],
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",

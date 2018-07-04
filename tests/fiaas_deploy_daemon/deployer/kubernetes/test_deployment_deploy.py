@@ -29,7 +29,7 @@ def test_make_http_probe():
     check_spec = CheckSpec(http=HttpCheckSpec(path="/", port=8080,
                                               http_headers={"Authorization": "ZmlubjpqdXN0aW5iaWViZXJfeG94bw=="}),
                            tcp=None, execute=None, initial_delay_seconds=30, period_seconds=60, success_threshold=3,
-                           timeout_seconds=10)
+                           failure_threshold=3, timeout_seconds=10)
     probe = _make_probe(check_spec)
     assert probe.httpGet.path == "/"
     assert probe.httpGet.port == 8080
@@ -45,7 +45,7 @@ def test_make_http_probe():
 
 def test_make_tcp_probe():
     check_spec = CheckSpec(tcp=TcpCheckSpec(port=31337), http=None, execute=None, initial_delay_seconds=30,
-                           period_seconds=60, success_threshold=3, timeout_seconds=10)
+                           period_seconds=60, success_threshold=3, failure_threshold=3, timeout_seconds=10)
     probe = _make_probe(check_spec)
     assert probe.tcpSocket.port == 31337
     assert probe.initialDelaySeconds == 30
@@ -56,7 +56,7 @@ def test_make_tcp_probe():
 
 def test_make_probe_should_fail_when_no_healthcheck_is_defined():
     check_spec = CheckSpec(tcp=None, execute=None, http=None, initial_delay_seconds=30, period_seconds=60,
-                           success_threshold=3, timeout_seconds=10)
+                           success_threshold=3, failure_threshold=3, timeout_seconds=10)
     with pytest.raises(RuntimeError):
         _make_probe(check_spec)
 
@@ -131,7 +131,7 @@ class TestDeploymentDeployer(object):
             ports = []
             exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
                                    initial_delay_seconds=10, period_seconds=10, success_threshold=1,
-                                   timeout_seconds=1)
+                                   failure_threshold=3, timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
 
         yield app_spec._replace(
@@ -217,6 +217,7 @@ class TestDeploymentDeployer(object):
                                 'initialDelaySeconds': 10,
                                 'periodSeconds': 10,
                                 'successThreshold': 1,
+                                'failureThreshold': 3,
                                 'timeoutSeconds': 1,
                                 'tcpSocket': {
                                     'port': 8080
@@ -240,6 +241,7 @@ class TestDeploymentDeployer(object):
                                 'initialDelaySeconds': 10,
                                 'periodSeconds': 10,
                                 'successThreshold': 1,
+                                'failureThreshold': 3,
                                 'timeoutSeconds': 1,
                                 'httpGet': {
                                     'path': '/',
@@ -328,6 +330,7 @@ def create_expected_deployment(config,
         'initialDelaySeconds': 10,
         'periodSeconds': 10,
         'successThreshold': 1,
+        'failureThreshold': 3,
         'timeoutSeconds': 1,
     }
     if app_spec.ports:

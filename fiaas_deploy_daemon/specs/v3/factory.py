@@ -3,6 +3,7 @@
 from __future__ import absolute_import, unicode_literals
 
 import pkgutil
+
 import yaml
 
 from ..factory import BaseFactory, InvalidConfiguration
@@ -111,6 +112,7 @@ class Factory(BaseFactory):
             healthcheck_lookup["initial_delay_seconds"],
             healthcheck_lookup["period_seconds"],
             healthcheck_lookup["success_threshold"],
+            healthcheck_lookup["failure_threshold"],
             healthcheck_lookup["timeout_seconds"]
         )
 

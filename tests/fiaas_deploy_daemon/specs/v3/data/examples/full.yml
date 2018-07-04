@@ -19,6 +19,11 @@ healthchecks:
   readiness:
     tcp:
       port: b
+    initial_delay_seconds: 5
+    period_seconds: 5
+    success_threshold: 2
+    failure_threshold: 6
+    timeout_seconds: 2
 resources:
   limits:
     cpu: 2

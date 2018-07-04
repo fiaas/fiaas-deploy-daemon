@@ -24,6 +24,7 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     initial_delay_seconds: 10 # Number of seconds after the container has started before liveness probes are initiated.
     period_seconds: 10 # How often (in seconds) to perform the probe.
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
+    failure_threshold: 3 # Minimum consecutive failures for the probe to be considered failed after having succeeded.
     timeout_seconds: 1 # Number of seconds after which the probe times out.
   readiness: # If readiness is left out and liveness is defined, the readiness settings are copied from liveness.
     # Valid configuration requires exactly one of execute|http|tcp
@@ -38,6 +39,7 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     initial_delay_seconds: 10 # Number of seconds after the container has started before readiness probes are initiated.
     period_seconds: 10 # How often (in seconds) to perform the probe.
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
+    failure_threshold: 3 # Minimum consecutive failures for the probe to be considered failed after having succeeded.
     timeout_seconds: 1 # Number of seconds after which the probe times out.
 resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
   limits:

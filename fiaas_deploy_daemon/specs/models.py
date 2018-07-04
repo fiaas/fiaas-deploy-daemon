@@ -67,6 +67,7 @@ CheckSpec = namedtuple("CheckSpec", [
     "initial_delay_seconds",
     "period_seconds",
     "success_threshold",
+    "failure_threshold",
     "timeout_seconds"])
 
 ExecCheckSpec = namedtuple("ExecCheckSpec", [

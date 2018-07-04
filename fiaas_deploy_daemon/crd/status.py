@@ -44,7 +44,12 @@ def _save_status(app_spec, result):
 
 def _cleanup(app_spec):
     statuses = FiaasApplicationStatus.find(app_spec.name, app_spec.namespace)
-    statuses.sort(key=lambda s: s.metadata.annotations.get(LAST_UPDATED_KEY, ""))
+
+    def _last_updated(s):
+        annotations = s.metadata.annotations
+        return annotations.get(LAST_UPDATED_KEY, "") if annotations else ""
+
+    statuses.sort(key=_last_updated)
     for old_status in statuses[:-OLD_STATUSES_TO_KEEP]:
         FiaasApplicationStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
 

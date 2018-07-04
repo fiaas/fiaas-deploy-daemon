@@ -113,14 +113,16 @@ class TestStatusReport(object):
 
     def test_clean_up(self, app_spec, find, delete):
         returned_statuses = [_create_status(i) for i in range(20)]
+        returned_statuses.append(_create_status(100, False))
         random.shuffle(returned_statuses)
         find.return_value = returned_statuses
         _cleanup(app_spec)
-        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(OLD_STATUSES_TO_KEEP)]
+        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20-OLD_STATUSES_TO_KEEP)]
+        expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls
 
 
-def _create_status(i):
-    annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)}
+def _create_status(i, annotate=True):
+    annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)} if annotate else None
     metadata = ObjectMeta(name="name-{}".format(i), namespace="test", annotations=annotations)
     return FiaasApplicationStatus(new=False, metadata=metadata, result=u"SUCCESS")

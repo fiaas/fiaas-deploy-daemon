@@ -12,6 +12,7 @@ from fiaas_deploy_daemon.tpr.types import PaasbetaStatus
 
 """Requires `tqdm`, which is not usually part of our requirements."""
 
+
 def _configure():
     output = subprocess.check_output(["kubectl", "config", "view", "--minify"])
     kube = yaml.safe_load(output)

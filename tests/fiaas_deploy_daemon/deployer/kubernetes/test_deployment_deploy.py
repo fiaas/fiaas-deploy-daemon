@@ -212,6 +212,13 @@ class TestDeploymentDeployer(object):
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
+                        'strategy': {
+                            'type': 'rollingUpdate',
+                            'rollingUpdate': {
+                                'maxSurge': 1,
+                                'maxUnavailable': 0
+                            },
+                        },
                         'containers': [{
                             'livenessProbe': {
                                 'initialDelaySeconds': 10,
@@ -462,7 +469,14 @@ def create_expected_deployment(config,
                                                            annotations=pod_annotations)
             },
             'replicas': replicas if replicas else app_spec.replicas,
-            'revisionHistoryLimit': 5
+            'revisionHistoryLimit': 5,
+            'strategy': {
+                'type': 'RollingUpdate',
+                'rollingUpdate': {
+                    'maxSurge': 1,
+                    'maxUnavailable': 0
+                }
+            }
         }
     }
     return deployment

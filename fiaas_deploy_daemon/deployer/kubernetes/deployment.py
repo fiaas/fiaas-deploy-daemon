@@ -7,7 +7,8 @@ import shlex
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
-from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector
+from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector, DeploymentStrategy, \
+    RollingUpdateDeployment
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
     ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector, \
@@ -112,8 +113,13 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
+        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library.
+        deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=0, maxSurge=1))
+        if app_spec.replicas == 1 and app_spec.singleton:
+            deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),
-                              template=pod_template_spec, revisionHistoryLimit=5)
+                              template=pod_template_spec, revisionHistoryLimit=5,
+                              strategy=deployment_strategy)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         _clear_pod_init_container_annotations(deployment)

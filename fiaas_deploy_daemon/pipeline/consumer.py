@@ -16,6 +16,7 @@ from monotonic import monotonic as time_monotonic
 
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
+from ..specs.factory import InvalidConfiguration
 
 ALLOW_WITHOUT_MESSAGES_S = int(os.getenv('ALLOW_WITHOUT_MESSAGES_MIN', 30)) * 60
 DEFAULT_NAMESPACE = u"default"
@@ -68,6 +69,8 @@ class Consumer(DaemonThread):
                 self._logger.exception("Failure when parsing FIAAS-config")
             except HTTPError:
                 self._logger.exception("Failure when downloading FIAAS-config")
+            except InvalidConfiguration:
+                self._logger.exception("Invalid configuration for application %s", event.get("project_name"))
             except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
                 self._logger.warn("App not deployed. %s", str(e))
 

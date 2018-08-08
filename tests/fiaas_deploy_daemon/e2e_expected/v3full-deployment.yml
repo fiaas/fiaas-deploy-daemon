@@ -179,6 +179,13 @@ spec:
         imagePullPolicy: IfNotPresent
         name: fiaas-datadog-container
         ports: []
+        resources:
+          limits:
+            cpu: 400m
+            memory: 2Gi
+          requests:
+            cpu: 200m
+            memory: 2Gi
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default

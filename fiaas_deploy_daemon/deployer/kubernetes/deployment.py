@@ -130,7 +130,11 @@ class DeploymentDeployer(object):
                        valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),
-            ]
+            ],
+            resources=ResourceRequirements(
+                limits={"cpu": "400m", "memory": "2Gi"},
+                requests={"cpu": "200m", "memory": "2Gi"}
+            )
         )
 
     def delete(self, app_spec):

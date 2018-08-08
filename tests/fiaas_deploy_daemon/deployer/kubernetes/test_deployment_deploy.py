@@ -417,6 +417,16 @@ def create_expected_deployment(config,
             'envFrom': [],
             'imagePullPolicy': 'IfNotPresent',
             'ports': [],
+            'resources': {
+                'limits': {
+                    'cpu': '400m',
+                    'memory': '2Gi'
+                },
+                'requests': {
+                    'cpu': '200m',
+                    'memory': '2Gi'
+                }
+            }
         })
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
 

@@ -23,7 +23,7 @@ class K8s(object):
         self._autoscaler_deployer = autoscaler
 
     def deploy(self, app_spec):
-        if not _besteffort_qos_is_allowed(app_spec):
+        if _besteffort_qos_is_required(app_spec):
             app_spec = _remove_resource_requirements(app_spec)
 
         selector = _make_selector(app_spec)
@@ -77,6 +77,6 @@ def _remove_resource_requirements(app_spec):
     return app_spec._replace(resources=ResourcesSpec(limits=no_requirements, requests=no_requirements))
 
 
-def _besteffort_qos_is_allowed(app_spec):
+def _besteffort_qos_is_required(app_spec):
     resourcequotas = ResourceQuota.list(namespace=app_spec.namespace)
-    return not any(rq.spec.hard.get("pods") == "0" and NotBestEffort in rq.spec.scopes for rq in resourcequotas)
+    return any(rq.spec.hard.get("pods") == "0" and NotBestEffort in rq.spec.scopes for rq in resourcequotas)

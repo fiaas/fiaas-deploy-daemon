@@ -14,7 +14,7 @@ from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction
     Lifecycle, Handler, ResourceFieldSelector, ObjectFieldSelector
 
 from fiaas_deploy_daemon.tools import merge_dicts
-from .autoscaler import should_have_autoscaler
+from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
 

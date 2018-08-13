@@ -152,7 +152,7 @@ class TestDeploymentDeployer(object):
         expected_deployment = create_expected_deployment(config, app_spec)
 
         deployer = DeploymentDeployer(config)
-        deployer.deploy(app_spec, SELECTOR, LABELS)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
@@ -168,7 +168,7 @@ class TestDeploymentDeployer(object):
         expected_deployment = create_expected_deployment(config, app_spec)
 
         deployer = DeploymentDeployer(config)
-        deployer.deploy(app_spec, SELECTOR, LABELS)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
@@ -263,7 +263,7 @@ class TestDeploymentDeployer(object):
         get.side_effect = None
         get.return_value = mock_response
 
-        deployer.deploy(app_spec, SELECTOR, LABELS)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         expected_deployment = create_expected_deployment(config, app_spec, image=image, version=version,
                                                          replicas=expected_replicas)

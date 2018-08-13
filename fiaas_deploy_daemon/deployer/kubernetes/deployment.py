@@ -38,7 +38,7 @@ class DeploymentDeployer(object):
                 _exec=ExecAction(command=["sleep", str(config.pre_stop_delay)])))
             self._grace_period += config.pre_stop_delay
 
-    def deploy(self, app_spec, selector, labels):
+    def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
         LOG.info("Creating new deployment for %s", app_spec.name)
         deployment_labels = merge_dicts(app_spec.labels.deployment, labels)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=deployment_labels,
@@ -65,7 +65,7 @@ class DeploymentDeployer(object):
                       resources=_make_resource_requirements(app_spec.resources))
         ]
         if app_spec.datadog:
-            containers.append(self._create_datadog_container(app_spec))
+            containers.append(self._create_datadog_container(app_spec, besteffort_qos_is_required))
 
         automount_service_account_token = app_spec.admin_access
         init_containers = []
@@ -119,7 +119,12 @@ class DeploymentDeployer(object):
         _clear_pod_init_container_annotations(deployment)
         deployment.save()
 
-    def _create_datadog_container(self, app_spec):
+    def _create_datadog_container(self, app_spec, besteffort_qos_is_required):
+        if besteffort_qos_is_required:
+            resource_requirements = ResourceRequirements()
+        else:
+            resource_requirements = ResourceRequirements(limits={"cpu": "400m", "memory": "2Gi"},
+                                                         requests={"cpu": "200m", "memory": "2Gi"})
         return Container(
             name=self.DATADOG_CONTAINER_NAME,
             image=self._datadog_container_image,
@@ -131,10 +136,7 @@ class DeploymentDeployer(object):
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),
             ],
-            resources=ResourceRequirements(
-                limits={"cpu": "400m", "memory": "2Gi"},
-                requests={"cpu": "200m", "memory": "2Gi"}
-            )
+            resources=resource_requirements
         )
 
     def delete(self, app_spec):

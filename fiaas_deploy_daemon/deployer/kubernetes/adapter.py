@@ -30,7 +30,7 @@ class K8s(object):
         labels = self._make_labels(app_spec)
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
-        self._deployment_deployer.deploy(app_spec, selector, labels)
+        self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
         self._autoscaler_deployer.deploy(app_spec, labels)
 
     def delete(self, app_spec):

@@ -61,8 +61,6 @@ class DeploymentDeployer(object):
                       volumeMounts=self._make_volume_mounts(app_spec),
                       resources=_make_resource_requirements(app_spec.resources))
         ]
-        if app_spec.datadog:
-            containers.append(self._datadog.create_datadog_container(app_spec, besteffort_qos_is_required))
 
         automount_service_account_token = app_spec.admin_access
         init_containers = []
@@ -114,6 +112,7 @@ class DeploymentDeployer(object):
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         _clear_pod_init_container_annotations(deployment)
+        self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         deployment.save()
 
     def delete(self, app_spec):
@@ -174,7 +173,7 @@ class DeploymentDeployer(object):
         constants["VERSION"] = app_spec.version
         env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
 
-        # For backward compatability. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
+        # For backward compatibility. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
         global_env = []
         for name, value in self._global_env.iteritems():
             if "FIAAS_{}".format(name) not in constants and name not in constants:
@@ -200,9 +199,6 @@ class DeploymentDeployer(object):
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
         ])
-
-        if app_spec.datadog:
-            env.extend(self._datadog.get_env_vars())
         env.sort(key=lambda x: x.name)
         return env
 

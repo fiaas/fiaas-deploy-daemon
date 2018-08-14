@@ -9,7 +9,16 @@ class DataDog(object):
     def __init__(self, config):
         self._datadog_container_image = config.datadog_container_image
 
-    def create_datadog_container(self, app_spec, besteffort_qos_is_required):
+    def apply(self, deployment, app_spec, besteffort_qos_is_required):
+        if app_spec.datadog:
+            containers = deployment.spec.template.spec.containers
+            main_container = containers[0]
+            containers.append(self._create_datadog_container(app_spec, besteffort_qos_is_required))
+            main_container.env.extend(self._get_env_vars())
+            main_container.env.sort(key=lambda x: x.name)
+        return deployment
+
+    def _create_datadog_container(self, app_spec, besteffort_qos_is_required):
         if besteffort_qos_is_required:
             resource_requirements = ResourceRequirements()
         else:
@@ -30,7 +39,7 @@ class DataDog(object):
         )
 
     @staticmethod
-    def get_env_vars():
+    def _get_env_vars():
         return (
             EnvVar(name="STATSD_HOST", value="localhost"),
             EnvVar(name="STATSD_PORT", value="8125")

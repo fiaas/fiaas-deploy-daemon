@@ -4,6 +4,7 @@ from collections import defaultdict
 
 import mock
 import pytest
+from k8s.models.deployment import Deployment
 from mock import create_autospec
 from requests import Response
 
@@ -15,11 +16,9 @@ from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckS
 from fiaas_deploy_daemon.tools import merge_dicts
 
 SECRET_IMAGE = "fiaas/secret_image:version"
-DATADOG_IMAGE = "fiaas/datadog_image:version"
 STRONGBOX_IMAGE = 'fiaas/strongbox_image:version'
 
 INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
-DATADOG_CONTAINER_NAME = 'fiaas-datadog-container'
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through", "global_label": "impossible to override"}
@@ -96,7 +95,6 @@ class TestDeploymentDeployer(object):
         config.global_env = global_env
         config.secrets_init_container_image = SECRET_IMAGE if secret_init_container else None
         config.secrets_service_account_name = "secretsmanager" if secret_init_container else None
-        config.datadog_container_image = DATADOG_IMAGE
         config.strongbox_init_container_image = STRONGBOX_IMAGE if strongbox_init_container else None
         config.pre_stop_delay = 1
         config.log_format = "json"
@@ -137,7 +135,6 @@ class TestDeploymentDeployer(object):
 
         yield app_spec._replace(
             admin_access=generic_toggle,
-            datadog=generic_toggle,
             ports=ports,
             health_checks=health_checks,
             secrets_in_environment=generic_toggle,
@@ -149,17 +146,17 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def datadog(self, config):
-        return DataDog(config)
+        return mock.create_autospec(DataDog(config), spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog):
-
         expected_deployment = create_expected_deployment(config, app_spec)
 
         deployer = DeploymentDeployer(config, datadog)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
@@ -176,6 +173,7 @@ class TestDeploymentDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 3),
@@ -274,6 +272,7 @@ class TestDeploymentDeployer(object):
                                                          replicas=expected_replicas)
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
 
 
 def create_expected_deployment(config,
@@ -400,39 +399,13 @@ def create_expected_deployment(config,
         },
         'command': [],
         'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
-                                            datadog=app_spec.datadog, version=version, environment=config.environment),
+                                            version=version, environment=config.environment),
         'envFrom': expected_env_from,
         'imagePullPolicy': 'IfNotPresent',
         'readinessProbe': expected_readiness_check,
         'ports': [{'protocol': 'TCP', 'containerPort': 8080, 'name': 'http'}] if app_spec.ports else [],
         'resources': resources,
     }]
-    if app_spec.datadog:
-        containers.append({
-            'name': DATADOG_CONTAINER_NAME,
-            'image': DATADOG_IMAGE,
-            'volumeMounts': [],
-            'command': [],
-            'env': [
-                {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
-                {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
-                {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
-                {'name': 'DD_LOGS_STDOUT', 'value': 'yes'}
-            ],
-            'envFrom': [],
-            'imagePullPolicy': 'IfNotPresent',
-            'ports': [],
-            'resources': {
-                'limits': {
-                    'cpu': '400m',
-                    'memory': '2Gi'
-                },
-                'requests': {
-                    'cpu': '200m',
-                    'memory': '2Gi'
-                }
-            }
-        })
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
 
     pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else {}
@@ -473,7 +446,7 @@ def create_expected_deployment(config,
     return deployment
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version", datadog=False, environment=None):
+def create_environment_variables(infrastructure, global_env=None, version="version", environment=None):
     env = [
         {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
         {'name': 'LOG_STDOUT', 'value': 'true'},
@@ -504,10 +477,6 @@ def create_environment_variables(infrastructure, global_env=None, version="versi
         'containerName': 'testapp', 'resource': 'limits.memory', 'divisor': 1}}})
     env.append({'name': 'FIAAS_NAMESPACE', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.namespace'}}})
     env.append({'name': 'FIAAS_POD_NAME', 'valueFrom': {'fieldRef': {'fieldPath': 'metadata.name'}}})
-
-    if datadog:
-        env.append({'name': 'STATSD_HOST', 'value': 'localhost'})
-        env.append({'name': 'STATSD_PORT', 'value': '8125'})
 
     env.sort(key=lambda x: x["name"])
     return env
@@ -595,3 +564,8 @@ def _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_stro
 
 def _none_if_empty(thing):
     return thing if thing else None
+
+
+class DeploymentMatcher(object):
+    def __eq__(self, other):
+        return isinstance(other, Deployment)

@@ -113,7 +113,7 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
-        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library.
+        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library, see https://github.com/fiaas/k8s/issues/47
         deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=0, maxSurge=1))
         if app_spec.replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))

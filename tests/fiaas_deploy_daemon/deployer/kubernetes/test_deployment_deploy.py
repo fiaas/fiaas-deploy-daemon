@@ -103,15 +103,15 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture(params=(
             (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
-             {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, ()),
-            (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, ()),
-            (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, ()),
-            (False, None, {}, {}, {}, {}, ()),
-            (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"])),
+             {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, (), False),
+            (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, (), False),
+            (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, (), True,),
+            (False, None, {}, {}, {}, {}, (), True),
+            (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"]), True),
     ))
     def app_spec(self, request, app_spec):
         generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
-            strongbox_init_container = request.param
+            strongbox_init_container, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
                                         service={}, pod=pod_labels)
@@ -127,12 +127,14 @@ class TestDeploymentDeployer(object):
         if generic_toggle:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
+            replicas = 1
         else:
             ports = []
             exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
                                    initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                    failure_threshold=3, timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
+            replicas = 5
 
         yield app_spec._replace(
             admin_access=generic_toggle,
@@ -143,7 +145,9 @@ class TestDeploymentDeployer(object):
             prometheus=PrometheusSpec(generic_toggle, prometheus_port, '/internal-backstage/prometheus'),
             labels=labels,
             annotations=annotations,
-            strongbox=strongbox
+            strongbox=strongbox,
+            replicas=replicas,
+            singleton=singleton,
         )
 
     @pytest.mark.usefixtures("get")
@@ -212,6 +216,13 @@ class TestDeploymentDeployer(object):
                         'restartPolicy': 'Always',
                         'volumes': expected_volumes,
                         'imagePullSecrets': [],
+                        'strategy': {
+                            'type': 'rollingUpdate',
+                            'rollingUpdate': {
+                                'maxSurge': 1,
+                                'maxUnavailable': 0
+                            },
+                        },
                         'containers': [{
                             'livenessProbe': {
                                 'initialDelaySeconds': 10,
@@ -271,15 +282,8 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
 
 
-def create_expected_deployment(config,
-                               app_spec,
-                               image='finntech/testimage:version',
-                               version="version",
-                               replicas=None,
-                               add_init_container_annotations=False):
-    uses_secrets_init_container = bool(config.secrets_init_container_image)
-    uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
-    expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
+def _get_secrets_init_container_info(uses_secrets_init_container, uses_strongbox_init_container,
+                                     app_spec):
     expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec,
                                                                                       uses_secrets_init_container,
                                                                                       uses_strongbox_init_container)
@@ -325,6 +329,25 @@ def create_expected_deployment(config,
     else:
         init_containers = []
         service_account_name = "default"
+    return (init_containers, service_account_name)
+
+
+def create_expected_deployment(config,
+                               app_spec,
+                               image='finntech/testimage:version',
+                               version="version",
+                               replicas=None,
+                               add_init_container_annotations=False):
+    uses_secrets_init_container = bool(config.secrets_init_container_image)
+    uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
+    expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
+    _, expected_volume_mounts = _get_expected_volume_mounts(app_spec,
+                                                            uses_secrets_init_container,
+                                                            uses_strongbox_init_container)
+
+    (init_containers, service_account_name) = _get_secrets_init_container_info(uses_secrets_init_container,
+                                                                               uses_strongbox_init_container,
+                                                                               app_spec)
 
     base_expected_health_check = {
         'initialDelaySeconds': 10,
@@ -439,6 +462,12 @@ def create_expected_deployment(config,
     } if add_init_container_annotations else {}
     pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations, init_container_annotations))
 
+    max_surge = 1
+    max_unavailable = 0
+    if app_spec.replicas == 1 and app_spec.singleton:
+        max_surge = 0
+        max_unavailable = 1
+
     deployment = {
         'metadata': pytest.helpers.create_metadata(app_spec.name,
                                                    labels=merge_dicts(app_spec.labels.deployment, LABELS),
@@ -462,7 +491,14 @@ def create_expected_deployment(config,
                                                            annotations=pod_annotations)
             },
             'replicas': replicas if replicas else app_spec.replicas,
-            'revisionHistoryLimit': 5
+            'revisionHistoryLimit': 5,
+            'strategy': {
+                'type': 'RollingUpdate',
+                'rollingUpdate': {
+                    'maxSurge': max_surge,
+                    'maxUnavailable': max_unavailable
+                }
+            }
         }
     }
     return deployment

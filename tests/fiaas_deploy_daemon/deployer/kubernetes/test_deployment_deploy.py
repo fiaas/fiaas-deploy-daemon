@@ -9,7 +9,7 @@ from mock import create_autospec
 from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus
 from fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer import _make_probe
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec, StrongboxSpec
@@ -152,17 +152,21 @@ class TestDeploymentDeployer(object):
     def datadog(self, config):
         return mock.create_autospec(DataDog(config), spec_set=True, instance=True)
 
+    @pytest.fixture
+    def prometheus(self):
+        return Prometheus()
+
     @pytest.mark.usefixtures("get")
-    def test_deploy_new_deployment(self, post, config, app_spec, datadog):
+    def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus):
         expected_deployment = create_expected_deployment(config, app_spec)
 
-        deployer = DeploymentDeployer(config, datadog)
+        deployer = DeploymentDeployer(config, datadog, prometheus)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
 
-    def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog):
+    def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
         old_app_spec = app_spec._replace(replicas=10, strongbox=old_strongbox_spec)
         old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
@@ -173,7 +177,7 @@ class TestDeploymentDeployer(object):
 
         expected_deployment = create_expected_deployment(config, app_spec)
 
-        deployer = DeploymentDeployer(config, datadog)
+        deployer = DeploymentDeployer(config, datadog, prometheus)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
@@ -184,8 +188,8 @@ class TestDeploymentDeployer(object):
             (5, 3, 2, "1", 5),
     ))
     def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
-                                              expected_replicas, config, app_spec, get, put, post, datadog):
-        deployer = DeploymentDeployer(config, datadog)
+                                              expected_replicas, config, app_spec, get, put, post, datadog, prometheus):
+        deployer = DeploymentDeployer(config, datadog, prometheus)
 
         image = "finntech/testimage:version2"
         version = "version2"

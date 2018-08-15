@@ -22,7 +22,8 @@ class DeploymentDeployer(object):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
     MINIMUM_GRACE_PERIOD = 30
 
-    def __init__(self, config, datadog):
+    def __init__(self, config, datadog, prometheus):
+        self._prometheus = prometheus
         self._datadog = datadog
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
@@ -89,11 +90,9 @@ class DeploymentDeployer(object):
                            automountServiceAccountToken=automount_service_account_token,
                            terminationGracePeriodSeconds=self._grace_period)
 
-        prometheus_annotations = _make_prometheus_annotations(app_spec) \
-            if app_spec.prometheus and app_spec.prometheus.enabled else {}
         strongbox_annotations = _make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(
             app_spec) else {}
-        pod_annotations = merge_dicts(app_spec.annotations.pod, prometheus_annotations, strongbox_annotations)
+        pod_annotations = merge_dicts(app_spec.annotations.pod, strongbox_annotations)
 
         pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
@@ -108,7 +107,8 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
-        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library, see https://github.com/fiaas/k8s/issues/47
+        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library,
+        # see https://github.com/fiaas/k8s/issues/47
         deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=0, maxSurge=1))
         if app_spec.replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
@@ -119,6 +119,7 @@ class DeploymentDeployer(object):
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         _clear_pod_init_container_annotations(deployment)
         self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
+        self._prometheus.apply(deployment, app_spec)
         deployment.save()
 
     def delete(self, app_spec):
@@ -238,24 +239,6 @@ def _add_status_label(labels):
         "fiaas/status": "active"
     })
     return copy
-
-
-def _make_prometheus_annotations(app_spec):
-    lookup = {p.name: p.target_port for p in app_spec.ports}
-    prometheus_spec = app_spec.prometheus
-    try:
-        port = int(prometheus_spec.port)
-    except ValueError:
-        try:
-            port = lookup[prometheus_spec.port]
-        except KeyError:
-            LOG.error("Invalid prometheus configuration for %s", app_spec.name)
-            return {}
-    return {
-        "prometheus.io/scrape": str(prometheus_spec.enabled).lower(),
-        "prometheus.io/port": str(port),
-        "prometheus.io/path": prometheus_spec.path
-    }
 
 
 def _make_strongbox_annotations(app_spec):

@@ -3,37 +3,37 @@ kind: Deployment
 metadata:
   annotations: {}
   labels:
-    app: v2-data-examples-host
+    app: v3-data-examples-v3minimal
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
-  name: v2-data-examples-host
+  name: v3-data-examples-v3minimal
   namespace: default
   ownerReferences: []
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      app: v2-data-examples-host
+      app: v3-data-examples-v3minimal
   strategy:
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 0
+      maxUnavailable: 1
     type: RollingUpdate
   template:
     metadata:
       annotations:
-        prometheus.io/path: /internal-backstage/prometheus
-        prometheus.io/port: "80"
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
       labels:
-        app: v2-data-examples-host
+        app: v3-data-examples-v3minimal
         fiaas/deployed_by: ""
         fiaas/deployment_id: DEPLOYMENT_ID
         fiaas/status: active
         fiaas/version: VERSION
-      name: v2-data-examples-host
+      name: v3-data-examples-v3minimal
       namespace: default
       ownerReferences: []
     spec:
@@ -42,7 +42,7 @@ spec:
       - command: []
         env:
         - name: ARTIFACT_NAME
-          value: v2-data-examples-host
+          value: v3-data-examples-v3minimal
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
         - name: FIAAS_ENVIRONMENT
@@ -52,13 +52,13 @@ spec:
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
+              containerName: v3-data-examples-v3minimal
               resource: limits.cpu
               divisor: "1"
         - name: FIAAS_LIMITS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
+              containerName: v3-data-examples-v3minimal
               resource: limits.memory
               divisor: "1"
         - name: FIAAS_NAMESPACE
@@ -74,13 +74,13 @@ spec:
         - name: FIAAS_REQUESTS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
+              containerName: v3-data-examples-v3minimal
               resource: requests.cpu
               divisor: "1"
         - name: FIAAS_REQUESTS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v2-data-examples-host
+              containerName: v3-data-examples-v3minimal
               resource: requests.memory
               divisor: "1"
         - name: FINN_ENV
@@ -95,14 +95,14 @@ spec:
           value: VERSION
         envFrom:
         - configMapRef:
-            name: v2-data-examples-host
+            name: v3-data-examples-v3minimal
             optional: true
         image: IMAGE
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
           httpGet:
-            path: /
+            path: /_/health
             port: http
             scheme: HTTP
             httpHeaders: []
@@ -110,15 +110,15 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-        name: v2-data-examples-host
+        name: v3-data-examples-v3minimal
         ports:
-        - containerPort: 80
+        - containerPort: 8080
           name: http
           protocol: TCP
         readinessProbe:
           failureThreshold: 3
           httpGet:
-            path: /
+            path: /_/ready
             port: http
             scheme: HTTP
             httpHeaders: []
@@ -126,12 +126,19 @@ spec:
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
         volumeMounts:
         - mountPath: /var/run/secrets/fiaas/
-          name: v2-data-examples-host-secret
+          name: v3-data-examples-v3minimal-secret
           readOnly: true
         - mountPath: /var/run/config/fiaas/
-          name: v2-data-examples-host-config
+          name: v3-data-examples-v3minimal-config
           readOnly: true
         - mountPath: /tmp
           name: tmp
@@ -140,16 +147,16 @@ spec:
       serviceAccountName: default
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: v2-data-examples-host-secret
+      - name: v3-data-examples-v3minimal-secret
         secret:
           defaultMode: 420
           optional: true
-          secretName: v2-data-examples-host
+          secretName: v3-data-examples-v3minimal
       - configMap:
           defaultMode: 420
-          name: v2-data-examples-host
+          name: v3-data-examples-v3minimal
           optional: true
-        name: v2-data-examples-host-config
+        name: v3-data-examples-v3minimal-config
       - name: tmp
       initContainers: []
       imagePullSecrets: []

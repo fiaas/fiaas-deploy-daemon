@@ -42,6 +42,7 @@ class Factory(BaseFactory):
             annotations=self._labels_annotations_spec(lookup["annotations"]),
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
+            singleton=lookup["replicas"]["singleton"],
         )
         return app_spec
 

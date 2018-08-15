@@ -24,6 +24,7 @@ class AppSpec(namedtuple("AppSpec", [
         "annotations",
         "ingresses",
         "strongbox",
+        "singleton",
 ])):
 
     __slots__ = ()

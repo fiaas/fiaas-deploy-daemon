@@ -5,6 +5,7 @@ replicas:
   minimum: 2 # Set minimum to the same as maximum for no autoscaling
   maximum: 5
   cpu_threshold_percentage: 50
+  singleton: true # Whether there should be a maximum of a single running instance at any one time. Only operational if maximum replicas is one. Set to false to have multiple replicas running during deployment, avoiding downtime.
 ingress: # Generate ingress rules for access from outside cluster. To disable, specify as []
   - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
     paths: # List of paths exposed to which application port

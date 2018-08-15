@@ -41,7 +41,8 @@ def app_spec(**kwargs):
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
-        strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
+        strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
+        singleton=False
     )
 
     return default_app_spec._replace(**kwargs)

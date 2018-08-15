@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-from __future__ import absolute_import
-
 import logging
 import shlex
 
@@ -11,26 +9,25 @@ from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, L
     RollingUpdateDeployment
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
     PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, SecretKeySelector, \
-    Lifecycle, Handler, ResourceFieldSelector, ObjectFieldSelector
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, Lifecycle, Handler, \
+    ResourceFieldSelector, ObjectFieldSelector
 
+from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler
 from fiaas_deploy_daemon.tools import merge_dicts
-from .autoscaler import should_have_autoscaler
 
 LOG = logging.getLogger(__name__)
 
 
 class DeploymentDeployer(object):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
-    DATADOG_CONTAINER_NAME = "fiaas-datadog-container"
     MINIMUM_GRACE_PERIOD = 30
 
-    def __init__(self, config):
+    def __init__(self, config, datadog):
+        self._datadog = datadog
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
-        self._datadog_container_image = config.datadog_container_image
         self._strongbox_init_container_image = config.strongbox_init_container_image
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
@@ -65,8 +62,6 @@ class DeploymentDeployer(object):
                       volumeMounts=self._make_volume_mounts(app_spec),
                       resources=_make_resource_requirements(app_spec.resources))
         ]
-        if app_spec.datadog:
-            containers.append(self._create_datadog_container(app_spec, besteffort_qos_is_required))
 
         automount_service_account_token = app_spec.admin_access
         init_containers = []
@@ -123,27 +118,8 @@ class DeploymentDeployer(object):
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
         _clear_pod_init_container_annotations(deployment)
+        self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         deployment.save()
-
-    def _create_datadog_container(self, app_spec, besteffort_qos_is_required):
-        if besteffort_qos_is_required:
-            resource_requirements = ResourceRequirements()
-        else:
-            resource_requirements = ResourceRequirements(limits={"cpu": "400m", "memory": "2Gi"},
-                                                         requests={"cpu": "200m", "memory": "2Gi"})
-        return Container(
-            name=self.DATADOG_CONTAINER_NAME,
-            image=self._datadog_container_image,
-            imagePullPolicy="IfNotPresent",
-            env=[
-                EnvVar(name="DD_TAGS", value="app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)),
-                EnvVar(name="API_KEY",
-                       valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
-                EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
-                EnvVar(name="DD_LOGS_STDOUT", value="yes"),
-            ],
-            resources=resource_requirements
-        )
 
     def delete(self, app_spec):
         LOG.info("Deleting deployment for %s", app_spec.name)
@@ -203,7 +179,7 @@ class DeploymentDeployer(object):
         constants["VERSION"] = app_spec.version
         env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
 
-        # For backward compatability. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
+        # For backward compatibility. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
         global_env = []
         for name, value in self._global_env.iteritems():
             if "FIAAS_{}".format(name) not in constants and name not in constants:
@@ -229,10 +205,6 @@ class DeploymentDeployer(object):
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
         ])
-
-        if app_spec.datadog:
-            env.append(EnvVar(name="STATSD_HOST", value="localhost"))
-            env.append(EnvVar(name="STATSD_PORT", value="8125"))
         env.sort(key=lambda x: x.name)
         return env
 

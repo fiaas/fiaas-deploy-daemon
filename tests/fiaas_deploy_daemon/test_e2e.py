@@ -233,6 +233,12 @@ class TestE2E(object):
                 Ingress: "e2e_expected/strongbox-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
             }),
+            ("v3/data/examples/single-replica-singleton.yml", {
+                Deployment: "e2e_expected/single-replica-singleton.yml",
+            }),
+            ("v3/data/examples/single-replica-not-singleton.yml", {
+                Deployment: "e2e_expected/single-replica-not-singleton.yml",
+            }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected = request.param

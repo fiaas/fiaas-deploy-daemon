@@ -5,7 +5,7 @@ from copy import deepcopy
 import mock
 import pytest
 from k8s.models.deployment import Deployment, DeploymentSpec
-from k8s.models.pod import PodTemplateSpec, PodSpec, Container
+from k8s.models.pod import PodTemplateSpec, PodSpec, Container, EnvVar
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DataDog
@@ -26,7 +26,7 @@ class TestDataDog(object):
 
     @pytest.fixture
     def deployment(self):
-        main_container = Container()
+        main_container = Container(env=[EnvVar(name="DUMMY", value="CANARY")])
         pod_spec = PodSpec(containers=[main_container])
         pod_template_spec = PodTemplateSpec(spec=pod_spec)
         deployment_spec = DeploymentSpec(template=pod_template_spec)
@@ -46,6 +46,7 @@ class TestDataDog(object):
         app_spec = app_spec._replace(datadog=True)
         datadog.apply(deployment, app_spec, best_effort_required)
         expected = [
+            {"name": "DUMMY", "value": "CANARY"},
             {"name": "STATSD_HOST", "value": "localhost"},
             {"name": "STATSD_PORT", "value": "8125"}
         ]

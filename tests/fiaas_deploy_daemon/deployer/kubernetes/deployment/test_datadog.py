@@ -52,8 +52,12 @@ class TestDataDog(object):
         ]
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][0]["env"]
 
-    def test_adds_container_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
-        app_spec = app_spec._replace(datadog=True)
+    @pytest.mark.parametrize("name, namespace", (
+        ("bilbo", "baggins"),
+        ("rincewind", "discworld")
+    ))
+    def test_adds_container_when_enabled(self, datadog, app_spec, deployment, best_effort_required, name, namespace):
+        app_spec = app_spec._replace(datadog=True, name=name, namespace=namespace)
         datadog.apply(deployment, app_spec, best_effort_required)
         expected = {
             'name': DataDog.DATADOG_CONTAINER_NAME,

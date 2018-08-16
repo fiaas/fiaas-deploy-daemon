@@ -11,7 +11,7 @@ from requests import Response
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus
 from fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer import _make_probe
-from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, PrometheusSpec, AutoscalerSpec, \
+from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, AutoscalerSpec, \
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec, StrongboxSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 
@@ -101,15 +101,15 @@ class TestDeploymentDeployer(object):
         yield config
 
     @pytest.fixture(params=(
-            (True, 8080, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
+            (True, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
              {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, (), False),
-            (True, "8080", {}, {"bar": "baz"}, {"foo": "bar"}, {}, (), False),
-            (True, "http", {"foo": "bar"}, {}, {}, {"bar": "baz"}, (), True,),
-            (False, None, {}, {}, {}, {}, (), True),
-            (False, None, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"]), True),
+            (True, {}, {"bar": "baz"}, {"foo": "bar"}, {}, (), False),
+            (True, {"foo": "bar"}, {}, {}, {"bar": "baz"}, (), True,),
+            (False, {}, {}, {}, {}, (), True),
+            (False, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"]), True),
     ))
     def app_spec(self, request, app_spec):
-        generic_toggle, prometheus_port, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
+        generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
             strongbox_init_container, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
@@ -140,7 +140,6 @@ class TestDeploymentDeployer(object):
             ports=ports,
             health_checks=health_checks,
             secrets_in_environment=generic_toggle,
-            prometheus=PrometheusSpec(generic_toggle, prometheus_port, '/internal-backstage/prometheus'),
             labels=labels,
             annotations=annotations,
             strongbox=strongbox,
@@ -154,7 +153,7 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def prometheus(self):
-        return Prometheus()
+        return mock.create_autospec(Prometheus(), spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus):
@@ -165,6 +164,7 @@ class TestDeploymentDeployer(object):
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
@@ -182,6 +182,7 @@ class TestDeploymentDeployer(object):
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 3),
@@ -288,6 +289,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
 
 def _get_secrets_init_container_info(uses_secrets_init_container, uses_strongbox_init_container,
@@ -468,7 +470,7 @@ def create_expected_deployment(config,
                     'containers': containers,
                     'initContainers': init_containers
                 },
-                'metadata': pytest.helpers.create_metadata(app_spec.name, prometheus=app_spec.prometheus.enabled,
+                'metadata': pytest.helpers.create_metadata(app_spec.name,
                                                            labels=_get_expected_template_labels(app_spec.labels.pod),
                                                            annotations=pod_annotations)
             },

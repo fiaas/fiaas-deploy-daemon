@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
 import mock
 import pytest
-from k8s.models.deployment import Deployment
+from k8s.models.deployment import Deployment, DeploymentSpec
+from k8s.models.pod import Container, PodSpec, PodTemplateSpec, SecretVolumeSource, SecretEnvSource
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import StrongboxSecrets, GenericInitSecrets, KubernetesSecrets, \
@@ -59,7 +61,8 @@ class TestSecrets(object):
     def secrets(self, config, kubernetes_secrets, generic_init_secrets, strongbox_secrets):
         return Secrets(config, kubernetes_secrets, generic_init_secrets, strongbox_secrets)
 
-    def test_secret_selection(self, request, secrets_mode, secrets, app_spec, kubernetes_secrets, generic_init_secrets, strongbox_secrets):
+    def test_secret_selection(self, request, secrets_mode, secrets, app_spec,
+                              kubernetes_secrets, generic_init_secrets, strongbox_secrets):
         generic_enabled, strongbox_enabled, app_strongbox_enabled, wanted_mock_name = secrets_mode
 
         if app_strongbox_enabled:
@@ -76,3 +79,35 @@ class TestSecrets(object):
         for m in (kubernetes_secrets, generic_init_secrets, strongbox_secrets):
             if m != wanted_mock:
                 m.apply.assert_not_called()
+
+
+class TestKubernetesSecrets(object):
+    @pytest.fixture
+    def deployment(self):
+        main_container = Container()
+        pod_spec = PodSpec(containers=[main_container])
+        pod_template_spec = PodTemplateSpec(spec=pod_spec)
+        deployment_spec = DeploymentSpec(template=pod_template_spec)
+        return Deployment(spec=deployment_spec)
+
+    def test_volumes(self, deployment, app_spec):
+        ks = KubernetesSecrets()
+        ks.apply(deployment, app_spec)
+
+        secret_volume = deployment.spec.template.spec.volumes[-1]
+        assert isinstance(secret_volume.secret, SecretVolumeSource)
+        assert secret_volume.secret.secretName == app_spec.name
+
+        secret_mount = deployment.spec.template.spec.containers[0].volumeMounts[-1]
+        assert secret_mount.name == secret_volume.name
+        assert secret_mount.mountPath == "/var/run/secrets/fiaas/"
+        assert secret_mount.readOnly is True
+
+    def test_secrets_in_environments(self, deployment, app_spec):
+        app_spec = app_spec._replace(secrets_in_environment=True)
+        ks = KubernetesSecrets()
+        ks.apply(deployment, app_spec)
+
+        secret_env_from = deployment.spec.template.spec.containers[0].envFrom[-1]
+        assert isinstance(secret_env_from.secretRef, SecretEnvSource)
+        assert secret_env_from.secretRef.name == app_spec.name

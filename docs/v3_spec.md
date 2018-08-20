@@ -412,7 +412,7 @@ ports:
 ### protocol
 | **Type** | **Required** |
 |----------|--------------|
-| string   | yes          |
+| string   | no          |
 
 Protocol used by the application. It must be `http` or `tcp`.
 
@@ -426,7 +426,7 @@ A logical name for port discovery. Must be <= 63 characters and match `[a-z0-9](
 ### port
 | **Type** | **Required** |
 |----------|--------------|
-| int      | yes          |
+| int      | no          |
 
 Port number that will be exposed. For protocol equals TCP the available port range is (1024-32767) (may vary depending
 on the configuration of the underlying Kubernetes cluster).
@@ -434,7 +434,7 @@ on the configuration of the underlying Kubernetes cluster).
 ### target_port
 | **Type** | **Required** |
 |----------|--------------|
-| int      | yes          |
+| int      | no          |
 
 The port number which is exposed by the container and should receive traffic routed to `port`.
 

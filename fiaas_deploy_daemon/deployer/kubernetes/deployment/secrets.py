@@ -8,12 +8,12 @@ from fiaas_deploy_daemon.tools import merge_dicts
 
 
 class Secrets(object):
-    def __init__(self, config):
+    def __init__(self, config, kubernetes_secrets, generic_init_secrets, strongbox_secrets):
         self._secrets_image_set = config.secrets_init_container_image is not None
         self._strongbox_image_set = config.strongbox_init_container_image is not None
-        self._generic_init = GenericInitSecrets(config)
-        self._strongbox = StrongboxSecrets(config)
-        self._kubernetes = KubernetesSecrets()
+        self._kubernetes = kubernetes_secrets
+        self._generic_init = generic_init_secrets
+        self._strongbox = strongbox_secrets
 
     def _uses_strongbox_init_container(self, app_spec):
         return self._strongbox_image_set and app_spec.strongbox.enabled

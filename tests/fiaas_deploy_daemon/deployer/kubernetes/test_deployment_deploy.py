@@ -9,7 +9,8 @@ from mock import create_autospec
 from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus, Secrets
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus, Secrets, \
+    KubernetesSecrets, GenericInitSecrets, StrongboxSecrets
 from fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer import _make_probe
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, AutoscalerSpec, \
     ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec, StrongboxSpec
@@ -157,7 +158,7 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def secrets(self, config):
-        return Secrets(config)
+        return Secrets(config, KubernetesSecrets(), GenericInitSecrets(config), StrongboxSecrets(config))
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets):

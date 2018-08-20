@@ -3,8 +3,9 @@
 
 import mock
 import pytest
+from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec
-from k8s.models.pod import Container, PodSpec, PodTemplateSpec, SecretVolumeSource, SecretEnvSource
+from k8s.models.pod import Container, PodSpec, PodTemplateSpec
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import StrongboxSecrets, GenericInitSecrets, KubernetesSecrets, \
@@ -19,6 +20,16 @@ def _secrets_mode_ids(fixture_value):
     generic_enabled, strongbox_enabled, app_strongbox_enabled, _ = fixture_value
     return "Generic:{!r:^5}, Strongbox: {!r:^5}, app:{!r:^5}".format(
         generic_enabled, strongbox_enabled, app_strongbox_enabled)
+
+
+@pytest.fixture
+def deployment():
+    main_container = Container()
+    pod_spec = PodSpec(containers=[main_container])
+    pod_metadata = ObjectMeta(annotations={"DUMMY": "CANARY"})
+    pod_template_spec = PodTemplateSpec(spec=pod_spec, metadata=pod_metadata)
+    deployment_spec = DeploymentSpec(template=pod_template_spec)
+    return Deployment(spec=deployment_spec)
 
 
 class TestSecrets(object):
@@ -61,7 +72,7 @@ class TestSecrets(object):
     def secrets(self, config, kubernetes_secrets, generic_init_secrets, strongbox_secrets):
         return Secrets(config, kubernetes_secrets, generic_init_secrets, strongbox_secrets)
 
-    def test_secret_selection(self, request, secrets_mode, secrets, app_spec,
+    def test_secret_selection(self, request, secrets_mode, secrets, deployment, app_spec,
                               kubernetes_secrets, generic_init_secrets, strongbox_secrets):
         generic_enabled, strongbox_enabled, app_strongbox_enabled, wanted_mock_name = secrets_mode
 
@@ -71,7 +82,6 @@ class TestSecrets(object):
             strongbox = StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
         app_spec = app_spec._replace(strongbox=strongbox)
 
-        deployment = Deployment()
         secrets.apply(deployment, app_spec)
 
         wanted_mock = request.getfixturevalue(wanted_mock_name)
@@ -82,20 +92,11 @@ class TestSecrets(object):
 
 
 class TestKubernetesSecrets(object):
-    @pytest.fixture
-    def deployment(self):
-        main_container = Container()
-        pod_spec = PodSpec(containers=[main_container])
-        pod_template_spec = PodTemplateSpec(spec=pod_spec)
-        deployment_spec = DeploymentSpec(template=pod_template_spec)
-        return Deployment(spec=deployment_spec)
-
     def test_volumes(self, deployment, app_spec):
-        ks = KubernetesSecrets()
-        ks.apply(deployment, app_spec)
+        kubernetes_secret = KubernetesSecrets()
+        kubernetes_secret.apply(deployment, app_spec)
 
         secret_volume = deployment.spec.template.spec.volumes[-1]
-        assert isinstance(secret_volume.secret, SecretVolumeSource)
         assert secret_volume.secret.secretName == app_spec.name
 
         secret_mount = deployment.spec.template.spec.containers[0].volumeMounts[-1]
@@ -109,5 +110,43 @@ class TestKubernetesSecrets(object):
         ks.apply(deployment, app_spec)
 
         secret_env_from = deployment.spec.template.spec.containers[0].envFrom[-1]
-        assert isinstance(secret_env_from.secretRef, SecretEnvSource)
         assert secret_env_from.secretRef.name == app_spec.name
+
+
+class TestGenericInitSecrets(object):
+    @pytest.fixture
+    def generic_init_secrets(self):
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        return GenericInitSecrets(config)
+
+    def test_main_container_volumes(self, deployment, app_spec, generic_init_secrets):
+        generic_init_secrets.apply(deployment, app_spec)
+
+        secret_volume = deployment.spec.template.spec.volumes[0]
+        assert secret_volume.emptyDir is not None
+        assert secret_volume.name == "{}-secret".format(app_spec.name)
+        config_volume = deployment.spec.template.spec.volumes[1]
+        assert config_volume.name == "{}-config".format(GenericInitSecrets.SECRETS_INIT_CONTAINER_NAME)
+
+        secret_mount = deployment.spec.template.spec.containers[0].volumeMounts[-1]
+        assert secret_mount.name == secret_volume.name
+        assert secret_mount.mountPath == "/var/run/secrets/fiaas/"
+        assert secret_mount.readOnly is True
+
+    def test_init_container(self, deployment, app_spec, generic_init_secrets):
+        generic_init_secrets.apply(deployment, app_spec)
+
+        init_container = deployment.spec.template.spec.initContainers[0]
+        assert init_container is not None
+
+        assert "K8S_DEPLOYMENT" == init_container.env[-1].name
+        assert app_spec.name == init_container.env[-1].value
+
+    def test_init_container_mounts(self, deployment, app_spec, generic_init_secrets):
+        generic_init_secrets.apply(deployment, app_spec)
+
+        mounts = deployment.spec.template.spec.initContainers[0].volumeMounts
+        assert mounts[0].name == "{}-secret".format(app_spec.name)
+        assert mounts[1].name == "{}-config".format(GenericInitSecrets.SECRETS_INIT_CONTAINER_NAME)
+        assert mounts[2].name == "{}-config".format(app_spec.name)
+        assert mounts[3].name == "tmp"

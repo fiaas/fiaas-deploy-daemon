@@ -21,6 +21,10 @@ class Editor(object):
             if subclass.__name__.lower() == name.lower():
                 return subclass()
 
+    @classmethod
+    def editors(cls):
+        return [subclass.__name__.lower() for subclass in cls.__subclasses__()]
+
     def accepts(self, filepath):
         return True
 
@@ -51,6 +55,20 @@ class RemoveEmptyEnvVariables(Editor):
         env_variables = [x for x in container.get("env", []) if x.get("value") or x.get("valueFrom")]
         container["env"] = env_variables
         return data
+
+
+class AddFinalizers(Editor):
+    def accepts(self, filepath):
+        return "expected" in filepath
+
+    def edit(self, data):
+        if data["kind"] == "Deployment":
+            self._add_finalizers(data["spec"]["template"]["metadata"])
+        self._add_finalizers(data["metadata"])
+        return data
+
+    def _add_finalizers(self, metadata):
+        metadata["finalizers"] = []
 
 
 def process_file(editor, filepath):
@@ -85,6 +103,6 @@ def main(editors):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("editor", nargs="+", help="Name of an editor to apply")
+    parser.add_argument("editor", nargs="+", help="Name of an editor to apply", choices=Editor.editors())
     options = parser.parse_args()
     main(options.editor)

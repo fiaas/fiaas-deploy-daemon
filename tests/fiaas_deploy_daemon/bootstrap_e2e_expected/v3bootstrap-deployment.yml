@@ -10,6 +10,7 @@ metadata:
   name: specs-v3-data-examples-v3bootstrap
   namespace: kube-system
   ownerReferences: []
+  finalizers: []
 spec:
   replicas: 5
   revisionHistoryLimit: 5
@@ -36,6 +37,7 @@ spec:
       name: specs-v3-data-examples-v3bootstrap
       namespace: kube-system
       ownerReferences: []
+      finalizers: []
     spec:
       initContainers: []
       automountServiceAccountToken: false

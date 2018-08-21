@@ -9,6 +9,7 @@ metadata:
   name: specs-v2-data-examples-v2bootstrap
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   ports:
   - name: http

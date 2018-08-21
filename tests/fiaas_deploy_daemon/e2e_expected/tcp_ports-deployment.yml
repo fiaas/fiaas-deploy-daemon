@@ -10,6 +10,7 @@ metadata:
   name: v2-data-examples-tcp-ports
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   replicas: 2
   revisionHistoryLimit: 5
@@ -32,6 +33,7 @@ spec:
       name: v2-data-examples-tcp-ports
       namespace: default
       ownerReferences: []
+      finalizers: []
     spec:
       automountServiceAccountToken: false
       containers:

@@ -9,6 +9,7 @@ metadata:
   name: data-v2minimal
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   ports:
   - name: http

@@ -11,6 +11,7 @@ metadata:
   name: v2-data-examples-host
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   tls: []
   rules:

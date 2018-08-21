@@ -11,6 +11,7 @@ metadata:
   name: v2-data-examples-tcp-ports
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   ports:
   - name: main-port

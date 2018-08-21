@@ -10,6 +10,7 @@ metadata:
   name: v3-data-examples-single-replica-not-singleton
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   replicas: 1
   revisionHistoryLimit: 5
@@ -36,6 +37,7 @@ spec:
       name: v3-data-examples-single-replica-not-singleton
       namespace: default
       ownerReferences: []
+      finalizers: []
     spec:
       automountServiceAccountToken: false
       containers:

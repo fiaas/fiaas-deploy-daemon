@@ -11,6 +11,7 @@ metadata:
   name: specs-v3-data-examples-v3bootstrap
   namespace: kube-system
   ownerReferences: []
+  finalizers: []
 spec:
   tls: []
   rules:

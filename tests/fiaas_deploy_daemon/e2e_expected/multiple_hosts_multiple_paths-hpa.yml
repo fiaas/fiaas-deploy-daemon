@@ -9,6 +9,7 @@ metadata:
   name: v3-data-examples-multiple-hosts-multiple-paths
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   maxReplicas: 5
   minReplicas: 2

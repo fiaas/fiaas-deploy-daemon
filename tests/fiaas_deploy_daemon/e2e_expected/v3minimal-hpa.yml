@@ -9,6 +9,7 @@ metadata:
   name: v3-data-examples-v3minimal
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   maxReplicas: 5
   minReplicas: 2

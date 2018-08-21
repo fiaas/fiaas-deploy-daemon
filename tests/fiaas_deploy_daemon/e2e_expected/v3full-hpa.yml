@@ -14,6 +14,7 @@ metadata:
   name: v3-data-examples-full
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   maxReplicas: 20
   minReplicas: 10

@@ -9,6 +9,7 @@ metadata:
   name: v2-data-examples-partial-override
   namespace: default
   ownerReferences: []
+  finalizers: []
 spec:
   ports:
   - name: http

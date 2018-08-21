@@ -5,6 +5,7 @@ import mock
 import pytest
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
+from requests import Response
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
 
@@ -23,11 +24,14 @@ class TestService(object):
         get.side_effect = NotFound()
         fiaas_app = FiaasApplication(metadata=_create_default_metadata(), spec=_create_default_fiaasapplicationspec())
         assert fiaas_app._new
-        call_params = fiaas_app.as_dict()
+        expected_call = fiaas_app.as_dict()
+        mock_response = mock.create_autospec(Response)
+        mock_response.json.return_value = expected_call
+        post.return_value = mock_response
 
         fiaas_app.save()
 
-        pytest.helpers.assert_any_call(post, API_BASE_PATH, call_params)
+        pytest.helpers.assert_any_call(post, API_BASE_PATH, expected_call)
 
     def test_update_existing_fiaasapplication(self, put, get):
         get_response = mock.Mock()
@@ -51,9 +55,14 @@ class TestService(object):
         assert fiaas_app.spec.config["host"] == 'example.org'
         assert fiaas_app.spec.config["ports"][0]["protocol"] == 'tcp'
         assert fiaas_app.spec.config["ports"][0]["target_port"] == 1992
-        call_params = fiaas_app.as_dict()
+        expected_call = fiaas_app.as_dict()
+        mock_response = mock.create_autospec(Response)
+        mock_response.json.return_value = expected_call
+        put.return_value = mock_response
+
         fiaas_app.save()
-        pytest.helpers.assert_any_call(put, API_INSTANCE_PATH, call_params)
+
+        pytest.helpers.assert_any_call(put, API_INSTANCE_PATH, expected_call)
 
     def test_delete_fiaasapplication(self, delete):
         FiaasApplication.delete(NAME, NAMESPACE)

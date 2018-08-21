@@ -6,6 +6,7 @@ import mock
 import pytest
 from blinker import Namespace
 from k8s.models.common import ObjectMeta
+from requests import Response
 
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tpr import status
@@ -70,6 +71,27 @@ class TestStatusReport(object):
         metadata = ObjectMeta(name=app_name, namespace="default", labels=labels, annotations=annotations)
         get_or_create.return_value = PaasbetaStatus(new=test_data.new, metadata=metadata, result=test_data.result)
         status.connect_signals()
+        expected_call = {
+            'apiVersion': 'schibsted.io/v1beta',
+            'kind': 'PaasbetaStatus',
+            'result': test_data.result,
+            'metadata': {
+                'labels': {
+                    'app': test_data.signal_name,
+                    'fiaas/deployment_id': app_spec.deployment_id},
+                'annotations': {
+                    'fiaas/last_updated': LAST_UPDATE
+                },
+                'namespace': 'default',
+                'name': app_name,
+                'ownerReferences': [],
+                'finalizers': [],
+            }
+        }
+        called_mock = request.getfixturevalue(test_data.called_mock)
+        mock_response = mock.create_autospec(Response)
+        mock_response.json.return_value = expected_call
+        called_mock.return_value = mock_response
 
         with mock.patch("fiaas_deploy_daemon.tpr.status.now") as mnow:
             mnow.return_value = LAST_UPDATE
@@ -80,24 +102,8 @@ class TestStatusReport(object):
             url = '/apis/schibsted.io/v1beta/namespaces/default/paasbetastatuses/'
         else:
             url = '/apis/schibsted.io/v1beta/namespaces/default/paasbetastatuses/{}'.format(app_name)
-        called_mock = request.getfixturevalue(test_data.called_mock)
         ignored_mock = request.getfixturevalue(test_data.ignored_mock)
-        called_mock.assert_called_once_with(url, {
-            'apiVersion': 'schibsted.io/v1beta',
-            'kind': 'PaasbetaStatus',
-            'result': test_data.result,
-            'metadata': {
-                'labels': {
-                    'app': test_data.signal_name,
-                    'fiaas/deployment_id': app_spec.deployment_id
-                },
-                'annotations': {
-                    'fiaas/last_updated': LAST_UPDATE
-                },
-                'namespace': 'default',
-                'name': app_name,
-                'ownerReferences': [],
-            }})
+        called_mock.assert_called_once_with(url, expected_call)
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (
@@ -116,7 +122,7 @@ class TestStatusReport(object):
         random.shuffle(returned_statuses)
         find.return_value = returned_statuses
         _cleanup(app_spec)
-        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20-OLD_STATUSES_TO_KEEP)]
+        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20 - OLD_STATUSES_TO_KEEP)]
         expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls
 

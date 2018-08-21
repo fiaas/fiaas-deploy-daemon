@@ -9,6 +9,7 @@ import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
+from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
@@ -74,41 +75,53 @@ class TestWatcher(object):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
+        expected_application = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'applications.fiaas.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'spec': {
+                'version': 'v1',
+                'group': 'fiaas.schibsted.io',
+                'names': {
+                    'shortNames': ['app', 'fa'],
+                    'kind': 'Application',
+                    'plural': 'applications'
+                }
+            }
+        }
+        expected_status = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'application-statuses.fiaas.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'spec': {
+                'version': 'v1',
+                'group': 'fiaas.schibsted.io',
+                'names': {
+                    'shortNames': ['status', 'appstatus', 'fs'],
+                    'kind': 'ApplicationStatus',
+                    'plural': 'application-statuses'
+                }
+            }
+        }
+
+        def make_response(data):
+            mock_response = mock.create_autospec(Response)
+            mock_response.json.return_value = data
+            return mock_response
+
+        post.side_effect = [make_response(expected_application), make_response(expected_status)]
+
         crd_watcher._watch(None)
 
         calls = [
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
-                'metadata': {
-                    'namespace': 'default',
-                    'name': 'applications.fiaas.schibsted.io',
-                    'ownerReferences': [],
-                },
-                'spec': {
-                    'version': 'v1',
-                    'group': 'fiaas.schibsted.io',
-                    'names': {
-                        'shortNames': ['app', 'fa'],
-                        'kind': 'Application',
-                        'plural': 'applications'
-                    }
-                }
-            }),
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", {
-                'metadata': {
-                    'namespace': 'default',
-                    'name': 'application-statuses.fiaas.schibsted.io',
-                    'ownerReferences': [],
-                },
-                'spec': {
-                    'version': 'v1',
-                    'group': 'fiaas.schibsted.io',
-                    'names': {
-                        'shortNames': ['status', 'appstatus', 'fs'],
-                        'kind': 'ApplicationStatus',
-                        'plural': 'application-statuses'
-                    }
-                }
-            })
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", expected_application),
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", expected_status)
         ]
         assert post.call_args_list == calls
 

@@ -2,9 +2,12 @@
 # -*- coding: utf-8
 
 import pytest
+from mock import create_autospec
+from requests import Response
 
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler, AutoscalerDeployer
-from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec, LabelAndAnnotationSpec
+from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec, \
+    LabelAndAnnotationSpec
 
 LABELS = {"autoscaler_deployer": "pass through"}
 AUTOSCALER_API = '/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/'
@@ -48,8 +51,6 @@ class TestAutoscalerDeployer(object):
         app_spec = app_spec._replace(
             resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
 
-        deployer.deploy(app_spec, LABELS)
-
         expected_autoscaler = {
             'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
             'spec': {
@@ -64,10 +65,16 @@ class TestAutoscalerDeployer(object):
             },
 
         }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_autoscaler
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, LABELS)
+
         pytest.helpers.assert_any_call(post, AUTOSCALER_API, expected_autoscaler)
 
     @pytest.mark.usefixtures("get")
-    def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, get, post, app_spec):
+    def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, post, app_spec):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
         app_spec = app_spec._replace(replicas=4)
@@ -78,8 +85,6 @@ class TestAutoscalerDeployer(object):
         annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "annotation"},
                                              ingress={}, service={}, pod={})
         app_spec = app_spec._replace(labels=labels, annotations=annotations)
-
-        deployer.deploy(app_spec, LABELS)
 
         expected_autoscaler = {
             'metadata': pytest.helpers.create_metadata('testapp', labels={"autoscaler_deployer": "pass through",
@@ -96,6 +101,12 @@ class TestAutoscalerDeployer(object):
                 "targetCPUUtilizationPercentage": 50
             }
         }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_autoscaler
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, LABELS)
+
         pytest.helpers.assert_any_call(post, AUTOSCALER_API, expected_autoscaler)
 
     def test_no_autoscaler_gives_no_post(self, deployer, delete, post, app_spec):

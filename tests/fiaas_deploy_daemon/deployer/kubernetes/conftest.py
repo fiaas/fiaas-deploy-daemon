@@ -16,7 +16,8 @@ def create_metadata(app_name, namespace='default', labels=None, external=None, a
         'labels': labels,
         'namespace': namespace,
         'name': app_name,
-        'ownerReferences': []
+        'ownerReferences': [],
+        'finalizers': [],
     }
     if annotations is not None:
         metadata['annotations'] = annotations

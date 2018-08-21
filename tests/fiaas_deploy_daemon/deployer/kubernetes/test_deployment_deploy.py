@@ -158,6 +158,10 @@ class TestDeploymentDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus):
         expected_deployment = create_expected_deployment(config, app_spec)
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_deployment
+        post.side_effect = None
+        post.return_value = mock_response
 
         deployer = DeploymentDeployer(config, datadog, prometheus)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
@@ -170,12 +174,16 @@ class TestDeploymentDeployer(object):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
         old_app_spec = app_spec._replace(replicas=10, strongbox=old_strongbox_spec)
         old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
-        mock_response = create_autospec(Response)
-        mock_response.json.return_value = old_deployment
+        get_mock_response = create_autospec(Response)
+        get_mock_response.json.return_value = old_deployment
         get.side_effect = None
-        get.return_value = mock_response
+        get.return_value = get_mock_response
 
         expected_deployment = create_expected_deployment(config, app_spec)
+        put_mock_response = create_autospec(Response)
+        put_mock_response.json.return_value = expected_deployment
+        put.side_effect = None
+        put.return_value = put_mock_response
 
         deployer = DeploymentDeployer(config, datadog, prometheus)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
@@ -282,10 +290,15 @@ class TestDeploymentDeployer(object):
         get.side_effect = None
         get.return_value = mock_response
 
-        deployer.deploy(app_spec, SELECTOR, LABELS, False)
-
         expected_deployment = create_expected_deployment(config, app_spec, image=image, version=version,
                                                          replicas=expected_replicas)
+        put_mock_response = create_autospec(Response)
+        put_mock_response.json.return_value = expected_deployment
+        put.side_effect = None
+        put.return_value = put_mock_response
+
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
+
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)

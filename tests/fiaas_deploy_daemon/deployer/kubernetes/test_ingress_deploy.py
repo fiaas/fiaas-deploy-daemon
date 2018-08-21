@@ -2,6 +2,8 @@
 # -*- coding: utf-8
 import mock
 import pytest
+from mock import create_autospec
+from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
@@ -487,6 +489,10 @@ class TestIngressDeployer(object):
 
     @pytest.mark.usefixtures("get")
     def test_ingress_deploy(self, post, deployer, app_spec, expected_ingress):
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_ingress
+        post.return_value = mock_response
+
         deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)

@@ -9,6 +9,7 @@ import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
+from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer import DeployerEvent
@@ -74,27 +75,39 @@ class TestTprWatcher(object):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
+        expected_application = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'paasbeta-application.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'description': 'A paas application definition',
+            'versions': [{'name': 'v1beta'}]
+        }
+        expected_status = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'paasbeta-status.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'description': 'A paas application status',
+            'versions': [{'name': 'v1beta'}]
+        }
+
+        def make_response(data):
+            mock_response = mock.create_autospec(Response)
+            mock_response.json.return_value = data
+            return mock_response
+
+        post.side_effect = [make_response(expected_application), make_response(expected_status)]
+
         tpr_watcher._watch(None)
 
         calls = [
-            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {
-                    'namespace': 'default',
-                    'name': 'paasbeta-application.schibsted.io',
-                    'ownerReferences': [],
-                },
-                'description': 'A paas application definition',
-                'versions': [{'name': 'v1beta'}]
-            }),
-            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", {
-                'metadata': {
-                    'namespace': 'default',
-                    'name': 'paasbeta-status.schibsted.io',
-                    'ownerReferences': [],
-                },
-                'description': 'A paas application status',
-                'versions': [{'name': 'v1beta'}]
-            })
+            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", expected_application),
+            mock.call("/apis/extensions/v1beta1/thirdpartyresources/", expected_status)
         ]
         assert post.call_args_list == calls
 

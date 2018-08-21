@@ -6,6 +6,7 @@ import mock
 import pytest
 from blinker import Namespace
 from k8s.models.common import ObjectMeta
+from requests import Response
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
@@ -71,19 +72,7 @@ class TestStatusReport(object):
         get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata,
                                                             result=test_data.result)
         status.connect_signals()
-
-        with mock.patch("fiaas_deploy_daemon.crd.status.now") as mnow:
-            mnow.return_value = LAST_UPDATE
-            signal(test_data.signal_name).send(app_spec=app_spec)
-
-        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
-        if test_data.action == "create":
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
-        else:
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/{}'.format(app_name)
-        called_mock = request.getfixturevalue(test_data.called_mock)
-        ignored_mock = request.getfixturevalue(test_data.ignored_mock)
-        called_mock.assert_called_once_with(url, {
+        expected_call = {
             'apiVersion': 'fiaas.schibsted.io/v1',
             'kind': 'ApplicationStatus',
             'result': test_data.result,
@@ -98,7 +87,25 @@ class TestStatusReport(object):
                 'namespace': 'default',
                 'name': app_name,
                 'ownerReferences': [],
-            }})
+                'finalizers': [],
+            }
+        }
+        called_mock = request.getfixturevalue(test_data.called_mock)
+        mock_response = mock.create_autospec(Response)
+        mock_response.json.return_value = expected_call
+        called_mock.return_value = mock_response
+
+        with mock.patch("fiaas_deploy_daemon.crd.status.now") as mnow:
+            mnow.return_value = LAST_UPDATE
+            signal(test_data.signal_name).send(app_spec=app_spec)
+
+        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
+        if test_data.action == "create":
+            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
+        else:
+            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/{}'.format(app_name)
+        ignored_mock = request.getfixturevalue(test_data.ignored_mock)
+        called_mock.assert_called_once_with(url, expected_call)
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (
@@ -117,7 +124,7 @@ class TestStatusReport(object):
         random.shuffle(returned_statuses)
         find.return_value = returned_statuses
         _cleanup(app_spec)
-        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20-OLD_STATUSES_TO_KEEP)]
+        expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20 - OLD_STATUSES_TO_KEEP)]
         expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls
 

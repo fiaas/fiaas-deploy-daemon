@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import logging
+
 from k8s.models.pod import EnvFromSource, SecretEnvSource, EnvVar, Container, ConfigMapEnvSource, VolumeMount, Volume, \
     EmptyDirVolumeSource, ConfigMapVolumeSource, SecretVolumeSource
 
 from fiaas_deploy_daemon.tools import merge_dicts
+
+LOG = logging.getLogger(__name__)
 
 
 class Secrets(object):
@@ -74,18 +78,15 @@ class GenericInitSecrets(KubernetesSecrets):
     def __init__(self, config):
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
-        self._strongbox_init_container_image = config.strongbox_init_container_image
 
     def apply(self, deployment, app_spec):
         deployment_spec = deployment.spec
         pod_template_spec = deployment_spec.template
         pod_spec = pod_template_spec.spec
         main_container = pod_spec.containers[0]
-        env_from = main_container.envFrom
 
-        # TODO: Replace with logged warning when fixing tests
         if app_spec.secrets_in_environment:
-            env_from.append(EnvFromSource(secretRef=SecretEnvSource(name=app_spec.name, optional=True)))
+            LOG.warning("%s is attempting to use 'secrets_in_environment', which is not supported.", app_spec.name)
 
         self._apply_mounts(app_spec, main_container)
 
@@ -96,12 +97,6 @@ class GenericInitSecrets(KubernetesSecrets):
         pod_spec.automountServiceAccountToken = True
 
         self._apply_volumes(app_spec, pod_spec)
-
-        # TODO: Push this down when fixing tests
-        strongbox_annotations = self._make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(
-            app_spec) else {}
-        pod_metadata = pod_template_spec.metadata
-        pod_metadata.annotations = merge_dicts(pod_metadata.annotations, strongbox_annotations)
 
     def _make_volumes(self, app_spec):
         volumes = [
@@ -139,25 +134,21 @@ class GenericInitSecrets(KubernetesSecrets):
                               volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
         return container
 
-    # TODO: Push down when fixing tests
-    def _uses_strongbox_init_container(self, app_spec):
-        return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
-
-    @staticmethod
-    def _make_strongbox_annotations(app_spec):
-        return {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}
-
 
 class StrongboxSecrets(GenericInitSecrets):
+    def __init__(self, config):
+        super(StrongboxSecrets, self).__init__(config)
+        self._strongbox_init_container_image = config.strongbox_init_container_image
+
     def apply(self, deployment, app_spec):
         deployment_spec = deployment.spec
         pod_template_spec = deployment_spec.template
         pod_spec = pod_template_spec.spec
         main_container = pod_spec.containers[0]
-        env_from = main_container.envFrom
 
         if app_spec.secrets_in_environment:
-            env_from.append(EnvFromSource(secretRef=SecretEnvSource(name=app_spec.name, optional=True)))
+            LOG.warning("%s is attempting to use 'secrets_in_environment' and strongbox at the same time,"
+                        " which is not supported.", app_spec.name)
 
         self._apply_mounts(app_spec, main_container)
 
@@ -175,3 +166,10 @@ class StrongboxSecrets(GenericInitSecrets):
             app_spec) else {}
         pod_metadata = pod_template_spec.metadata
         pod_metadata.annotations = merge_dicts(pod_metadata.annotations, strongbox_annotations)
+
+    def _uses_strongbox_init_container(self, app_spec):
+        return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
+
+    @staticmethod
+    def _make_strongbox_annotations(app_spec):
+        return {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}

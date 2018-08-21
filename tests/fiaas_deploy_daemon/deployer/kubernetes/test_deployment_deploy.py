@@ -9,17 +9,11 @@ from mock import create_autospec
 from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus, Secrets, \
-    KubernetesSecrets, GenericInitSecrets, StrongboxSecrets
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus, Secrets
 from fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer import _make_probe
 from fiaas_deploy_daemon.specs.models import CheckSpec, HttpCheckSpec, TcpCheckSpec, AutoscalerSpec, \
-    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec, StrongboxSpec
+    ResourceRequirementSpec, ResourcesSpec, ExecCheckSpec, HealthCheckSpec, LabelAndAnnotationSpec
 from fiaas_deploy_daemon.tools import merge_dicts
-
-SECRET_IMAGE = "fiaas/secret_image:version"
-STRONGBOX_IMAGE = 'fiaas/strongbox_image:version'
-
-INIT_CONTAINER_NAME = 'fiaas-secrets-init-container'
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through", "global_label": "impossible to override"}
@@ -64,16 +58,6 @@ def test_make_probe_should_fail_when_no_healthcheck_is_defined():
 
 class TestDeploymentDeployer(object):
     @pytest.fixture(params=(
-            (True, True),
-            # secrets init container is default when both strongbox and secrets init container is specified
-            (True, False),  # secrets init container
-            (False, True),  # strongbox
-            (False, False),  # kubernetes secrets
-    ))
-    def secrets_mode(self, request):
-        yield request.param
-
-    @pytest.fixture(params=(
             None,
             "test"
     ))
@@ -86,43 +70,31 @@ class TestDeploymentDeployer(object):
             ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal',
                      'ARTIFACT_NAME': 'illegal'}),
     ))
-    def config(self, request, secrets_mode, environment):
-        secret_init_container, strongbox_init_container = secrets_mode
-
+    def config(self, request, environment):
         infra, global_env = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = environment
         config.global_env = global_env
-        config.secrets_init_container_image = SECRET_IMAGE if secret_init_container else None
-        config.secrets_service_account_name = "secretsmanager" if secret_init_container else None
-        config.strongbox_init_container_image = STRONGBOX_IMAGE if strongbox_init_container else None
         config.pre_stop_delay = 1
         config.log_format = "json"
         yield config
 
     @pytest.fixture(params=(
             (True, {"foo": "bar", "global_label": "attempt to override"}, {"bar": "baz"},
-             {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, (), False),
-            (True, {}, {"bar": "baz"}, {"foo": "bar"}, {}, (), False),
-            (True, {"foo": "bar"}, {}, {}, {"bar": "baz"}, (), True,),
-            (False, {}, {}, {}, {}, (), True),
-            (False, {}, {}, {}, {}, ("arn:aws:iam::12345678:role/the-role-name", ["foo", "bar"]), True),
+             {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, False),
+            (True, {}, {"bar": "baz"}, {"foo": "bar"}, {}, False),
+            (True, {"foo": "bar"}, {}, {}, {"bar": "baz"}, True,),
+            (False, {}, {}, {}, {}, True),
+            (False, {}, {}, {}, {}, True),
     ))
     def app_spec(self, request, app_spec):
-        generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, \
-            strongbox_init_container, singleton = request.param
+        generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
                                         service={}, pod=pod_labels)
         annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
                                              service={}, pod=pod_annotations)
-
-        if strongbox_init_container:
-            iam_role, groups = strongbox_init_container
-            strongbox = StrongboxSpec(enabled=True, iam_role=iam_role, aws_region="eu-west-1", groups=groups)
-        else:
-            strongbox = StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
 
         if generic_toggle:
             ports = app_spec.ports
@@ -140,10 +112,8 @@ class TestDeploymentDeployer(object):
             admin_access=generic_toggle,
             ports=ports,
             health_checks=health_checks,
-            secrets_in_environment=generic_toggle,
             labels=labels,
             annotations=annotations,
-            strongbox=strongbox,
             replicas=replicas,
             singleton=singleton,
         )
@@ -158,7 +128,7 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def secrets(self, config):
-        return Secrets(config, KubernetesSecrets(), GenericInitSecrets(config), StrongboxSecrets(config))
+        return mock.create_autospec(Secrets(config, None, None, None), spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets):
@@ -174,6 +144,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
+        secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
@@ -196,6 +167,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
+        secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 3),
@@ -218,11 +190,8 @@ class TestDeploymentDeployer(object):
                     requests=ResourceRequirementSpec(cpu=cpu_request, memory=None),
                     limits=ResourceRequirementSpec(cpu=None, memory=None)))
 
-        uses_secrets_init_container = bool(config.secrets_init_container_image)
-        uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
-        expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
-        _, expected_volume_mounts = _get_expected_volume_mounts(app_spec, uses_secrets_init_container,
-                                                                uses_strongbox_init_container)
+        expected_volumes = _get_expected_volumes(app_spec)
+        expected_volume_mounts = _get_expected_volume_mounts(app_spec)
 
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
@@ -309,56 +278,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
-
-
-def _get_secrets_init_container_info(uses_secrets_init_container, uses_strongbox_init_container,
-                                     app_spec):
-    expected_init_volume_mounts, expected_volume_mounts = _get_expected_volume_mounts(app_spec,
-                                                                                      uses_secrets_init_container,
-                                                                                      uses_strongbox_init_container)
-
-    if uses_secrets_init_container:
-        init_containers = [{
-            'name': INIT_CONTAINER_NAME,
-            'image': SECRET_IMAGE,
-            'volumeMounts': expected_init_volume_mounts,
-            'command': [],
-            'env': [{'name': 'K8S_DEPLOYMENT', 'value': app_spec.name}],
-            'envFrom': [{
-                'configMapRef': {
-                    'name': INIT_CONTAINER_NAME,
-                    'optional': True,
-                }
-            }],
-            'imagePullPolicy': 'IfNotPresent',
-            'ports': []
-        }]
-        service_account_name = "secretsmanager"
-    elif uses_strongbox_init_container:
-        init_containers = [{
-            'name': INIT_CONTAINER_NAME,
-            'image': STRONGBOX_IMAGE,
-            'volumeMounts': expected_init_volume_mounts,
-            'command': [],
-            'env': [
-                {'name': 'K8S_DEPLOYMENT', 'value': app_spec.name},
-                {'name': 'AWS_REGION', 'value': app_spec.strongbox.aws_region},
-                {'name': 'SECRET_GROUPS', 'value': ','.join(app_spec.strongbox.groups)},
-            ],
-            'envFrom': [{
-                'configMapRef': {
-                    'name': INIT_CONTAINER_NAME,
-                    'optional': True,
-                }
-            }],
-            'imagePullPolicy': 'IfNotPresent',
-            'ports': []
-        }]
-        service_account_name = "default"
-    else:
-        init_containers = []
-        service_account_name = "default"
-    return (init_containers, service_account_name)
+        secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
 
 def create_expected_deployment(config,
@@ -367,16 +287,8 @@ def create_expected_deployment(config,
                                version="version",
                                replicas=None,
                                add_init_container_annotations=False):
-    uses_secrets_init_container = bool(config.secrets_init_container_image)
-    uses_strongbox_init_container = config.strongbox_init_container_image and app_spec.strongbox.enabled
-    expected_volumes = _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container)
-    _, expected_volume_mounts = _get_expected_volume_mounts(app_spec,
-                                                            uses_secrets_init_container,
-                                                            uses_strongbox_init_container)
-
-    (init_containers, service_account_name) = _get_secrets_init_container_info(uses_secrets_init_container,
-                                                                               uses_strongbox_init_container,
-                                                                               app_spec)
+    expected_volumes = _get_expected_volumes(app_spec)
+    expected_volume_mounts = _get_expected_volume_mounts(app_spec)
 
     base_expected_health_check = {
         'initialDelaySeconds': 10,
@@ -414,13 +326,6 @@ def create_expected_deployment(config,
             'optional': True,
         }
     }]
-    if app_spec.secrets_in_environment:
-        expected_env_from.append({
-            'secretRef': {
-                'name': app_spec.name,
-                'optional': True,
-            }
-        })
 
     resources = defaultdict(dict)
     if app_spec.resources.limits.cpu:
@@ -457,13 +362,11 @@ def create_expected_deployment(config,
     deployment_annotations = app_spec.annotations.deployment if app_spec.annotations.deployment else None
 
     pod_annotations = app_spec.annotations.pod if app_spec.annotations.pod else {}
-    strongbox_annotations = {
-        "iam.amazonaws.com/role": app_spec.strongbox.iam_role} if uses_strongbox_init_container else {}
     init_container_annotations = {
         "pod.alpha.kubernetes.io/init-containers": 'some data',
         "pod.beta.kubernetes.io/init-containers": 'some data'
     } if add_init_container_annotations else {}
-    pod_annotations = _none_if_empty(merge_dicts(pod_annotations, strongbox_annotations, init_container_annotations))
+    pod_annotations = _none_if_empty(merge_dicts(pod_annotations, init_container_annotations))
 
     max_surge = 1
     max_unavailable = 0
@@ -480,14 +383,14 @@ def create_expected_deployment(config,
             'template': {
                 'spec': {
                     'dnsPolicy': 'ClusterFirst',
-                    'automountServiceAccountToken': uses_secrets_init_container or app_spec.admin_access,
-                    'serviceAccountName': service_account_name,
+                    'automountServiceAccountToken': app_spec.admin_access,
+                    'serviceAccountName': "default",
                     'terminationGracePeriodSeconds': 31,
                     'restartPolicy': 'Always',
                     'volumes': expected_volumes,
                     'imagePullSecrets': [],
                     'containers': containers,
-                    'initContainers': init_containers
+                    'initContainers': []
                 },
                 'metadata': pytest.helpers.create_metadata(app_spec.name,
                                                            labels=_get_expected_template_labels(app_spec.labels.pod),
@@ -553,17 +456,7 @@ def _get_expected_template_labels(custom_labels):
     return merge_dicts(custom_labels, {"fiaas/status": "active"}, LABELS)
 
 
-def _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_init_container):
-    secret_volume = {
-        'name': "{}-secret".format(app_spec.name),
-        'secret': {
-            'secretName': app_spec.name,
-            'optional': True
-        }
-    }
-    init_secret_volume = {
-        'name': "{}-secret".format(app_spec.name),
-    }
+def _get_expected_volumes(app_spec):
     config_map_volume = {
         'name': "{}-config".format(app_spec.name),
         'configMap': {
@@ -571,56 +464,24 @@ def _get_expected_volumes(app_spec, uses_secrets_init_container, uses_strongbox_
             'optional': True
         }
     }
-    init_config_map_volume = {
-        'name': "{}-config".format(INIT_CONTAINER_NAME),
-        'configMap': {
-            'name': INIT_CONTAINER_NAME,
-            'optional': True
-        }
-    }
     tmp_volume = {
         'name': "tmp"
     }
-    if uses_secrets_init_container or uses_strongbox_init_container:
-        expected_volumes = [init_secret_volume, init_config_map_volume, config_map_volume, tmp_volume]
-    else:
-        expected_volumes = [secret_volume, config_map_volume, tmp_volume]
-    return expected_volumes
+    return [config_map_volume, tmp_volume]
 
 
-def _get_expected_volume_mounts(app_spec, uses_secrets_init_container, uses_strongbox_init_container):
-    secret_volume_mount = {
-        'name': "{}-secret".format(app_spec.name),
-        'readOnly': True,
-        'mountPath': '/var/run/secrets/fiaas/'
-    }
-    init_secret_volume_mount = {
-        'name': "{}-secret".format(app_spec.name),
-        'readOnly': False,
-        'mountPath': '/var/run/secrets/fiaas/'
-    }
+def _get_expected_volume_mounts(app_spec):
     config_map_volume_mount = {
         'name': "{}-config".format(app_spec.name),
         'readOnly': True,
         'mountPath': '/var/run/config/fiaas/'
-    }
-    init_config_map_volume_mount = {
-        'name': "{}-config".format(INIT_CONTAINER_NAME),
-        'readOnly': True,
-        'mountPath': "/var/run/config/{}/".format(INIT_CONTAINER_NAME)
     }
     tmp_volume_mount = {
         'name': "tmp",
         'readOnly': False,
         'mountPath': "/tmp"
     }
-    expected_volume_mounts = [secret_volume_mount, config_map_volume_mount, tmp_volume_mount]
-    if uses_secrets_init_container or uses_strongbox_init_container:
-        expected_init_volume_mounts = [init_secret_volume_mount, init_config_map_volume_mount, config_map_volume_mount,
-                                       tmp_volume_mount]
-    else:
-        expected_init_volume_mounts = []
-    return expected_init_volume_mounts, expected_volume_mounts
+    return [config_map_volume_mount, tmp_volume_mount]
 
 
 def _none_if_empty(thing):

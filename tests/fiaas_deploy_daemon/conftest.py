@@ -186,6 +186,6 @@ def minikube_installer():
         pytest.fail(msg % str(e))
 
 
-@pytest.fixture(scope="session", params=("v1.6.4", "v1.7.5", "v1.8.0", "v1.9.0"))
+@pytest.fixture(scope="session", params=("v1.6.4", "v1.8.0", "v1.9.0", "v1.10.0"))
 def k8s_version(request):
     yield request.param

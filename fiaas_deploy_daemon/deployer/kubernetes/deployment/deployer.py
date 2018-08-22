@@ -8,8 +8,8 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment, DeploymentSpec, PodTemplateSpec, LabelSelector, DeploymentStrategy, \
     RollingUpdateDeployment
 from k8s.models.pod import ContainerPort, EnvVar, HTTPGetAction, TCPSocketAction, ExecAction, HTTPHeader, Container, \
-    PodSpec, VolumeMount, Volume, SecretVolumeSource, ResourceRequirements, Probe, ConfigMapEnvSource, \
-    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, SecretEnvSource, EnvVarSource, Lifecycle, Handler, \
+    PodSpec, VolumeMount, Volume, ResourceRequirements, Probe, ConfigMapEnvSource, \
+    ConfigMapVolumeSource, EmptyDirVolumeSource, EnvFromSource, EnvVarSource, Lifecycle, Handler, \
     ResourceFieldSelector, ObjectFieldSelector
 
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler
@@ -19,17 +19,14 @@ LOG = logging.getLogger(__name__)
 
 
 class DeploymentDeployer(object):
-    SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
     MINIMUM_GRACE_PERIOD = 30
 
-    def __init__(self, config, datadog, prometheus):
-        self._prometheus = prometheus
+    def __init__(self, config, datadog, prometheus, secrets):
         self._datadog = datadog
+        self._prometheus = prometheus
+        self._secrets = secrets
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
-        self._secrets_init_container_image = config.secrets_init_container_image
-        self._secrets_service_account_name = config.secrets_service_account_name
-        self._strongbox_init_container_image = config.strongbox_init_container_image
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         if config.pre_stop_delay > 0:
@@ -48,8 +45,6 @@ class DeploymentDeployer(object):
         pull_policy = "IfNotPresent" if (":" in app_spec.image and ":latest" not in app_spec.image) else "Always"
 
         env_from = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
-        if app_spec.secrets_in_environment:
-            env_from.append(EnvFromSource(secretRef=SecretEnvSource(name=app_spec.name, optional=True)))
         containers = [
             Container(name=app_spec.name,
                       image=app_spec.image,
@@ -68,21 +63,6 @@ class DeploymentDeployer(object):
         init_containers = []
         service_account_name = "default"
 
-        if self._uses_secrets_init_container():
-            init_container = self._make_secrets_init_container(app_spec, self._secrets_init_container_image)
-            init_containers.append(init_container)
-            automount_service_account_token = True
-            if self._secrets_service_account_name:
-                service_account_name = self._secrets_service_account_name
-        elif self._uses_strongbox_init_container(app_spec):
-            strongbox_env = {
-                "AWS_REGION": app_spec.strongbox.aws_region,
-                "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
-            }
-            init_container = self._make_secrets_init_container(app_spec, self._strongbox_init_container_image,
-                                                               env_vars=strongbox_env)
-            init_containers.append(init_container)
-
         pod_spec = PodSpec(containers=containers,
                            initContainers=init_containers,
                            volumes=self._make_volumes(app_spec),
@@ -90,13 +70,9 @@ class DeploymentDeployer(object):
                            automountServiceAccountToken=automount_service_account_token,
                            terminationGracePeriodSeconds=self._grace_period)
 
-        strongbox_annotations = _make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(
-            app_spec) else {}
-        pod_annotations = merge_dicts(app_spec.annotations.pod, strongbox_annotations)
-
         pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
-                                  annotations=pod_annotations)
+                                  annotations=app_spec.annotations.pod)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
         replicas = app_spec.replicas
         # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value
@@ -111,7 +87,8 @@ class DeploymentDeployer(object):
         # see https://github.com/fiaas/k8s/issues/47
         deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=0, maxSurge=1))
         if app_spec.replicas == 1 and app_spec.singleton:
-            deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
+            deployment_strategy = DeploymentStrategy(
+                rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),
                               template=pod_template_spec, revisionHistoryLimit=5,
                               strategy=deployment_strategy)
@@ -120,6 +97,7 @@ class DeploymentDeployer(object):
         _clear_pod_init_container_annotations(deployment)
         self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         self._prometheus.apply(deployment, app_spec)
+        self._secrets.apply(deployment, app_spec)
         deployment.save()
 
     def delete(self, app_spec):
@@ -132,46 +110,17 @@ class DeploymentDeployer(object):
 
     def _make_volumes(self, app_spec):
         volumes = []
-        if self._uses_secrets_init_container() or self._uses_strongbox_init_container(app_spec):
-            volumes.append(Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()))
-            volumes.append(Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                  configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME,
-                                                                  optional=True)))
-        else:
-            volumes.append(Volume(name="{}-secret".format(app_spec.name),
-                                  secret=SecretVolumeSource(secretName=app_spec.name, optional=True)))
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         volumes.append(Volume(name="tmp", emptyDir=EmptyDirVolumeSource()))
         return volumes
 
-    def _make_volume_mounts(self, app_spec, is_init_container=False):
+    def _make_volume_mounts(self, app_spec):
         volume_mounts = []
-        volume_mounts.append(VolumeMount(name="{}-secret".format(app_spec.name),
-                                         readOnly=not is_init_container,
-                                         mountPath="/var/run/secrets/fiaas/"))
-        if is_init_container:
-            volume_mounts.append(VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                                             readOnly=True,
-                                             mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)))
         volume_mounts.append(
             VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))
         return volume_mounts
-
-    def _make_secrets_init_container(self, app_spec, image, env_vars={}):
-        env_vars.update({"K8S_DEPLOYMENT": app_spec.name})
-        environment = [EnvVar(name=k, value=v) for k, v in env_vars.items()]
-        container = Container(name=self.SECRETS_INIT_CONTAINER_NAME,
-                              image=image,
-                              imagePullPolicy="IfNotPresent",
-                              env=environment,
-                              envFrom=[
-                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME,
-                                                                                optional=True))
-                              ],
-                              volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
-        return container
 
     def _make_env(self, app_spec):
         constants = self._fiaas_env.copy()
@@ -209,12 +158,6 @@ class DeploymentDeployer(object):
         env.sort(key=lambda x: x.name)
         return env
 
-    def _uses_secrets_init_container(self):
-        return bool(self._secrets_init_container_image)
-
-    def _uses_strongbox_init_container(self, app_spec):
-        return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
-
 
 def _clear_pod_init_container_annotations(deployment):
     """Kubernetes 1.5 implemented init-containers using annotations, and in order to preserve backwards compatibility in
@@ -239,10 +182,6 @@ def _add_status_label(labels):
         "fiaas/status": "active"
     })
     return copy
-
-
-def _make_strongbox_annotations(app_spec):
-    return {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}
 
 
 def _make_resource_requirements(resources_spec):

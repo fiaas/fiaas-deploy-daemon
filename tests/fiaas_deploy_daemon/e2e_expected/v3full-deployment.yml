@@ -112,9 +112,6 @@ spec:
         - configMapRef:
             name: v3-data-examples-full
             optional: true
-        - secretRef:
-            name: v3-data-examples-full
-            optional: true
         image: IMAGE
         imagePullPolicy: IfNotPresent
         livenessProbe:

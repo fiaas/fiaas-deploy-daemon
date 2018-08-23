@@ -33,6 +33,7 @@ replicas:
   minimum: 2
   maximum: 5
   cpu_threshold_percentage: 50
+  singleton: true
 ```
 
 ### minimum
@@ -90,6 +91,33 @@ Default value:
 ```yaml
 replicas:
   cpu_threshold_percentage: 50
+```
+
+### singleton
+
+| **Type** | **Required** |
+|----------|--------------|
+| bool     | no           |
+
+Whether there should be a maximum of a single running replica at any one time. Only operational if maximum replicas is
+one. Set to false to have multiple replicas running during deployment, avoiding downtime.
+
+This flag is only relevant for single replica applications. If your app normally has more than one replica, the flag is
+ignored.
+
+For single replica apps, the `singleton` flag indicates if it is important for the application to never run more than
+one replica at a time. If `singleton` is `true` (the default), then the running replica will be shut down before a new
+replica is started. This leads to downtime during deploy, but allows for applications that require exclusive access
+to some resource.
+
+If you have an application that runs in a single replica, but can run in multiple replicas for short periods of time,
+changing this flag to `false` will allow deployments to start a new replica before the old one is shut down, allowing
+for zero downtime deployments.
+
+Default value:
+```yaml
+replicas:
+  singleton: true
 ```
 
 ## ingress

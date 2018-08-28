@@ -8,7 +8,7 @@ from k8s.client import NotFound
 
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, ExecCheckSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 from minikube import MinikubeInstaller, MinikubeError
 from minikube.drivers import MinikubeDriverError
 
@@ -49,7 +49,8 @@ def app_spec():
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
-        singleton=False
+        singleton=False,
+        ingress_tls=IngressTlsSpec(enabled=False)
     )
 
 

@@ -7,7 +7,8 @@ import logging
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
-from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
+from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
+    IngressTLS
 
 from fiaas_deploy_daemon.tools import merge_dicts
 
@@ -15,9 +16,10 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config):
+    def __init__(self, config, ingress_tls):
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
+        self._ingress_tls = ingress_tls
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -37,6 +39,7 @@ class IngressDeployer(object):
         annotations = {
             u"fiaas/expose": u"true" if _has_explicitly_set_host(app_spec) else u"false"
         }
+
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
         custom_annotations = merge_dicts(app_spec.annotations.ingress, annotations)
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
@@ -51,6 +54,7 @@ class IngressDeployer(object):
         ingress_spec = IngressSpec(rules=per_host_ingress_rules + default_host_ingress_rules)
 
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
+        self._ingress_tls.apply(ingress, app_spec, self._get_hosts(app_spec))
         ingress.save()
 
     def _generate_default_hosts(self, name):
@@ -83,6 +87,11 @@ class IngressDeployer(object):
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
 
+    def _get_hosts(self, app_spec):
+        return list(self._generate_default_hosts(app_spec.name)) + \
+               [self._apply_host_rewrite_rules(ingress_item.host)
+                for ingress_item in app_spec.ingresses if ingress_item.host is not None]
+
 
 def _has_explicitly_set_host(app_spec):
     return any(ingress.host is not None for ingress in app_spec.ingresses)
@@ -102,3 +111,23 @@ def _deduplicate_in_order(iterator):
         if item not in seen:
             yield item
             seen.add(item)
+
+
+class IngressTls(object):
+    def __init__(self, config):
+        self._use_ingress_tls = config.use_ingress_tls
+
+    def apply(self, ingress, app_spec, hosts):
+        if self._should_have_ingress_tls(app_spec):
+            tls_annotations = {u"kubernetes.io/tls-acme": u"true"}
+            ingress.metadata.annotations = merge_dicts(
+                ingress.metadata.annotations if ingress.metadata.annotations else {},
+                tls_annotations
+            )
+            ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
+
+    def _should_have_ingress_tls(self, app_spec):
+        if self._use_ingress_tls == 'disabled' or app_spec.ingress_tls.enabled is False:
+            return False
+        else:
+            return self._use_ingress_tls == 'default_on' or app_spec.ingress_tls.enabled is True

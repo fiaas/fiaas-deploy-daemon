@@ -295,6 +295,9 @@ TEST_DATA = {
     },
     "ingress_empty": {
         "ingresses": [],
+    },
+    "tls_enabled": {
+        "ingress_tls.enabled": True,
     }
 }
 

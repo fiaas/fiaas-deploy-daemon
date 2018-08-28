@@ -25,6 +25,7 @@ class AppSpec(namedtuple("AppSpec", [
         "ingresses",
         "strongbox",
         "singleton",
+        "ingress_tls",
 ])):
 
     __slots__ = ()
@@ -113,4 +114,9 @@ StrongboxSpec = namedtuple("StrongboxSpec", [
     "iam_role",
     "aws_region",
     "groups",
+])
+
+
+IngressTlsSpec = namedtuple("IngressTlsSpec", [
+    "enabled",
 ])

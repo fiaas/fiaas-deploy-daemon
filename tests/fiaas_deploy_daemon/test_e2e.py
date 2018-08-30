@@ -90,6 +90,7 @@ class TestE2E(object):
                 "--environment", "test",
                 "--datadog-container-image", "DATADOG_IMAGE",
                 "--strongbox-init-container-image", "STRONGBOX_IMAGE",
+                "--use-ingress-tls", "default_off",
                 ]
         if tpr_supported(k8s_version):
             args.append("--enable-tpr-support")
@@ -165,6 +166,12 @@ class TestE2E(object):
                 Ingress: "e2e_expected/strongbox-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
             }),
+            ("v3/data/examples/tls_enabled.yml", {
+                Service: "e2e_expected/tls-service.yml",
+                Deployment: "e2e_expected/tls-deployment.yml",
+                Ingress: "e2e_expected/tls-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
+            }),
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
@@ -238,6 +245,12 @@ class TestE2E(object):
             }),
             ("v3/data/examples/single-replica-not-singleton.yml", {
                 Deployment: "e2e_expected/single-replica-not-singleton.yml",
+            }),
+            ("v3/data/examples/tls_enabled.yml", {
+                Service: "e2e_expected/tls-service.yml",
+                Deployment: "e2e_expected/tls-deployment.yml",
+                Ingress: "e2e_expected/tls-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):

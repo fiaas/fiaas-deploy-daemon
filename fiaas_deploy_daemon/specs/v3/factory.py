@@ -10,15 +10,17 @@ from ..factory import BaseFactory, InvalidConfiguration
 from ..lookup import LookupMapping
 from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
     CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
-    IngressPathMappingSpec, StrongboxSpec
+    IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 
 
 class Factory(BaseFactory):
     version = 3
 
-    def __init__(self):
+    def __init__(self, config=None):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
+        # Overwrite default value based on config flag for ingress_tls
+        self._defaults["extensions"]["tls"] = config and config.use_ingress_tls == "default_on"
 
     def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace):
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
@@ -43,6 +45,7 @@ class Factory(BaseFactory):
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],
+            ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"]),
         )
         return app_spec
 

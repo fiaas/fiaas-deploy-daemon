@@ -2,14 +2,16 @@
 # -*- coding: utf-8
 import mock
 import pytest
+from k8s.models.common import ObjectMeta
+from k8s.models.ingress import Ingress, IngressSpec, IngressTLS
 from mock import create_autospec
 from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
-from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer, IngressTls
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
@@ -44,13 +46,14 @@ def app_spec(**kwargs):
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
-        singleton=False
+        singleton=False,
+        ingress_tls=IngressTlsSpec(enabled=False)
     )
 
     return default_app_spec._replace(**kwargs)
 
 
-def ingress(rules=None, metadata=None, expose=False):
+def ingress(rules=None, metadata=None, expose=False, tls=None):
     default_rules = [{
         'host': "testapp.svc.test.example.com",
         'http': {
@@ -79,7 +82,7 @@ def ingress(rules=None, metadata=None, expose=False):
     expected_ingress = {
         'spec': {
             'rules': rules if rules else default_rules,
-            'tls': [],
+            'tls': tls if tls else []
         },
         'metadata': metadata if metadata else default_metadata,
     }
@@ -460,24 +463,27 @@ TEST_DATA = (
 
 class TestIngressDeployer(object):
     @pytest.fixture
-    def deployer(self):
+    def ingress_tls(self, config):
+        return mock.create_autospec(IngressTls(config), spec_set=True, instance=True)
+
+    @pytest.fixture
+    def config(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.ingress_suffixes = ["svc.test.example.com", "127.0.0.1.xip.io"]
         config.host_rewrite_rules = [
             HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
             HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
         ]
-        return IngressDeployer(config)
+        return config
 
     @pytest.fixture
-    def deployer_no_suffix(self):
-        config = mock.create_autospec(Configuration([]), spec_set=True)
+    def deployer(self, config, ingress_tls):
+        return IngressDeployer(config, ingress_tls)
+
+    @pytest.fixture
+    def deployer_no_suffix(self, config, ingress_tls):
         config.ingress_suffixes = []
-        config.host_rewrite_rules = [
-            HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
-            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
-        ]
-        return IngressDeployer(config)
+        return IngressDeployer(config, ingress_tls)
 
     def pytest_generate_tests(self, metafunc):
         fixtures = ("app_spec", "expected_ingress")
@@ -515,3 +521,59 @@ class TestIngressDeployer(object):
 
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI + "testapp")
+
+    @pytest.mark.parametrize("app_spec, hosts", (
+        (app_spec(), [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),
+        (app_spec(ingresses=[
+            IngressItemSpec(host="foo.rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+         [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io', u'test.foo.rewrite.example.com']),
+    ))
+    def test_applies_ingress_tls(self, deployer, ingress_tls, app_spec, hosts):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            deployer.deploy(app_spec, LABELS)
+            ingress_tls.apply.assert_called_once_with(IngressMatcher(), app_spec, hosts)
+
+
+class IngressMatcher(object):
+    def __eq__(self, other):
+        return isinstance(other, Ingress)
+
+
+hosts = ["host1", "host2", "host3"]
+
+
+class TestIngressTls(object):
+    @pytest.fixture
+    def config(self):
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        return config
+
+    @pytest.fixture
+    def tls(self, request, config):
+        config.use_ingress_tls = request.param
+        return IngressTls(config)
+
+    @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations, hosts", [
+        ("default_off",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
+        ("default_off",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+        ("default_on",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
+        ("default_on",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+        ("disabled",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True)), [], None, hosts),
+        ("disabled",
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+    ], indirect=['tls'])
+    def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations, hosts):
+        ingress = Ingress()
+        ingress.metadata = ObjectMeta()
+        ingress.spec = IngressSpec()
+        tls.apply(ingress, app_spec, hosts)
+        assert ingress.metadata.annotations == tls_annotations
+        assert ingress.spec.tls == spec_tls

@@ -58,6 +58,19 @@ MULTI_NAMESPACE_HELP = """
 Make fiaas-deploy-daemon watch for TPRs and/or CRDs and execute deployments in all namespaces. The default behavior is
  to only watch the namespace fiaas-deploy-daemon runs in. This feature is deprecated and will soon be removed."""
 
+TLS_HELP = """
+Enable fiaas-deploy-daemon to extend ingress objects to support https.
+
+Option `default_on` will, when creating ingress objects for an application, enable https unless explicitly set to
+disabled in the configuration for an application.
+
+Option `default_off` will, when creating ingress objects for an application, not enable https unless explicitly set
+to enabled in the configuration for an application.
+
+Option `disabled` (the default value) will not enable https at all when creating ingress objects for an application,
+ignoring any relevant options set in the configuration for an application.
+"""
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
@@ -131,6 +144,9 @@ class Configuration(Namespace):
                             default=None)
         parser.add_argument("--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP,
                             action="store_true")
+        parser.add_argument("--use-ingress-tls", help=TLS_HELP,
+                            choices=("disabled", "default_off", "default_on"),
+                            default="disabled")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

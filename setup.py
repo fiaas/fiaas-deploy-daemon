@@ -13,7 +13,7 @@ def read(filename):
 
 GENERIC_REQ = [
     "ConfigArgParse == 0.12.0",
-    "prometheus_client == 0.0.19",
+    "prometheus_client == 0.3.1",
     "PyYAML == 3.12",
     "pyaml == 16.12.2",
     "pinject == 0.10.2",

@@ -13,7 +13,6 @@ from flask import Flask, Blueprint, current_app, render_template, make_response,
 from flask_talisman import Talisman, DENY
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
-from .platform_collector import PLATFORM_COLLECTOR
 from .transformer import Transformer
 from ..specs.factory import InvalidConfiguration
 
@@ -21,7 +20,6 @@ from ..specs.factory import InvalidConfiguration
 Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
 """
 
-PLATFORM_COLLECTOR.collect()
 LOG = logging.getLogger(__name__)
 SPLITTER = re.compile(ur"\s*,\s*")
 DEFAULT_NAMESPACE = u"default"

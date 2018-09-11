@@ -626,3 +626,19 @@ extensions:
     - group-name-1
     - group-name-2
 ```
+
+### tls
+
+| **Type** | **Required** |
+|----------|--------------|
+| boolean  | no           |
+
+If set to true ingress objects will be extended to include annotations necessary for use with
+[cert-manager](https://github.com/jetstack/cert-manager)s [ingress-shim](https://cert-manager.readthedocs.io/en/latest/reference/ingress-shim.html)
+to make use of automatic provisioning and management of TLS certificates.
+
+Default values:
+```yaml
+extensions:
+  tls: false
+```

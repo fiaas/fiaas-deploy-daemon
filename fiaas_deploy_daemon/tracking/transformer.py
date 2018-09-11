@@ -41,7 +41,7 @@ class DevhoseDeploymentEventTransformer(object):
         event = DevhoseDeploymentEvent(id=app_spec.deployment_id,
                                        application=app_spec.name,
                                        environment=_environment(self._environment[:3]),
-                                       repository=None, # TODO
+                                       repository=_repository(app_spec),
                                        started_at=started_timestamp,
                                        timestamp=started_timestamp if status == 'STARTED' else _timestamp(),
                                        target={'infrastructure': self._target_infrastructure,
@@ -58,3 +58,7 @@ def _environment(env):
 
 def _timestamp():
     return datetime.utcnow().replace(microsecond=0).isoformat()
+
+
+def _repository(app_spec):
+    return app_spec.annotations.deployment.get("pipeline.schibsted.io/repoName")

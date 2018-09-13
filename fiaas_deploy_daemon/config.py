@@ -54,6 +54,12 @@ When whitelisting, only applications in the whitelist is deployed.
 When blacklisting, applications in the blacklist will not be deployed.
 """
 
+USAGE_LONG_HELP = """
+FIAAS has the option of reporting usage data to a web-service via POSTs to an
+HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
+on deployment start, deployment failure and deployment success.
+"""
+
 MULTI_NAMESPACE_HELP = """
 Make fiaas-deploy-daemon watch for TPRs and/or CRDs and execute deployments in all namespaces. The default behavior is
  to only watch the namespace fiaas-deploy-daemon runs in. This feature is deprecated and will soon be removed."""
@@ -171,6 +177,8 @@ class Configuration(Namespace):
         list_group = list_parser.add_mutually_exclusive_group()
         list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
+        usage_reporting_group = parser.add_argument_group("Usage Reporting", USAGE_LONG_HELP)
+        usage_reporting_group.add_argument("--usage-endpoint", help="Endpoint to POST usage data to", default=None)
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
 

@@ -103,6 +103,23 @@ If you wish to expose certain environment variables to every application in your
 
 This is currently only used for FINN, and will go away soon.
 
+### use-ingress-tls
+
+Used to extend ingress configuration when deploying applications to enable automatic provisioning and management of certificates for the ingress resources created. This requires infrastructure such as kube-lego/cert-manager to be in place for provisioning of certificates.
+
+Possible values:
+
+* `disabled` (default)
+* `default_off`
+* `default_on`
+
+If `disabled` or no value is specified no tls configuration is applied. This is the default behaviour.
+
+If `default_off` tls configuration can be explicitly requested on a per application basis through application manifests.
+
+If `default_on` tls configuration will be applied unless explicitly disabled in application manifests.
+
+
 Secrets
 -------
 

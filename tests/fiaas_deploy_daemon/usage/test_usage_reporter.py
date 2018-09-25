@@ -5,6 +5,7 @@ from __future__ import unicode_literals, absolute_import
 import mock
 import pytest
 from blinker import signal
+from requests.auth import AuthBase
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
@@ -26,9 +27,13 @@ class TestUsageReporter(object):
     def mock_session(self):
         return mock.NonCallableMagicMock()
 
+    @pytest.fixture
+    def mock_auth(self):
+        return mock.create_autospec(AuthBase())
+
     @pytest.mark.parametrize("signal_name", (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS))
-    def test_signal_to_event(self, config, mock_transformer, mock_session, signal_name, app_spec):
-        reporter = UsageReporter(config, mock_transformer, mock_session)
+    def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, signal_name, app_spec):
+        reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
 
         signal(signal_name).send(app_spec=app_spec)
 
@@ -37,18 +42,18 @@ class TestUsageReporter(object):
         assert event.status == signal_name.split("_")[-1].upper()
         assert event.app_spec == app_spec
 
-    def test_event_to_transformer(self, config, mock_transformer, mock_session):
+    def test_event_to_transformer(self, config, mock_transformer, mock_session, mock_auth):
         event = UsageEvent("status", object())
-        reporter = UsageReporter(config, mock_transformer, mock_session)
+        reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
         reporter._event_queue = [event]
 
         reporter()
 
         mock_transformer.transform.assert_called_once_with(event.status, event.app_spec)
 
-    def test_post_to_webhook(self, config, mock_transformer, mock_session):
+    def test_post_to_webhook(self, config, mock_transformer, mock_session, mock_auth):
         event = UsageEvent("status", object())
-        reporter = UsageReporter(config, mock_transformer, mock_session)
+        reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
         reporter._event_queue = [event]
 
         payload = {"dummy": "payload"}
@@ -56,4 +61,6 @@ class TestUsageReporter(object):
 
         reporter()
 
-        mock_session.post.assert_called_once_with(config.usage_endpoint, data=payload, auth="woot")
+        mock_session.post.assert_called_once_with(config.usage_endpoint, json=payload, auth=mock_auth)
+
+

@@ -147,6 +147,11 @@ class Configuration(Namespace):
         parser.add_argument("--use-ingress-tls", help=TLS_HELP,
                             choices=("disabled", "default_off", "default_on"),
                             default="disabled")
+        tracking_parser = parser.add_argument_group("Usage Tracking")
+        tracking_parser.add_argument("--tracking-cluster-name",
+                                     help="Name of the cluster where the fiaas-deploy-daemon instance resides")
+        tracking_parser.add_argument("--tracking-provider-identifier",
+                                     help="Identifier for the operator of the fiaas-deploy-daemon instance")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

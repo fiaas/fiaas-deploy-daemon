@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 import logging
+import os
+import re
 from argparse import Namespace
 
 import configargparse
 import dns.exception
 import dns.resolver
-import os
-import re
 
 DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
+DEFAULT_SECRETS_DIR = "/var/run/secrets/fiaas/"
 
 INGRESS_SUFFIX_LONG_HELP = """
 When creating Ingress objects for an application, a host may be specified,
@@ -117,6 +118,8 @@ class Configuration(Namespace):
                                           description="%(prog)s deploys applications to Kubernetes",
                                           epilog=EPILOG,
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument("--secrets-directory", help="Load secrets from this directory (default: %(default)s)",
+                            default=DEFAULT_SECRETS_DIR)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")
         parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",

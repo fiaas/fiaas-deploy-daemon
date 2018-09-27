@@ -16,6 +16,7 @@ from .deployer.kubernetes import K8sAdapterBindings
 from .fake_consumer import FakeConsumerBindings
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
+from .secrets import resolve_secrets
 from .specs import SpecBindings
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .usage import UsageBindings
@@ -40,6 +41,9 @@ class MainBindings(pinject.BindingSpec):
                 "https"
             )}
         return session
+
+    def provide_secrets(self, config):
+        return resolve_secrets(config.secrets_directory)
 
 
 class HealthCheck(object):

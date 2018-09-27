@@ -21,10 +21,10 @@ LOG = logging.getLogger(__name__)
 class DeploymentDeployer(object):
     MINIMUM_GRACE_PERIOD = 30
 
-    def __init__(self, config, datadog, prometheus, secrets):
+    def __init__(self, config, datadog, prometheus, deployment_secrets):
         self._datadog = datadog
         self._prometheus = prometheus
-        self._secrets = secrets
+        self._secrets = deployment_secrets
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
         self._lifecycle = None

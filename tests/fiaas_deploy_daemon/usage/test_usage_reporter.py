@@ -62,5 +62,3 @@ class TestUsageReporter(object):
         reporter()
 
         mock_session.post.assert_called_once_with(config.usage_endpoint, json=payload, auth=mock_auth)
-
-

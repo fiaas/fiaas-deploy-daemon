@@ -17,5 +17,5 @@ class DeploymentBindings(pinject.BindingSpec):
         bind("kubernetes_secrets", to_class=KubernetesSecrets)
         bind("generic_init_secrets", to_class=GenericInitSecrets)
         bind("strongbox_secrets", to_class=StrongboxSecrets)
-        bind("secrets", to_class=Secrets)
+        bind("deployment_secrets", to_class=Secrets)
         bind("deployment_deployer", to_class=DeploymentDeployer)

@@ -29,7 +29,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:49:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -37,12 +37,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
-          }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05"], "pre", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pre",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:49:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -50,12 +50,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pre"}
-          }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05"], "pro", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pro",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:49:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -63,12 +63,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pro"}
-          }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05"], "something_else", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "other",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:49:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -76,12 +76,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "something_else"}
-          }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05", "2018-09-10T13:50:05"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:50:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -89,12 +89,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
-        }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "FAILED"], ["2018-09-10T13:49:05", "2018-09-10T13:50:05"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
-            "repository": "http://source/repo/path",
+            "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05",
             "timestamp": "2018-09-10T13:50:05",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
@@ -102,7 +102,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
-        }, {'pipeline.schibsted.io/repoName': 'http://source/repo/path'}),
+          }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",

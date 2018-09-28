@@ -19,7 +19,7 @@ from .pipeline import PipelineBindings
 from .secrets import resolve_secrets
 from .specs import SpecBindings
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
-from .usage import UsageBindings
+from .tracking import TrackingBindings
 from .web import WebBindings
 
 
@@ -48,7 +48,7 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher):
+    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher, usage_reporter):
         pass
 
     def is_healthy(self):
@@ -58,6 +58,7 @@ class HealthCheck(object):
             self._scheduler.is_alive(),
             self._tpr_watcher.is_alive(),
             self._crd_watcher.is_alive(),
+            self._usage_reporter.is_alive(),
         ))
 
 
@@ -105,7 +106,7 @@ def main():
             PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
             ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
-            UsageBindings(),
+            TrackingBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()

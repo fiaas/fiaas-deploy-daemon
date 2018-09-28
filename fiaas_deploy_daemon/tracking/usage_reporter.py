@@ -19,11 +19,12 @@ class UsageReporter(DaemonThread):
         self._session = session
         self._transformer = usage_transformer
         self._event_queue = IterableQueue()
-        self._usage_endpoint = config.usage_endpoint
+        self._tracking_endpoint = config.tracking_endpoint
         self._usage_auth = usage_auth
-        signal(DEPLOY_STARTED).connect(self._handle_started)
-        signal(DEPLOY_SUCCESS).connect(self._handle_success)
-        signal(DEPLOY_FAILED).connect(self._handle_failed)
+        if self._tracking_endpoint and self._usage_auth:
+            signal(DEPLOY_STARTED).connect(self._handle_started)
+            signal(DEPLOY_SUCCESS).connect(self._handle_success)
+            signal(DEPLOY_FAILED).connect(self._handle_failed)
 
     def _handle_signal(self, status, app_spec):
         self._event_queue.put(UsageEvent(status, app_spec))
@@ -42,5 +43,5 @@ class UsageReporter(DaemonThread):
             self._handle_event(event)
 
     def _handle_event(self, event):
-        data = self._transformer.transform(event.status, event.app_spec)
-        self._session.post(self._usage_endpoint, json=data, auth=self._usage_auth)
+        data = self._transformer(event.status, event.app_spec)
+        self._session.post(self._tracking_endpoint, json=data, auth=self._usage_auth)

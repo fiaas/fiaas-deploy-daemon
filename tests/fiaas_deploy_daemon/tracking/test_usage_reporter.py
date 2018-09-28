@@ -9,19 +9,20 @@ from requests.auth import AuthBase
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
-from fiaas_deploy_daemon.usage.usage_reporter import UsageReporter, UsageEvent
+from fiaas_deploy_daemon.tracking import DevhoseDeploymentEventTransformer
+from fiaas_deploy_daemon.tracking.usage_reporter import UsageReporter, UsageEvent
 
 
 class TestUsageReporter(object):
     @pytest.fixture
     def config(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
-        config.usage_endpoint = "http://example.com/usage"
+        config.tracking_endpoint = "http://example.com/usage"
         return config
 
     @pytest.fixture
     def mock_transformer(self):
-        return mock.NonCallableMagicMock()
+        return mock.create_autospec(DevhoseDeploymentEventTransformer, instance=True)
 
     @pytest.fixture
     def mock_session(self):
@@ -49,7 +50,7 @@ class TestUsageReporter(object):
 
         reporter()
 
-        mock_transformer.transform.assert_called_once_with(event.status, event.app_spec)
+        mock_transformer.assert_called_once_with(event.status, event.app_spec)
 
     def test_post_to_webhook(self, config, mock_transformer, mock_session, mock_auth):
         event = UsageEvent("status", object())
@@ -57,8 +58,8 @@ class TestUsageReporter(object):
         reporter._event_queue = [event]
 
         payload = {"dummy": "payload"}
-        mock_transformer.transform.return_value = payload
+        mock_transformer.return_value = payload
 
         reporter()
 
-        mock_session.post.assert_called_once_with(config.usage_endpoint, json=payload, auth=mock_auth)
+        mock_session.post.assert_called_once_with(config.tracking_endpoint, json=payload, auth=mock_auth)

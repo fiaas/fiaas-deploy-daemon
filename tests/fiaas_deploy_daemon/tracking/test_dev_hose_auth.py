@@ -8,7 +8,7 @@ import mock
 import pytest
 import requests
 
-from fiaas_deploy_daemon.usage.dev_hose_auth import DevHoseAuth
+from fiaas_deploy_daemon.tracking.dev_hose_auth import DevHoseAuth
 
 
 class TestDevHoseAuth(object):
@@ -38,8 +38,8 @@ class TestDevHoseAuth(object):
                                  "%DF%B7%E2%8F%BB%40%2F\n"
 
     def test_signing(self, mock_request):
-        with mock.patch("fiaas_deploy_daemon.usage.dev_hose_auth.uuid.uuid4") as m_uuid, \
-                mock.patch("fiaas_deploy_daemon.usage.dev_hose_auth.time.time") as m_time:
+        with mock.patch("fiaas_deploy_daemon.tracking.dev_hose_auth.uuid.uuid4") as m_uuid, \
+                mock.patch("fiaas_deploy_daemon.tracking.dev_hose_auth.time.time") as m_time:
             m_uuid.return_value = "mocked_nonce"
             m_time.return_value = 1514764861.000001
             auth = DevHoseAuth("dummy key", "tenant")

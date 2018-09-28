@@ -55,7 +55,7 @@ When whitelisting, only applications in the whitelist is deployed.
 When blacklisting, applications in the blacklist will not be deployed.
 """
 
-USAGE_LONG_HELP = """
+TRACKING_LONG_HELP = """
 FIAAS has the option of reporting usage data to a web-service via POSTs to an
 HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
 on deployment start, deployment failure and deployment success.
@@ -156,11 +156,13 @@ class Configuration(Namespace):
         parser.add_argument("--use-ingress-tls", help=TLS_HELP,
                             choices=("disabled", "default_off", "default_on"),
                             default="disabled")
-        tracking_parser = parser.add_argument_group("Usage Tracking")
+        tracking_parser = parser.add_argument_group("Usage Tracking", TRACKING_LONG_HELP)
         tracking_parser.add_argument("--tracking-cluster-name",
                                      help="Name of the cluster where the fiaas-deploy-daemon instance resides")
         tracking_parser.add_argument("--tracking-provider-identifier",
                                      help="Identifier for the operator of the fiaas-deploy-daemon instance")
+        tracking_parser.add_argument("--tracking-endpoint", help="Endpoint to POST usage data to")
+        tracking_parser.add_argument("--tracking-tenant", help="Name of publisher of events")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")
@@ -185,8 +187,6 @@ class Configuration(Namespace):
         list_group = list_parser.add_mutually_exclusive_group()
         list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
-        usage_reporting_group = parser.add_argument_group("Usage Reporting", USAGE_LONG_HELP)
-        usage_reporting_group.add_argument("--usage-endpoint", help="Endpoint to POST usage data to", default=None)
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
 

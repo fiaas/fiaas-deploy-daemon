@@ -4,7 +4,6 @@ from __future__ import absolute_import
 
 import logging
 import pkgutil
-import re
 
 import pinject
 import yaml
@@ -21,8 +20,7 @@ Also, endpoints to manually generate AppSpecs and send to deployer for when no p
 """
 
 LOG = logging.getLogger(__name__)
-SPLITTER = re.compile(ur"\s*,\s*")
-DEFAULT_NAMESPACE = u"default"
+
 
 web = Blueprint("web", __name__, template_folder="templates")
 
@@ -107,12 +105,13 @@ def _render_defaults(*args):
 
 
 class WebBindings(pinject.BindingSpec):
-    def provide_webapp(self, deploy_queue, config, spec_factory, health_check, app_config_downloader):
+    def provide_webapp(self, spec_factory, health_check):
         app = Flask(__name__)
         app.health_check = health_check
         app.register_blueprint(web)
         app.spec_factory = spec_factory
         app.transformer = Transformer(spec_factory)
+        app.request_logger = LOG
         _connect_signals()
 
         # TODO: These options are like this because we haven't set up TLS, but should be

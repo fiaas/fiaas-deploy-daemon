@@ -8,7 +8,7 @@ from Queue import Queue
 import pinject
 import requests
 from gevent import monkey
-from gevent.pywsgi import WSGIServer
+from gevent.pywsgi import WSGIServer, LoggingLogAdapter
 from k8s import config as k8s_config
 
 from .config import Configuration
@@ -80,7 +80,9 @@ class Main(object):
         self._crd_watcher.start()
         self._usage_reporter.start()
         # Run web-app in main thread
-        http_server = WSGIServer(("", self._config.port), self._webapp)
+        log = LoggingLogAdapter(self._webapp.request_logger, logging.DEBUG)
+        error_log = LoggingLogAdapter(self._webapp.request_logger, logging.ERROR)
+        http_server = WSGIServer(("", self._config.port), self._webapp, log=log, error_log=error_log)
         http_server.serve_forever()
 
 

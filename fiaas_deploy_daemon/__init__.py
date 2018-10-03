@@ -18,6 +18,7 @@ from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .secrets import resolve_secrets
 from .specs import SpecBindings
+from .tools import log_request_response
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .tracking import TrackingBindings
 from .web import WebBindings
@@ -40,6 +41,8 @@ class MainBindings(pinject.BindingSpec):
                 "http",
                 "https"
             )}
+        if config.debug:
+            session.hooks["response"].append(log_request_response)
         return session
 
     def provide_secrets(self, config):

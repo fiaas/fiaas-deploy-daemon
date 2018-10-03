@@ -2,7 +2,6 @@
 # -*- coding: utf-8
 
 import collections
-import json
 from datetime import datetime
 
 
@@ -49,7 +48,7 @@ class DevhoseDeploymentEventTransformer(object):
                                                'instance': app_spec.namespace},
                                        status=status_map[status],
                                        details={'environment': self._environment})
-        return json.dumps(event.__dict__)
+        return event.__dict__
 
 
 def _environment(env):

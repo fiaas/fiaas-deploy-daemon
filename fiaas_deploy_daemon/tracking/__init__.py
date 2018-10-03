@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import logging
+
 import pinject
 
 from .dev_hose_auth import DevHoseAuth
 from .transformer import DevhoseDeploymentEventTransformer
 from .usage_reporter import UsageReporter
+
+LOG = logging.getLogger(__name__)
 
 
 class TrackingBindings(pinject.BindingSpec):
@@ -21,13 +25,5 @@ class TrackingBindings(pinject.BindingSpec):
         tenant = config.tracking_tenant
         if key and tenant:
             return DevHoseAuth(key, tenant)
+        LOG.debug("Usage auth disabled. Key: %r, Tenant: %r", key, tenant)
         return False
-
-
-class DummyReporter(object):
-    @staticmethod
-    def is_alive():
-        return True
-
-    def start(self):
-        pass

@@ -37,4 +37,4 @@ then
     ARGS=("${ARGS[@]}" '--enable-tpr-support')
 fi
 
-fiaas-deploy-daemon "${ARGS[@]}"
+(set -x; fiaas-deploy-daemon "${ARGS[@]}")

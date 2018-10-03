@@ -25,5 +25,5 @@ class TrackingBindings(pinject.BindingSpec):
         tenant = config.tracking_tenant
         if key and tenant:
             return DevHoseAuth(key, tenant)
-        LOG.debug("Usage auth disabled. Key: %r, Tenant: %r", key, tenant)
+        LOG.debug("Usage auth disabled. Key is %s, Tenant: %r", "set" if key else "not set", tenant)
         return False

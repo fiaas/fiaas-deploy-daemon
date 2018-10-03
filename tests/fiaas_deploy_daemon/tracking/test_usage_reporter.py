@@ -21,8 +21,8 @@ class TestUsageReporter(object):
         return config
 
     @pytest.fixture
-    def mock_transformer(self):
-        return mock.create_autospec(DevhoseDeploymentEventTransformer, instance=True)
+    def mock_transformer(self, config):
+        return mock.create_autospec(DevhoseDeploymentEventTransformer(config))
 
     @pytest.fixture
     def mock_session(self):

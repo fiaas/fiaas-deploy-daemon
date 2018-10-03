@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-import json
 
-import pytest
 import mock
+import pytest
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
@@ -123,5 +122,5 @@ class TestDevhoseDeploymentEventTransformer(object):
         with mock.patch("fiaas_deploy_daemon.tracking.transformer._timestamp") as timestamp:
             timestamp.side_effect = timestamps
             for status in statuses:
-                transformed = json.loads(transformer(status, app_spec))
+                transformed = transformer(status, app_spec)
             assert expected == transformed

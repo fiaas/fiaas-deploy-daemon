@@ -6,7 +6,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 from collections import namedtuple
 
-Secrets = namedtuple("Secrets", ("tracking_key",))
+Secrets = namedtuple("Secrets", ("usage_reporting_key",))
 
 
 def resolve_secrets(secrets_directory):

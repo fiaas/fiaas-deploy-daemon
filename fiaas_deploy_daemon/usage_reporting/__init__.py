@@ -21,8 +21,8 @@ class UsageReportingBindings(pinject.BindingSpec):
         bind("usage_reporter", to_class=UsageReporter)
 
     def provide_usage_auth(self, config, secrets):
-        key = secrets.tracking_key
-        tenant = config.tracking_tenant
+        key = secrets.usage_reporting_key
+        tenant = config.usage_reporting_tenant
         LOG.debug("Usage auth key is %s, tenant: %r", "set" if key else "not set", tenant)
         if key and tenant:
             LOG.debug("Usage auth enabled")

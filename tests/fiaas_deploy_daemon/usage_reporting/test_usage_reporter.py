@@ -17,7 +17,7 @@ class TestUsageReporter(object):
     @pytest.fixture
     def config(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
-        config.tracking_endpoint = "http://example.com/usage"
+        config.usage_reporting_endpoint = "http://example.com/usage"
         return config
 
     @pytest.fixture
@@ -62,4 +62,4 @@ class TestUsageReporter(object):
 
         reporter()
 
-        mock_session.post.assert_called_once_with(config.tracking_endpoint, json=payload, auth=mock_auth)
+        mock_session.post.assert_called_once_with(config.usage_reporting_endpoint, json=payload, auth=mock_auth)

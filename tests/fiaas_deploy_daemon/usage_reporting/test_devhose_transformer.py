@@ -14,8 +14,8 @@ class TestDevhoseDeploymentEventTransformer(object):
     def config(self, request):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.environment = request.param
-        config.tracking_cluster_name = 'cluster_name'
-        config.tracking_provider_identifier = 'team_sdrn'
+        config.usage_reporting_cluster_name = 'cluster_name'
+        config.usage_reporting_provider_identifier = 'team_sdrn'
         yield config
 
     @pytest.fixture()

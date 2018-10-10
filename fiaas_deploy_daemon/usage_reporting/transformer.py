@@ -27,8 +27,8 @@ status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'faile
 class DevhoseDeploymentEventTransformer(object):
     def __init__(self, config):
         self._environment = config.environment
-        self._target_infrastructure = config.tracking_cluster_name
-        self._target_provider = config.tracking_provider_identifier
+        self._target_infrastructure = config.usage_reporting_cluster_name
+        self._target_provider = config.usage_reporting_provider_identifier
         self._deployments_started = {}
 
     def __call__(self, status, app_spec):

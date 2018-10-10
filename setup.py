@@ -59,6 +59,11 @@ TESTS_REQ = [
     'requests-file',
 ]
 
+# Transient dependencies that needs to be pinned for various reasons
+TRANSIENT_PINNED_TEST_REQ = [
+    "coverage==4.5.1",  # For some reason we end up pulling a buggy pre-release version without this
+]
+
 setup(
     name="fiaas-deploy-daemon",
     author="FINN Team Infrastructure",
@@ -71,7 +76,7 @@ setup(
     # Requirements
     install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
     setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
-    tests_require=TESTS_REQ,
+    tests_require=TESTS_REQ + TRANSIENT_PINNED_TEST_REQ,
 
     # Metadata
     description="Deploy docker containers to kubernetes when notified by pipeline",

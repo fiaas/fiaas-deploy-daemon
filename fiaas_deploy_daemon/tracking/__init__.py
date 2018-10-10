@@ -23,7 +23,9 @@ class TrackingBindings(pinject.BindingSpec):
     def provide_usage_auth(self, config, secrets):
         key = secrets.tracking_key
         tenant = config.tracking_tenant
+        LOG.debug("Usage auth key is %s, tenant: %r", "set" if key else "not set", tenant)
         if key and tenant:
+            LOG.debug("Usage auth enabled")
             return DevHoseAuth(key, tenant)
-        LOG.debug("Usage auth disabled. Key is %s, Tenant: %r", "set" if key else "not set", tenant)
+        LOG.debug("Usage auth disabled")
         return False

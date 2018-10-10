@@ -56,7 +56,7 @@ When blacklisting, applications in the blacklist will not be deployed.
 """
 
 TRACKING_LONG_HELP = """
-FIAAS has the option of reporting usage data to a web-service via POSTs to an
+FIAAS can optionally report usage data to a web-service via POSTs to an
 HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
 on deployment start, deployment failure and deployment success.
 """

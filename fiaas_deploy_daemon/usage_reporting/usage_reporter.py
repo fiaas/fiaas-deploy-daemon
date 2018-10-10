@@ -14,9 +14,13 @@ from fiaas_deploy_daemon.base_thread import DaemonThread
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tools import IterableQueue
 
+from prometheus_client import Histogram
+
 LOG = logging.getLogger(__name__)
 
 UsageEvent = collections.namedtuple("UsageEvent", ("status", "app_spec"))
+
+reporting_histogram = Histogram("fiaas_usage_reporting_latency", "Request latency in seconds")
 
 
 class UsageReporter(DaemonThread):
@@ -57,5 +61,6 @@ class UsageReporter(DaemonThread):
         self._send_data(data)
 
     @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+    @reporting_histogram.time()
     def _send_data(self, data):
         self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)

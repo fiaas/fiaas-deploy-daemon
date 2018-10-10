@@ -5,6 +5,9 @@ from __future__ import unicode_literals, absolute_import
 import collections
 import logging
 
+import backoff
+import requests
+
 from blinker import signal
 
 from fiaas_deploy_daemon.base_thread import DaemonThread
@@ -51,4 +54,8 @@ class UsageReporter(DaemonThread):
 
     def _handle_event(self, event):
         data = self._transformer(event.status, event.app_spec)
+        self._send_data(data)
+
+    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+    def _send_data(self, data):
         self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)

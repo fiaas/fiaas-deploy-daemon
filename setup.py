@@ -23,6 +23,7 @@ GENERIC_REQ = [
     "monotonic == 1.3",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.8.0",
+    "backoff == 1.6",
 ]
 
 WEB_REQ = [

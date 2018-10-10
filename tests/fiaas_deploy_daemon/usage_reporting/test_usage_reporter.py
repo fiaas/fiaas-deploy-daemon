@@ -9,8 +9,8 @@ from requests.auth import AuthBase
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
-from fiaas_deploy_daemon.tracking import DevhoseDeploymentEventTransformer
-from fiaas_deploy_daemon.tracking.usage_reporter import UsageReporter, UsageEvent
+from fiaas_deploy_daemon.usage_reporting import DevhoseDeploymentEventTransformer
+from fiaas_deploy_daemon.usage_reporting.usage_reporter import UsageReporter, UsageEvent
 
 
 class TestUsageReporter(object):

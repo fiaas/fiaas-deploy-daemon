@@ -6,7 +6,7 @@ import pytest
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
-from fiaas_deploy_daemon.tracking import DevhoseDeploymentEventTransformer
+from fiaas_deploy_daemon.usage_reporting import DevhoseDeploymentEventTransformer
 
 
 class TestDevhoseDeploymentEventTransformer(object):
@@ -119,7 +119,7 @@ class TestDevhoseDeploymentEventTransformer(object):
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
-        with mock.patch("fiaas_deploy_daemon.tracking.transformer._timestamp") as timestamp:
+        with mock.patch("fiaas_deploy_daemon.usage_reporting.transformer._timestamp") as timestamp:
             timestamp.side_effect = timestamps
             for status in statuses:
                 transformed = transformer(status, app_spec)

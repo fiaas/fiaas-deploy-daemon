@@ -12,7 +12,7 @@ from .usage_reporter import UsageReporter
 LOG = logging.getLogger(__name__)
 
 
-class TrackingBindings(pinject.BindingSpec):
+class UsageReportingBindings(pinject.BindingSpec):
     def configure(self, bind, require):
         require("config")
         require("session")

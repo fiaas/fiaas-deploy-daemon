@@ -20,7 +20,7 @@ from .secrets import resolve_secrets
 from .specs import SpecBindings
 from .tools import log_request_response
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
-from .tracking import TrackingBindings
+from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
 
 
@@ -109,7 +109,7 @@ def main():
             PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
             ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
-            TrackingBindings(),
+            UsageReportingBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()

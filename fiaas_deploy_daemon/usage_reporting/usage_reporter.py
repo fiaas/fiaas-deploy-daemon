@@ -14,13 +14,28 @@ from fiaas_deploy_daemon.base_thread import DaemonThread
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tools import IterableQueue
 
-from prometheus_client import Histogram
+from prometheus_client import Counter, Histogram
 
 LOG = logging.getLogger(__name__)
 
 UsageEvent = collections.namedtuple("UsageEvent", ("status", "app_spec"))
 
 reporting_histogram = Histogram("fiaas_usage_reporting_latency", "Request latency in seconds")
+reporting_success_counter = Counter("fiaas_usage_reporting_success", "Number of successfully reported usage events")
+reporting_retry_counter = Counter("fiaas_usage_reporting_retry", "Number of retries when reporting usage events")
+reporting_failure_counter = Counter("fiaas_usage_reporting_failure", "Number of failures when reporting usage events")
+
+
+def _success_handler(details):
+    reporting_success_counter.inc()
+
+
+def _retry_handler(details):
+    reporting_retry_counter.inc()
+
+
+def _failure_handler(details):
+    reporting_failure_counter.inc()
 
 
 class UsageReporter(DaemonThread):
@@ -60,7 +75,12 @@ class UsageReporter(DaemonThread):
         data = self._transformer(event.status, event.app_spec)
         self._send_data(data)
 
-    @backoff.on_exception(backoff.expo, requests.exceptions.RequestException, max_tries=5)
+    @backoff.on_exception(backoff.expo,
+                          requests.exceptions.RequestException,
+                          max_tries=5,
+                          on_success=_success_handler,
+                          on_backoff=_retry_handler,
+                          on_giveup=_failure_handler)
     @reporting_histogram.time()
     def _send_data(self, data):
         self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)

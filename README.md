@@ -136,10 +136,6 @@ spec:
 Create the resource by saving this in a file like e.g. `example.yml` and then run
 `$ kubectl --context minikube create -f example.yml`.
 
-#### Deploying an application via http
-
-Applications can be deployed by accessing the web UI at http://localhost:5000
-
 
 IntelliJ runconfigs
 -------------------

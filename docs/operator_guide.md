@@ -8,6 +8,18 @@ All configuration options have associated help-text in the fiaas-deploy-daemon C
     docker run --rm fiaas/fiaas-deploy-daemon:latest fiaas-deploy-daemon --help
     
 
+The Basics
+----------
+
+In order for FIAAS to function in a cluster, some basics needs to be in place
+
+* Autoscaling based on CPU metrics requires Heapster, deployed in the kube-system namespace
+* Applications expect DNS to work, so kube-dns, coredns or an equivalent substitute should be installed
+* Log aggregation, so that stdout and stderr from applications are collected and aggregated and collected somewhere it can be found. Typically Fluentd collecting and sending to a suitable storage.
+* An ingress controller capable of handling all the required features
+* One or more DNS wildcards that will direct traffic to the ingress controller (see the [--ingress-suffix](#ingress-suffix) option) 
+
+
 How to set configuration options
 --------------------------------
 
@@ -55,14 +67,8 @@ Used to implement an init-container that will get secrets from some backend and 
 
 ### datadog-container-image
 
-If specified, apps that request datadog metrics will get this container as a sidecar. The container will get these environment variables set:
+Used when collecting metrics to DataDog. See [Metrics](#metrics).
 
-* `DD_TAGS=app:<application name>,k8s_namespace:<kubernetes namespace>`
-* `API_KEY=<the "apikey" value from the "datadog" secret>`
-* `NON_LOCAL_TRAFFIC=false`
-* `DD_LOGS_STDOUT=yes`
-
-It is designed to work with the `datadog/docker-dd-agent` container from [Datadog](https://github.com/DataDog/docker-dd-agent).
 
 ### pre-stop-delay
 
@@ -119,6 +125,10 @@ If `default_off` tls configuration can be explicitly requested on a per applicat
 
 If `default_on` tls configuration will be applied unless explicitly disabled in application manifests.
 
+### usage-reporting-cluster-name, usage-reporting-provider-identifier, usage-reporting-endpoint, usage-reporting-tenant
+
+Used to configure [Usage Reporting](#usage-reporting).
+
 
 Secrets
 -------
@@ -153,3 +163,41 @@ The Strongbox init container is treated much the same as the previous variant, w
 * `AWS_REGION` is the AWS region from the application config.
 
 The secrets should be written to disk at the location `/var/run/secrets/fiaas/$group_name/$secret_name`.
+
+
+Metrics
+-------
+
+There are two supported metrics solutions, Prometheus and Datadog. The cluster needs to provide one or both. Prometheus is the preferred solution.
+
+### Prometheus
+
+A Prometheus installation in the cluster, with ability to scrape all pods. It can optionally be installed in a per-namespace configuration, where each instance scrapes the pods in the same namespace. In this case, consider federation across instances.
+
+### Datadog
+
+In order to use DataDog in a namespace, a secret named `datadog` needs to be provisioned. The secret should have a single key, `apikey`, which is a valid DataDog API key. The cluster operator also needs to configure fiaas-deploy-daemon with a `datadog-container-image`, which will be attached as a sidecar on all pods to receive metrics and forward to Datadog. 
+
+The container will get these environment variables set:
+
+* `DD_TAGS=app:<application name>,k8s_namespace:<kubernetes namespace>`
+* `API_KEY=<the "apikey" value from the "datadog" secret>`
+* `NON_LOCAL_TRAFFIC=false`
+* `DD_LOGS_STDOUT=yes`
+
+It is designed to work with the `datadog/docker-dd-agent` container from [Datadog](https://github.com/DataDog/docker-dd-agent).
+
+
+Usage Reporting
+---------------
+
+FIAAS can optionally report usage data to a web-service via POSTs to an HTTP endpoint. Fiaas-deploy-daemon will POST a JSON structure to the endpoint on deployment start, deployment failure and deployment success.
+
+The JSON document contains details about the application being deployed, where it is deployed and the result of that deployment. In the future, we might consider implementing other formats. 
+
+Except where noted, FIAAS passes these values on to the collector without processing.
+
+* `usage-reporting-cluster-name`: A string naming the cluster.
+* `usage-reporting-provider-identifier`: A string identifying the operator of the fiaas-deploy-daemon instance
+* `usage-reporting-tenant`: A string identifying the operator reporting usage data. This will in many cases be the same operator, but the specification allows for different values here.
+* `usage-reporting-endpoint`: Endpoint to POST usage data to

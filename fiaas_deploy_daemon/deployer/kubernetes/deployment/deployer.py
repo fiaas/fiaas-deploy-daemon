@@ -213,10 +213,10 @@ def _make_probe(check_spec):
 
 def _build_fiaas_env(config):
     env = {
-        "FIAAS_INFRASTRUCTURE": config.infrastructure,
+        "FIAAS_INFRASTRUCTURE": config.infrastructure,  # DEPRECATED. Remove in the future.
         "LOG_STDOUT": "true",
         "LOG_FORMAT": config.log_format,
-        "CONSTRETTO_TAGS": "kubernetes",
+        "CONSTRETTO_TAGS": "kubernetes",  # DEPRECATED. Remove in the future.
     }
     if config.environment:
         env.update({

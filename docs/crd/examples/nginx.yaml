@@ -1,0 +1,23 @@
+apiVersion: "fiaas.schibsted.io/v1"
+kind: Application
+metadata:
+  name: nginx-example
+  annotations:
+    fiaas/artifact_id: 1.13.0
+  labels:
+    fiaas/deployment_id: 20180313140557-1.13.0
+spec:
+  application: nginx-example
+  image: docker.io/nginx:1.13.0
+  config:
+    version: 2
+    replicas: 2
+    resources:
+      requests:
+        memory: 128m
+    ports:
+      - target_port: 80
+    healthchecks:
+      liveness:
+        http:
+          path: /

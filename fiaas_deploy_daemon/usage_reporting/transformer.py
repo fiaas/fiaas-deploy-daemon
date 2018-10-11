@@ -2,7 +2,6 @@
 # -*- coding: utf-8
 
 import collections
-import json
 from datetime import datetime
 
 
@@ -28,8 +27,8 @@ status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'faile
 class DevhoseDeploymentEventTransformer(object):
     def __init__(self, config):
         self._environment = config.environment
-        self._target_infrastructure = config.tracking_cluster_name
-        self._target_provider = config.tracking_provider_identifier
+        self._target_infrastructure = config.usage_reporting_cluster_name
+        self._target_provider = config.usage_reporting_provider_identifier
         self._deployments_started = {}
 
     def __call__(self, status, app_spec):
@@ -49,7 +48,7 @@ class DevhoseDeploymentEventTransformer(object):
                                                'instance': app_spec.namespace},
                                        status=status_map[status],
                                        details={'environment': self._environment})
-        return json.dumps(event.__dict__)
+        return event.__dict__
 
 
 def _environment(env):

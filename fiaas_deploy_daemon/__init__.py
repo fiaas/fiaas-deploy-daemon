@@ -16,8 +16,11 @@ from .deployer.kubernetes import K8sAdapterBindings
 from .fake_consumer import FakeConsumerBindings
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
+from .secrets import resolve_secrets
 from .specs import SpecBindings
+from .tools import log_request_response
 from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
+from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
 
 
@@ -38,12 +41,17 @@ class MainBindings(pinject.BindingSpec):
                 "http",
                 "https"
             )}
+        if config.debug:
+            session.hooks["response"].append(log_request_response)
         return session
+
+    def provide_secrets(self, config):
+        return resolve_secrets(config.secrets_directory)
 
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher):
+    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher, usage_reporter):
         pass
 
     def is_healthy(self):
@@ -53,12 +61,13 @@ class HealthCheck(object):
             self._scheduler.is_alive(),
             self._tpr_watcher.is_alive(),
             self._crd_watcher.is_alive(),
+            self._usage_reporter.is_alive(),
         ))
 
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher, crd_watcher):
+    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher, crd_watcher, usage_reporter):
         pass
 
     def run(self):
@@ -67,6 +76,7 @@ class Main(object):
         self._scheduler.start()
         self._tpr_watcher.start()
         self._crd_watcher.start()
+        self._usage_reporter.start()
         # Run web-app in main thread
         self._webapp.run("0.0.0.0", self._config.port)
 
@@ -99,6 +109,7 @@ def main():
             PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
             ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
+            UsageReportingBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)
         obj_graph.provide(Main).run()

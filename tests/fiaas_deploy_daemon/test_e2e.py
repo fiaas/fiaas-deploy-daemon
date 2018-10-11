@@ -8,7 +8,6 @@ import subprocess
 import sys
 import time
 
-
 import pytest
 import requests
 from k8s import config
@@ -20,14 +19,12 @@ from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
+from fiaas_deploy_daemon.tools import merge_dicts
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
-from fiaas_deploy_daemon.tools import merge_dicts
 from minikube import MinikubeError
-
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
-
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -97,6 +94,9 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+        time.sleep(1)
+        if fdd.poll() is not None:
+            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)

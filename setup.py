@@ -22,6 +22,7 @@ GENERIC_REQ = [
     "k8s == 0.11.0",
     "monotonic == 1.3",
     "appdirs == 1.4.3",
+    "requests-toolbelt == 0.8.0",
 ]
 
 WEB_REQ = [

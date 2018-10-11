@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 import logging
+import os
+import re
 from argparse import Namespace
 
 import configargparse
 import dns.exception
 import dns.resolver
-import os
-import re
 
 DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
+DEFAULT_SECRETS_DIR = "/var/run/secrets/fiaas/"
 
 INGRESS_SUFFIX_LONG_HELP = """
 When creating Ingress objects for an application, a host may be specified,
@@ -52,6 +53,12 @@ Only one of `--blacklist` or `--whitelist` may be used, but each can be used
 multiple times. The parameter should match exactly the name of an application.
 When whitelisting, only applications in the whitelist is deployed.
 When blacklisting, applications in the blacklist will not be deployed.
+"""
+
+USAGE_REPORTING_LONG_HELP = """
+FIAAS can optionally report usage data to a web-service via POSTs to an
+HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
+on deployment start, deployment failure and deployment success.
 """
 
 MULTI_NAMESPACE_HELP = """
@@ -111,6 +118,8 @@ class Configuration(Namespace):
                                           description="%(prog)s deploys applications to Kubernetes",
                                           epilog=EPILOG,
                                           formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
+        parser.add_argument("--secrets-directory", help="Load secrets from this directory (default: %(default)s)",
+                            default=DEFAULT_SECRETS_DIR)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")
         parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
@@ -147,11 +156,13 @@ class Configuration(Namespace):
         parser.add_argument("--use-ingress-tls", help=TLS_HELP,
                             choices=("disabled", "default_off", "default_on"),
                             default="disabled")
-        tracking_parser = parser.add_argument_group("Usage Tracking")
-        tracking_parser.add_argument("--tracking-cluster-name",
-                                     help="Name of the cluster where the fiaas-deploy-daemon instance resides")
-        tracking_parser.add_argument("--tracking-provider-identifier",
-                                     help="Identifier for the operator of the fiaas-deploy-daemon instance")
+        usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
+        usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
+                                            help="Name of the cluster where the fiaas-deploy-daemon instance resides")
+        usage_reporting_parser.add_argument("--usage-reporting-provider-identifier",
+                                            help="Identifier for the operator of the fiaas-deploy-daemon instance")
+        usage_reporting_parser.add_argument("--usage-reporting-endpoint", help="Endpoint to POST usage data to")
+        usage_reporting_parser.add_argument("--usage-reporting-tenant", help="Name of publisher of events")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

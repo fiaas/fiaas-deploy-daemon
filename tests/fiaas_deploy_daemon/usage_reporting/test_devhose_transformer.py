@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-import json
 
-import pytest
 import mock
+import pytest
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
-from fiaas_deploy_daemon.tracking import DevhoseDeploymentEventTransformer
+from fiaas_deploy_daemon.usage_reporting import DevhoseDeploymentEventTransformer
 
 
 class TestDevhoseDeploymentEventTransformer(object):
@@ -15,8 +14,8 @@ class TestDevhoseDeploymentEventTransformer(object):
     def config(self, request):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.environment = request.param
-        config.tracking_cluster_name = 'cluster_name'
-        config.tracking_provider_identifier = 'team_sdrn'
+        config.usage_reporting_cluster_name = 'cluster_name'
+        config.usage_reporting_provider_identifier = 'team_sdrn'
         yield config
 
     @pytest.fixture()
@@ -120,8 +119,8 @@ class TestDevhoseDeploymentEventTransformer(object):
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
-        with mock.patch("fiaas_deploy_daemon.tracking.transformer._timestamp") as timestamp:
+        with mock.patch("fiaas_deploy_daemon.usage_reporting.transformer._timestamp") as timestamp:
             timestamp.side_effect = timestamps
             for status in statuses:
-                transformed = json.loads(transformer(status, app_spec))
+                transformed = transformer(status, app_spec)
             assert expected == transformed

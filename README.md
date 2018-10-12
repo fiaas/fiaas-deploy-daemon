@@ -189,3 +189,14 @@ This configuration is a YAML file. If any field is missing, a default value will
 The default values, and explanation of their meaning are available at `/defaults` on any
 running instance.
 
+
+Updating the github.com repo
+----------------------------
+
+Until we move development completely to github.com, we need to periodically push the 
+latest changes to github.com. Here is one way to do this:
+
+0. git checkout master
+1. git fetch
+2. git remote add open-source git@github.com:fiaas/fiaas-deploy-daemon.git 
+3. git push open-source master

@@ -24,104 +24,104 @@ class TestDevhoseDeploymentEventTransformer(object):
         return transformer
 
     @pytest.mark.parametrize("statuses, timestamps, config, expected, annotations", [
-        (["STARTED"], ["2018-09-10T13:49:05"], "dev", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05"], "pre", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "pre", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pre",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pre"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05"], "pro", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "pro", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pro",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pro"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05"], "something_else", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "something_else", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "other",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "something_else"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05", "2018-09-10T13:50:05"], "dev", {
+        (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:50:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:50:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "succeeded",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED", "FAILED"], ["2018-09-10T13:49:05", "2018-09-10T13:50:05"], "dev", {
+        (["STARTED", "FAILED"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:50:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:50:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "failed",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05"], "dev", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
             "repository": None,
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"}
         }, None),
-        (["STARTED"], ["2018-09-10T13:49:05"], "dev", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
             "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05",
-            "timestamp": "2018-09-10T13:49:05",
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
             "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
             "status": "in_progress",
             "source_type": "fiaas",

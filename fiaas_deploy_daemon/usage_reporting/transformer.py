@@ -56,7 +56,7 @@ def _environment(env):
 
 
 def _timestamp():
-    return datetime.utcnow().replace(microsecond=0).isoformat()
+    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
 def _repository(app_spec):

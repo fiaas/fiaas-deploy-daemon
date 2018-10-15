@@ -7,7 +7,7 @@ import pytest
 
 from fiaas_deploy_daemon.secrets import resolve_secrets
 
-KEY = "USAGE_REPORTING_KEY"
+KEY = b"USAGE_REPORTING_KEY"
 
 
 class TestSecrets(object):
@@ -27,3 +27,8 @@ class TestSecrets(object):
     def test_ignores_extra_files(self, secrets_dir):
         secrets_dir.join("ignore_me").write("ignored")
         resolve_secrets(str(secrets_dir))
+
+    def test_secrets_are_bytes(self, secrets_dir):
+        secrets_dir.join("usage_reporting_key").write(KEY)
+        secrets = resolve_secrets(str(secrets_dir))
+        assert isinstance(secrets.usage_reporting_key, bytes)

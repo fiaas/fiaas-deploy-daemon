@@ -25,11 +25,6 @@ class TestDevHoseAuth(object):
         string_to_sign = auth._create_string_to_sign(mock_request, 100, "nonce")
         assert string_to_sign == "uri\nnonce\n100000\neyJ0eXBlIjogInRlbmFudCJ9\npayload\n"
 
-    def test_key_can_have_extra_newline(self, mock_request):
-        auth = DevHoseAuth(b"dummy key\n", "tenant")
-        string_to_sign = auth._create_string_to_sign(mock_request, 100, "nonce")
-        assert string_to_sign == "uri\nnonce\n100000\neyJ0eXBlIjogInRlbmFudCJ9\npayload\n"
-
     def test_escaped_string_to_sign(self, mock_request):
         mock_request.body = "߷\u23FB@/"
         mock_request.path_url = "/߷\u23FB@/a-zA-Z0-9.-~_@:!$&'()*+,;=/?"
@@ -42,13 +37,15 @@ class TestDevHoseAuth(object):
                                  "eyJ0eXBlIjogIlx1MDdmN1x1MjNmYkAvIn0%3D\n" \
                                  "%DF%B7%E2%8F%BB%40%2F\n"
 
-    def test_signing(self, mock_request):
+    @pytest.mark.parametrize("key", (b"dummy key", b"\ndummy key", b"dummy key\n"))
+    def test_signing(self, mock_request, key):
         with mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.uuid.uuid4") as m_uuid, \
                 mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.time.time") as m_time:
             m_uuid.return_value = "mocked_nonce"
             m_time.return_value = 1514764861.000001
-            auth = DevHoseAuth(b"dummy key", "tenant")
+            auth = DevHoseAuth(key, "tenant")
             auth(mock_request)
             assert mock_request.headers["DevHose-AuthContext"] == "eyJ0eXBlIjogInRlbmFudCJ9"
             assert mock_request.headers["DevHose-Nonce"] == "mocked_nonce"
             assert mock_request.headers["Date"] == "Mon, 01 Jan 2018 00:01:01 -0000"
+            assert mock_request.headers["Content-Signature"] == "tYyKot+bWabhxpsvWJunmFFqZ6f/LfY361xpkB3svDQ="

@@ -15,7 +15,7 @@ def resolve_secrets(secrets_directory):
         fpath = os.path.join(secrets_directory, field)
         if os.path.isfile(fpath):
             with open(fpath) as fobj:
-                kwargs[field] = fobj.read()
+                kwargs[field] = fobj.read().strip()
         else:
             kwargs[field] = None
     return Secrets(**kwargs)

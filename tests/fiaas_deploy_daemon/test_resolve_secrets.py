@@ -32,3 +32,8 @@ class TestSecrets(object):
         secrets_dir.join("usage_reporting_key").write(KEY)
         secrets = resolve_secrets(str(secrets_dir))
         assert isinstance(secrets.usage_reporting_key, bytes)
+
+    def test_secrets_are_stripped(self, secrets_dir):
+        secrets_dir.join("usage_reporting_key").write(KEY + "\n")
+        secrets = resolve_secrets(str(secrets_dir))
+        assert secrets.usage_reporting_key == KEY

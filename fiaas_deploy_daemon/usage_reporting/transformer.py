@@ -60,4 +60,5 @@ def _timestamp():
 
 
 def _repository(app_spec):
-    return app_spec.annotations.deployment.get("fiaas/source-repository")
+    return app_spec.annotations.deployment.get("fiaas/source-repository") \
+        or app_spec.annotations.deployment.get("pipeline.schibsted.io/repoName")  # fallback

@@ -18,7 +18,7 @@ def namedtuple_with_defaults(typename, field_names, default_values=()):
 
 DevhoseDeploymentEvent = namedtuple_with_defaults('DevhoseDeploymentEvent',
                                                   'id application environment repository started_at timestamp target \
-                                                   status source_type facility details',
+                                                   status source_type facility details trigger',
                                                   {'source_type': 'fiaas', 'facility': 'sdrn:schibsted:service:fiaas'})
 
 status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'failed'}

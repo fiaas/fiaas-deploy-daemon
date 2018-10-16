@@ -35,7 +35,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"}
+            "details": {"environment": "dev"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "pre", {
             "id": "test_app_deployment_id",
@@ -48,7 +49,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "pre"}
+            "details": {"environment": "pre"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "pro", {
             "id": "test_app_deployment_id",
@@ -61,7 +63,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "pro"}
+            "details": {"environment": "pro"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "something_else", {
             "id": "test_app_deployment_id",
@@ -74,7 +77,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "something_else"}
+            "details": {"environment": "something_else"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -87,7 +91,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "succeeded",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"}
+            "details": {"environment": "dev"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "FAILED"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -100,7 +105,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "failed",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"}
+            "details": {"environment": "dev"},
+            "trigger": None
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -113,7 +119,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"}
+            "details": {"environment": "dev"},
+            "trigger": None
         }, None),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -126,7 +133,8 @@ class TestDevhoseDeploymentEventTransformer(object):
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"}
+            "details": {"environment": "dev"},
+            "trigger": None
           }, {'pipeline.schibsted.io/repoName': 'source/repo/name'}),
     ], indirect=['config'])
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):

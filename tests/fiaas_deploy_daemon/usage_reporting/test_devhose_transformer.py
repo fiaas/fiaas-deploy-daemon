@@ -122,20 +122,6 @@ class TestDevhoseDeploymentEventTransformer(object):
             "details": {"environment": "dev"},
             "trigger": None
         }, None),
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
-            "id": "test_app_deployment_id",
-            "application": "testapp",
-            "environment": "dev",
-            "repository": "source/repo/name",
-            "started_at": "2018-09-10T13:49:05Z",
-            "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "team_sdrn", "instance": "default"},
-            "status": "in_progress",
-            "source_type": "fiaas",
-            "facility": "sdrn:schibsted:service:fiaas",
-            "details": {"environment": "dev"},
-            "trigger": None
-          }, {'pipeline.schibsted.io/repoName': 'source/repo/name'}),
     ], indirect=['config'])
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):
         if annotations:

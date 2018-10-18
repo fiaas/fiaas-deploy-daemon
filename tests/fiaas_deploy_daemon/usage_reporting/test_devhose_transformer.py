@@ -15,7 +15,7 @@ class TestDevhoseDeploymentEventTransformer(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.environment = request.param
         config.usage_reporting_cluster_name = 'cluster_name'
-        config.usage_reporting_provider_identifier = 'team_sdrn'
+        config.usage_reporting_operator = 'operator_sdrn'
         yield config
 
     @pytest.fixture()
@@ -31,7 +31,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -45,7 +50,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -59,7 +69,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -73,7 +88,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -87,7 +107,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:50:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "succeeded",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -101,7 +126,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": "source/repo/name",
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:50:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "failed",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",
@@ -115,7 +145,12 @@ class TestDevhoseDeploymentEventTransformer(object):
             "repository": None,
             "started_at": "2018-09-10T13:49:05Z",
             "timestamp": "2018-09-10T13:49:05Z",
-            "target": {"infrastructure": "cluster_name", "provider": "cluster_name", "instance": "default"},
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
             "status": "in_progress",
             "source_type": "fiaas",
             "facility": "sdrn:schibsted:service:fiaas",

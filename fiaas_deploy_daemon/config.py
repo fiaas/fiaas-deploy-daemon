@@ -159,7 +159,7 @@ class Configuration(Namespace):
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")
-        usage_reporting_parser.add_argument("--usage-reporting-provider-identifier",
+        usage_reporting_parser.add_argument("--usage-reporting-operator",
                                             help="Identifier for the operator of the fiaas-deploy-daemon instance")
         usage_reporting_parser.add_argument("--usage-reporting-endpoint", help="Endpoint to POST usage data to")
         usage_reporting_parser.add_argument("--usage-reporting-tenant", help="Name of publisher of events")

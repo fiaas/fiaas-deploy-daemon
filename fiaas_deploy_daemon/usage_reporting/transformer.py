@@ -30,7 +30,7 @@ class DevhoseDeploymentEventTransformer(object):
     def __init__(self, config):
         self._environment = config.environment
         self._target_infrastructure = config.usage_reporting_cluster_name
-        self._target_provider = config.usage_reporting_provider_identifier
+        self._target_provider = config.usage_reporting_cluster_name  # Use same value as infrastructure for devhose
         self._deployments_started = {}
 
     def __call__(self, status, app_spec):

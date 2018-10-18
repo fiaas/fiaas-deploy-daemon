@@ -42,6 +42,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "pre", {
             "id": "test_app_deployment_id",
@@ -61,6 +62,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pre"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "pro", {
             "id": "test_app_deployment_id",
@@ -80,6 +82,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "pro"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "something_else", {
             "id": "test_app_deployment_id",
@@ -99,6 +102,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "something_else"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -118,6 +122,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED", "FAILED"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -137,6 +142,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
         (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
             "id": "test_app_deployment_id",
@@ -156,6 +162,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "facility": "sdrn:schibsted:service:fiaas",
             "details": {"environment": "dev"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "operator_sdrn"
         }, None),
     ], indirect=['config'])
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):

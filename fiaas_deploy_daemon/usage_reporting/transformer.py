@@ -18,7 +18,7 @@ def namedtuple_with_defaults(typename, field_names, default_values=()):
 
 DevhoseDeploymentEvent = namedtuple_with_defaults('DevhoseDeploymentEvent',
                                                   'id application environment repository started_at timestamp target \
-                                                   status source_type facility details trigger',
+                                                   status source_type facility details trigger team',
                                                   {'source_type': 'fiaas', 'facility': 'sdrn:schibsted:service:fiaas'})
 
 status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'failed'}
@@ -31,7 +31,7 @@ class DevhoseDeploymentEventTransformer(object):
         self._environment = config.environment
         self._target_infrastructure = config.usage_reporting_cluster_name
         self._target_provider = config.usage_reporting_cluster_name  # Use same value as infrastructure for devhose
-        self._target_team = config.usage_reporting_operator
+        self._operator = config.usage_reporting_operator
         self._deployments_started = {}
 
     def __call__(self, status, app_spec):
@@ -48,11 +48,12 @@ class DevhoseDeploymentEventTransformer(object):
                                        timestamp=started_timestamp if status == 'STARTED' else _timestamp(),
                                        target={'infrastructure': self._target_infrastructure,
                                                'provider': self._target_provider,
-                                               'team': self._target_team,
+                                               'team': self._operator,
                                                'instance': app_spec.namespace},
                                        status=status_map[status],
                                        details={'environment': self._environment},
-                                       trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER)
+                                       trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+                                       team=self._operator)  # default team field to the operator itself
         return event.__dict__
 
 

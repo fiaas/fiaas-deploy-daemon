@@ -25,6 +25,8 @@ status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'faile
 
 
 class DevhoseDeploymentEventTransformer(object):
+    FIAAS_TRIGGER = {'type': 'fiaas'}
+
     def __init__(self, config):
         self._environment = config.environment
         self._target_infrastructure = config.usage_reporting_cluster_name
@@ -47,7 +49,8 @@ class DevhoseDeploymentEventTransformer(object):
                                                'provider': self._target_provider,
                                                'instance': app_spec.namespace},
                                        status=status_map[status],
-                                       details={'environment': self._environment})
+                                       details={'environment': self._environment},
+                                       trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER)
         return event.__dict__
 
 

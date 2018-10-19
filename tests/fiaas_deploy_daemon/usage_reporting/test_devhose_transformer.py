@@ -13,9 +13,10 @@ class TestDevhoseDeploymentEventTransformer(object):
     @pytest.fixture()
     def config(self, request):
         config = mock.create_autospec(Configuration([]), spec_set=True)
-        config.environment = request.param
+        config.environment = request.param.get("env")
         config.usage_reporting_cluster_name = 'cluster_name'
         config.usage_reporting_operator = 'operator_sdrn'
+        config.usage_reporting_team = request.param.get("team")
         yield config
 
     @pytest.fixture()
@@ -24,7 +25,7 @@ class TestDevhoseDeploymentEventTransformer(object):
         return transformer
 
     @pytest.mark.parametrize("statuses, timestamps, config, expected, annotations", [
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "dev"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
@@ -44,7 +45,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "pre", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "pre"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pre",
@@ -64,7 +65,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "pro", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "pro"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "pro",
@@ -84,7 +85,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "something_else", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "something_else"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "other",
@@ -104,7 +105,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
+        (["STARTED", "SUCCESS"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], {"env": "dev"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
@@ -124,7 +125,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED", "FAILED"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], "dev", {
+        (["STARTED", "FAILED"], ["2018-09-10T13:49:05Z", "2018-09-10T13:50:05Z"], {"env": "dev"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
@@ -144,7 +145,7 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
           }, {'fiaas/source-repository': 'source/repo/name'}),
-        (["STARTED"], ["2018-09-10T13:49:05Z"], "dev", {
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "dev"}, {
             "id": "test_app_deployment_id",
             "application": "testapp",
             "environment": "dev",
@@ -163,6 +164,26 @@ class TestDevhoseDeploymentEventTransformer(object):
             "details": {"environment": "dev"},
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "operator_sdrn"
+        }, None),
+        (["STARTED"], ["2018-09-10T13:49:05Z"], {"env": "dev", "team": "team_sdrn"}, {
+            "id": "test_app_deployment_id",
+            "application": "testapp",
+            "environment": "dev",
+            "repository": None,
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
+            "status": "in_progress",
+            "source_type": "fiaas",
+            "facility": "sdrn:schibsted:service:fiaas",
+            "details": {"environment": "dev"},
+            "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "team_sdrn"
         }, None),
     ], indirect=['config'])
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):

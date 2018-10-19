@@ -163,6 +163,9 @@ class Configuration(Namespace):
                                             help="Identifier for the operator of the fiaas-deploy-daemon instance")
         usage_reporting_parser.add_argument("--usage-reporting-endpoint", help="Endpoint to POST usage data to")
         usage_reporting_parser.add_argument("--usage-reporting-tenant", help="Name of publisher of events")
+        usage_reporting_parser.add_argument("--usage-reporting-team",
+                                            help="""Name of team that is responsible for components deployed \
+                                                 "by the fiaas-deploy-daemon instance""")
         api_parser = parser.add_argument_group("API server")
         api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
                                 default="https://kubernetes.default.svc.cluster.local")

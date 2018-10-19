@@ -32,6 +32,7 @@ class DevhoseDeploymentEventTransformer(object):
         self._target_infrastructure = config.usage_reporting_cluster_name
         self._target_provider = config.usage_reporting_cluster_name  # Use same value as infrastructure for devhose
         self._operator = config.usage_reporting_operator
+        self._team = config.usage_reporting_team or config.usage_reporting_operator  # Fallback to operator if not set
         self._deployments_started = {}
 
     def __call__(self, status, app_spec):
@@ -53,7 +54,7 @@ class DevhoseDeploymentEventTransformer(object):
                                        status=status_map[status],
                                        details={'environment': self._environment},
                                        trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
-                                       team=self._operator)  # default team field to the operator itself
+                                       team=self._team)
         return event.__dict__
 
 

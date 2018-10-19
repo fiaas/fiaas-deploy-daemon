@@ -19,7 +19,7 @@ For a new project, the goal is that the defaults provided by FIAAS makes sense, 
 
 While application developers always need to care a little about their infrastructure and operations, the aim of FIAAS is to reduce how much detail is needed. Very few developers should need to know how to operate a Kubernetes cluster, and the time saved can be put to better use developing applications for business needs.
 
-We believe that a set of conventions that applications keep close to will make it easier to migrate from one deployment option to another. Driving applications in this direction will mean it is easier to change the next time the IT industry faces a similar revolution. Computers are better at helping you with things that are (almost) the same, than with things that are wildly different. Conventions are good, because it allows us to use computers to help us more often.
+We believe that a set of conventions that applications follow will make it easier to migrate from one deployment option to another. Driving applications in this direction will mean it is easier to change the next time the IT industry faces a similar revolution. Computers are better at helping you with things that are (almost) the same, than with things that are wildly different. Conventions are good, because it allows us to use computers to help us more often.
 
 Kubernetes is a high-level abstraction when compared to VMs and bare-metal servers, but the simple fact that it does not have any primitives for "Application" tells you that it is not the pinnacle of abstractions. And it shouldn't be. Kubernetes brings incredible power to the infrastructure part of what we do, but to think that it perfectly describes an application is not giving applications enough credit.
 

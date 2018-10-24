@@ -433,13 +433,13 @@ TEST_DATA = (
      app_spec(ingresses=[
          IngressItemSpec(host=None, pathmappings=[
              IngressPathMappingSpec(
-                            path="/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                            path=r"/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
                             port=80)])]),
      ingress(expose=False, rules=[{
                 'host': "testapp.svc.test.example.com",
                 'http': {
                     'paths': [{
-                        'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                        'path': r"/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
                         'backend': {
                             'serviceName': 'testapp',
                             'servicePort': 80,
@@ -450,7 +450,7 @@ TEST_DATA = (
                 'host': "testapp.127.0.0.1.xip.io",
                 'http': {
                     'paths': [{
-                        'path': "/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
+                        'path': r"/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
                         'backend': {
                             'serviceName': 'testapp',
                             'servicePort': 80,

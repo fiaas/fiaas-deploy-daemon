@@ -165,7 +165,7 @@ class TestConfig(object):
     @pytest.mark.parametrize("key,attr,value", [
         ("environment", "environment", "gke"),
         ("proxy", "proxy", "http://proxy.example.com"),
-        ("ingress-suffix", "ingress_suffixes", ["1\.example.com", "2.example.com"]),
+        ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
         ("blacklist", "blacklist", ["app1", "app2"]),
         ("whitelist", "whitelist", ["app1", "app2"]),
         ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
@@ -178,12 +178,12 @@ class TestConfig(object):
         assert getattr(config, attr) == value
 
     def test_host_rewrite_rules(self):
-        args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        args = ("pattern=value", r"(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config = Configuration(["--host-rewrite-rule=%s" % arg for arg in args])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
 
     def test_host_rewrite_rules_from_file(self, tmpdir):
-        args = ("pattern=value", "(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        args = ("pattern=value", r"(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config_file = tmpdir.join("config.yaml")
         with config_file.open("w") as fobj:
             pyaml.dump({"host-rewrite-rule": args}, fobj, safe=True, default_style='"')

@@ -132,7 +132,9 @@ class IngressTls(object):
                 ingress.metadata.annotations if ingress.metadata.annotations else {},
                 tls_annotations
             )
-            ingress.spec.tls = [IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(app_spec.name))]
+            # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
+            ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
+            ingress.spec.tls.append(IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(app_spec.name)))
 
     def _should_have_ingress_tls(self, app_spec):
         if self._use_ingress_tls == 'disabled' or app_spec.ingress_tls.enabled is False:

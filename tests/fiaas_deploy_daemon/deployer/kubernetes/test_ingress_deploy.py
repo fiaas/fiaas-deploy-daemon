@@ -540,10 +540,15 @@ class IngressMatcher(object):
         return isinstance(other, Ingress)
 
 
-hosts = ["host1", "host2", "host3"]
-
-
 class TestIngressTls(object):
+    HOSTS = ["host1", "host2", "host3"]
+    INGRESS_SPEC_TLS = [
+        IngressTLS(hosts=["host1"], secretName="host1"),
+        IngressTLS(hosts=["host2"], secretName="host2"),
+        IngressTLS(hosts=["host3"], secretName="host3"),
+        IngressTLS(hosts=HOSTS, secretName="testapp-ingress-tls"),
+    ]
+
     @pytest.fixture
     def config(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -558,12 +563,12 @@ class TestIngressTls(object):
     @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations, hosts", [
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         [IngressTLS(hosts=hosts, secretName="testapp-ingress-tls")], {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
         ({"use_ingress_tls": "default_on", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         [IngressTLS(hosts=hosts, secretName="testapp-ingress-tls")], {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_on", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
         ({"use_ingress_tls": "disabled", "cert_issuer": None},
@@ -572,21 +577,21 @@ class TestIngressTls(object):
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
         ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt"},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         [IngressTLS(hosts=hosts, secretName="testapp-ingress-tls")],
+         INGRESS_SPEC_TLS,
          {"certmanager.k8s.io/cluster-issuer": "letsencrypt"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt"},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
-         [IngressTLS(hosts=hosts, secretName="testapp-ingress-tls")],
+         INGRESS_SPEC_TLS,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
-         [IngressTLS(hosts=hosts, secretName="testapp-ingress-tls")],
+         INGRESS_SPEC_TLS,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
     ], indirect=['tls'])
     def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations):
         ingress = Ingress()
         ingress.metadata = ObjectMeta()
         ingress.spec = IngressSpec()
-        tls.apply(ingress, app_spec, hosts)
+        tls.apply(ingress, app_spec, self.HOSTS)
         assert ingress.metadata.annotations == tls_annotations
         assert ingress.spec.tls == spec_tls

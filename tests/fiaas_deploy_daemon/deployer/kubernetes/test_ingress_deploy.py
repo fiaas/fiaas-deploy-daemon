@@ -47,7 +47,7 @@ def app_spec(**kwargs):
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
-        ingress_tls=IngressTlsSpec(enabled=False)
+        ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)
     )
 
     return default_app_spec._replace(**kwargs)
@@ -557,23 +557,33 @@ class TestIngressTls(object):
 
     @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations, hosts", [
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None, hosts),
         ({"use_ingress_tls": "default_on", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
         ({"use_ingress_tls": "default_on", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None, hosts),
         ({"use_ingress_tls": "disabled", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True)), [], None, hosts),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], None, hosts),
         ({"use_ingress_tls": "disabled", "cert_issuer": None},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None, hosts),
         ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt"},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          [IngressTLS(hosts=[host], secretName=host) for host in hosts],
-         {"kubernetes.io/tls-acme": "true", "certmanager.k8s.io/cluster-issuer": "letsencrypt"},
+         {"certmanager.k8s.io/cluster-issuer": "letsencrypt"},
+         hosts),
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt"},
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
+         [IngressTLS(hosts=[host], secretName=host) for host in hosts],
+         {"certmanager.k8s.io/cluster-issuer": "myoverwrite"},
+         hosts),
+        ({"use_ingress_tls": "default_off", "cert_issuer": None},
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
+         [IngressTLS(hosts=[host], secretName=host) for host in hosts],
+         {"certmanager.k8s.io/cluster-issuer": "myoverwrite"},
          hosts),
     ], indirect=['tls'])
     def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations, hosts):

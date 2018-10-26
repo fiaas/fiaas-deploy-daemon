@@ -121,8 +121,9 @@ class IngressTls(object):
     def apply(self, ingress, app_spec, hosts):
         if self._should_have_ingress_tls(app_spec):
             tls_annotations = {}
-            if self._cert_issuer:
-                tls_annotations[u"certmanager.k8s.io/cluster-issuer"] = self._cert_issuer
+            if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
+                issuer = app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._cert_issuer
+                tls_annotations[u"certmanager.k8s.io/cluster-issuer"] = issuer
             else:
                 tls_annotations[u"kubernetes.io/tls-acme"] = u"true"
             ingress.metadata.annotations = merge_dicts(

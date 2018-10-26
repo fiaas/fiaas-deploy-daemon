@@ -642,3 +642,19 @@ Default values:
 extensions:
   tls: false
 ```
+
+### tls_certificate_issuer
+
+| **Type** | **Required** |
+|----------|--------------|
+| string   | no           |
+
+If set, generated ingress objects will be extended to include annotations specifying which certificate issuer to use with
+[cert-manager](https://github.com/jetstack/cert-manager)s [ingress-shim](https://cert-manager.readthedocs.io/en/latest/reference/ingress-shim.html)
+when making use of automatic provisioning and management of TLS certificates.
+
+Example:
+```yaml
+extensions:
+  tls_certificate_issuer: letsencrypt
+```

@@ -119,4 +119,5 @@ StrongboxSpec = namedtuple("StrongboxSpec", [
 
 IngressTlsSpec = namedtuple("IngressTlsSpec", [
     "enabled",
+    "certificate_issuer",
 ])

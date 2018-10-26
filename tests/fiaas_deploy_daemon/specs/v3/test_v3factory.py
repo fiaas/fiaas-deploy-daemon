@@ -298,6 +298,10 @@ TEST_DATA = {
     },
     "tls_enabled": {
         "ingress_tls.enabled": True,
+    },
+    "tls_enabled_cert_issuer": {
+        "ingress_tls.enabled": True,
+        "ingress_tls.certificate_issuer": "myissuer"
     }
 }
 

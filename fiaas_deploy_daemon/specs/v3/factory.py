@@ -45,7 +45,8 @@ class Factory(BaseFactory):
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],
-            ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"]),
+            ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"],
+                                       certificate_issuer=lookup["extensions"]["tls_certificate_issuer"]),
         )
         return app_spec
 

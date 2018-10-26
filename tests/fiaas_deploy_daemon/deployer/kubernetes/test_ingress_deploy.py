@@ -551,24 +551,30 @@ class TestIngressTls(object):
 
     @pytest.fixture
     def tls(self, request, config):
-        config.use_ingress_tls = request.param
+        config.use_ingress_tls = request.param["use_ingress_tls"]
+        config.tls_certificate_issuer = request.param["cert_issuer"]
         return IngressTls(config)
 
     @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations, hosts", [
-        ("default_off",
+        ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
          [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
-        ("default_off",
+        ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
-        ("default_on",
+        ({"use_ingress_tls": "default_on", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
          [IngressTLS(hosts=[host], secretName=host) for host in hosts], {"kubernetes.io/tls-acme": "true"}, hosts),
-        ("default_on",
+        ({"use_ingress_tls": "default_on", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
-        ("disabled",
+        ({"use_ingress_tls": "disabled", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True)), [], None, hosts),
-        ("disabled",
+        ({"use_ingress_tls": "disabled", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False)), [], None, hosts),
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt"},
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True)),
+         [IngressTLS(hosts=[host], secretName=host) for host in hosts],
+         {"kubernetes.io/tls-acme": "true", "certmanager.k8s.io/cluster-issuer": "letsencrypt"},
+         hosts),
     ], indirect=['tls'])
     def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations, hosts):
         ingress = Ingress()

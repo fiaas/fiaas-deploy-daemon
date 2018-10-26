@@ -156,6 +156,8 @@ class Configuration(Namespace):
         parser.add_argument("--use-ingress-tls", help=TLS_HELP,
                             choices=("disabled", "default_off", "default_on"),
                             default="disabled")
+        parser.add_argument("--tls-certificate-issuer", help="Certificate issuer to use with cert-manager to provision certificates",
+                            default=None)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

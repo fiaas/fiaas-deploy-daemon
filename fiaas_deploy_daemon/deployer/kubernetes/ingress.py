@@ -116,10 +116,15 @@ def _deduplicate_in_order(iterator):
 class IngressTls(object):
     def __init__(self, config):
         self._use_ingress_tls = config.use_ingress_tls
+        self._cert_issuer = config.tls_certificate_issuer
 
     def apply(self, ingress, app_spec, hosts):
         if self._should_have_ingress_tls(app_spec):
-            tls_annotations = {u"kubernetes.io/tls-acme": u"true"}
+            tls_annotations = {}
+            if self._cert_issuer:
+                tls_annotations[u"certmanager.k8s.io/cluster-issuer"] = self._cert_issuer
+            else:
+                tls_annotations[u"kubernetes.io/tls-acme"] = u"true"
             ingress.metadata.annotations = merge_dicts(
                 ingress.metadata.annotations if ingress.metadata.annotations else {},
                 tls_annotations

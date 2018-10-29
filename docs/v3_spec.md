@@ -629,32 +629,26 @@ extensions:
 
 ### tls
 
+#### enabled
+
 | **Type** | **Required** |
 |----------|--------------|
-| boolean  | no           |
+| object   | no           |
 
-If set to true ingress objects will be extended to include annotations necessary for use with
+If enabled, ingress objects will be extended to include annotations necessary for use with
 [cert-manager](https://github.com/jetstack/cert-manager)s [ingress-shim](https://cert-manager.readthedocs.io/en/latest/reference/ingress-shim.html)
 to make use of automatic provisioning and management of TLS certificates.
 
-Default values:
-```yaml
-extensions:
-  tls: false
-```
-
-### tls_certificate_issuer
-
-| **Type** | **Required** |
-|----------|--------------|
-| string   | no           |
-
-If set, generated ingress objects will be extended to include annotations specifying which certificate issuer to use with
-[cert-manager](https://github.com/jetstack/cert-manager)s [ingress-shim](https://cert-manager.readthedocs.io/en/latest/reference/ingress-shim.html)
-when making use of automatic provisioning and management of TLS certificates.
+If certificate_issuer is set, generated ingress objects will be extended to include annotations specifying which certificate issuer to use with
+cert-manager.
 
 Example:
 ```yaml
 extensions:
-  tls_certificate_issuer: letsencrypt
+  tls:
+    enabled: true
+    certificate_issuer: letsencrypt
 ```
+
+Note generally fiaas operators will have already configured a default certificate issuer if applicable so the option to specify that explicitly
+is strictly here for allowing for overwriting of the default value and if omitted will use the configured default value.

@@ -20,9 +20,11 @@ class Factory(BaseFactory):
     def __init__(self, config=None):
         self._defaults = yaml.safe_load(pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml"))
         # Overwrite default value based on config flag for ingress_tls
-        self._defaults["extensions"]["tls"] = config and config.use_ingress_tls == "default_on"
+        self._defaults["extensions"]["tls"]["enabled"] = config and config.use_ingress_tls == "default_on"
 
     def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace):
+        if app_config.get("extensions") and app_config["extensions"].get("tls") and type(app_config["extensions"]["tls"]) == bool:
+            app_config["extensions"]["tls"] = {u"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
             namespace=namespace,
@@ -45,8 +47,8 @@ class Factory(BaseFactory):
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],
-            ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"],
-                                       certificate_issuer=lookup["extensions"]["tls_certificate_issuer"]),
+            ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"]["enabled"],
+                                       certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"]),
         )
         return app_spec
 

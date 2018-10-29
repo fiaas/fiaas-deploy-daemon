@@ -1,5 +1,6 @@
 ---
 version: 3
 extensions:
-  tls: true
-  tls_certificate_issuer: myissuer
+  tls:
+    enabled: true
+    certificate_issuer: myissuer

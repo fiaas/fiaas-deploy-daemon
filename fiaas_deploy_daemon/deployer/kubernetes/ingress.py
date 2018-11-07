@@ -2,6 +2,8 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
+import base64
+import hashlib
 import logging
 from itertools import chain
 
@@ -119,6 +121,7 @@ class IngressTls(object):
     def __init__(self, config):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer
+        self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
 
     def apply(self, ingress, app_spec, hosts):
         if self._should_have_ingress_tls(app_spec):
@@ -134,10 +137,31 @@ class IngressTls(object):
             )
             # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
             ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
-            ingress.spec.tls.append(IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(app_spec.name)))
+            collapsed = self._collapse_hosts(app_spec, hosts)
+            ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
+
+    def _collapse_hosts(self, app_spec, hosts):
+        """The first hostname in the list will be used as Common Name in the certificate"""
+        if self._shortest_suffix:
+            try:
+                return [self._generate_short_host(app_spec)] + hosts
+            except ValueError:
+                LOG.error("Failed to generate a short name to use as Common Name")
+        return hosts
 
     def _should_have_ingress_tls(self, app_spec):
         if self._use_ingress_tls == 'disabled' or app_spec.ingress_tls.enabled is False:
             return False
         else:
             return self._use_ingress_tls == 'default_on' or app_spec.ingress_tls.enabled is True
+
+    def _generate_short_host(self, app_spec):
+        h = hashlib.sha1()
+        h.update(app_spec.name)
+        h.update(app_spec.namespace)
+        prefix = base64.b32encode(h.digest()).strip("=").lower()
+        short_prefix = prefix[:62 - len(self._shortest_suffix)]
+        short_name = "{}.{}".format(short_prefix, self._shortest_suffix)
+        if len(short_name) > 63:
+            raise ValueError("Unable to generate a name short enought to be Common Name in certificate")
+        return short_name

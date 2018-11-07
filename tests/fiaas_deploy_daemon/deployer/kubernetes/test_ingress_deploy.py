@@ -560,7 +560,7 @@ class TestIngressTls(object):
         config.tls_certificate_issuer = request.param["cert_issuer"]
         return IngressTls(config)
 
-    @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations, hosts", [
+    @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations", [
         ({"use_ingress_tls": "default_off", "cert_issuer": None},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS, {"kubernetes.io/tls-acme": "true"}),

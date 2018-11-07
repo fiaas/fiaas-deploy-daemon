@@ -2,8 +2,8 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
-from itertools import chain
 import logging
+from itertools import chain
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
@@ -45,10 +45,12 @@ class IngressDeployer(object):
         metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
                               annotations=custom_annotations)
 
-        per_host_ingress_rules = [IngressRule(host=self._apply_host_rewrite_rules(ingress_item.host),
-                                              http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
-                                  for ingress_item in app_spec.ingresses
-                                  if ingress_item.host is not None]
+        per_host_ingress_rules = [
+            IngressRule(host=self._apply_host_rewrite_rules(ingress_item.host),
+                        http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
+            for ingress_item in app_spec.ingresses
+            if ingress_item.host is not None
+        ]
         default_host_ingress_rules = self._create_default_host_ingress_rules(app_spec)
 
         ingress_spec = IngressSpec(rules=per_host_ingress_rules + default_host_ingress_rules)
@@ -130,7 +132,9 @@ class IngressTls(object):
                 ingress.metadata.annotations if ingress.metadata.annotations else {},
                 tls_annotations
             )
+            # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
             ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
+            ingress.spec.tls.append(IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(app_spec.name)))
 
     def _should_have_ingress_tls(self, app_spec):
         if self._use_ingress_tls == 'disabled' or app_spec.ingress_tls.enabled is False:

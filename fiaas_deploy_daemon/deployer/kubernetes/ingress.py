@@ -162,6 +162,6 @@ class IngressTls(object):
         prefix = base64.b32encode(h.digest()).strip("=").lower()
         short_prefix = prefix[:62 - len(self._shortest_suffix)]
         short_name = "{}.{}".format(short_prefix, self._shortest_suffix)
-        if len(short_name) > 63:
-            raise ValueError("Unable to generate a name short enought to be Common Name in certificate")
+        if len(short_name) > 63 or short_name[0] == ".":
+            raise ValueError("Unable to generate a name short enough to be Common Name in certificate")
         return short_name

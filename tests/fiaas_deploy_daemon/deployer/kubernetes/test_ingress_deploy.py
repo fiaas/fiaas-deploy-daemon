@@ -601,7 +601,7 @@ class TestIngressTls(object):
 
     @pytest.mark.parametrize("suffix, expected", [
         ("short.suffix", "zgwvxk7m22jnzqmofnboadb6kpuri4st.short.suffix"),
-        ("really.quite.long.suffix", "zgwvxk7m22jnzqmofnboadb6kpuri4st.really.quite.long.suffix"),
+        ("this.is.really.a.quite.extensive.suffix", "zgwvxk7m22jnzqmofnboadb.this.is.really.a.quite.extensive.suffix"),
         ("extremely.long.suffix.which.pushes.the.boundary.to.the.utmost",
          "z.extremely.long.suffix.which.pushes.the.boundary.to.the.utmost"),
     ])
@@ -613,9 +613,16 @@ class TestIngressTls(object):
         assert len(actual) < 64
         assert expected == actual
 
-    def test_shorten_name_able(self, config):
+    def test_raise_when_suffix_too_long(self, config):
         config.use_ingress_tls = "default_on"
         config.ingress_suffixes = ["this.suffix.is.so.long.that.it.is.impossible.to.generate.a.short.enough.name"]
+        tls = IngressTls(config)
+        with pytest.raises(ValueError):
+            tls._generate_short_host(app_spec())
+
+    def test_raise_when_name_starts_with_dot(self, config):
+        config.use_ingress_tls = "default_on"
+        config.ingress_suffixes = ["really.long.suffix.which.goes.to.the.very.edge.of.the.boundary"]
         tls = IngressTls(config)
         with pytest.raises(ValueError):
             tls._generate_short_host(app_spec())

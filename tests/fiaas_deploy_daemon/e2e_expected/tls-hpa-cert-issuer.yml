@@ -1,0 +1,20 @@
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: v3-data-examples-tls-enabled-cert-issuer
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-tls-enabled-cert-issuer
+  namespace: default
+  ownerReferences: []
+  finalizers: []
+spec:
+  maxReplicas: 5
+  minReplicas: 2
+  scaleTargetRef:
+    apiVersion: extensions/v1beta1
+    kind: Deployment
+    name: v3-data-examples-tls-enabled-cert-issuer
+  targetCPUUtilizationPercentage: 50

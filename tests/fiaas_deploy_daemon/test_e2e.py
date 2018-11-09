@@ -173,10 +173,10 @@ class TestE2E(object):
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
             }),
             ("v3/data/examples/tls_enabled_cert_issuer.yml", {
-                Service: "e2e_expected/tls-service.yml",
-                Deployment: "e2e_expected/tls-deployment.yml",
+                Service: "e2e_expected/tls-service-cert-issuer.yml",
+                Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
                 Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
             }),
     ))
     def third_party_resource(self, request, k8s_version):
@@ -257,6 +257,12 @@ class TestE2E(object):
                 Deployment: "e2e_expected/tls-deployment.yml",
                 Ingress: "e2e_expected/tls-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
+            }),
+            ("v3/data/examples/tls_enabled_cert_issuer.yml", {
+                Service: "e2e_expected/tls-service-cert-issuer.yml",
+                Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
+                Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):

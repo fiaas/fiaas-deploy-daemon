@@ -9,6 +9,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
 from k8s.watcher import Watcher
 
+from fiaas_deploy_daemon.log_extras import set_extras
 from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -55,6 +56,7 @@ class TprWatcher(DaemonThread):
         LOG.debug("Created ThirdPartyResource with name PaasbetaStatus")
 
     def _handle_watch_event(self, event):
+        set_extras(app_name=event.object.spec.application, namespace=event.object.metadata.namespace)
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
@@ -74,6 +76,7 @@ class TprWatcher(DaemonThread):
             app_config=application.spec.config, teams=[], tags=[],
             deployment_id=deployment_id, namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
 
@@ -83,5 +86,6 @@ class TprWatcher(DaemonThread):
             app_config=application.spec.config, teams=[], tags=[],
             deployment_id=None, namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
         LOG.debug("Queued delete for %s", application.spec.application)

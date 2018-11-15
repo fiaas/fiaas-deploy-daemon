@@ -70,12 +70,13 @@ class TestStatusReport(object):
         annotations = {"fiaas/last_updated": LAST_UPDATE}
         metadata = ObjectMeta(name=app_name, namespace="default", labels=labels, annotations=annotations)
         get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata,
-                                                            result=test_data.result)
+                                                            result=test_data.result, logs=[])
         status.connect_signals()
         expected_call = {
             'apiVersion': 'fiaas.schibsted.io/v1',
             'kind': 'ApplicationStatus',
             'result': test_data.result,
+            'logs': [],
             'metadata': {
                 'labels': {
                     'app': test_data.signal_name,
@@ -99,7 +100,7 @@ class TestStatusReport(object):
             mnow.return_value = LAST_UPDATE
             signal(test_data.signal_name).send(app_spec=app_spec)
 
-        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
+        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result, logs=[])
         if test_data.action == "create":
             url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
         else:

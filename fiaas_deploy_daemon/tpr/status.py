@@ -11,6 +11,7 @@ from k8s.models.common import ObjectMeta
 
 from .types import PaasbetaStatus
 from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from ..log_extras import get_final_logs, get_running_logs
 
 LAST_UPDATED_KEY = "fiaas/last_updated"
 OLD_STATUSES_TO_KEEP = 10
@@ -38,7 +39,8 @@ def _save_status(app_spec, result):
     labels = {"app": app_spec.name, "fiaas/deployment_id": app_spec.deployment_id}
     annotations = {LAST_UPDATED_KEY: now()}
     metadata = ObjectMeta(name=name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
-    status = PaasbetaStatus.get_or_create(metadata=metadata, result=result)
+    logs = get_running_logs(app_spec) if result == u"RUNNING" else get_final_logs(app_spec)
+    status = PaasbetaStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     status.save()
 
 

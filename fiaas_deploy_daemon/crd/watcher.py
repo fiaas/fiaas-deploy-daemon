@@ -13,6 +13,7 @@ from k8s.watcher import Watcher
 from .types import FiaasApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
+from ..log_extras import set_extras
 
 LOG = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class CrdWatcher(DaemonThread):
         LOG.info("Created CustomResourceDefinition with name %s", name)
 
     def _handle_watch_event(self, event):
+        set_extras(app_name=event.object.spec.application, namespace=event.object.metadata.namespace)
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
@@ -81,6 +83,7 @@ class CrdWatcher(DaemonThread):
             deployment_id=deployment_id,
             namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
 
@@ -94,5 +97,6 @@ class CrdWatcher(DaemonThread):
             deployment_id=None,
             namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
         LOG.debug("Queued delete for %s", application.spec.application)

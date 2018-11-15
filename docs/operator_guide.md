@@ -201,3 +201,28 @@ Except where noted, FIAAS passes these values on to the collector without proces
 * `usage-reporting-provider-identifier`: A string identifying the operator of the fiaas-deploy-daemon instance
 * `usage-reporting-tenant`: A string identifying the operator reporting usage data. This will in many cases be the same operator, but the specification allows for different values here.
 * `usage-reporting-endpoint`: Endpoint to POST usage data to
+
+
+Role Based Access Control (rbac)
+--------------------------------
+
+When deploying FIAAS into an environment with RBAC enabled some additional steps are required for it to work.
+FIAAS Deploy Daemon needs to be authorized to provision and manage various resource types in order to be able to create and manage resources for applications that will be deployed.
+
+By default FIAAS Deploy Daemon will be run using the default ServiceAccount in the namespace it is deployed to. That ServiceAccount needs to be bound to roles that provide the necessary permissions. Generally this would be defined as a ClusterRole and ClusterRoleBinding.
+
+Permissions:
+* `fiaas.schibsted.io`, `schibsted.io`
+  * `paasbetaapplications`, `paasbetastatuses`: get, list, watch, create, delete, update (1.6)
+  * `applications`, `application-statuses`: get, list, watch, create, delete, update (1.7+)
+* `apiextensions`, `apiextensions.k8s.io`
+  * `thirdpartyresources`: get, list, watch, create, delete, update (1.6)
+  * `customresourcedefinitions`: get, list, watch, create, delete, update (1.7+)
+* `""` (core api)
+  * `services`, `configmaps`, `pods`, `resourcequotas`: get, list, watch, create, delete, update
+* `extensions`
+  * `ingresses`: get, list, watch, create, delete, update
+* `apps`
+  * `deployments`: get, list, watch, create, delete, update
+* `autoscaling`
+  * `horizontalpodautoscalers`: get, list, watch, create, delete, update

@@ -15,7 +15,7 @@ class TestSecrets(object):
     def secrets_dir(self, tmpdir_factory):
         yield tmpdir_factory.mktemp("secrets", numbered=True)
 
-    def test_reads_files_(self, secrets_dir):
+    def test_reads_files(self, secrets_dir):
         secrets_dir.join("usage-reporting-key").write(KEY)
         secrets = resolve_secrets(str(secrets_dir))
         assert secrets.usage_reporting_key == KEY

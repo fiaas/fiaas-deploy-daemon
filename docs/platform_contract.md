@@ -74,4 +74,4 @@ When interacting with other services, it should call the other service using onl
 
 As many of the [12 factors](https://12factor.net/) as possible should be followed, making exceptions where it makes sense.
 
-It should use `/tmp` for temporary files on disk, but always remember that the contents of the disk will be wiped on restart. The application should not get into trouble if it is suddenly killed. It should preferably scale by having more instances rather than bigger instances.
+It should use `/tmp` for temporary files on disk, but always remember that the contents of the disk can be wiped on restart. The application should not get into trouble if it is suddenly killed. It should preferably scale by having more instances rather than bigger instances.

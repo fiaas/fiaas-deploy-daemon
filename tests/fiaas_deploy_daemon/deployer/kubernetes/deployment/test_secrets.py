@@ -116,16 +116,23 @@ class TestKubernetesSecrets(object):
 
 
 class TestGenericInitSecrets(object):
+    @pytest.fixture(params=(True, False))
+    def use_in_memory_emptydirs(self, request):
+        yield request.param
+
     @pytest.fixture
-    def generic_init_secrets(self):
+    def generic_init_secrets(self, use_in_memory_emptydirs):
         config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.use_in_memory_emptydirs = use_in_memory_emptydirs
         return GenericInitSecrets(config)
 
-    def test_main_container_volumes(self, deployment, app_spec, generic_init_secrets):
+    def test_main_container_volumes(self, deployment, app_spec, generic_init_secrets, use_in_memory_emptydirs):
         generic_init_secrets.apply(deployment, app_spec)
 
         secret_volume = deployment.spec.template.spec.volumes[0]
         assert secret_volume.emptyDir is not None
+        emptydir_medium = "Memory" if use_in_memory_emptydirs else None
+        assert secret_volume.emptyDir.medium == emptydir_medium
         assert secret_volume.name == "{}-secret".format(app_spec.name)
         config_volume = deployment.spec.template.spec.volumes[1]
         assert config_volume.name == "{}-config".format(GenericInitSecrets.SECRETS_INIT_CONTAINER_NAME)

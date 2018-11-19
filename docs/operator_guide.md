@@ -125,6 +125,15 @@ If `default_off` tls configuration can be explicitly requested on a per applicat
 
 If `default_on` tls configuration will be applied unless explicitly disabled in application manifests.
 
+### use-in-memory-emptydirs
+
+Inside the container, `/tmp` will be mounted from an emptyDir volume, to allow applications some scratch-space without writing through the underlying docker storage driver. Similarly, when using the [Secrets init container](#secrets-init-container), the secrets are written to an emptyDir volume.
+
+Normally, these volumes would use the nodes underlying disk, and can be recovered after a node restart. By enabling this option, these emptyDirs will instead be backed by memory. The memory used goes against the container memory limits, and will not survive a node restart.
+
+See the Kubernetes documentation about [emptyDir](https://kubernetes.io/docs/concepts/storage/volumes/#emptydir) for more information about how emptyDirs work.
+
+
 ### usage-reporting-cluster-name, usage-reporting-provider-identifier, usage-reporting-endpoint, usage-reporting-tenant
 
 Used to configure [Usage Reporting](#usage-reporting).

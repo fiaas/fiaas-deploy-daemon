@@ -29,6 +29,7 @@ class DeploymentDeployer(object):
         self._global_env = config.global_env
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
+        self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
         if config.pre_stop_delay > 0:
             self._lifecycle = Lifecycle(preStop=Handler(
                 _exec=ExecAction(command=["sleep", str(config.pre_stop_delay)])))
@@ -112,7 +113,11 @@ class DeploymentDeployer(object):
         volumes = []
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
-        volumes.append(Volume(name="tmp", emptyDir=EmptyDirVolumeSource()))
+        if self._use_in_memory_emptydirs:
+            empty_dir_volume_source = EmptyDirVolumeSource(medium="Memory")
+        else:
+            empty_dir_volume_source = EmptyDirVolumeSource()
+        volumes.append(Volume(name="tmp", emptyDir=empty_dir_volume_source))
         return volumes
 
     def _make_volume_mounts(self, app_spec):

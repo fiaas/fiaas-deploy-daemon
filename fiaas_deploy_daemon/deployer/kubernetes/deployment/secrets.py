@@ -78,6 +78,7 @@ class GenericInitSecrets(KubernetesSecrets):
     def __init__(self, config):
         self._secrets_init_container_image = config.secrets_init_container_image
         self._secrets_service_account_name = config.secrets_service_account_name
+        self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
 
     def apply(self, deployment, app_spec):
         deployment_spec = deployment.spec
@@ -99,8 +100,12 @@ class GenericInitSecrets(KubernetesSecrets):
         self._apply_volumes(app_spec, pod_spec)
 
     def _make_volumes(self, app_spec):
+        if self._use_in_memory_emptydirs:
+            empty_dir_volume_source = EmptyDirVolumeSource(medium="Memory")
+        else:
+            empty_dir_volume_source = EmptyDirVolumeSource()
         volumes = [
-            Volume(name="{}-secret".format(app_spec.name), emptyDir=EmptyDirVolumeSource()),
+            Volume(name="{}-secret".format(app_spec.name), emptyDir=empty_dir_volume_source),
             Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
                    configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)),
         ]

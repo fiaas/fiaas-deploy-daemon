@@ -158,6 +158,8 @@ class Configuration(Namespace):
                             default="disabled")
         parser.add_argument("--tls-certificate-issuer", help="Certificate issuer to use with cert-manager to provision certificates",
                             default=None)
+        parser.add_argument("--use-in-memory-emptydirs", help="Use memory for emptydirs mounted in the deployed application",
+                            action="store_true")
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

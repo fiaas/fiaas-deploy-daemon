@@ -65,19 +65,20 @@ class TestDeploymentDeployer(object):
         yield request.param
 
     @pytest.fixture(params=(
-            ("gke", {}),
-            ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}),
+            ("gke", {}, True),
+            ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}, True),
             ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal',
-                     'ARTIFACT_NAME': 'illegal'}),
+                     'ARTIFACT_NAME': 'illegal'}, False),
     ))
     def config(self, request, environment):
-        infra, global_env = request.param
+        infra, global_env, use_in_memory_emptydirs = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = environment
         config.global_env = global_env
         config.pre_stop_delay = 1
         config.log_format = "json"
+        config.use_in_memory_emptydirs = use_in_memory_emptydirs
         yield config
 
     @pytest.fixture(params=(
@@ -287,7 +288,7 @@ def create_expected_deployment(config,
                                version="version",
                                replicas=None,
                                add_init_container_annotations=False):
-    expected_volumes = _get_expected_volumes(app_spec)
+    expected_volumes = _get_expected_volumes(app_spec, config.use_in_memory_emptydirs)
     expected_volume_mounts = _get_expected_volume_mounts(app_spec)
 
     base_expected_health_check = {
@@ -456,7 +457,7 @@ def _get_expected_template_labels(custom_labels):
     return merge_dicts(custom_labels, {"fiaas/status": "active"}, LABELS)
 
 
-def _get_expected_volumes(app_spec):
+def _get_expected_volumes(app_spec, use_in_memory_emptydirs=False):
     config_map_volume = {
         'name': "{}-config".format(app_spec.name),
         'configMap': {
@@ -467,6 +468,8 @@ def _get_expected_volumes(app_spec):
     tmp_volume = {
         'name': "tmp"
     }
+    if use_in_memory_emptydirs:
+        tmp_volume["emptyDir"] = {'medium': "Memory"}
     return [config_map_volume, tmp_volume]
 
 

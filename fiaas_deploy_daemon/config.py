@@ -162,9 +162,9 @@ class Configuration(Namespace):
                             action="store_true")
         parser.add_argument("--deployment-max-surge", help="maximum number of extra pods that can be scheduled above the desired "
                             "number of pods during an update",
-                            default=u"25%", type=unicode)
+                            default=u"25%", type=_int_or_unicode)
         parser.add_argument("--deployment-max-unavailable", help="The maximum number of pods that can be unavailable during an update",
-                            default="0", type=unicode)
+                            default="0", type=_int_or_unicode)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")
@@ -201,18 +201,6 @@ class Configuration(Namespace):
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
-
-        # Convert max surge and max unavailable to a number if
-        # possible, since k8s wants it to either be a percentage as a
-        # string "25%" or a number (1), but not a number as a string.
-        try:
-            self.deployment_max_surge = int(self.deployment_max_surge)
-        except ValueError:
-            pass
-        try:
-            self.deployment_max_unavailable = int(self.deployment_max_unavailable)
-        except ValueError:
-            pass
 
     def _resolve_api_config(self):
         token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
@@ -326,3 +314,11 @@ class HostRewriteRule(object):
 
 class InvalidConfigurationException(Exception):
     pass
+
+
+def _int_or_unicode(arg):
+    """Accept a number or a (unicode) string, but not a number as a string"""
+    try:
+        return int(arg)
+    except ValueError:
+        return unicode(arg)

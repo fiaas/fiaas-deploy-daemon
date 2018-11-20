@@ -18,7 +18,7 @@ spec:
       app: v2-data-examples-multiple-ports
   strategy:
     rollingUpdate:
-      maxSurge: 1
+      maxSurge: "25%"
       maxUnavailable: 0
     type: RollingUpdate
   template:

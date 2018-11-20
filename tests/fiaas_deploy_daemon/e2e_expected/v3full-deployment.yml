@@ -23,7 +23,7 @@ spec:
       app: v3-data-examples-full
   strategy:
     rollingUpdate:
-      maxSurge: 1
+      maxSurge: "25%"
       maxUnavailable: 0
     type: RollingUpdate
   template:

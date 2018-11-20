@@ -160,6 +160,11 @@ class Configuration(Namespace):
                             default=None)
         parser.add_argument("--use-in-memory-emptydirs", help="Use memory for emptydirs mounted in the deployed application",
                             action="store_true")
+        parser.add_argument("--deployment-max-surge", help="maximum number of extra pods that can be scheduled above the desired "
+                            "number of pods during an update",
+                            default=u"25%")
+        parser.add_argument("--deployment-max-unavailable", help="The maximum number of pods that can be unavailable during an update",
+                            default=0)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

@@ -34,6 +34,8 @@ class DeploymentDeployer(object):
             self._lifecycle = Lifecycle(preStop=Handler(
                 _exec=ExecAction(command=["sleep", str(config.pre_stop_delay)])))
             self._grace_period += config.pre_stop_delay
+        self._max_surge = config.deployment_max_surge
+        self._max_unavailable = config.deployment_max_unavailable
 
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
         LOG.info("Creating new deployment for %s", app_spec.name)
@@ -84,9 +86,9 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
-        # XXX: maxSurge should really be 25%, but can't yet, due to a bug in the k8s library,
-        # see https://github.com/fiaas/k8s/issues/47
-        deployment_strategy = DeploymentStrategy(rollingUpdate=RollingUpdateDeployment(maxUnavailable=0, maxSurge=1))
+        deployment_strategy = DeploymentStrategy(
+            rollingUpdate=RollingUpdateDeployment(maxUnavailable=self._max_unavailable,
+                                                  maxSurge=self._max_surge))
         if app_spec.replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(
                 rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))

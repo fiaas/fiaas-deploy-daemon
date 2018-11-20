@@ -137,8 +137,11 @@ class IngressTls(object):
             )
             # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
             ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
-            collapsed = self._collapse_hosts(app_spec, hosts)
-            ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
+            # TODO: DOCD-1846 - kube-lego ends up re-requesting all certificates where one or more hosts are
+            #                   unreachable, leading to emptying the rate limit within a few hours. Disabling
+            #                   the code until further notice, the ugly, hacky way.
+            # collapsed = self._collapse_hosts(app_spec, hosts)
+            # ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
 
     def _collapse_hosts(self, app_spec, hosts):
         """The first hostname in the list will be used as Common Name in the certificate"""

@@ -7,14 +7,12 @@ import logging
 
 import backoff
 import requests
-
 from blinker import signal
+from prometheus_client import Counter, Histogram
 
 from fiaas_deploy_daemon.base_thread import DaemonThread
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.tools import IterableQueue
-
-from prometheus_client import Counter, Histogram
 
 LOG = logging.getLogger(__name__)
 
@@ -36,6 +34,7 @@ def _retry_handler(details):
 
 def _failure_handler(details):
     reporting_failure_counter.inc()
+    LOG.warning()
 
 
 class UsageReporter(DaemonThread):
@@ -73,7 +72,10 @@ class UsageReporter(DaemonThread):
 
     def _handle_event(self, event):
         data = self._transformer(event.status, event.app_spec)
-        self._send_data(data)
+        try:
+            self._send_data(data)
+        except requests.exceptions.RequestException:
+            pass  # The backoff handler has already logged this error
 
     @backoff.on_exception(backoff.expo,
                           requests.exceptions.RequestException,
@@ -83,4 +85,5 @@ class UsageReporter(DaemonThread):
                           on_giveup=_failure_handler)
     @reporting_histogram.time()
     def _send_data(self, data):
-        self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)
+        resp = self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)
+        resp.raise_for_status()

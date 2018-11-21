@@ -14,7 +14,7 @@ from requests.auth import AuthBase
 
 class DevHoseAuth(AuthBase):
     def __init__(self, key, tenant):
-        self._key = key.strip()
+        self._key = base64.b64decode(key.strip())
         self._auth_context = base64.b64encode(json.dumps({"type": tenant}))
 
     def __call__(self, r):

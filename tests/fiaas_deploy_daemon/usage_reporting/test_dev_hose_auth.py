@@ -2,6 +2,7 @@
 # -*- coding: utf-8
 from __future__ import unicode_literals, absolute_import
 
+import base64
 from datetime import datetime
 
 import mock
@@ -12,6 +13,8 @@ from fiaas_deploy_daemon.usage_reporting.dev_hose_auth import DevHoseAuth
 
 
 class TestDevHoseAuth(object):
+    _KEY = base64.b64encode(b"dummy key")
+
     @pytest.fixture
     def mock_request(self):
         r = mock.create_autospec(requests.PreparedRequest(), spec_set=True, instance=True)
@@ -21,14 +24,14 @@ class TestDevHoseAuth(object):
         return r
 
     def test_simple_string_to_sign(self, mock_request):
-        auth = DevHoseAuth(b"dummy key", "tenant")
+        auth = DevHoseAuth(self._KEY, "tenant")
         string_to_sign = auth._create_string_to_sign(mock_request, 100, "nonce")
         assert string_to_sign == "uri\nnonce\n100000\neyJ0eXBlIjogInRlbmFudCJ9\npayload\n"
 
     def test_escaped_string_to_sign(self, mock_request):
         mock_request.body = "߷\u23FB@/"
         mock_request.path_url = "/߷\u23FB@/a-zA-Z0-9.-~_@:!$&'()*+,;=/?"
-        auth = DevHoseAuth(b"dummy key", "߷\u23FB@/")
+        auth = DevHoseAuth(self._KEY, "߷\u23FB@/")
         timestamp = (datetime(2017, 9, 26, 11, 16, 25, 439000) - datetime(1970, 1, 1)).total_seconds()
         string_to_sign = auth._create_string_to_sign(mock_request, timestamp, "߷\u23FB@/")
         assert string_to_sign == "/%DF%B7%E2%8F%BB@/a-zA-Z0-9.-~_@:!$&'()*+,;=/?\n" \
@@ -37,7 +40,7 @@ class TestDevHoseAuth(object):
                                  "eyJ0eXBlIjogIlx1MDdmN1x1MjNmYkAvIn0%3D\n" \
                                  "%DF%B7%E2%8F%BB%40%2F\n"
 
-    @pytest.mark.parametrize("key", (b"dummy key", b"\ndummy key", b"dummy key\n"))
+    @pytest.mark.parametrize("key", (_KEY, b"\n" + _KEY, _KEY + b"\n"))
     def test_signing(self, mock_request, key):
         with mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.uuid.uuid4") as m_uuid, \
                 mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.time.time") as m_time:

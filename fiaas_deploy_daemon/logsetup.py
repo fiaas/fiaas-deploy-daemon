@@ -7,7 +7,8 @@ import json
 import logging
 import sys
 
-from .log_extras import ExtraFilter, LOGS
+from fiaas_deploy_daemon.log_extras import StatusHandler
+from .log_extras import ExtraFilter
 
 
 class FiaasFormatter(logging.Formatter):
@@ -26,7 +27,7 @@ class FiaasFormatter(logging.Formatter):
         fields["@version"] = 1
         fields["LocationInfo"] = self._build_location(fields)
         fields["message"] = record.getMessage()
-        fields["extras"] = record.extras
+        fields["extras"] = getattr(record, "extras", {})
         if "exc_info" in fields and fields["exc_info"]:
             fields["throwable"] = self.formatException(fields["exc_info"])
         for original, replacement in self.RENAME.iteritems():
@@ -62,20 +63,6 @@ class FiaasFormatter(logging.Formatter):
         }
 
 
-class StatusHandler(logging.Handler):
-    def __init__(self):
-        super(StatusHandler, self).__init__(logging.WARNING)
-        self.formatter = FiaasFormatter()
-
-    def emit(self, record):
-        if hasattr(record, "extras"):
-            key = (record.extras.get("app_name"), record.extras.get("namespace"), record.extras.get("deployment_id"))
-            LOGS[key].append(self.format(record))
-
-
-STATUS_HANDLER = StatusHandler()
-
-
 def init_logging(config):
     """Set up logging system, according to FINN best practice for cloud
 
@@ -88,15 +75,15 @@ def init_logging(config):
     root = logging.getLogger()
     root.setLevel(logging.INFO)
     handler = logging.StreamHandler(sys.stdout)
+    handler.addFilter(ExtraFilter())
     if _json_format(config):
         handler.setFormatter(FiaasFormatter())
     elif _plain_format(config):
         handler.setFormatter(logging.Formatter("[%(asctime)s|%(levelname)7s] %(message)s [%(name)s|%(threadName)s]"))
     if config.debug:
         root.setLevel(logging.DEBUG)
-    root.addFilter(ExtraFilter())
     root.addHandler(handler)
-    root.addHandler(STATUS_HANDLER)
+    root.addHandler(StatusHandler())
     _set_special_levels()
 
 

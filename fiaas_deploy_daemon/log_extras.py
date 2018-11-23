@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 import logging
-import sys
 import threading
 from collections import defaultdict
 
 _LOGS = defaultdict(list)
 _LOG_EXTRAS = threading.local()
-_LOG_FORMAT = u"[{asctime}|{levelname:7}] {message} [{name}|{threadName}|{extras[namespace]}/{extras[app_name]}]"
+_LOG_FORMAT = u"[%(asctime)s|%(levelname)7s] %(message)s " \
+              u"[%(name)s|%(threadName)s|%(extras_namespace)s/%(extras_app_name)s]"
 
 
 class ExtraFilter(logging.Filter):
@@ -23,37 +23,20 @@ class StatusFormatter(logging.Formatter):
         super(StatusFormatter, self).__init__(_LOG_FORMAT, None)
 
     def format(self, record):
-        """Copied from base class, and changed to use .format instead of %"""
-        record.message = record.getMessage()
-        if self.usesTime():
-            record.asctime = self.formatTime(record, self.datefmt)
-        try:
-            s = self._fmt.format(**record.__dict__)
-        except UnicodeDecodeError as e:
-            try:
-                record.name = record.name.decode('utf-8')
-                s = self._fmt.format(**record.__dict__)
-            except UnicodeDecodeError:
-                raise e
-        if record.exc_info:
-            if not record.exc_text:
-                record.exc_text = self.formatException(record.exc_info)
-        if record.exc_text:
-            if s[-1:] != "\n":
-                s = s + "\n"
-            try:
-                s = s + record.exc_text
-            except UnicodeError:
-                s = s + record.exc_text.decode(sys.getfilesystemencoding(), 'replace')
-        return s
+        record = self._flatten_extras(record)
+        return super(StatusFormatter, self).format(record)
 
-    def usesTime(self):
-        return "asctime" in self._fmt
+    @staticmethod
+    def _flatten_extras(record):
+        for key in record.extras:
+            flat_key = "extras_{}".format(key)
+            setattr(record, flat_key, record.extras[key])
+        return record
 
 
 class StatusHandler(logging.Handler):
     def __init__(self):
-        super(StatusHandler, self).__init__(logging.WARNING)
+        super(StatusHandler, self).__init__(logging.INFO)
         self.addFilter(ExtraFilter())
         self.setFormatter(StatusFormatter())
 

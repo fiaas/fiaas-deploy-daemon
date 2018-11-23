@@ -2,10 +2,12 @@
 # -*- coding: utf-8
 from __future__ import absolute_import
 
-import posixpath
 import logging
+import posixpath
+
 from blinker import signal
 
+from fiaas_deploy_daemon.log_extras import get_final_logs
 from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 
 
@@ -44,3 +46,13 @@ class Reporter(object):
         r = self._session.post(url, json={u"description": u"From fiaas-deploy-daemon"})
         self._logger.info("Posted {} for app {} (deployment_id={}) to pipeline, return code={}".format(
             status, app_spec.name, app_spec.deployment_id, r.status_code))
+        self._empty_status_logs(app_spec)
+
+    @staticmethod
+    def _empty_status_logs(app_spec):
+        """Clear the status logs from the collector
+
+        Pipeline doesn't have a good place to dump the logs, so we just make sure to empty out the log-collector every
+        time we handle a signal. Once this code is taken out of fiaas-deploy-daemon, this is no longer a problem.
+        """
+        get_final_logs(app_spec)

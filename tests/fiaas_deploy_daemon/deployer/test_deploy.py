@@ -52,7 +52,7 @@ class TestDeploy(object):
         deployer()
 
         bookkeeper.success_signal.send.assert_not_called()
-        bookkeeper.error_signal.send.assert_called_with(app_spec=app_spec)
+        bookkeeper.error_signal.send.assert_called_with(app_name=None, namespace=None, deployment_id=None, app_spec=app_spec)
 
     def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer):
         deployer()

@@ -10,11 +10,14 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
 from requests import Response
+from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication
-from fiaas_deploy_daemon.deployer import DeployerEvent
+from fiaas_deploy_daemon.deployer import DeployerEvent, Bookkeeper
+from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
+
 
 ADD_EVENT = {
     "object": {
@@ -65,8 +68,12 @@ class TestWatcher(object):
         return mock.create_autospec(spec=Watcher, spec_set=True, instance=True)
 
     @pytest.fixture
-    def crd_watcher(self, spec_factory, deploy_queue, watcher):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]))
+    def bookkeeper(self):
+        return mock.create_autospec(spec=Bookkeeper, spec_set=True, instance=True)
+
+    @pytest.fixture
+    def crd_watcher(self, spec_factory, deploy_queue, watcher, bookkeeper):
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), bookkeeper)
         crd_watcher._watcher = watcher
         return crd_watcher
 
@@ -136,7 +143,7 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE"),
         (DELETED_EVENT, "DELETE"),
     ])
-    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type):
+    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, bookkeeper):
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         spec = event["object"]["spec"]
@@ -165,3 +172,20 @@ class TestWatcher(object):
     def test_watch_namespace(self, crd_watcher, watcher, namespace):
         crd_watcher._watch(namespace)
         watcher.watch.assert_called_once_with(namespace=namespace)
+
+    @pytest.mark.parametrize("event,deployer_event_type,error", [
+        (ADD_EVENT, "UPDATE", YAMLError("invalid yaml")),
+        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config")),
+    ])
+    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type,
+                                                 error, bookkeeper):
+        watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
+
+        spec_factory.side_effect = error
+
+        crd_watcher._watch(None)
+
+        bookkeeper.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
+                                                  namespace=event["object"]["metadata"]["namespace"],
+                                                  deployment_id='deployment_id')
+        assert deploy_queue.empty()

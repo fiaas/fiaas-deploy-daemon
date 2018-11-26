@@ -24,9 +24,9 @@ class Bookkeeper(object):
         self.deploy_signal.send(app_spec=app_spec)
         return self.deploy_histogram.time()
 
-    def failed(self, app_spec):
-        self.error_counter.labels(app_spec.name).inc()
-        self.error_signal.send(app_spec=app_spec)
+    def failed(self, app_name=None, namespace=None, deployment_id=None, app_spec=None):
+        self.error_counter.labels(app_spec.name if app_spec else app_name).inc()
+        self.error_signal.send(**{k: v for (k, v) in locals().items() if k not in ['self']})
 
     def success(self, app_spec):
         self.success_counter.labels(app_spec.name).inc()

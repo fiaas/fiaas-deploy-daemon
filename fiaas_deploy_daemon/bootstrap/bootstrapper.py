@@ -8,12 +8,15 @@ from functools import partial
 
 from blinker import signal
 from monotonic import monotonic as time_monotonic
+from yaml import YAMLError
 
 from ..config import InvalidConfigurationException
 from ..crd.types import FiaasApplication
 from ..deployer import DeployerEvent
 from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from ..tpr.types import PaasbetaApplication
+from ..specs.factory import InvalidConfiguration
+from ..log_extras import set_extras
 
 LOG = logging.getLogger(__name__)
 DEPLOY_SCHEDULED = "deploy_scheduled"
@@ -45,9 +48,10 @@ class StatusCollector(object):
 
 
 class Bootstrapper(object):
-    def __init__(self, config, deploy_queue, spec_factory):
+    def __init__(self, config, deploy_queue, spec_factory, bookkeeper):
         self._deploy_queue = deploy_queue
         self._spec_factory = spec_factory
+        self._bookkeeper = bookkeeper
         self._status_collector = StatusCollector()
         self._store_started = partial(self._store_status, DEPLOY_STARTED)
         self._store_success = partial(self._store_status, DEPLOY_SUCCESS)
@@ -84,22 +88,31 @@ class Bootstrapper(object):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
+            set_extras(app_name=application.spec.application,
+                       namespace=application.metadata.namespace,
+                       deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
-        app_spec = self._spec_factory(
-            name=application.spec.application,
-            image=application.spec.image,
-            app_config=application.spec.config,
-            teams=[],
-            tags=[],
-            deployment_id=deployment_id,
-            namespace=application.metadata.namespace
-        )
-        self._store_status(DEPLOY_SCHEDULED, None, app_spec)
-        self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
-        LOG.debug("Queued deployment for %s in namespace %s", application.spec.application,
-                  application.metadata.namespace)
+        try:
+            app_spec = self._spec_factory(
+                name=application.spec.application,
+                image=application.spec.image,
+                app_config=application.spec.config,
+                teams=[],
+                tags=[],
+                deployment_id=deployment_id,
+                namespace=application.metadata.namespace
+            )
+            self._store_status(DEPLOY_SCHEDULED, None, app_spec)
+            self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
+            LOG.debug("Queued deployment for %s in namespace %s", application.spec.application,
+                      application.metadata.namespace)
+        except (YAMLError, InvalidConfiguration):
+            self._bookkeeper.failed(app_name=application.spec.application,
+                                    namespace=application.metadata.namespace,
+                                    deployment_id=deployment_id)
+            raise
 
     def _store_status(self, status, sender, app_spec):
         self._status_collector.store_status(status, app_spec)

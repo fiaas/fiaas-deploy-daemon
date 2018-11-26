@@ -9,6 +9,7 @@ import pytest
 from mock import create_autospec, patch
 
 from fiaas_deploy_daemon import config
+from fiaas_deploy_daemon.deployer import Bookkeeper
 from fiaas_deploy_daemon.pipeline import consumer as pipeline_consumer
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
 from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
@@ -73,8 +74,12 @@ class TestConsumer(object):
         return create_autospec(kafka.KafkaConsumer, instance=True)
 
     @pytest.fixture
-    def consumer(self, queue, config, reporter, factory, kafka_consumer, app_config_downloader):
-        c = pipeline_consumer.Consumer(queue, config, reporter, factory, app_config_downloader)
+    def bookkeeper(self):
+        return create_autospec(Bookkeeper, instance=True)
+
+    @pytest.fixture
+    def consumer(self, queue, config, reporter, factory, kafka_consumer, app_config_downloader, bookkeeper):
+        c = pipeline_consumer.Consumer(queue, config, reporter, factory, app_config_downloader, bookkeeper)
         c._consumer = kafka_consumer
         return c
 

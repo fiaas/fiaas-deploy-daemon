@@ -58,13 +58,21 @@ def set_extras(app_spec=None, app_name=None, namespace=None, deployment_id=None)
     _LOG_EXTRAS.is_set = True
 
 
-def get_running_logs(app_spec):
-    key = (app_spec.name, app_spec.namespace, app_spec.deployment_id)
+def get_running_logs(app_spec=None, app_name=None, namespace=None, deployment_id=None):
+    if app_spec:
+        app_name = app_spec.name
+        namespace = app_spec.namespace
+        deployment_id = app_spec.deployment_id
+    key = (app_name, namespace, deployment_id)
     return _LOGS.get(key, [])
 
 
-def get_final_logs(app_spec):
-    key = (app_spec.name, app_spec.namespace, app_spec.deployment_id)
+def get_final_logs(app_spec=None, app_name=None, namespace=None, deployment_id=None):
+    if app_spec:
+        app_name = app_spec.name
+        namespace = app_spec.namespace
+        deployment_id = app_spec.deployment_id
+    key = (app_name, namespace, deployment_id)
     return _LOGS.pop(key, [])
 
 

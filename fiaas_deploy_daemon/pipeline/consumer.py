@@ -30,7 +30,7 @@ class Consumer(DaemonThread):
     - KAFKA_PIPELINE_SERVICE_PORT: Port kafka listens on
     """
 
-    def __init__(self, deploy_queue, config, reporter, spec_factory, app_config_downloader):
+    def __init__(self, deploy_queue, config, reporter, spec_factory, app_config_downloader, bookkeeper):
         super(Consumer, self).__init__()
         self._logger = logging.getLogger(__name__)
         self._deploy_queue = deploy_queue
@@ -40,6 +40,7 @@ class Consumer(DaemonThread):
         self._reporter = reporter
         self._spec_factory = spec_factory
         self._app_config_downloader = app_config_downloader
+        self._bookkeeper = bookkeeper
         self._last_message_timestamp = int(time_monotonic())
 
     def __call__(self):
@@ -68,10 +69,14 @@ class Consumer(DaemonThread):
                 self._logger.debug("Ignoring event %r with missing artifacts", event)
             except YAMLError:
                 self._logger.exception("Failure when parsing FIAAS-config")
-            except HTTPError:
-                self._logger.exception("Failure when downloading FIAAS-config")
+                self._bookkeeper.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                        deployment_id=self._deployment_id(event))
             except InvalidConfiguration:
                 self._logger.exception("Invalid configuration for application %s", event.get("project_name"))
+                self._bookkeeper.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                        deployment_id=self._deployment_id(event))
+            except HTTPError:
+                self._logger.exception("Failure when downloading FIAAS-config")
             except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
                 self._logger.warn("App not deployed. %s", str(e))
 
@@ -90,15 +95,10 @@ class Consumer(DaemonThread):
         )
 
     def _create_spec(self, event):
-        artifacts = event[u"artifacts_by_type"]
-        if u"docker" not in artifacts:
-            raise NoDockerArtifactException()
-        if u"fiaas" not in artifacts:
-            raise NoFiaasArtifactException()
+        artifacts = self._artifacts(event)
         name = event[u"project_name"]
-        artifacts = event[u"artifacts_by_type"]
         image = artifacts[u"docker"]
-        deployment_id = image.split(":")[-1][:63].lower()
+        deployment_id = self._deployment_id(event)
         fiaas_url = artifacts[u"fiaas"]
         teams = event[u"teams"]
         tags = event[u"tags"]
@@ -109,6 +109,20 @@ class Consumer(DaemonThread):
 
         return self._spec_factory(name, image, app_config, teams, tags, deployment_id,
                                   DEFAULT_NAMESPACE)
+
+    def _artifacts(self, event):
+        artifacts = event[u"artifacts_by_type"]
+        if u"docker" not in artifacts:
+            raise NoDockerArtifactException()
+        if u"fiaas" not in artifacts:
+            raise NoFiaasArtifactException()
+        return artifacts
+
+    def _deployment_id(self, event):
+        artifacts = self._artifacts(event)
+        image = artifacts[u"docker"]
+        deployment_id = image.split(":")[-1][:63].lower()
+        return deployment_id
 
     def _build_connect_string(self, service):
         host, port = self._config.resolve_service(service)

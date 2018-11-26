@@ -10,11 +10,14 @@ from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
 from requests import Response
+from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer import DeployerEvent
+from fiaas_deploy_daemon.deployer import DeployerEvent, Bookkeeper
+from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication
+
 
 ADD_EVENT = {
     "object": {
@@ -65,8 +68,12 @@ class TestTprWatcher(object):
         return mock.create_autospec(spec=Watcher, spec_set=True, instance=True)
 
     @pytest.fixture
-    def tpr_watcher(self, spec_factory, deploy_queue, watcher):
-        mock_watcher = TprWatcher(spec_factory, deploy_queue, Configuration([]))
+    def bookkeeper(self):
+        return mock.create_autospec(spec=Bookkeeper, spec_set=True, instance=True)
+
+    @pytest.fixture
+    def tpr_watcher(self, spec_factory, deploy_queue, watcher, bookkeeper):
+        mock_watcher = TprWatcher(spec_factory, deploy_queue, Configuration([]), bookkeeper)
         mock_watcher._watcher = watcher
         return mock_watcher
 
@@ -122,7 +129,7 @@ class TestTprWatcher(object):
         (MODIFIED_EVENT, "UPDATE"),
         (DELETED_EVENT, "DELETE"),
     ])
-    def test_deploy(self, tpr_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type):
+    def test_deploy(self, tpr_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, bookkeeper):
         watcher.watch.return_value = [WatchEvent(event, PaasbetaApplication)]
 
         spec = event["object"]["spec"]
@@ -151,3 +158,22 @@ class TestTprWatcher(object):
     def test_watch_namespace(self, tpr_watcher, watcher, namespace):
         tpr_watcher._watch(namespace)
         watcher.watch.assert_called_once_with(namespace=namespace)
+
+    @pytest.mark.parametrize("event,deployer_event_type,error", [
+        (ADD_EVENT, "UPDATE", YAMLError("invalid yaml")),
+        (ADD_EVENT, "UPDATE", InvalidConfiguration("invalid config")),
+        (MODIFIED_EVENT, "UPDATE", YAMLError("invalid yaml")),
+        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config")),
+    ])
+    def test_deploy_reports_failure_on_exception(self, tpr_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type,
+                                                 error, bookkeeper):
+        watcher.watch.return_value = [WatchEvent(event, PaasbetaApplication)]
+
+        spec_factory.side_effect = error
+
+        tpr_watcher._watch(None)
+
+        bookkeeper.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
+                                                  namespace=event["object"]["metadata"]["namespace"],
+                                                  deployment_id='deployment_id')
+        assert deploy_queue.empty()

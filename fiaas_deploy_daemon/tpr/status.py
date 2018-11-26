@@ -31,28 +31,36 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(result, sender, app_spec):
-    _save_status(app_spec, result)
-    _cleanup(app_spec)
+def _handle_signal(result, sender, app_spec=None, app_name=None, namespace=None, deployment_id=None):
+    _save_status(app_spec, app_name, namespace, deployment_id, result)
+    _cleanup(app_spec, app_name, namespace)
 
 
-def _save_status(app_spec, result):
-    LOG.info("Saving result %s for %s/%s", result, app_spec.namespace, app_spec.name)
-    name = create_name(app_spec.name, app_spec.deployment_id)
-    labels = {"app": app_spec.name, "fiaas/deployment_id": app_spec.deployment_id}
+def _save_status(app_spec, app_name, namespace, deployment_id, result):
+    if app_spec:
+        namespace = app_spec.namespace
+        app_name = app_spec.name
+        deployment_id = app_spec.deployment_id
+    LOG.info("Saving result %s for %s/%s", result, namespace, app_name)
+    name = create_name(app_name, deployment_id)
+    labels = {"app": app_name, "fiaas/deployment_id": deployment_id}
     annotations = {LAST_UPDATED_KEY: now()}
-    metadata = ObjectMeta(name=name, namespace=app_spec.namespace, labels=labels, annotations=annotations)
-    logs = _get_logs(app_spec, result)
+    metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
+    logs = _get_logs(app_spec, app_name, namespace, deployment_id, result)
     status = PaasbetaStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     status.save()
 
 
-def _get_logs(app_spec, result):
-    return get_running_logs(app_spec) if result == u"RUNNING" else get_final_logs(app_spec)
+def _get_logs(app_spec, app_name, namespace, deployment_id, result):
+    return get_running_logs(app_spec, app_name, namespace, deployment_id) if result == u"RUNNING" else \
+           get_final_logs(app_spec, app_name, namespace, deployment_id)
 
 
-def _cleanup(app_spec):
-    statuses = PaasbetaStatus.find(app_spec.name, app_spec.namespace)
+def _cleanup(app_spec=None, app_name=None, namespace=None):
+    if app_spec:
+        namespace = app_spec.namespace
+        app_name = app_spec.name
+    statuses = PaasbetaStatus.find(app_name, namespace)
 
     def _last_updated(s):
         annotations = s.metadata.annotations

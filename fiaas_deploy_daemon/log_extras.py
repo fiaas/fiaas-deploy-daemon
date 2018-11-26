@@ -12,9 +12,10 @@ _LOG_FORMAT = u"[%(asctime)s|%(levelname)7s] %(message)s " \
 
 class ExtraFilter(logging.Filter):
     def filter(self, record):
-        if not hasattr(_LOG_EXTRAS, "is_set"):
-            set_extras()
-        record.extras = vars(_LOG_EXTRAS)
+        extras = {}
+        for key in ("app_name", "namespace", "deployment_id"):
+            extras[key] = getattr(_LOG_EXTRAS, key, "")
+        record.extras = extras
         return 1
 
 

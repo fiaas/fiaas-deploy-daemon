@@ -45,15 +45,16 @@ class StatusHandler(logging.Handler):
 
 
 def set_extras(app_spec=None, app_name=None, namespace=None, deployment_id=None):
-    _LOG_EXTRAS.is_set = True
     if app_spec:
-        _LOG_EXTRAS.app_name = app_spec.name
-        _LOG_EXTRAS.namespace = app_spec.namespace
-        _LOG_EXTRAS.deployment_id = app_spec.deployment_id
-    else:
-        _LOG_EXTRAS.app_name = app_name
-        _LOG_EXTRAS.namespace = namespace
-        _LOG_EXTRAS.deployment_id = deployment_id
+        app_name = app_spec.name
+        namespace = app_spec.namespace
+        deployment_id = app_spec.deployment_id
+    if any(x is None for x in (app_name, namespace, deployment_id)):
+        raise TypeError("Either app_spec, or all of (app_name, namespace, deployment_id) must be specified")
+    _LOG_EXTRAS.app_name = app_name
+    _LOG_EXTRAS.namespace = namespace
+    _LOG_EXTRAS.deployment_id = deployment_id
+    _LOG_EXTRAS.is_set = True
 
 
 def get_running_logs(app_spec):

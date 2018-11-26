@@ -56,7 +56,6 @@ class TprWatcher(DaemonThread):
         LOG.debug("Created ThirdPartyResource with name PaasbetaStatus")
 
     def _handle_watch_event(self, event):
-        set_extras(app_name=event.object.spec.application, namespace=event.object.metadata.namespace)
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
@@ -68,6 +67,9 @@ class TprWatcher(DaemonThread):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
+            set_extras(app_name=application.spec.application,
+                       namespace=application.metadata.namespace,
+                       deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
@@ -82,9 +84,13 @@ class TprWatcher(DaemonThread):
 
     def _delete(self, application):
         app_spec = self._spec_factory(
-            name=application.spec.application, image=application.spec.image,
-            app_config=application.spec.config, teams=[], tags=[],
-            deployment_id=None, namespace=application.metadata.namespace
+            name=application.spec.application,
+            image=application.spec.image,
+            app_config=application.spec.config,
+            teams=[],
+            tags=[],
+            deployment_id="deletion",
+            namespace=application.metadata.namespace,
         )
         set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))

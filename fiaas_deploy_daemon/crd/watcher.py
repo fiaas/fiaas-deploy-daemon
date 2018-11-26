@@ -59,7 +59,6 @@ class CrdWatcher(DaemonThread):
         LOG.info("Created CustomResourceDefinition with name %s", name)
 
     def _handle_watch_event(self, event):
-        set_extras(app_name=event.object.spec.application, namespace=event.object.metadata.namespace)
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
@@ -71,6 +70,9 @@ class CrdWatcher(DaemonThread):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
+            set_extras(app_name=application.spec.application,
+                       namespace=application.metadata.namespace,
+                       deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
@@ -94,7 +96,7 @@ class CrdWatcher(DaemonThread):
             app_config=application.spec.config,
             teams=[],
             tags=[],
-            deployment_id=None,
+            deployment_id="deletion",
             namespace=application.metadata.namespace
         )
         set_extras(app_spec)

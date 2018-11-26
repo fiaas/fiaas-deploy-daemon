@@ -13,7 +13,6 @@ from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.specs.models import AppSpec
 from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication
 
@@ -123,22 +122,25 @@ class TestTprWatcher(object):
         (MODIFIED_EVENT, "UPDATE"),
         (DELETED_EVENT, "DELETE"),
     ])
-    def test_deploy(self, tpr_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type):
+    def test_deploy(self, tpr_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type):
         watcher.watch.return_value = [WatchEvent(event, PaasbetaApplication)]
 
-        app_spec = mock.create_autospec(AppSpec, instance=True, set_spec=True)
+        spec = event["object"]["spec"]
+        app_name = spec["application"]
+        namespace = event["object"]["metadata"]["namespace"]
+        deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
+                         if deployer_event_type != "DELETE" else "deletion")
+
+        app_spec = app_spec._replace(name=app_name, namespace=namespace, deployment_id=deployment_id)
         spec_factory.return_value = app_spec
 
         tpr_watcher._watch(None)
 
-        spec = event["object"]["spec"]
-        event_deployment_id = event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
-        deployment_id = event_deployment_id if deployer_event_type != "DELETE" else None
         app_config = spec["config"]
-        spec_factory.assert_called_once_with(name=spec["application"], image=spec["image"], app_config=app_config,
+        spec_factory.assert_called_once_with(name=app_name, image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,
-                                             namespace=event["object"]["metadata"]["namespace"])
+                                             namespace=namespace)
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()

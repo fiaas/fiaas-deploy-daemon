@@ -323,6 +323,8 @@ class TestE2E(object):
         def _assert_status():
             status = PaasbetaStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
+            assert len(status.logs) > 0
+            assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
 
         wait_until(_assert_status, patience=PATIENCE)
 
@@ -368,6 +370,8 @@ class TestE2E(object):
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == u"RUNNING"
+            assert len(status.logs) > 0
+            assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
 
         wait_until(_assert_status, patience=PATIENCE)
 

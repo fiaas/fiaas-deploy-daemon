@@ -13,6 +13,7 @@ from k8s.watcher import Watcher
 from .types import FiaasApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
+from ..log_extras import set_extras
 
 LOG = logging.getLogger(__name__)
 
@@ -69,6 +70,9 @@ class CrdWatcher(DaemonThread):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
+            set_extras(app_name=application.spec.application,
+                       namespace=application.metadata.namespace,
+                       deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
@@ -81,6 +85,7 @@ class CrdWatcher(DaemonThread):
             deployment_id=deployment_id,
             namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
 
@@ -91,8 +96,9 @@ class CrdWatcher(DaemonThread):
             app_config=application.spec.config,
             teams=[],
             tags=[],
-            deployment_id=None,
+            deployment_id="deletion",
             namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
         LOG.debug("Queued delete for %s", application.spec.application)

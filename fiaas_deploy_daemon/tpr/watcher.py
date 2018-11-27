@@ -9,6 +9,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
 from k8s.watcher import Watcher
 
+from fiaas_deploy_daemon.log_extras import set_extras
 from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -66,6 +67,9 @@ class TprWatcher(DaemonThread):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
+            set_extras(app_name=application.spec.application,
+                       namespace=application.metadata.namespace,
+                       deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
@@ -74,14 +78,20 @@ class TprWatcher(DaemonThread):
             app_config=application.spec.config, teams=[], tags=[],
             deployment_id=deployment_id, namespace=application.metadata.namespace
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
         LOG.debug("Queued deployment for %s", application.spec.application)
 
     def _delete(self, application):
         app_spec = self._spec_factory(
-            name=application.spec.application, image=application.spec.image,
-            app_config=application.spec.config, teams=[], tags=[],
-            deployment_id=None, namespace=application.metadata.namespace
+            name=application.spec.application,
+            image=application.spec.image,
+            app_config=application.spec.config,
+            teams=[],
+            tags=[],
+            deployment_id="deletion",
+            namespace=application.metadata.namespace,
         )
+        set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
         LOG.debug("Queued delete for %s", application.spec.application)

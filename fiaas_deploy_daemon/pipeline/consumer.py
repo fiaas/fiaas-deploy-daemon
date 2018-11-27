@@ -4,16 +4,16 @@ from __future__ import absolute_import
 
 import json
 import logging
-
-
 import os
 import time
+
 from kafka import KafkaConsumer
+from monotonic import monotonic as time_monotonic
 from prometheus_client import Counter
 from requests import HTTPError
 from yaml import YAMLError
-from monotonic import monotonic as time_monotonic
 
+from fiaas_deploy_daemon.log_extras import set_extras
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..specs.factory import InvalidConfiguration
@@ -58,6 +58,7 @@ class Consumer(DaemonThread):
         if event[u"environment"] == self._environment:
             try:
                 app_spec = self._create_spec(event)
+                set_extras(app_spec)
                 self._check_app_acceptable(app_spec)
                 self._add_deployment_label(app_spec)
                 self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
@@ -97,13 +98,16 @@ class Consumer(DaemonThread):
         name = event[u"project_name"]
         artifacts = event[u"artifacts_by_type"]
         image = artifacts[u"docker"]
+        deployment_id = image.split(":")[-1][:63].lower()
         fiaas_url = artifacts[u"fiaas"]
         teams = event[u"teams"]
         tags = event[u"tags"]
 
+        set_extras(app_name=name, namespace=DEFAULT_NAMESPACE, deployment_id=deployment_id)
+
         app_config = self._app_config_downloader.get(fiaas_url)
 
-        return self._spec_factory(name, image, app_config, teams, tags, image.split(":")[-1][:63].lower(),
+        return self._spec_factory(name, image, app_config, teams, tags, deployment_id,
                                   DEFAULT_NAMESPACE)
 
     def _build_connect_string(self, service):

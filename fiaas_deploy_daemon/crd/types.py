@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 import six
 from k8s.base import Model
-from k8s.fields import Field, RequiredField
+from k8s.fields import Field, RequiredField, ListField
 from k8s.models.common import ObjectMeta
 
 
@@ -42,3 +42,4 @@ class FiaasApplicationStatus(Model):
 
     metadata = Field(ObjectMeta)
     result = Field(six.text_type)
+    logs = ListField(six.text_type)

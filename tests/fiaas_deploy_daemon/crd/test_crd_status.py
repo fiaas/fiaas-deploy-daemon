@@ -14,7 +14,7 @@ from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 
 LAST_UPDATE = now()
-
+LOG_LINE = "This is a log line from a test."
 DEPLOYMENT_ID = u"deployment_id"
 NAME = u"name"
 VALID_NAME = re.compile(r"^[a-z0-9.-]+$")
@@ -43,6 +43,12 @@ class TestStatusReport(object):
         monkeypatch.setattr("fiaas_deploy_daemon.crd.status.signal", s)
         yield s
 
+    @pytest.fixture
+    def logs(self):
+        with mock.patch("fiaas_deploy_daemon.crd.status._get_logs") as m:
+            m.return_value = [LOG_LINE]
+            yield m
+
     # create vs update => new_status, url, post/put
     def pytest_generate_tests(self, metafunc):
         if metafunc.cls == self.__class__ and "test_data" in metafunc.fixturenames:
@@ -62,23 +68,25 @@ class TestStatusReport(object):
                     test_id = "{} status on {}".format(action, signal_name)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
-    @pytest.mark.usefixtures("post", "put", "find")
+    @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_action_on_signal(self, request, get_or_create, app_spec, test_data, signal):
         app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
         app_spec = app_spec._replace(name=test_data.signal_name)
-        labels = {"app": test_data.signal_name, "fiaas/deployment_id": app_spec.deployment_id}
+        labels = {"app": app_spec.name, "fiaas/deployment_id": app_spec.deployment_id}
         annotations = {"fiaas/last_updated": LAST_UPDATE}
         metadata = ObjectMeta(name=app_name, namespace="default", labels=labels, annotations=annotations)
+        expected_logs = [LOG_LINE]
         get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata,
-                                                            result=test_data.result)
+                                                            result=test_data.result, logs=expected_logs)
         status.connect_signals()
         expected_call = {
             'apiVersion': 'fiaas.schibsted.io/v1',
             'kind': 'ApplicationStatus',
             'result': test_data.result,
+            'logs': expected_logs,
             'metadata': {
                 'labels': {
-                    'app': test_data.signal_name,
+                    'app': app_spec.name,
                     'fiaas/deployment_id': app_spec.deployment_id
                 },
                 'annotations': {
@@ -99,7 +107,7 @@ class TestStatusReport(object):
             mnow.return_value = LAST_UPDATE
             signal(test_data.signal_name).send(app_spec=app_spec)
 
-        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result)
+        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result, logs=expected_logs)
         if test_data.action == "create":
             url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
         else:

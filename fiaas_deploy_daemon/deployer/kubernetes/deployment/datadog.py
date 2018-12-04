@@ -36,6 +36,8 @@ class DataDog(object):
                        valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),
+                EnvVar(name="DD_EXPVAR_PORT", value="42622"),
+                EnvVar(name="DD_CMD_PORT", value="42623"),
             ],
             resources=resource_requirements
         )

@@ -172,6 +172,10 @@ spec:
           value: "false"
         - name: DD_LOGS_STDOUT
           value: "yes"
+        - name: DD_EXPVAR_PORT
+          value: "42622"
+        - name: DD_CMD_PORT
+          value: "42623"
         envFrom: []
         image: DATADOG_IMAGE
         volumeMounts: []

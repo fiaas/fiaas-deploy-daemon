@@ -68,7 +68,9 @@ class TestDataDog(object):
                 {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
                 {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
                 {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
-                {'name': 'DD_LOGS_STDOUT', 'value': 'yes'}
+                {'name': 'DD_LOGS_STDOUT', 'value': 'yes'},
+                {'name': 'DD_EXPVAR_PORT', 'value': '42622'},
+                {'name': 'DD_CMD_PORT', 'value': '42623'},
             ],
             'envFrom': [],
             'imagePullPolicy': 'IfNotPresent',

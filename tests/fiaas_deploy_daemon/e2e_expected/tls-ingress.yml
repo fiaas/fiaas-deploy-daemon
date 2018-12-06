@@ -18,10 +18,10 @@ spec:
   - hosts:
     - v3-data-examples-tls-enabled.svc.test.example.com
     secretName: v3-data-examples-tls-enabled.svc.test.example.com
-#  - hosts:
-#    - pckqvxryazy6fkalse7zoudilpf43dkb.svc.test.example.com
-#    - v3-data-examples-tls-enabled.svc.test.example.com
-#    secretName: v3-data-examples-tls-enabled-ingress-tls
+  - hosts:
+    - pckqvxryazy6fkalse7zoudilpf43dkb.svc.test.example.com
+    - v3-data-examples-tls-enabled.svc.test.example.com
+    secretName: v3-data-examples-tls-enabled-ingress-tls
   rules:
   - host: v3-data-examples-tls-enabled.svc.test.example.com
     http:

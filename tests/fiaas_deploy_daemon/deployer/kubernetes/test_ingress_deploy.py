@@ -548,7 +548,7 @@ class TestIngressTls(object):
         IngressTLS(hosts=["host1"], secretName="host1"),
         IngressTLS(hosts=["host2"], secretName="host2"),
         IngressTLS(hosts=["host3"], secretName="host3"),
-        # IngressTLS(hosts=COLLAPSED_HOSTS, secretName="testapp-ingress-tls"),
+        IngressTLS(hosts=COLLAPSED_HOSTS, secretName="testapp-ingress-tls"),
     ]
 
     @pytest.fixture

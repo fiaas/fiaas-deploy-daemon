@@ -542,7 +542,7 @@ class IngressMatcher(object):
 
 
 class TestIngressTls(object):
-    HOSTS = ["host1", "host2", "host3"]
+    HOSTS = ["host1", "host2", "host3", "this.host.is.so.long.that.it.is.impossible.to.use.as.the.common.name"]
     COLLAPSED_HOSTS = ["zgwvxk7m22jnzqmofnboadb6kpuri4st.short.suffix"] + HOSTS
     INGRESS_SPEC_TLS = [
         IngressTLS(hosts=["host1"], secretName="host1"),

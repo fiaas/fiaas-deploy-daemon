@@ -51,7 +51,7 @@ FLAKE8_REQ = [
 
 TESTS_REQ = [
     'mock',
-    'pytest-xdist',
+    'pytest-xdist == 1.24.1',
     'pytest-sugar',
     'pytest-html',
     'pytest-cov',

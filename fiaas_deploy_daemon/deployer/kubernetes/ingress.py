@@ -136,7 +136,7 @@ class IngressTls(object):
                 tls_annotations
             )
             # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
-            ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts]
+            ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts if len(host) < 64]
             collapsed = self._collapse_hosts(app_spec, hosts)
             ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
 

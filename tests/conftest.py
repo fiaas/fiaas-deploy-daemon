@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 import itertools
+import re
 
 import pytest
-import re
 from xdist.scheduler import LoadScopeScheduling
 
 pytest_plugins = ['helpers_namespace']
@@ -114,7 +114,7 @@ class FixtureScheduling(LoadScopeScheduling):
         else:
             fixture_values = m.group(1).split("-")
             if "test_e2e" in nodeid:
-                scope = "-".join(fixture_values[-2:])
+                scope = "-".join(fixture_values[:2])
             else:
                 scope = self._select_scope(fixture_values)
         self._assigned_scope[nodeid] = scope

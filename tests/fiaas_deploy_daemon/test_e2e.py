@@ -39,13 +39,11 @@ def _fixture_names(fixture_value):
     return name
 
 
-@pytest.fixture(scope="session", params=("ClusterIP", "NodePort"))
-def service_type(request):
-    return request.param
-
-
 @pytest.mark.integration_test
 class TestE2E(object):
+    @pytest.fixture(scope="module", params=("ClusterIP", "NodePort"))
+    def service_type(self, request):
+        return request.param
 
     @pytest.fixture(scope="module")
     def kubernetes(self, minikube_installer, service_type, k8s_version):

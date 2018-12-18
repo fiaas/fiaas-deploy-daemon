@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+import datetime
 import hashlib
 import json
 import logging
-import random
+import os
 import shutil
-import string
 import tempfile
+import uuid
 from distutils.version import StrictVersion
 
 import appdirs
-import datetime
-import os
 import requests
 
 from .drivers import select_driver
@@ -84,9 +83,8 @@ class MinikubeInstaller(object):
         return digest
 
     def new(self, k8s_version=None, profile=None):
-        letters = list(string.ascii_letters)
-        random.shuffle(letters)
-        id = profile + "".join(letters)
+        k8s_desc = "default" if k8s_version is None else k8s_version
+        id = ".".join((profile, k8s_desc, str(uuid.uuid4())))
         vm = Minikube(self._workdir, self._driver, k8s_version, id)
         return vm
 

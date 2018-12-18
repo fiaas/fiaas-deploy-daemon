@@ -9,6 +9,7 @@ kubernetes_minor_version() {
     [[ $git_version =~ $regex ]] && echo "${BASH_REMATCH[1]}"
 }
 
+export NAMESPACE="${NAMESPACE:-default}"
 KUBECONFIG_JSON="$(kubectl config view -o json)"
 export KUBECONFIG_JSON
 API_SERVER="$(jq -r '.clusters[] | select(.name == "minikube") | .cluster.server' <<< "$KUBECONFIG_JSON")"

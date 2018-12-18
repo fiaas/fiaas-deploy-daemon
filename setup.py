@@ -56,7 +56,7 @@ TESTS_REQ = [
     'pytest-html',
     'pytest-cov',
     'pytest-helpers-namespace',
-    'pytest == 3.3.2',
+    'pytest == 3.10.1',
     'requests-file',
     'callee==0.3',
 ]

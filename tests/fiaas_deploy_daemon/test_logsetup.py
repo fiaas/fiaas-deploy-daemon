@@ -59,12 +59,13 @@ class TestLogSetup(object):
         root_logger.setLevel.assert_called_with(logging.DEBUG)
 
     def test_json_log_has_extra(self, app_spec):
-        set_extras(app_spec)
         log = logging.getLogger("test-logger")
+        log.setLevel(logging.INFO)
         handler = _create_default_handler(_FakeConfig("json"))
         log_buffer = StringIO()
         handler.stream = log_buffer
         log.addHandler(handler)
+        set_extras(app_spec)
         log.info(TEST_MESSAGE)
         log_entry = json.loads(log_buffer.getvalue())
         assert TEST_MESSAGE in log_entry["message"]

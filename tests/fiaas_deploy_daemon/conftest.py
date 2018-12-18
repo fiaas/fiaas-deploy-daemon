@@ -152,7 +152,7 @@ def delete():
         yield mockk
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def _open():
     """
     mock open() to return predefined namespace if the file we're trying to read is

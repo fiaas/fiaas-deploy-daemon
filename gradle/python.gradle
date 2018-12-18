@@ -110,7 +110,6 @@ project.ext {
     excludes = ['**/*.pyc', '**/__pycache__/**']
 
     source_files = fileTree(dir: 'fiaas_deploy_daemon', exclude: excludes) +
-            fileTree(dir: 'k8s', exclude: excludes) +
             fileTree(dir: 'minikube', exclude: excludes)
     test_files = fileTree(dir: 'tests', exclude: excludes)
     setup_files = files('setup.py', 'setup.cfg')
@@ -208,7 +207,8 @@ task test(type: PewTask) {
             '--cov-report xml ' +
             '--cov-report term ' +
             '--junit-xml=build/reports/tests.xml ' +
-            '--html=build/reports/tests.html'
+            '--html=build/reports/tests.html ' +
+            '--disable-warnings'
     ]
     inputs.file project.ext.all_sources
     outputs.dir 'build/reports'
@@ -228,7 +228,8 @@ task integrationTest(type: PewTask) {
             '-n ' + (Runtime.runtime.availableProcessors() / 2) +
             ' -ra ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
-            '--html=build/reports/integration_tests.html'
+            '--html=build/reports/integration_tests.html ' +
+            '--disable-warnings'
     ]
     inputs.file project.ext.all_sources
     outputs.dir 'build/reports'

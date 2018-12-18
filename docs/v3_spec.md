@@ -139,6 +139,34 @@ ingress:
       port: http
 ```
 
+All applications will get a set of default hosts, if the cluster operator has defined ingress suffixes. 
+If you do not specify a host in your `ingress` configuration, these default hosts will be used.
+For example : 
+1. `your-app.example1.com`
+2. `your-app.example2.com`
+
+When you expose a path on a host you get that one as well. For example : 
+```yaml
+ingress:
+  - host: example.com
+    paths:
+    - path: /my-path
+``` 
+
+If you want to customize paths for default hosts as well, you can do it as :
+```yaml
+ingress:
+  - host: example.com
+    paths:
+    - path: /my-path
+  - paths:
+    - path: /some-other-path
+
+```
+
+This will make `/some-other-path` available on default hosts, but not on the host you provided in ingress. 
+Remember, default hosts will also contain the paths from the ingress.   
+
 ### host
 
 | **Type** | **Required** |

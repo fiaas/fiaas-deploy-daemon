@@ -56,8 +56,9 @@ TESTS_REQ = [
     'pytest-html',
     'pytest-cov',
     'pytest-helpers-namespace',
-    'pytest == 3.2.5',  # Pinned because 3.3.0 doesn't seem to work with pluggy
+    'pytest == 3.3.2',
     'requests-file',
+    'callee==0.3',
 ]
 
 # Transient dependencies that needs to be pinned for various reasons

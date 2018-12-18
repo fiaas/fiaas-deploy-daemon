@@ -74,17 +74,21 @@ def init_logging(config):
     """
     root = logging.getLogger()
     root.setLevel(logging.INFO)
+    if config.debug:
+        root.setLevel(logging.DEBUG)
+    root.addHandler(_create_default_handler(config))
+    root.addHandler(StatusHandler())
+    _set_special_levels()
+
+
+def _create_default_handler(config):
     handler = logging.StreamHandler(sys.stdout)
     handler.addFilter(ExtraFilter())
     if _json_format(config):
         handler.setFormatter(FiaasFormatter())
     elif _plain_format(config):
         handler.setFormatter(logging.Formatter("[%(asctime)s|%(levelname)7s] %(message)s [%(name)s|%(threadName)s]"))
-    if config.debug:
-        root.setLevel(logging.DEBUG)
-    root.addHandler(handler)
-    root.addHandler(StatusHandler())
-    _set_special_levels()
+    return handler
 
 
 def _set_special_levels():

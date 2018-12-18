@@ -5,62 +5,67 @@ import logging
 import sys
 from cStringIO import StringIO
 
+import mock
+import pytest
+from callee import InstanceOf, Attrs, List
+
 from fiaas_deploy_daemon.log_extras import StatusHandler, ExtraFilter, set_extras
-from fiaas_deploy_daemon.logsetup import init_logging, FiaasFormatter
+from fiaas_deploy_daemon.logsetup import init_logging, FiaasFormatter, _create_default_handler
 
 TEST_MESSAGE = "This is a test log message"
 
 
 class TestLogSetup(object):
-    def setup(self):
-        self.root = logging.getLogger()
+    @pytest.fixture
+    def root_logger(self):
+        with mock.patch("fiaas_deploy_daemon.logsetup.logging.getLogger") as m:
+            root = mock.create_autospec(logging.root, name="mock_root_logger", instance=True, spec_set=True)
+            root.level = logging.NOTSET
 
-    def teardown(self):
-        handlers = list(self.root.handlers)
-        for handler in handlers:
-            self.root.removeHandler(handler)
+            def _get(name=None):
+                if name is None:
+                    return root
+                return logging.Logger(name)
 
-    def assert_stream_handler(self, handler):
-        assert isinstance(handler, logging.StreamHandler), "Handler is not a StreamHandler"
-        assert handler.stream == sys.stdout, "Not streaming to stdout"
-        assert isinstance(handler.filters[0], ExtraFilter)
+            m.side_effect = _get
+            yield root
 
-    def assert_status_handler(self, handler):
-        assert isinstance(handler, StatusHandler), "Handler is not a StatusHandler"
-        assert isinstance(handler.filters[0], ExtraFilter)
+    @staticmethod
+    def _describe_stream_handler(formatter):
+        return InstanceOf(logging.StreamHandler) & Attrs(stream=sys.stdout,
+                                                         filters=List(of=InstanceOf(ExtraFilter)),
+                                                         formatter=InstanceOf(formatter, exact=True))
 
-    def test_default_behaviour(self):
+    @staticmethod
+    def _describe_status_handler():
+        return InstanceOf(StatusHandler) & Attrs(filters=List(of=InstanceOf(ExtraFilter)))
+
+    def test_default_behaviour(self, root_logger):
         init_logging(_FakeConfig())
 
-        assert len(self.root.handlers) == 2, "Wrong number of handlers defined"
-        stream_handler = self.root.handlers[0]
-        self.assert_stream_handler(stream_handler)
-        status_handler = self.root.handlers[-1]
-        self.assert_status_handler(status_handler)
-        assert isinstance(stream_handler.formatter, logging.Formatter), "Should use standard formatter"
-        assert self.root.level == logging.INFO
+        root_logger.addHandler.assert_has_calls((mock.call(self._describe_stream_handler(logging.Formatter)),
+                                                 mock.call(self._describe_status_handler())),
+                                                any_order=True)
+        root_logger.setLevel.assert_called_with(logging.INFO)
 
-    def test_output_json(self):
+    def test_output_json(self, root_logger):
         init_logging(_FakeConfig("json"))
+        root_logger.addHandler.assert_has_calls((mock.call(self._describe_stream_handler(FiaasFormatter)),
+                                                 mock.call(self._describe_status_handler())),
+                                                any_order=True)
 
-        assert len(self.root.handlers) == 2, "Wrong number of handlers defined"
-        stream_handler = self.root.handlers[0]
-        self.assert_stream_handler(stream_handler)
-        status_handler = self.root.handlers[-1]
-        self.assert_status_handler(status_handler)
-        assert isinstance(stream_handler.formatter, FiaasFormatter), "Should use logstash formatter"
-
-    def test_debug_logging(self):
+    def test_debug_logging(self, root_logger):
         init_logging(_FakeConfig(debug=True))
-        assert self.root.level == logging.DEBUG
+        root_logger.setLevel.assert_called_with(logging.DEBUG)
 
     def test_json_log_has_extra(self, app_spec):
         set_extras(app_spec)
-        init_logging(_FakeConfig("json"))
-        stream_handler = self.root.handlers[0]
+        log = logging.getLogger("test-logger")
+        handler = _create_default_handler(_FakeConfig("json"))
         log_buffer = StringIO()
-        stream_handler.stream = log_buffer
-        self.root.info(TEST_MESSAGE)
+        handler.stream = log_buffer
+        log.addHandler(handler)
+        log.info(TEST_MESSAGE)
         log_entry = json.loads(log_buffer.getvalue())
         assert TEST_MESSAGE in log_entry["message"]
         assert log_entry["extras"]["namespace"] == app_spec.namespace

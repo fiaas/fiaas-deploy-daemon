@@ -43,22 +43,22 @@ DEPLOY_REQ = [
 ]
 
 FLAKE8_REQ = [
-    'flake8-print',
-    'flake8-comprehensions',
-    'pep8-naming',
-    'flake8'
+    'flake8-print == 3.1.0',
+    'flake8-comprehensions == 1.4.1',
+    'pep8-naming == 0.7.0',
+    'flake8 == 3.6.0'
 ]
 
 TESTS_REQ = [
-    'mock',
-    'pytest-xdist == 1.24.1',
-    'pytest-sugar',
-    'pytest-html',
-    'pytest-cov',
-    'pytest-helpers-namespace',
+    'mock == 2.0.0',
+    'pytest-xdist == 1.25.0',
+    'pytest-sugar == 0.9.2',
+    'pytest-html == 1.19.0',
+    'pytest-cov == 2.6.0',
+    'pytest-helpers-namespace == 2017.11.11',
     'pytest == 3.10.1',
-    'requests-file',
-    'callee==0.3',
+    'requests-file == 1.4.3',
+    'callee == 0.3',
 ]
 
 # Transient dependencies that needs to be pinned for various reasons
@@ -66,30 +66,31 @@ TRANSIENT_PINNED_TEST_REQ = [
     "coverage==4.5.1",  # For some reason we end up pulling a buggy pre-release version without this
 ]
 
-setup(
-    name="fiaas-deploy-daemon",
-    author="FINN Team Infrastructure",
-    author_email="FINN-TechteamInfrastruktur@finn.no",
-    version="1.0",
-    packages=find_packages(exclude=("tests",)),
-    zip_safe=True,
-    include_package_data=True,
+if __name__ == "__main__":
+    setup(
+        name="fiaas-deploy-daemon",
+        author="FINN Team Infrastructure",
+        author_email="FINN-TechteamInfrastruktur@finn.no",
+        version="1.0",
+        packages=find_packages(exclude=("tests",)),
+        zip_safe=True,
+        include_package_data=True,
 
-    # Requirements
-    install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
-    setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
-    tests_require=TESTS_REQ + TRANSIENT_PINNED_TEST_REQ,
+        # Requirements
+        install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
+        setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
+        tests_require=TESTS_REQ + TRANSIENT_PINNED_TEST_REQ,
 
-    # Metadata
-    description="Deploy docker containers to kubernetes when notified by pipeline",
-    long_description=read("README.md"),
-    url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
+        # Metadata
+        description="Deploy docker containers to kubernetes when notified by pipeline",
+        long_description=read("README.md"),
+        url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
 
-    # Entrypoints
-    entry_points={
-        "console_scripts": [
-            "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
-            "fiaas-deploy-daemon-bootstrap = fiaas_deploy_daemon.bootstrap:main",
-        ]
-    }
-)
+        # Entrypoints
+        entry_points={
+            "console_scripts": [
+                "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
+                "fiaas-deploy-daemon-bootstrap = fiaas_deploy_daemon.bootstrap:main",
+            ]
+        }
+    )

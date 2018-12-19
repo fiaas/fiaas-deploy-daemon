@@ -207,9 +207,12 @@ The JSON document contains details about the application being deployed, where i
 Except where noted, FIAAS passes these values on to the collector without processing.
 
 * `usage-reporting-cluster-name`: A string naming the cluster.
-* `usage-reporting-provider-identifier`: A string identifying the operator of the fiaas-deploy-daemon instance
+* `usage-reporting-operator`: A string identifying the operator of the fiaas-deploy-daemon instance
+* `usage-reporting-team`: A string identifying the team responsible for the applications managed by the fiaas-deploy-daemon instance
 * `usage-reporting-tenant`: A string identifying the operator reporting usage data. This will in many cases be the same operator, but the specification allows for different values here.
 * `usage-reporting-endpoint`: Endpoint to POST usage data to
+* `environment`: A string indicating the environment which the fiaas-deploy-daemon instances manages (`dev`, `pre`, `pro`)
+
 
 
 Role Based Access Control (rbac)

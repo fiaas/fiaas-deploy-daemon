@@ -1,4 +1,4 @@
-FROM python:2-alpine as common
+FROM python:2-alpine3.8 as common
 MAINTAINER fiaas@googlegroups.com
 # Install any binary package dependencies here
 RUN apk --no-cache add \

@@ -60,6 +60,7 @@ task bakeImage(type: DockerBuildImage) {
     inputDir projectDir
     tag image_tag
 }
+integrationTest.dependsOn bakeImage
 
 task tagLatestImage(type: DockerTagImage) {
     dependsOn bakeImage

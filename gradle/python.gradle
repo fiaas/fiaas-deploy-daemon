@@ -245,5 +245,5 @@ task build(type: PewTask) {
     inputs.file project.ext.source_files + project.ext.setup_files
     outputs.files fileTree(dir:'dist')
     outputs.files fileTree(dir:'build', include:['lib*/**', 'bdist*/**'])
-    dependsOn integrationTest
+    dependsOn test
 }

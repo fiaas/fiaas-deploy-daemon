@@ -29,7 +29,8 @@ GENERIC_REQ = [
 WEB_REQ = [
     "Flask == 0.12",
     "flask-talisman==0.5.1",
-    "blinker == 1.4"
+    "blinker == 1.4",
+    "gevent == 1.3.6",
 ]
 
 PIPELINE_REQ = [

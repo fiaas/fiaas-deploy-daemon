@@ -7,6 +7,8 @@ from Queue import Queue
 
 import pinject
 import requests
+from gevent import monkey
+from gevent.pywsgi import WSGIServer, LoggingLogAdapter
 from k8s import config as k8s_config
 
 from .config import Configuration
@@ -78,7 +80,10 @@ class Main(object):
         self._crd_watcher.start()
         self._usage_reporter.start()
         # Run web-app in main thread
-        self._webapp.run("0.0.0.0", self._config.port)
+        log = LoggingLogAdapter(self._webapp.request_logger, logging.DEBUG)
+        error_log = LoggingLogAdapter(self._webapp.request_logger, logging.ERROR)
+        http_server = WSGIServer(("", self._config.port), self._webapp, log=log, error_log=error_log)
+        http_server.serve_forever()
 
 
 def init_k8s_client(config):
@@ -94,6 +99,8 @@ def init_k8s_client(config):
 
 
 def main():
+    _monkeypatch()
+
     cfg = Configuration()
     init_logging(cfg)
     init_k8s_client(cfg)
@@ -115,6 +122,24 @@ def main():
         obj_graph.provide(Main).run()
     except BaseException:
         log.exception("General failure! Inspect traceback and make the code better!")
+
+
+def _monkeypatch():
+    """Add gevent monkey patches to enable the use of the non-blocking WSGIServer
+
+    The late patching is because we want to avoid patching when running in bootstrap mode, and that would require
+    some bigger refactoring since bootstrap imports the root package.
+
+    The reason the documentation recommends to do patching before imports is to avoid the case where imported code
+    makes aliases for the attributes that will be patched (and end up continuing to use the unpatched attribute).
+    Since we reduce our patching to just three things it's easier to reason about this risk (ie. I don't think it's a
+    problem for us). Also, patch_all made some things fail.
+
+    At this point we should still be single-threaded, so it's reasonably safe.
+    """
+    monkey.patch_socket()
+    monkey.patch_ssl()
+    monkey.patch_time()
 
 
 if __name__ == "__main__":

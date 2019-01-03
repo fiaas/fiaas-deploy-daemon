@@ -132,8 +132,9 @@ def _monkeypatch():
 
     The reason the documentation recommends to do patching before imports is to avoid the case where imported code
     makes aliases for the attributes that will be patched (and end up continuing to use the unpatched attribute).
-    Since we reduce our patching to just three things it's easier to reason about this risk (ie. I don't think it's a
-    problem for us). Also, patch_all made some things fail.
+    Since we reduce our patching to just four things it's easier to reason about this risk (ie. I don't think it's a
+    problem for us). Also, patch_all made some things fail, such as `select` and something with handling of requests in
+    Flask (read timeout).
 
     At this point we should still be single-threaded, so it's reasonably safe.
     """

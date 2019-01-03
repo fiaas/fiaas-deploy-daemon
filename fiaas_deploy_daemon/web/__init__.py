@@ -111,7 +111,6 @@ class WebBindings(pinject.BindingSpec):
         app.register_blueprint(web)
         app.spec_factory = spec_factory
         app.transformer = Transformer(spec_factory)
-        app.request_logger = LOG
         _connect_signals()
 
         # TODO: These options are like this because we haven't set up TLS, but should be

@@ -2,8 +2,8 @@
 # -*- coding: utf-8
 
 import time
+from Queue import PriorityQueue
 
-from gevent.queue import PriorityQueue, Empty
 from monotonic import monotonic as time_monotonic
 
 from ..base_thread import DaemonThread
@@ -18,15 +18,12 @@ class Scheduler(DaemonThread):
 
     def __call__(self, *args, **kwargs):
         while True:
-            try:
-                execute_at, task = self._tasks.get(timeout=1)
-                if self._time_func() >= execute_at:
-                    if task():
-                        self.add(task, 10)
-                else:
-                    self.add(task)
-            except Empty:
-                pass
+            execute_at, task = self._tasks.get()
+            if self._time_func() >= execute_at:
+                if task():
+                    self.add(task, 10)
+            else:
+                self.add(task)
             self._delay_func(1)
 
     def add(self, task, delay=1):

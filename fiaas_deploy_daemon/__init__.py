@@ -140,6 +140,7 @@ def _monkeypatch():
     monkey.patch_socket()
     monkey.patch_ssl()
     monkey.patch_time()
+    monkey.patch_queue()
 
 
 if __name__ == "__main__":

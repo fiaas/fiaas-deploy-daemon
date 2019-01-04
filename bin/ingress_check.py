@@ -7,6 +7,7 @@ import logging
 import socket
 from collections import namedtuple
 
+import dns.resolver
 import six
 from k8s import config
 from k8s.base import Model
@@ -27,16 +28,7 @@ logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 LOG = logging.getLogger()
 
-# $ host ingress.cre-pro.schibsted.io
-# ingress.cre-pro.schibsted.io is an alias for prod02-ingresselb-1141596641.eu-west-1.elb.amazonaws.com.
-# prod02-ingresselb-1141596641.eu-west-1.elb.amazonaws.com has address 52.17.234.236
-# prod02-ingresselb-1141596641.eu-west-1.elb.amazonaws.com has address 34.250.137.186
-# prod02-ingresselb-1141596641.eu-west-1.elb.amazonaws.com has address 54.72.74.167
-PROD02_ADDRS = [
-    '34.250.137.186',
-    '52.17.234.236',
-    '54.72.74.167',
-]
+PROD02_ADDRS = [a.address for a in dns.resolver.query("ingress.prod02.cre-pro.schibsted.io")]
 
 
 class Secret(Model):

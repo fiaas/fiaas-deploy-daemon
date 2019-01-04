@@ -72,25 +72,28 @@ class TestE2E(object):
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     @pytest.fixture(scope="module")
-    def fdd(self, kubernetes, service_type, k8s_version):
+    def fdd(self, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         port = self._get_open_port()
-        args = ["fiaas-deploy-daemon",
-                "--port", str(port),
-                "--api-server", kubernetes["server"],
-                "--api-cert", kubernetes["api-cert"],
-                "--client-cert", kubernetes["client-cert"],
-                "--client-key", kubernetes["client-key"],
-                "--service-type", service_type,
-                "--ingress-suffix", "svc.test.example.com",
-                "--environment", "test",
-                "--datadog-container-image", "DATADOG_IMAGE",
-                "--strongbox-init-container-image", "STRONGBOX_IMAGE",
-                "--use-ingress-tls", "default_off",
-                ]
+        args = [
+            "fiaas-deploy-daemon",
+            "--port", str(port),
+            "--api-server", kubernetes["server"],
+            "--api-cert", kubernetes["api-cert"],
+            "--client-cert", kubernetes["client-cert"],
+            "--client-key", kubernetes["client-key"],
+            "--service-type", service_type,
+            "--ingress-suffix", "svc.test.example.com",
+            "--environment", "test",
+            "--datadog-container-image", "DATADOG_IMAGE",
+            "--strongbox-init-container-image", "STRONGBOX_IMAGE",
+            "--use-ingress-tls", "default_off",
+        ]
         if tpr_supported(k8s_version):
             args.append("--enable-tpr-support")
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
+        cert_path = os.path.dirname(kubernetes["api-cert"])
+        args = use_docker_for_e2e(cert_path, service_type, k8s_version) + args
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:
@@ -339,7 +342,8 @@ class TestE2E(object):
         paasbetaapplication.save()
 
         # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups), patience=PATIENCE)
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
+                   patience=PATIENCE)
 
         # Cleanup
         PaasbetaApplication.delete(name)
@@ -386,7 +390,8 @@ class TestE2E(object):
         fiaas_application.save()
 
         # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups), patience=PATIENCE)
+        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
+                   patience=PATIENCE)
 
         # Cleanup
         FiaasApplication.delete(name)

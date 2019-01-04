@@ -229,7 +229,8 @@ task integrationTest(type: PewTask) {
             ' -ra ' +
             '--junit-xml=build/reports/integration_tests.xml ' +
             '--html=build/reports/integration_tests.html ' +
-            '--disable-warnings'
+            '--disable-warnings ' +
+            '--use-docker-for-e2e'
     ]
     inputs.file project.ext.all_sources
     outputs.dir 'build/reports'

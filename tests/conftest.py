@@ -2,9 +2,12 @@
 # -*- coding: utf-8
 import itertools
 import re
+import subprocess
 
 import pytest
 from xdist.scheduler import LoadScopeScheduling
+
+DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
 
 pytest_plugins = ['helpers_namespace']
 
@@ -128,3 +131,29 @@ class FixtureScheduling(LoadScopeScheduling):
 @pytest.mark.tryfirst
 def pytest_xdist_make_scheduler(config, log):
     return FixtureScheduling(config, log)
+
+
+def pytest_addoption(parser):
+    parser.addoption(DOCKER_FOR_E2E_OPTION, action="store_true",
+                     help="Run FDD using the latest docker container when executing E2E tests")
+
+
+@pytest.fixture(scope="session")
+def use_docker_for_e2e(request):
+    def dockerize(cert_path, service_type, k8s_version):
+        container_name = "{}_{}".format(service_type, k8s_version)
+        request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
+        return [
+                   "docker", "run",
+                   "-i", "--rm",
+                   "-e", "NAMESPACE",
+                   "--name", container_name,
+                   "--network", "host",
+                   "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
+                   "fiaas/fiaas-deploy-daemon:latest"
+               ]
+
+    if request.config.getoption(DOCKER_FOR_E2E_OPTION):
+        return dockerize
+    else:
+        return lambda **args: []

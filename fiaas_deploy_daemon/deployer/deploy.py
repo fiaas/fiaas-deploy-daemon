@@ -17,12 +17,13 @@ class Deployer(DaemonThread):
     Mainly focused on bookkeeping, and leaving the hard work to the framework-adapter.
     """
 
-    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler):
+    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle):
         super(Deployer, self).__init__()
         self._queue = _make_gen(deploy_queue.get)
         self._bookkeeper = bookkeeper
         self._adapter = adapter
         self._scheduler = scheduler
+        self._lifecycle = lifecycle
 
     def __call__(self):
         for event in self._queue:
@@ -37,15 +38,22 @@ class Deployer(DaemonThread):
 
     def _update(self, app_spec):
         try:
+            repository = _repository(app_spec)
+            self._lifecycle.start(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                  repository=repository)
             with self._bookkeeper.time(app_spec):
                 self._adapter.deploy(app_spec)
             if app_spec.name != "fiaas-deploy-daemon":
-                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper))
+                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper, self._lifecycle))
             else:
+                self._lifecycle.success(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                        repository=repository)
                 self._bookkeeper.success(app_spec)
             LOG.info("Completed deployment of %r", app_spec)
         except Exception:
-            self._bookkeeper.failed(app_spec=app_spec)
+            self._lifecycle.failed(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                   repository=repository)
+            self._bookkeeper.failed(app_spec)
             LOG.exception("Error while deploying %s: ", app_spec.name)
 
     def _delete(self, app_spec):
@@ -56,3 +64,10 @@ class Deployer(DaemonThread):
 def _make_gen(func):
     while True:
         yield func()
+
+
+def _repository(app_spec):
+    try:
+        return app_spec.annotations.deployment["fiaas/source-repository"]
+    except (TypeError, KeyError, AttributeError):
+        pass

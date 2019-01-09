@@ -11,7 +11,7 @@ from blinker import signal
 from k8s.models.common import ObjectMeta
 
 from .types import FiaasApplicationStatus
-from ..deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from ..log_extras import get_final_logs, get_running_logs
 
 LAST_UPDATED_KEY = "fiaas/last_updated"
@@ -23,6 +23,7 @@ def connect_signals():
     signal(DEPLOY_STARTED).connect(_handle_started)
     signal(DEPLOY_FAILED).connect(_handle_failed)
     signal(DEPLOY_SUCCESS).connect(_handle_success)
+    signal(DEPLOY_INITIATED).connect(_handle_initiated)
 
 
 def now():
@@ -31,35 +32,28 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(result, sender, app_spec=None, app_name=None, namespace=None, deployment_id=None):
-    _save_status(app_spec, app_name, namespace, deployment_id, result)
-    _cleanup(app_spec, app_name, namespace)
+def _handle_signal(result, sender, app_name, namespace, deployment_id, repository):
+    _save_status(app_name, namespace, deployment_id, result)
+    _cleanup(app_name, namespace)
 
 
-def _save_status(app_spec, app_name, namespace, deployment_id, result):
-    if app_spec:
-        namespace = app_spec.namespace
-        app_name = app_spec.name
-        deployment_id = app_spec.deployment_id
+def _save_status(app_name, namespace, deployment_id, result):
     LOG.info("Saving result %s for %s/%s", result, namespace, app_name)
     name = create_name(app_name, deployment_id)
     labels = {"app": app_name, "fiaas/deployment_id": deployment_id}
     annotations = {LAST_UPDATED_KEY: now()}
     metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
-    logs = _get_logs(app_spec, app_name, namespace, deployment_id, result)
+    logs = _get_logs(app_name, namespace, deployment_id, result)
     status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     status.save()
 
 
-def _get_logs(app_spec, app_name, namespace, deployment_id, result):
-    return get_running_logs(app_spec, app_name, namespace, deployment_id) if result == u"RUNNING" else \
-           get_final_logs(app_spec, app_name, namespace, deployment_id)
+def _get_logs(app_name, namespace, deployment_id, result):
+    return get_running_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+           get_final_logs(app_name, namespace, deployment_id)
 
 
-def _cleanup(app_spec=None, app_name=None, namespace=None):
-    if app_spec:
-        namespace = app_spec.namespace
-        app_name = app_spec.name
+def _cleanup(app_name=None, namespace=None):
     statuses = FiaasApplicationStatus.find(app_name, namespace)
 
     def _last_updated(s):
@@ -74,6 +68,7 @@ def _cleanup(app_spec=None, app_name=None, namespace=None):
 _handle_started = partial(_handle_signal, u"RUNNING")
 _handle_failed = partial(_handle_signal, u"FAILED")
 _handle_success = partial(_handle_signal, u"SUCCESS")
+_handle_initiated = partial(_handle_signal, u"INITIATED")
 
 
 def create_name(name, deployment_id):

@@ -30,7 +30,7 @@ class Consumer(DaemonThread):
     - KAFKA_PIPELINE_SERVICE_PORT: Port kafka listens on
     """
 
-    def __init__(self, deploy_queue, config, reporter, spec_factory, app_config_downloader, bookkeeper):
+    def __init__(self, deploy_queue, config, reporter, spec_factory, app_config_downloader, lifecycle):
         super(Consumer, self).__init__()
         self._logger = logging.getLogger(__name__)
         self._deploy_queue = deploy_queue
@@ -40,7 +40,7 @@ class Consumer(DaemonThread):
         self._reporter = reporter
         self._spec_factory = spec_factory
         self._app_config_downloader = app_config_downloader
-        self._bookkeeper = bookkeeper
+        self._lifecycle = lifecycle
         self._last_message_timestamp = int(time_monotonic())
 
     def __call__(self):
@@ -58,6 +58,8 @@ class Consumer(DaemonThread):
         self._logger.debug("Got event: %r", event)
         if event[u"environment"] == self._environment:
             try:
+                self._lifecycle.initiate(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                         deployment_id=self._deployment_id(event))
                 app_spec = self._create_spec(event)
                 set_extras(app_spec)
                 self._check_app_acceptable(app_spec)
@@ -69,14 +71,16 @@ class Consumer(DaemonThread):
                 self._logger.debug("Ignoring event %r with missing artifacts", event)
             except YAMLError:
                 self._logger.exception("Failure when parsing FIAAS-config")
-                self._bookkeeper.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                        deployment_id=self._deployment_id(event))
+                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                       deployment_id=self._deployment_id(event))
             except InvalidConfiguration:
                 self._logger.exception("Invalid configuration for application %s", event.get("project_name"))
-                self._bookkeeper.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                        deployment_id=self._deployment_id(event))
+                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                       deployment_id=self._deployment_id(event))
             except HTTPError:
                 self._logger.exception("Failure when downloading FIAAS-config")
+                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
+                                       deployment_id=self._deployment_id(event))
             except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
                 self._logger.warn("App not deployed. %s", str(e))
 

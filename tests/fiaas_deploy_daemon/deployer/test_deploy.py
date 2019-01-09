@@ -11,16 +11,22 @@ from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.deployer.scheduler import Scheduler
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
+from fiaas_deploy_daemon.lifecycle import Lifecycle
+from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
 
 
 class TestDeploy(object):
     @pytest.fixture
     def bookkeeper(self):
-        bookkeeper = Bookkeeper()
-        bookkeeper.deploy_signal = mock.MagicMock()
-        bookkeeper.success_signal = mock.MagicMock()
-        bookkeeper.error_signal = mock.MagicMock()
-        return bookkeeper
+        return mock.create_autospec(Bookkeeper)
+
+    @pytest.fixture
+    def lifecycle(self):
+        lifecycle = Lifecycle()
+        lifecycle.deploy_signal = mock.MagicMock()
+        lifecycle.success_signal = mock.MagicMock()
+        lifecycle.error_signal = mock.MagicMock()
+        return lifecycle
 
     @pytest.fixture
     def adapter(self):
@@ -31,8 +37,8 @@ class TestDeploy(object):
         return mock.create_autospec(Scheduler)
 
     @pytest.fixture
-    def deployer(self, app_spec, bookkeeper, adapter, scheduler):
-        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler)
+    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle):
+        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle)
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         return deployer
 
@@ -41,21 +47,37 @@ class TestDeploy(object):
 
         adapter.deploy.assert_called_with(app_spec)
 
-    def test_signals_start_of_deploy(self, app_spec, bookkeeper, deployer):
+    @pytest.mark.parametrize("annotations,repository", [
+        (None, None),
+        ({"fiaas/source-repository": "xyz"}, "xyz"),
+    ])
+    def test_signals_start_of_deploy(self, app_spec, lifecycle, deployer, annotations, repository):
+        if annotations:
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         deployer()
 
-        bookkeeper.deploy_signal.send.assert_called_with(app_spec=app_spec)
+        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
+                                                        deployment_id=app_spec.deployment_id, repository=repository)
 
-    def test_signals_failure_on_exception(self, app_spec, bookkeeper, deployer, adapter):
+    @pytest.mark.parametrize("annotations,repository", [
+        (None, None),
+        ({"fiaas/source-repository": "xyz"}, "xyz"),
+    ])
+    def test_signals_failure_on_exception(self, app_spec, lifecycle, deployer, adapter, annotations, repository):
+        if annotations:
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         adapter.deploy.side_effect = Exception("message")
 
         deployer()
 
-        bookkeeper.success_signal.send.assert_not_called()
-        bookkeeper.error_signal.send.assert_called_with(app_name=None, namespace=None, deployment_id=None, app_spec=app_spec)
+        lifecycle.success_signal.send.assert_not_called()
+        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
+                                                       deployment_id=app_spec.deployment_id, repository=repository)
 
-    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer):
+    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle):
         deployer()
 
-        bookkeeper.error_signal.send.assert_not_called()
-        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper))
+        lifecycle.error_signal.send.assert_not_called()
+        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle))

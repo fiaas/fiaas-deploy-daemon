@@ -8,7 +8,7 @@ from blinker import signal
 from requests.auth import AuthBase
 
 from fiaas_deploy_daemon import Configuration
-from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from fiaas_deploy_daemon.usage_reporting import DevhoseDeploymentEventTransformer
 from fiaas_deploy_daemon.usage_reporting.usage_reporter import UsageReporter, UsageEvent
 
@@ -32,28 +32,40 @@ class TestUsageReporter(object):
     def mock_auth(self):
         return mock.create_autospec(AuthBase())
 
-    @pytest.mark.parametrize("signal_name", (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS))
-    def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, signal_name, app_spec):
+    @pytest.mark.parametrize("signal_name,repository", [
+        (DEPLOY_STARTED, None),
+        (DEPLOY_FAILED, None),
+        (DEPLOY_SUCCESS, None),
+        (DEPLOY_STARTED, "repo"),
+        (DEPLOY_FAILED, "repo"),
+        (DEPLOY_SUCCESS, "repo"),
+    ])
+    def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, app_spec, signal_name, repository):
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
 
-        signal(signal_name).send(app_spec=app_spec)
+        signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                 repository=repository)
 
         event = reporter._event_queue.get_nowait()
 
         assert event.status == signal_name.split("_")[-1].upper()
-        assert event.app_spec == app_spec
+        assert event.app_name == app_spec.name
+        assert event.namespace == app_spec.namespace
+        assert event.deployment_id == app_spec.deployment_id
+        assert event.repository == repository
 
     def test_event_to_transformer(self, config, mock_transformer, mock_session, mock_auth):
-        event = UsageEvent("status", object())
+        event = UsageEvent("status", "name", "namespace", "deployment_id", "repository")
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
         reporter._event_queue = [event]
 
         reporter()
 
-        mock_transformer.assert_called_once_with(event.status, event.app_spec)
+        mock_transformer.assert_called_once_with(event.status, event.app_name, event.namespace, event.deployment_id,
+                                                 event.repository)
 
     def test_post_to_webhook(self, config, mock_transformer, mock_session, mock_auth):
-        event = UsageEvent("status", object())
+        event = UsageEvent("status", "name", "namespace", "deployment_id", "repository")
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
         reporter._event_queue = [event]
 

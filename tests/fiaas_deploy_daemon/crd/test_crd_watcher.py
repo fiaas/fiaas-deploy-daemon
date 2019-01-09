@@ -15,7 +15,8 @@ from yaml import YAMLError
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication
-from fiaas_deploy_daemon.deployer import DeployerEvent, Bookkeeper
+from fiaas_deploy_daemon.deployer import DeployerEvent
+from fiaas_deploy_daemon.lifecycle import Lifecycle
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
 
@@ -68,12 +69,12 @@ class TestWatcher(object):
         return mock.create_autospec(spec=Watcher, spec_set=True, instance=True)
 
     @pytest.fixture
-    def bookkeeper(self):
-        return mock.create_autospec(spec=Bookkeeper, spec_set=True, instance=True)
+    def lifecycle(self):
+        return mock.create_autospec(spec=Lifecycle, spec_set=True, instance=True)
 
     @pytest.fixture
-    def crd_watcher(self, spec_factory, deploy_queue, watcher, bookkeeper):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), bookkeeper)
+    def crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
         crd_watcher._watcher = watcher
         return crd_watcher
 
@@ -138,12 +139,16 @@ class TestWatcher(object):
         crd_watcher._watch(None)
         assert deploy_queue.qsize() == 1
 
-    @pytest.mark.parametrize("event,deployer_event_type", [
-        (ADD_EVENT, "UPDATE"),
-        (MODIFIED_EVENT, "UPDATE"),
-        (DELETED_EVENT, "DELETE"),
+    @pytest.mark.parametrize("event,deployer_event_type,annotations,repository", [
+        (ADD_EVENT, "UPDATE", None, None),
+        (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
+        (MODIFIED_EVENT, "UPDATE", None, None),
+        (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
+        (DELETED_EVENT, "DELETE", None, None),
     ])
-    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, bookkeeper):
+    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, lifecycle,
+                    annotations, repository):
+        event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         spec = event["object"]["spec"]
@@ -156,6 +161,12 @@ class TestWatcher(object):
         spec_factory.return_value = app_spec
 
         crd_watcher._watch(None)
+
+        if event in [ADD_EVENT, MODIFIED_EVENT]:
+            lifecycle.initiate.assert_called_once_with(app_name=event["object"]["spec"]["application"],
+                                                       namespace=event["object"]["metadata"]["namespace"],
+                                                       deployment_id='deployment_id',
+                                                       repository=repository)
 
         app_config = spec["config"]
         spec_factory.assert_called_once_with(name=app_name, image=spec["image"], app_config=app_config,
@@ -173,19 +184,25 @@ class TestWatcher(object):
         crd_watcher._watch(namespace)
         watcher.watch.assert_called_once_with(namespace=namespace)
 
-    @pytest.mark.parametrize("event,deployer_event_type,error", [
-        (ADD_EVENT, "UPDATE", YAMLError("invalid yaml")),
-        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config")),
+    @pytest.mark.parametrize("event,deployer_event_type,error,annotations,repository", [
+        (ADD_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
+        (ADD_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
+        (MODIFIED_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
+        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
+        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"),
+         {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
     ])
     def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type,
-                                                 error, bookkeeper):
+                                                 error, lifecycle, annotations, repository):
+        event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         spec_factory.side_effect = error
 
         crd_watcher._watch(None)
 
-        bookkeeper.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
-                                                  namespace=event["object"]["metadata"]["namespace"],
-                                                  deployment_id='deployment_id')
+        lifecycle.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
+                                                 namespace=event["object"]["metadata"]["namespace"],
+                                                 deployment_id='deployment_id',
+                                                 repository=repository)
         assert deploy_queue.empty()

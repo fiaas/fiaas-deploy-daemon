@@ -7,12 +7,15 @@ from copy import deepcopy
 import kafka
 import pytest
 from mock import create_autospec, patch
+from requests import HTTPError
+from yaml import YAMLError
 
 from fiaas_deploy_daemon import config
-from fiaas_deploy_daemon.deployer import Bookkeeper
+from fiaas_deploy_daemon.lifecycle import Lifecycle
 from fiaas_deploy_daemon.pipeline import consumer as pipeline_consumer
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
 from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
+from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
 
 DummyMessage = namedtuple("DummyMessage", ("value",))
@@ -74,12 +77,12 @@ class TestConsumer(object):
         return create_autospec(kafka.KafkaConsumer, instance=True)
 
     @pytest.fixture
-    def bookkeeper(self):
-        return create_autospec(Bookkeeper, instance=True)
+    def lifecycle(self):
+        return create_autospec(Lifecycle, instance=True)
 
     @pytest.fixture
-    def consumer(self, queue, config, reporter, factory, kafka_consumer, app_config_downloader, bookkeeper):
-        c = pipeline_consumer.Consumer(queue, config, reporter, factory, app_config_downloader, bookkeeper)
+    def consumer(self, queue, config, reporter, factory, kafka_consumer, app_config_downloader, lifecycle):
+        c = pipeline_consumer.Consumer(queue, config, reporter, factory, app_config_downloader, lifecycle)
         c._consumer = kafka_consumer
         return c
 
@@ -169,6 +172,31 @@ class TestConsumer(object):
 
         with pytest.raises(Empty):
             queue.get_nowait()
+
+    def test_initiates_lifecycle(self, consumer, lifecycle, kafka_consumer):
+        kafka_consumer.__iter__.return_value = [MESSAGE]
+
+        consumer()
+
+        lifecycle.initiate.assert_called_once()
+
+    @pytest.mark.parametrize("error", (YAMLError, InvalidConfiguration))
+    def test_fail_if_invalid_fiaas_config(self, consumer, kafka_consumer, factory, lifecycle, error):
+        factory.side_effect = error()
+
+        kafka_consumer.__iter__.return_value = [MESSAGE]
+
+        consumer()
+
+        lifecycle.failed.assert_called_once()
+
+    def test_fail_on_download_error(self, consumer, kafka_consumer, app_config_downloader, lifecycle):
+        app_config_downloader.get.side_effect = HTTPError()
+        kafka_consumer.__iter__.return_value = [MESSAGE]
+
+        consumer()
+
+        lifecycle.failed.assert_called_once()
 
 
 def _make_env_message(template, env):

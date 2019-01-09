@@ -15,7 +15,7 @@ class TestLogExtras(object):
         logger = logging.getLogger("test.log.extras")
         logger.addHandler(StatusHandler())
         logger.warning(TEST_MESSAGE)
-        logs = get_final_logs(app_spec)
+        logs = get_final_logs(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id)
         assert len(logs) == 1
         log_message = logs[0]
         assert TEST_MESSAGE in log_message

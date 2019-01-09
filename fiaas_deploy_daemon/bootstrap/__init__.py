@@ -14,6 +14,7 @@ from .. import init_k8s_client
 from ..config import Configuration
 from ..deployer import DeployerBindings
 from ..deployer.kubernetes import K8sAdapterBindings
+from ..lifecycle import Lifecycle
 from ..logsetup import init_logging
 from ..specs import SpecBindings
 from .bootstrapper import Bootstrapper
@@ -28,6 +29,7 @@ class MainBindings(pinject.BindingSpec):
         bind("config", to_instance=self._config)
         bind("deploy_queue", to_instance=self._deploy_queue)
         bind("bootstrapper", to_class=Bootstrapper)
+        bind("lifecycle", to_class=Lifecycle)
 
     def provide_session(self, config):
         session = requests.Session()

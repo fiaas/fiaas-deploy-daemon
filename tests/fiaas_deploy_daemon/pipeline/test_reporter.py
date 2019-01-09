@@ -5,7 +5,7 @@ import pytest
 from blinker import signal
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
-from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
 from mock import create_autospec
 from requests import Session
 
@@ -35,7 +35,8 @@ class TestReporter(object):
         reporter = Reporter(config, session)
         reporter.register(app_spec, CALLBACK)
 
-        signal(signal_name).send(app_spec=app_spec)
+        signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
+                                 deployment_id=app_spec.deployment_id, repository=None)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

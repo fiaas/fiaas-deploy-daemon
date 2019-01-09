@@ -11,7 +11,7 @@ from requests import Response
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
-from fiaas_deploy_daemon.deployer.bookkeeper import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."
@@ -56,13 +56,14 @@ class TestStatusReport(object):
             name2result = {
                 DEPLOY_STARTED: u"RUNNING",
                 DEPLOY_FAILED: u"FAILED",
-                DEPLOY_SUCCESS: u"SUCCESS"
+                DEPLOY_SUCCESS: u"SUCCESS",
+                DEPLOY_INITIATED: u"INITIATED"
             }
             action2data = {
                 "create": (True, "post", "put"),
                 "update": (False, "put", "post")
             }
-            for signal_name in (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS):
+            for signal_name in (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS, DEPLOY_INITIATED):
                 for action in ("create", "update"):
                     test_data = TestData(signal_name, action, name2result[signal_name], *action2data[action])
                     test_id = "{} status on {}".format(action, signal_name)
@@ -105,7 +106,8 @@ class TestStatusReport(object):
 
         with mock.patch("fiaas_deploy_daemon.crd.status.now") as mnow:
             mnow.return_value = LAST_UPDATE
-            signal(test_data.signal_name).send(app_spec=app_spec)
+            signal(test_data.signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                               repository=None)
 
         get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result, logs=expected_logs)
         if test_data.action == "create":
@@ -131,7 +133,7 @@ class TestStatusReport(object):
         returned_statuses.append(_create_status(100, False))
         random.shuffle(returned_statuses)
         find.return_value = returned_statuses
-        _cleanup(app_spec)
+        _cleanup(app_spec.name, app_spec.namespace)
         expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20 - OLD_STATUSES_TO_KEEP)]
         expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls

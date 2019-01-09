@@ -10,17 +10,23 @@ FAIL_LIMIT_MULTIPLIER = 10
 
 
 class ReadyCheck(object):
-    def __init__(self, app_spec, bookkeeper):
+    def __init__(self, app_spec, bookkeeper, lifecycle):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
+        self._lifecycle = lifecycle
         fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
         self._fail_after = time_monotonic() + fail_after_seconds
 
     def __call__(self):
+        repository = _repository(self._app_spec)
         if self._ready():
+            self._lifecycle.success(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
+                                    deployment_id=self._app_spec.deployment_id, repository=repository)
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
+            self._lifecycle.failed(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
+                                   deployment_id=self._app_spec.deployment_id, repository=repository)
             self._bookkeeper.failed(self._app_spec)
             return False
         return True
@@ -34,4 +40,12 @@ class ReadyCheck(object):
                 dep.status.availableReplicas >= dep.spec.replicas)
 
     def __eq__(self, other):
-        return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper
+        return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper \
+               and other._lifecycle == self._lifecycle
+
+
+def _repository(app_spec):
+    try:
+        return app_spec.annotations.deployment["fiaas/source-repository"]
+    except (TypeError, KeyError, AttributeError):
+        pass

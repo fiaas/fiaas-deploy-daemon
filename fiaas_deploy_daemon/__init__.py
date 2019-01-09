@@ -14,6 +14,7 @@ from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinit
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
 from .fake_consumer import FakeConsumerBindings
+from .lifecycle import Lifecycle
 from .logsetup import init_logging
 from .pipeline import PipelineBindings
 from .secrets import resolve_secrets
@@ -33,6 +34,7 @@ class MainBindings(pinject.BindingSpec):
         bind("config", to_instance=self._config)
         bind("deploy_queue", to_instance=self._deploy_queue)
         bind("health_check", to_class=HealthCheck)
+        bind("lifecycle", to_class=Lifecycle)
 
     def provide_session(self, config):
         session = requests.Session()

@@ -35,22 +35,22 @@ class DevhoseDeploymentEventTransformer(object):
         self._team = config.usage_reporting_team
         self._deployments_started = {}
 
-    def __call__(self, status, app_spec):
+    def __call__(self, status, app_name, namespace, deployment_id, repository=None):
         if status == 'STARTED':
             started_timestamp = _timestamp()
-            self._deployments_started[(app_spec.name, app_spec.deployment_id)] = started_timestamp
+            self._deployments_started[(app_name, deployment_id)] = started_timestamp
         else:
-            started_timestamp = self._deployments_started.pop((app_spec.name, app_spec.deployment_id))
-        event = DevhoseDeploymentEvent(id=app_spec.deployment_id,
-                                       application=app_spec.name,
+            started_timestamp = self._deployments_started.pop((app_name, deployment_id))
+        event = DevhoseDeploymentEvent(id=deployment_id,
+                                       application=app_name,
                                        environment=_environment(self._environment[:3]),
-                                       repository=_repository(app_spec),
+                                       repository=repository,
                                        started_at=started_timestamp,
                                        timestamp=started_timestamp if status == 'STARTED' else _timestamp(),
                                        target={'infrastructure': self._target_infrastructure,
                                                'provider': self._target_provider,
                                                'team': self._operator,
-                                               'instance': app_spec.namespace},
+                                               'instance': namespace},
                                        status=status_map[status],
                                        details={'environment': self._environment},
                                        trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
@@ -64,7 +64,3 @@ def _environment(env):
 
 def _timestamp():
     return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
-
-
-def _repository(app_spec):
-    return app_spec.annotations.deployment.get("fiaas/source-repository")

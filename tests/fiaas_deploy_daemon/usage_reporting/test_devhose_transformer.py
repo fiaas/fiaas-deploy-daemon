@@ -192,5 +192,10 @@ class TestDevhoseDeploymentEventTransformer(object):
         with mock.patch("fiaas_deploy_daemon.usage_reporting.transformer._timestamp") as timestamp:
             timestamp.side_effect = timestamps
             for status in statuses:
-                transformed = transformer(status, app_spec)
+                transformed = transformer(status, app_spec.name, app_spec.namespace, app_spec.deployment_id,
+                                          _repository(app_spec))
             assert expected == transformed
+
+
+def _repository(app_spec):
+    return app_spec.annotations.deployment.get("fiaas/source-repository") if app_spec.annotations.deployment else None

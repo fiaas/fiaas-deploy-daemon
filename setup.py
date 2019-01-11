@@ -61,6 +61,10 @@ TESTS_REQ = [
     'callee == 0.3',
 ]
 
+DEV_TOOLS = [
+    "tox==3.6.1",
+]
+
 # Transient dependencies that needs to be pinned for various reasons
 TRANSIENT_PINNED_TEST_REQ = [
     "coverage==4.5.1",  # For some reason we end up pulling a buggy pre-release version without this
@@ -77,9 +81,11 @@ if __name__ == "__main__":
         include_package_data=True,
 
         # Requirements
-        install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ + FLAKE8_REQ,
+        install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ,
         setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
-        tests_require=TESTS_REQ + TRANSIENT_PINNED_TEST_REQ,
+        extras_require={
+            "dev": TESTS_REQ + TRANSIENT_PINNED_TEST_REQ + FLAKE8_REQ + DEV_TOOLS
+        },
 
         # Metadata
         description="Deploy docker containers to kubernetes when notified by pipeline",

@@ -169,8 +169,8 @@ task setup(type: PewTask) {
     description 'Install dependencies in virtualenv'
     group 'setup'
     helper = pewHelper
-    executable = 'python'
-    args = [file('setup.py'), 'develop', '--always-unzip']
+    executable = 'pip'
+    args = ['install', '-r', file('requirements.txt')]
     dependsOn createVirtualEnv
 }
 
@@ -183,8 +183,8 @@ task codestyle(type: PewTask) {
     description 'Run flake8 code-style checks'
     group 'python'
     helper = pewHelper
-    executable = 'flake8'
-    args = ['--format=%(path)-50s: [%(code)s] %(text)s [line:%(row)d, column:%(col)d]']
+    executable = 'tox'
+    args = ['-e', 'codestyle']
     inputs.file project.ext.all_sources
     dependsOn setup
 }
@@ -193,23 +193,8 @@ task test(type: PewTask) {
     description 'Execute tests'
     group 'python'
     helper = pewHelper
-    executable = 'python'
-    args = [
-        file('setup.py'),
-        'test',
-        '--addopts=' +
-            '-m "not integration_test" ' +
-            '-n auto ' +
-            '-ra ' +
-            '--cov=fiaas_deploy_daemon ' +
-            '--cov=minikube ' +
-            '--cov-report html ' +
-            '--cov-report xml ' +
-            '--cov-report term ' +
-            '--junit-xml=build/reports/tests.xml ' +
-            '--html=build/reports/tests.html ' +
-            '--disable-warnings'
-    ]
+    executable = 'tox'
+    args = ['-e', 'test']
     inputs.file project.ext.all_sources
     outputs.dir 'build/reports'
     dependsOn codestyle
@@ -219,19 +204,8 @@ task integrationTest(type: PewTask) {
     description 'Execute integration tests'
     group 'python'
     helper = pewHelper
-    executable = 'python'
-    args = [
-        file('setup.py'),
-        'test',
-        '--addopts=' +
-            '-m integration_test ' +
-            '-n ' + (Runtime.runtime.availableProcessors() / 2) +
-            ' -ra ' +
-            '--junit-xml=build/reports/integration_tests.xml ' +
-            '--html=build/reports/integration_tests.html ' +
-            '--disable-warnings ' +
-            '--use-docker-for-e2e'
-    ]
+    executable = 'tox'
+    args = ['-e', 'integration_test']
     inputs.file project.ext.all_sources
     outputs.dir 'build/reports'
     dependsOn test

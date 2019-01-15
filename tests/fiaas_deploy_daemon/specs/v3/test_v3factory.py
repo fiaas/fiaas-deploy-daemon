@@ -328,7 +328,7 @@ class TestFactory(object):
             "v3minimal",
     ))
     def test_name_and_image(self, load_app_config_testdata, factory, filename):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id", NAMESPACE)
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
@@ -340,10 +340,10 @@ class TestFactory(object):
     ))
     def test_invalid_configuration(self, load_app_config_testdata, factory, filename):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id", NAMESPACE)
+            factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
 
     def test(self, load_app_config_testdata, factory, filename, attribute, value):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), "IO", "foo", "deployment_id", NAMESPACE)
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)

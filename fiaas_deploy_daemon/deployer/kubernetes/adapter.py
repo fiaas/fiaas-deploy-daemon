@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
-from __future__ import absolute_import
+from __future__ import absolute_import, unicode_literals
 
 import logging
 
@@ -47,23 +47,20 @@ class K8s(object):
             "fiaas/deployed_by": self._version,
         }
 
-        _add_labels("fiaas/teams", labels, app_spec.teams)
-        _add_labels("fiaas/tags", labels, app_spec.tags),
+        _add_labels("teams.fiaas", labels, app_spec.teams)
+        _add_labels("tags.fiaas", labels, app_spec.tags),
         return labels
 
 
 # The value of labels can only be of the format (([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?
 def _add_labels(prefix, labels, values):
-    if values:
-        counter = 0
-        for value in values:
-            post_fix = "_" + str(counter) if (counter > 0) else ""
-            labels[prefix + post_fix] = _to_valid_label_value(value)
-            counter = counter + 1
+    for value in values:
+        label = "{}/{}".format(prefix, _to_valid_label_value(value))
+        labels[label] = "true"
 
 
 def _to_valid_label_value(value):
-    return value.encode('utf-8').lower() \
+    return value.lower() \
         .replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae") \
         .replace(":", "-")
 

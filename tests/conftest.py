@@ -156,4 +156,4 @@ def use_docker_for_e2e(request):
     if request.config.getoption(DOCKER_FOR_E2E_OPTION):
         return dockerize
     else:
-        return lambda **args: []
+        return lambda *args, **kwargs: []

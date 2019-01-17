@@ -110,7 +110,7 @@ class TestBootstrapE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version) + args
+        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version, 5000) + args
 
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()

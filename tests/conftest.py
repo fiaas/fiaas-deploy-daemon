@@ -153,7 +153,7 @@ def use_docker_for_e2e(request):
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
         ]
-        if not is_macos:
+        if not is_macos():
             # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it
             # in a container. To do the same thing on Docker for mac it is enough to use --publish, and enabling host
             # networking will make it impossible to connect to the port.

@@ -7,6 +7,8 @@ import subprocess
 import pytest
 from xdist.scheduler import LoadScopeScheduling
 
+from minikube.drivers.common import is_macos
+
 DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
 
 pytest_plugins = ['helpers_namespace']
@@ -140,18 +142,23 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def use_docker_for_e2e(request):
-    def dockerize(cert_path, service_type, k8s_version):
+    def dockerize(cert_path, service_type, k8s_version, port):
         container_name = "{}_{}".format(service_type, k8s_version)
         request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
-        return [
-                   "docker", "run",
-                   "-i", "--rm",
-                   "-e", "NAMESPACE",
-                   "--name", container_name,
-                   "--network", "host",
-                   "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
-                   "fiaas/fiaas-deploy-daemon:latest"
-               ]
+        args = [
+            "docker", "run",
+            "-i", "--rm",
+            "-e", "NAMESPACE",
+            "--name", container_name,
+            "--publish", "{port}:{port}".format(port=port),
+            "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
+        ]
+        if not is_macos():
+            # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it
+            # in a container. To do the same thing on Docker for mac it is enough to use --publish, and enabling host
+            # networking will make it impossible to connect to the port.
+            args += ["--network", "host"]
+        return args + ["fiaas/fiaas-deploy-daemon:latest"]
 
     if request.config.getoption(DOCKER_FOR_E2E_OPTION):
         return dockerize

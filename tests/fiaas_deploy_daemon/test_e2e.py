@@ -93,7 +93,7 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, service_type, k8s_version) + args
+        args = use_docker_for_e2e(cert_path, service_type, k8s_version, port) + args
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:

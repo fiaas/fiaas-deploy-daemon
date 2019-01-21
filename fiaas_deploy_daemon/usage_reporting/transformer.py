@@ -36,17 +36,24 @@ class DevhoseDeploymentEventTransformer(object):
         self._deployments_started = {}
 
     def __call__(self, status, app_name, namespace, deployment_id, repository=None):
+        timestamp = _timestamp()
+        started_timestamp = None
         if status == 'STARTED':
-            started_timestamp = _timestamp()
-            self._deployments_started[(app_name, deployment_id)] = started_timestamp
+            self._deployments_started[(app_name, deployment_id)] = timestamp
+            started_timestamp = timestamp
         else:
-            started_timestamp = self._deployments_started.pop((app_name, deployment_id))
+            try:
+                started_timestamp = self._deployments_started.pop((app_name, deployment_id))
+            except KeyError:
+                # This can happen if deployment fails immediately such as in case of config parse errors
+                pass
+
         event = DevhoseDeploymentEvent(id=deployment_id,
                                        application=app_name,
                                        environment=_environment(self._environment[:3]),
                                        repository=repository,
-                                       started_at=started_timestamp,
-                                       timestamp=started_timestamp if status == 'STARTED' else _timestamp(),
+                                       started_at=started_timestamp if started_timestamp else timestamp,
+                                       timestamp=timestamp,
                                        target={'infrastructure': self._target_infrastructure,
                                                'provider': self._target_provider,
                                                'team': self._operator,

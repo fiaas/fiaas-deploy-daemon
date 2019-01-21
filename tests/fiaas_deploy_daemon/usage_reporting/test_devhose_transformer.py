@@ -185,6 +185,26 @@ class TestDevhoseDeploymentEventTransformer(object):
             "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
             "team": "team_sdrn"
         }, None),
+        (["FAILED"], ["2018-09-10T13:49:05Z"], {"env": "dev", "team": "team_sdrn"}, {
+            "id": "test_app_deployment_id",
+            "application": "testapp",
+            "environment": "dev",
+            "repository": None,
+            "started_at": "2018-09-10T13:49:05Z",
+            "timestamp": "2018-09-10T13:49:05Z",
+            "target": {
+                "infrastructure": "cluster_name",
+                "provider": "cluster_name",
+                "instance": "default",
+                "team": "operator_sdrn"
+            },
+            "status": "failed",
+            "source_type": "fiaas",
+            "facility": "sdrn:schibsted:service:fiaas",
+            "details": {"environment": "dev"},
+            "trigger": DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            "team": "team_sdrn"
+        }, None),
     ], indirect=['config'])
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):
         if annotations:

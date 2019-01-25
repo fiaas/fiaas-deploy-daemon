@@ -1,0 +1,164 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    app: v3-data-examples-tls-enabled-multiple
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-tls-enabled-multiple
+  namespace: default
+  ownerReferences: []
+  finalizers: []
+spec:
+  replicas: 5
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: v3-data-examples-tls-enabled-multiple
+  strategy:
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: v3-data-examples-tls-enabled-multiple
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/status: active
+        fiaas/version: VERSION
+      name: v3-data-examples-tls-enabled-multiple
+      namespace: default
+      ownerReferences: []
+      finalizers: []
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - command: []
+        env:
+        - name: ARTIFACT_NAME
+          value: v3-data-examples-tls-enabled-multiple
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-test,kubernetes,test
+        - name: FIAAS_ENVIRONMENT
+          value: test
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-tls-enabled-multiple
+              resource: limits.cpu
+              divisor: "1"
+        - name: FIAAS_LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-tls-enabled-multiple
+              resource: limits.memory
+              divisor: "1"
+        - name: FIAAS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+              apiVersion: "v1"
+        - name: FIAAS_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+              apiVersion: "v1"
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-tls-enabled-multiple
+              resource: requests.cpu
+              divisor: "1"
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-tls-enabled-multiple
+              resource: requests.memory
+              divisor: "1"
+        - name: FINN_ENV
+          value: test
+        - name: IMAGE
+          value: IMAGE
+        - name: LOG_FORMAT
+          value: plain
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
+        envFrom:
+        - configMapRef:
+            name: v3-data-examples-tls-enabled-multiple
+            optional: true
+        image: IMAGE
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/health
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: v3-data-examples-tls-enabled-multiple
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/ready
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v3-data-examples-tls-enabled-multiple-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v3-data-examples-tls-enabled-multiple-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: v3-data-examples-tls-enabled-multiple-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: v3-data-examples-tls-enabled-multiple
+      - configMap:
+          defaultMode: 420
+          name: v3-data-examples-tls-enabled-multiple
+          optional: true
+        name: v3-data-examples-tls-enabled-multiple-config
+      - name: tmp
+      initContainers: []
+      imagePullSecrets: []

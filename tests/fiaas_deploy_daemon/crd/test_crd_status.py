@@ -6,10 +6,12 @@ import mock
 import pytest
 from blinker import Namespace
 from k8s.models.common import ObjectMeta
+from k8s.client import ClientError
 from requests import Response
 
 from fiaas_deploy_daemon.crd import status
-from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
+from fiaas_deploy_daemon.crd.status import (_cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now, UpsertConflict,
+                                            CONFLICT_MAX_RETRIES)
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 
@@ -47,6 +49,11 @@ class TestStatusReport(object):
     def logs(self):
         with mock.patch("fiaas_deploy_daemon.crd.status._get_logs") as m:
             m.return_value = [LOG_LINE]
+            yield m
+
+    @pytest.fixture
+    def save(self):
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.save", spec_set=True) as m:
             yield m
 
     # create vs update => new_status, url, post/put
@@ -138,8 +145,54 @@ class TestStatusReport(object):
         expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls
 
+    @pytest.mark.parametrize("signal_name,fail_times", (
+        ((signal_name, fail_times)
+         for signal_name in (DEPLOY_INITIATED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_FAILED)
+         for fail_times in range(5))
+    ))
+    @pytest.mark.usefixtures("post", "put", "find", "logs")
+    def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, signal_name, fail_times):
+        _configure_save_to_fail_with_conflict(save, times=fail_times)
+        application_status = FiaasApplicationStatus(metadata=ObjectMeta(name=app_spec.name, namespace="default"))
+        get_or_create.return_value = application_status
+
+        status.connect_signals()
+
+        try:
+            signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
+                                     deployment_id=app_spec.deployment_id, repository=None)
+        except UpsertConflict as e:
+            if fail_times < CONFLICT_MAX_RETRIES:
+                pytest.fail('Exception {} was raised when signaling {}'.format(e, signal_name))
+
+        save_calls = min(fail_times + 1, CONFLICT_MAX_RETRIES)
+        assert save.call_args_list == [mock.call()] * save_calls
+
 
 def _create_status(i, annotate=True):
     annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)} if annotate else None
     metadata = ObjectMeta(name="name-{}".format(i), namespace="test", annotations=annotations)
     return FiaasApplicationStatus(new=False, metadata=metadata, result=u"SUCCESS")
+
+
+def _configure_save_to_fail_with_conflict(save_mock, times=1):
+    """
+    Raise ClientError with status 409 when save_mock is called `times` times before succeeding the save operation
+    """
+    def _fail():
+        response = mock.MagicMock(spec=Response)
+        response.status_code = 409  # Conflict
+        raise ClientError("Conflict", response=response)
+
+    def _save_generator():
+        for _ in range(times):
+            yield _fail
+        while True:
+            yield lambda: None  # Succeed/do nothing
+
+    gen = _save_generator()
+
+    def _save():
+        return next(gen)()
+
+    save_mock.side_effect = _save

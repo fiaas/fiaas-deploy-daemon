@@ -58,8 +58,8 @@ def _save_status(app_name, namespace, deployment_id, result):
     try:
         status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
         resource_version = status.metadata.resourceVersion
-        LOG.info("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
-                 deployment_id, resource_version)
+        LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
+                  deployment_id, resource_version)
         status.save()
     except ClientError as e:
         if e.response.status_code == 409:

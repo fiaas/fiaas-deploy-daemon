@@ -34,7 +34,6 @@ def _retry_handler(details):
 
 def _failure_handler(details):
     reporting_failure_counter.inc()
-    LOG.warning()
 
 
 class UsageReporter(DaemonThread):
@@ -75,7 +74,7 @@ class UsageReporter(DaemonThread):
         try:
             self._send_data(data)
         except requests.exceptions.RequestException:
-            pass  # The backoff handler has already logged this error
+            LOG.error('Unable to send usage reporting event', exc_info=True)
 
     @backoff.on_exception(backoff.expo,
                           requests.exceptions.RequestException,

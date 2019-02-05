@@ -175,6 +175,28 @@ class TestStatusReport(object):
         save_calls = min(fail_times + 1, CONFLICT_MAX_RETRIES)
         assert save.call_args_list == [mock.call()] * save_calls
 
+    @pytest.mark.parametrize("signal_name", (
+        DEPLOY_INITIATED,
+        DEPLOY_STARTED,
+        DEPLOY_SUCCESS,
+        DEPLOY_FAILED
+    ))
+    @pytest.mark.usefixtures("post", "put", "find", "logs")
+    def test_fail_on_error(self, get_or_create, save, app_spec, signal, signal_name):
+        response = mock.MagicMock(spec=Response)
+        response.status_code = 403
+
+        save.side_effect = ClientError("No", response=response)
+
+        application_status = FiaasApplicationStatus(metadata=ObjectMeta(name=app_spec.name, namespace="default"))
+        get_or_create.return_value = application_status
+
+        status.connect_signals()
+
+        with pytest.raises(ClientError):
+            signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
+                                     deployment_id=app_spec.deployment_id, repository=None)
+
 
 def _create_status(i, annotate=True):
     annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)} if annotate else None

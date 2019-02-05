@@ -14,6 +14,7 @@ from fiaas_deploy_daemon.crd.status import (_cleanup, OLD_STATUSES_TO_KEEP, LAST
                                             CONFLICT_MAX_RETRIES)
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
+from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."
@@ -152,7 +153,13 @@ class TestStatusReport(object):
     ))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, signal_name, fail_times):
-        _configure_save_to_fail_with_conflict(save, times=fail_times)
+
+        def _fail():
+            response = mock.MagicMock(spec=Response)
+            response.status_code = 409  # Conflict
+            raise ClientError("Conflict", response=response)
+
+        configure_mock_fail_then_success(save, fail=_fail, fail_times=fail_times)
         application_status = FiaasApplicationStatus(metadata=ObjectMeta(name=app_spec.name, namespace="default"))
         get_or_create.return_value = application_status
 
@@ -173,26 +180,3 @@ def _create_status(i, annotate=True):
     annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)} if annotate else None
     metadata = ObjectMeta(name="name-{}".format(i), namespace="test", annotations=annotations)
     return FiaasApplicationStatus(new=False, metadata=metadata, result=u"SUCCESS")
-
-
-def _configure_save_to_fail_with_conflict(save_mock, times=1):
-    """
-    Raise ClientError with status 409 when save_mock is called `times` times before succeeding the save operation
-    """
-    def _fail():
-        response = mock.MagicMock(spec=Response)
-        response.status_code = 409  # Conflict
-        raise ClientError("Conflict", response=response)
-
-    def _save_generator():
-        for _ in range(times):
-            yield _fail
-        while True:
-            yield lambda: None  # Succeed/do nothing
-
-    gen = _save_generator()
-
-    def _save():
-        return next(gen)()
-
-    save_mock.side_effect = _save

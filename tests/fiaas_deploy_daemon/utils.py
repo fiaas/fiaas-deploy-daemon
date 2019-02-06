@@ -214,3 +214,23 @@ def _ensure_key_missing(d, *keys):
             del d[key]
     except KeyError:
         pass  # key was already missing
+
+
+def configure_mock_fail_then_success(mockk, fail=None, success=None, fail_times=1):
+    if fail is None:
+        fail = lambda *args, **kwargs: None  # noqa: E731
+    if success is None:
+        success = lambda *args, **kwargs: None  # noqa: E731
+
+    def _function_generator():
+        for _ in range(fail_times):
+            yield fail
+        while True:
+            yield success
+
+    gen = _function_generator()
+
+    def _function():
+        return next(gen)()
+
+    mockk.side_effect = _function

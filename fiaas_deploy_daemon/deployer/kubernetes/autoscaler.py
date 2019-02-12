@@ -8,6 +8,7 @@ from k8s.client import NotFound
 from k8s.models.autoscaler import HorizontalPodAutoscaler, HorizontalPodAutoscalerSpec, CrossVersionObjectReference
 from k8s.models.common import ObjectMeta
 
+from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
 LOG = logging.getLogger(__name__)
@@ -17,6 +18,7 @@ class AutoscalerDeployer(object):
     def __init__(self):
         self.name = "autoscaler"
 
+    @retry_on_upsert_conflict
     def deploy(self, app_spec, labels):
         if should_have_autoscaler(app_spec):
             LOG.info("Creating/updating %s for %s", self.name, app_spec.name)

@@ -8,7 +8,9 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.service import Service, ServicePort, ServiceSpec
 
+from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
+
 
 LOG = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class ServiceDeployer(object):
         except NotFound:
             pass
 
+    @retry_on_upsert_conflict
     def _create(self, app_spec, selector, labels):
         LOG.info("Creating/updating service for %s with labels: %s", app_spec.name, labels)
         ports = [self._make_service_port(port_spec) for port_spec in app_spec.ports]

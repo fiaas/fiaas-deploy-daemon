@@ -23,9 +23,22 @@ fiaas_upsert_conflict_failure_counter = Counter(
 
 
 class UpsertConflict(Exception):
-    def __init__(self, cause):
+    def __init__(self, cause, response):
         self.traceback = sys.exc_info()
         super(self.__class__, self).__init__(cause.message)
+        self.response = response
+
+    def __str__(self):
+        status_json = self.response.json()
+        message = status_json["message"]
+        reason = status_json["reason"]
+        return "{status_code} Conflict for {method} {url}. reason={reason}, message={message}".format(
+            status_code=self.response.status_code,
+            method=self.response.request.method,
+            url=self.response.request.url,
+            message=message,
+            reason=reason
+        )
 
 
 def _count_retry(target, *args, **kwargs):
@@ -61,7 +74,7 @@ def retry_on_upsert_conflict(_func=None, max_value=CONFLICT_MAX_VALUE, max_tries
                 return func(*args, **kwargs)
             except ClientError as e:
                 if e.response.status_code == 409:  # Conflict
-                    raise UpsertConflict(e)
+                    raise UpsertConflict(e, e.response)
                 else:
                     raise
         return _wrap

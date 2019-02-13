@@ -63,12 +63,12 @@ def canonical_name(func):
     return "{}.{}".format(func.__module__, func.__name__)
 
 
-def retry_on_upsert_conflict(_func=None, max_value=CONFLICT_MAX_VALUE, max_tries=CONFLICT_MAX_RETRIES):
+def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, max_tries=CONFLICT_MAX_RETRIES):
     def _retry_decorator(func):
         target = canonical_name(func)
 
         @backoff.on_exception(backoff.expo, UpsertConflict,
-                              max_value=max_value,
+                              max_value=max_value_seconds,
                               max_tries=max_tries,
                               on_backoff=functools.partial(_count_retry, target),
                               on_giveup=functools.partial(_count_failure, target))

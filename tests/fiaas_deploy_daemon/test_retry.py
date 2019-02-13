@@ -38,7 +38,7 @@ def test_retry_on_conflict_should_raise_upsertconflict_for_conflict():
     response = mock.MagicMock(spec=Response)
     response.status_code = 409  # Conflict
 
-    @retry_on_upsert_conflict(max_value=0.001, max_tries=1)
+    @retry_on_upsert_conflict(max_value_seconds=0.001, max_tries=1)
     def fail():
         raise ClientError("No", response=response)
 
@@ -53,7 +53,7 @@ def test_retry_on_conflict_should_retry_on_conflict():
     global calls
     calls = 0
 
-    @retry_on_upsert_conflict(max_value=0.001, max_tries=max_tries)
+    @retry_on_upsert_conflict(max_value_seconds=0.001, max_tries=max_tries)
     def fail():
         global calls
         calls += 1
@@ -71,7 +71,7 @@ def test_retry_on_conflict_calls_decorated_function_and_returns_return_value():
     global calls
     calls = 0
 
-    @retry_on_upsert_conflict(max_value=0.001, max_tries=max_tries)
+    @retry_on_upsert_conflict(max_value_seconds=0.001, max_tries=max_tries)
     def succeed():
         global calls
         calls += 1

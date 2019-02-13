@@ -38,7 +38,7 @@ class DeploymentDeployer(object):
         self._max_surge = config.deployment_max_surge
         self._max_unavailable = config.deployment_max_unavailable
 
-    @retry_on_upsert_conflict
+    @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
         LOG.info("Creating new deployment for %s", app_spec.name)
         deployment_labels = merge_dicts(app_spec.labels.deployment, labels)

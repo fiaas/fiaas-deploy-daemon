@@ -53,7 +53,7 @@ def retry_on_upsert_conflict(_func=None, max_value=CONFLICT_MAX_VALUE, max_tries
         @backoff.on_exception(backoff.expo, UpsertConflict,
                               max_value=max_value,
                               max_tries=max_tries,
-                              on_backoff=functools.partial(_count_failure, target),
+                              on_backoff=functools.partial(_count_retry, target),
                               on_giveup=functools.partial(_count_failure, target))
         @functools.wraps(func)
         def _wrap(*args, **kwargs):

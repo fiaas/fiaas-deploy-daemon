@@ -3,7 +3,7 @@ from k8s.client import ClientError
 import mock
 import pytest
 
-from fiaas_deploy_daemon.retry import retry_on_upsert_conflict, UpsertConflict
+from fiaas_deploy_daemon.retry import retry_on_upsert_conflict, UpsertConflict, canonical_name
 
 
 @pytest.mark.parametrize("status", (
@@ -79,3 +79,26 @@ def test_retry_on_conflict_calls_decorated_function_and_returns_return_value():
 
     assert succeed() == expected
     assert calls == max_tries
+
+
+class NameTester(object):
+    @classmethod
+    def clsmethod(cls):
+        pass
+
+    def method(self):
+        pass
+
+
+def name_test_function():
+    pass
+
+
+@pytest.mark.parametrize("func, expected", (
+    (id, "__builtin__.id"),
+    (name_test_function, "{}.name_test_function".format(__name__)),
+    (NameTester.clsmethod, "{}.NameTester.clsmethod".format(__name__)),
+    (NameTester.method, "{}.NameTester.method".format(__name__)),
+))
+def test_canonical_name(func, expected):
+    assert canonical_name(func) == expected

@@ -30,8 +30,12 @@ class UpsertConflict(Exception):
 
     def __str__(self):
         status_json = self.response.json()
-        message = status_json["message"]
+        # `reason=Conflict` means resourceVersion we tried to PUT was lower than the resourceVersion of the resource
+        # on the server.
+        # `reason=AlreadyExists` means we tried to POST to the url of a resource that already exists on the server,
+        # and we should try again with a PUT.
         reason = status_json["reason"]
+        message = status_json["message"]
         return "{status_code} Conflict for {method} {url}. reason={reason}, message={message}".format(
             status_code=self.response.status_code,
             method=self.response.request.method,

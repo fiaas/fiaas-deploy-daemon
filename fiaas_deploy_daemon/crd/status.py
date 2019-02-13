@@ -11,7 +11,7 @@ import backoff
 import pytz
 from blinker import signal
 from k8s.models.common import ObjectMeta
-from k8s.client import ClientError
+from k8s.client import ClientError, NotFound
 
 from .types import FiaasApplicationStatus
 from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
@@ -83,7 +83,10 @@ def _cleanup(app_name=None, namespace=None):
 
     statuses.sort(key=_last_updated)
     for old_status in statuses[:-OLD_STATUSES_TO_KEEP]:
-        FiaasApplicationStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
+        try:
+            FiaasApplicationStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
+        except NotFound:
+            pass  # already deleted
 
 
 _handle_started = partial(_handle_signal, u"RUNNING")

@@ -71,7 +71,7 @@ def test_retry_on_conflict_calls_decorated_function_and_returns_return_value():
     global calls
     calls = 0
 
-    @retry_on_upsert_conflict(max_value_seconds=0.001, max_tries=max_tries)
+    @retry_on_upsert_conflict
     def succeed():
         global calls
         calls += 1

@@ -6,7 +6,7 @@ import mock
 import pytest
 from blinker import Namespace
 from k8s.models.common import ObjectMeta
-from k8s.client import ClientError
+from k8s.client import ClientError, NotFound
 from requests import Response
 
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
@@ -148,6 +148,15 @@ class TestStatusReport(object):
         expected_calls = [mock.call("name-{}".format(i), "test") for i in range(20 - OLD_STATUSES_TO_KEEP)]
         expected_calls.insert(0, mock.call("name-100", "test"))
         assert delete.call_args_list == expected_calls
+
+    def test_ignore_notfound_on_cleanup(self, find, delete, app_spec):
+        delete.side_effect = NotFound()
+        find.return_value = [_create_status(i) for i in range(OLD_STATUSES_TO_KEEP + 1)]
+
+        try:
+            _cleanup(app_spec.name, app_spec.namespace)
+        except NotFound:
+            pytest.fail("delete raised NotFound on signal")
 
     @pytest.mark.parametrize("signal_name,fail_times", (
         ((signal_name, fail_times)

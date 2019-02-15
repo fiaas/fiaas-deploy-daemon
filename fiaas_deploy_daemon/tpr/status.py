@@ -9,6 +9,8 @@ from functools import partial
 import pytz
 from blinker import signal
 from k8s.models.common import ObjectMeta
+from k8s.client import NotFound
+
 
 from .types import PaasbetaStatus
 from ..retry import retry_on_upsert_conflict
@@ -67,7 +69,10 @@ def _cleanup(app_name, namespace):
 
     statuses.sort(key=_last_updated)
     for old_status in statuses[:-OLD_STATUSES_TO_KEEP]:
-        PaasbetaStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
+        try:
+            PaasbetaStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
+        except NotFound:
+            pass  # already deleted
 
 
 _handle_started = partial(_handle_signal, u"RUNNING")

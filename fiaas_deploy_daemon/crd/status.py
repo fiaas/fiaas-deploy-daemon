@@ -5,21 +5,19 @@ import struct
 from base64 import b32encode
 from datetime import datetime
 from functools import partial
-import sys
 
-import backoff
 import pytz
 from blinker import signal
 from k8s.models.common import ObjectMeta
-from k8s.client import ClientError, NotFound
+from k8s.client import NotFound
 
 from .types import FiaasApplicationStatus
+from ..retry import retry_on_upsert_conflict
 from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from ..log_extras import get_final_logs, get_running_logs
 
 LAST_UPDATED_KEY = "fiaas/last_updated"
 OLD_STATUSES_TO_KEEP = 10
-CONFLICT_MAX_RETRIES = 2
 LOG = logging.getLogger(__name__)
 
 
@@ -41,13 +39,7 @@ def _handle_signal(result, sender, app_name, namespace, deployment_id, repositor
     _cleanup(app_name, namespace)
 
 
-class UpsertConflict(Exception):
-    def __init__(self, cause):
-        self.traceback = sys.exc_info()
-        super(self.__class__, self).__init__(cause.message)
-
-
-@backoff.on_exception(backoff.expo, UpsertConflict, max_value=3, max_tries=CONFLICT_MAX_RETRIES)
+@retry_on_upsert_conflict
 def _save_status(app_name, namespace, deployment_id, result):
     LOG.info("Saving result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
     name = create_name(app_name, deployment_id)
@@ -55,18 +47,11 @@ def _save_status(app_name, namespace, deployment_id, result):
     annotations = {LAST_UPDATED_KEY: now()}
     metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
     logs = _get_logs(app_name, namespace, deployment_id, result)
-    try:
-        status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
-        resource_version = status.metadata.resourceVersion
-        LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
-                  deployment_id, resource_version)
-        status.save()
-    except ClientError as e:
-        if e.response.status_code == 409:
-            # Wrap ClientError in a separate type so we can can handle this failure mode only in backoff.on_exception
-            raise UpsertConflict(e)
-        else:
-            raise
+    status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
+    resource_version = status.metadata.resourceVersion
+    LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
+              deployment_id, resource_version)
+    status.save()
 
 
 def _get_logs(app_name, namespace, deployment_id, result):

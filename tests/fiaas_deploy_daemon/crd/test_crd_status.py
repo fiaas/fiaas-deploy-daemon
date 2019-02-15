@@ -10,10 +10,11 @@ from k8s.client import ClientError, NotFound
 from requests import Response
 
 from fiaas_deploy_daemon.crd import status
-from fiaas_deploy_daemon.crd.status import (_cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now, UpsertConflict,
-                                            CONFLICT_MAX_RETRIES)
+from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
+from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
+
 from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()

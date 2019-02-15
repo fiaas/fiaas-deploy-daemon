@@ -12,6 +12,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
 
+from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
 LOG = logging.getLogger(__name__)
@@ -36,6 +37,7 @@ class IngressDeployer(object):
         except NotFound:
             pass
 
+    @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingress for %s", app_spec.name)
         annotations = {

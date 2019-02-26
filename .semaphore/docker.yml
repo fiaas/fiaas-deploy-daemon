@@ -1,0 +1,35 @@
+version: v1.0
+name: Fiaas-deploy-daemon docker build
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Docker Build"
+    task:
+      secrets:
+      - name: fdd-github
+      - name: docker
+      jobs:
+      - name: Docker build
+        commands:
+          - checkout
+          - echo "Docker build..."
+          - echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+          - output=$(./gradlew publishImage publishLatestImage)
+          - version=$((grep "Successfully tagged fiaas/fiaas-deploy-daemon" <<< $output) | sed -e 's/Successfully tagged fiaas\/fiaas-deploy-daemon://g')
+          - echo $version > version
+          - export version
+          - ./bin/upload_release_channel.sh
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-metadata ./release_channel.json
+          - cache store $SEMAPHORE_PROJECT_NAME-SEMAPHORE_WORKFLOW_ID-version version
+          - echo "done"
+
+promotions:
+  - name: Promote latest
+    pipeline_file: latest.yml
+    auto_promote_on:
+      - result: passed
+  - name: Promote stable
+    pipeline_file: stable.yml

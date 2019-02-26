@@ -1,0 +1,24 @@
+version: v1.0
+name: Fiaas-deploy-daemon pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Build"
+    task:
+      jobs:
+      - name: Build
+        commands:
+          - checkout
+          - echo "Build..."
+          - ./gradlew build
+          - echo "done"
+promotions:
+  - name: Docker Publish
+    pipeline_file: docker.yml
+    auto_promote_on:
+    - result: passed
+      branch:
+        - "birgirst/use-semaphore-ci"

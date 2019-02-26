@@ -1,0 +1,21 @@
+version: v1.0
+name: Promote latest
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Latest
+    task:
+      secrets:
+      - name: fdd-github
+      jobs:
+        - name: 'Upload'
+          commands:
+            - echo 'Promoting latest!'
+            - checkout
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-metadata
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version
+            - version=$(cat version |tail -1)
+            - export version
+            - ./bin/upload_release_channel.sh latest

@@ -21,7 +21,7 @@ from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicati
 from fiaas_deploy_daemon.tpr.watcher import TprWatcher
 from minikube import MinikubeError
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -110,7 +110,7 @@ class TestBootstrapE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version, 5000) + args
+        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
 
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()

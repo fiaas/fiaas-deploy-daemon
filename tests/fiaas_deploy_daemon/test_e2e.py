@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-import contextlib
 import os
-import socket
 import subprocess
 import sys
 import time
@@ -24,7 +22,7 @@ from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
 from minikube import MinikubeError
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -73,7 +71,7 @@ class TestE2E(object):
 
     @pytest.fixture(scope="module")
     def fdd(self, kubernetes, service_type, k8s_version, use_docker_for_e2e):
-        port = self._get_open_port()
+        port = get_unbound_port()
         args = [
             "fiaas-deploy-daemon",
             "--port", str(port),
@@ -293,12 +291,6 @@ class TestE2E(object):
         time.sleep(1)
         if popen.poll() is None:
             popen.kill()
-
-    @staticmethod
-    def _get_open_port():
-        with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-            s.bind(("", 0))
-            return s.getsockname()[1]
 
     @staticmethod
     def _select_kinds(expected):

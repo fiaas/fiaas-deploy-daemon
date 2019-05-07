@@ -12,3 +12,12 @@ class KVMDriver(LinuxDriver):
         if minikube_version < StrictVersion("0.5"):
             return False
         return has_utility("docker-machine-driver-kvm")
+
+
+class KVM2Driver(LinuxDriver):
+    name = "kvm2"
+
+    def supported(self, minikube_version):
+        if minikube_version < StrictVersion("0.26.1"):
+            return False
+        return has_utility("docker-machine-driver-kvm2")

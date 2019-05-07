@@ -1,9 +1,11 @@
 from __future__ import print_function
 
+import contextlib
 from copy import deepcopy
 from datetime import datetime
 from distutils.version import StrictVersion
 import re
+import socket
 import sys
 import time
 import traceback
@@ -234,3 +236,9 @@ def configure_mock_fail_then_success(mockk, fail=None, success=None, fail_times=
         return next(gen)()
 
     mockk.side_effect = _function
+
+
+def get_unbound_port():
+    with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        return s.getsockname()[1]

@@ -20,8 +20,8 @@ blocks:
           - sha256sum --check - <<< "$(cat docker-machine-driver-kvm2.sha256)  docker-machine-driver-kvm2"
           - sudo install docker-machine-driver-kvm2 /usr/local/bin/
           # install minikube
-          - curl -LO https://storage.googleapis.com/minikube/releases/v1.0.1/minikube-linux-amd64
-          - curl -LO https://storage.googleapis.com/minikube/releases/v1.0.1/minikube-linux-amd64.sha256
+          - curl -LO https://storage.googleapis.com/minikube/releases/v0.25.2/minikube-linux-amd64
+          - curl -LO https://storage.googleapis.com/minikube/releases/v0.25.2/minikube-linux-amd64.sha256
           - sha256sum --check - <<< "$(cat minikube-linux-amd64.sha256)  minikube-linux-amd64"
           - sudo install minikube-linux-amd64 /usr/local/bin/minikube
           - minikube config set vm-driver kvm2

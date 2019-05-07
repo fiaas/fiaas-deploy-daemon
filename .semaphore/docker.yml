@@ -17,6 +17,7 @@ blocks:
           - checkout
           - echo "Docker build..."
           - echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+          - ./gradlew integrationTest
           - output=$(./gradlew publishImage publishLatestImage)
           - version=$((grep "Successfully tagged fiaas/fiaas-deploy-daemon" <<< $output) | sed -e 's/Successfully tagged fiaas\/fiaas-deploy-daemon://g')
           - echo $version > version

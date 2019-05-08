@@ -7,6 +7,11 @@ semaphore_git_sha="$2"
 version="$3"
 tag_name="$4"
 
+if [[ -z "$semaphore_job_id" ]] || [[ -z "$semaphore_git_sha" ]] ||  [[ -z "$version" ]] ||  [[ -z "$tag_name" ]]; then
+    echo "Some parameters were not set or empty: semaphore_job_id=$semaphore_job_id semaphore_git_sha=$semaphore_git_sha version=$version tag_name=$tag_name"
+    exit 1
+fi
+
 function create_metadata () {
     cat <<EOF > release_channel.json
 {

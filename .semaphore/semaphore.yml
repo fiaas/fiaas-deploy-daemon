@@ -28,7 +28,7 @@ blocks:
           - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha
           - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id semaphore_job_id
           - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha semaphore_git_sha
-          - cache store $SEMAPHORE_PROJECT_NAME-SEMAPHORE_WORKFLOW_ID-version version
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version version
           - echo "done"
 promotions:
   - name: Promote latest

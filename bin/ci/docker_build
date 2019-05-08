@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
+IMAGE="fiaas/fiaas-deploy-daemon"
+IMAGE_VERSION_TAG="${IMAGE}:$VERSION"
+IMAGE_LATEST_TAG="${IMAGE}:latest"
+
+docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+docker build --tag "${IMAGE_VERSION_TAG}" --tag "$IMAGE_LATEST_TAG" .
+
+echo "$VERSION" > version
+echo "Stored $VERSION in ./version"

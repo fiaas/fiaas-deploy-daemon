@@ -1,24 +1,38 @@
 version: v1.0
-name: Fiaas-deploy-daemon pipeline
+name: Fiaas-deploy-daemon docker build
 agent:
   machine:
-    type: e1-standard-2
+    type: e1-standard-4
     os_image: ubuntu1804
 
 blocks:
-  - name: "Build"
+  - name: "Test, build docker image and run e2e test"
     task:
+      secrets:
+      - name: docker
       jobs:
-      - name: Build
+      - name: Docker build
         commands:
+          # Check codestyle + run unit tests
           - checkout
-          - echo "Build..."
-          - ./gradlew build
+          - pip install -r requirements.txt
+          - tox -e codestyle,test
+          # Build docker image
+          - ./bin/ci/docker_build
+          # Run end-to-end/integration tests
+          - ./bin/ci/install_e2e_requirements
+          - tox -e integration_test
+          # Store metadata for promotion jobs
+          - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id
+          - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id semaphore_job_id
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha semaphore_git_sha
+          - cache store $SEMAPHORE_PROJECT_NAME-SEMAPHORE_WORKFLOW_ID-version version
           - echo "done"
 promotions:
-  - name: Docker Publish
-    pipeline_file: docker.yml
+  - name: Promote latest
+    pipeline_file: latest.yml
     auto_promote_on:
-    - result: passed
-      branch:
-        - "birgirst/use-semaphore-ci"
+      - result: passed
+  - name: Promote stable
+    pipeline_file: stable.yml

@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+
+set -evuo pipefail
+
+semaphore_job_id="$1"
+semaphore_git_sha="$2"
+version="$3"
+tag_name="$4"
+
+function create_metadata () {
+    cat <<EOF > release_channel.json
+{
+    "image": "fiaas/fiaas-deploy-daemon:$version",
+    "build": "https://fiaas.semaphoreci.com/jobs/$semaphore_job_id",
+    "commit": "https://github.com/fiaas/fiaas-deploy-daemon/commit/$semaphore_git_sha",
+    "spec": "https://fiaas.github.com/releases/artifacts/$version/fiaas.yml",
+    "updated": "$(date)"
+}
+EOF
+    cat release_channel.json
+}
+
+function  clone_releases() {
+    git config --global user.email "fiaas@googlegroups.com"
+    git config --global user.name "Captain FIAAS"
+    git clone https://github.com/fiaas/releases releases-repo
+    cd ./releases-repo
+}
+
+function create_release() {
+    \cp ../release_channel.json "./fiaas-deploy-daemon/${tag_name}.json"
+
+    if [[ $tag_name == 'latest' ]]; then
+        mkdir -p "./artifacts/${version}/"
+        cp ../fiaas.yml "./artifacts/${version}/"
+        git add "./artifacts/${version}"
+    fi
+
+    git add .
+    git commit -a -m "Release fiaas-deploy-daemon $version"
+    git push "https://${GITHUBKEY}@github.com/fiaas/releases"
+}
+
+
+echo "Publishing release channel metadata for semaphore_job_ID=$semaphore_job_id semaphore_git_sha=$semaphore_git_sha version=$version tag_name=$tag_name"
+
+create_metadata
+clone_releases
+create_release
+
+echo "Successfully published release channel metadata for version=$version tag_name=$tag_name"

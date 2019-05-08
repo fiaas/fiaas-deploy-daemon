@@ -10,12 +10,9 @@ blocks:
       secrets:
       - name: fdd-github
       jobs:
-        - name: 'Upload'
+        - name: 'Update release channel latest'
           commands:
             - echo 'Promoting latest!'
             - checkout
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-metadata
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version
-            - version=$(cat version |tail -1)
-            - export version
-            - ./bin/upload_release_channel.sh latest
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version,$SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha,$SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id
+            - ./bin/ci/update_release_channel "$(tail -1 < semaphore_job_id)" "$(tail -1 < semaphore_git_sha)"  "$(tail -1 < version)" stable

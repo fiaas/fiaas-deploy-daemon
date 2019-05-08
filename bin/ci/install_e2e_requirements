@@ -6,7 +6,7 @@ KVM2_DRIVER_VERSION="v1.0.1"
 MINIKUBE_VERSION="v0.25.2"
 
 function install_minikube_vm_driver() {
-    pushd "$TMPDIR"
+    pushd "/tmp"
     curl -LO "https://github.com/kubernetes/minikube/releases/download/${KVM2_DRIVER_VERSION}/docker-machine-driver-kvm2"
     curl -LO "https://github.com/kubernetes/minikube/releases/download/${KVM2_DRIVER_VERSION}/docker-machine-driver-kvm2.sha256"
     sha256sum --check - <<< "$(cat docker-machine-driver-kvm2.sha256)  docker-machine-driver-kvm2"
@@ -15,7 +15,7 @@ function install_minikube_vm_driver() {
 }
 
 function install_minikube() {
-    pushd "$TMPDIR"
+    pushd "/tmp"
     curl -LO "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64"
     curl -LO "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64.sha256"
     sha256sum --check - <<< "$(cat minikube-linux-amd64.sha256)  minikube-linux-amd64"

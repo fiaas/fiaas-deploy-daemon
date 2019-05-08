@@ -42,7 +42,7 @@ function create_release() {
 }
 
 
-echo "Publishing release channel metadata for semaphore_job_ID=$semaphore_job_id semaphore_git_sha=$semaphore_git_sha version=$version tag_name=$tag_name"
+echo "Publishing release channel metadata for semaphore_job_id=$semaphore_job_id semaphore_git_sha=$semaphore_git_sha version=$version tag_name=$tag_name"
 
 create_metadata
 clone_releases

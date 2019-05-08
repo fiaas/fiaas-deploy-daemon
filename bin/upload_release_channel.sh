@@ -6,8 +6,8 @@ create_metadata () {
 cat <<EOF > release_channel.json
 {
     "image": "fiaas/fiaas-deploy-daemon:$version",
-    "build": "https://fiaas.semaphoreci.com/jobs/$SEMAPHORE_JOB_ID"
-    "commit": "https://github.com/fiaas/fiaas-deploy-daemon/commit/$SEMAPHORE_GIT_SHA"
+    "build": "https://fiaas.semaphoreci.com/jobs/$SEMAPHORE_JOB_ID",
+    "commit": "https://github.com/fiaas/fiaas-deploy-daemon/commit/$SEMAPHORE_GIT_SHA",
     "spec": "https://fiaas.github.com/releases/artifacts/$version/fiaas.yml",
     "updated": "$(date)"
 }

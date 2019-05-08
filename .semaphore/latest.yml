@@ -14,5 +14,7 @@ blocks:
           commands:
             - echo 'Promoting latest!'
             - checkout
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version,$SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha,$SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id
             - ./bin/ci/update_release_channel "$(tail -1 < semaphore_job_id)" "$(tail -1 < semaphore_git_sha)"  "$(tail -1 < version)" latest

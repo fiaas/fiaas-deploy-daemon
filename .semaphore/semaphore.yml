@@ -15,7 +15,7 @@ blocks:
         commands:
           # Check codestyle + run unit tests
           - checkout
-          - pip install -r requirements.txt
+          - sudo pip install -r requirements.txt
           - tox -e codestyle,test
           # Build docker image
           - ./bin/ci/docker_build

@@ -6,6 +6,7 @@ import logging
 from Queue import Queue
 import sys
 import signal
+import threading
 import traceback
 
 import pinject
@@ -101,8 +102,9 @@ def init_k8s_client(config):
 def thread_dump_logger(log):
     def _dump_threads(signum, frame):
         log.info("Received signal %s, dumping thread stacks", signum)
-        for thread, frame in sys._current_frames().items():
-            log.info("Thread 0x%x" % thread)
+        thread_names = {t.ident: t.name for t in threading.enumerate()}
+        for thread_ident, frame in sys._current_frames().items():
+            log.info("Thread ident=0x%x name=%s", thread_ident, thread_names.get(thread_ident, "unknown"))
             log.info("".join(traceback.format_stack(frame)))
 
     return _dump_threads

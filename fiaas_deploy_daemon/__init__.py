@@ -4,6 +4,9 @@ from __future__ import absolute_import
 
 import logging
 from Queue import Queue
+import sys
+import signal
+import traceback
 
 import pinject
 import requests
@@ -95,11 +98,22 @@ def init_k8s_client(config):
     k8s_config.debug = config.debug
 
 
+def thread_dump_logger(log):
+    def _dump_threads(signum, frame):
+        log.info("Received signal %s, dumping thread stacks", signum)
+        for thread, frame in sys._current_frames().items():
+            log.info("Thread 0x%x" % thread)
+            log.info("".join(traceback.format_stack(frame)))
+
+    return _dump_threads
+
+
 def main():
     cfg = Configuration()
     init_logging(cfg)
     init_k8s_client(cfg)
     log = logging.getLogger(__name__)
+    signal.signal(signal.SIGUSR2, thread_dump_logger(log))
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
         binding_specs = [

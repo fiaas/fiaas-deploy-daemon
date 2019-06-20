@@ -18,7 +18,7 @@ function create_metadata () {
     "image": "fiaas/fiaas-deploy-daemon:$version",
     "build": "https://fiaas.semaphoreci.com/jobs/$semaphore_job_id",
     "commit": "https://github.com/fiaas/fiaas-deploy-daemon/commit/$semaphore_git_sha",
-    "spec": "https://fiaas.github.com/releases/artifacts/$version/fiaas.yml",
+    "spec": "https://fiaas.github.io/releases/artifacts/$version/fiaas.yml",
     "updated": "$(date --iso-8601=seconds)"
 }
 EOF

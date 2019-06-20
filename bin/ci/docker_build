@@ -8,6 +8,7 @@ IMAGE_LATEST_TAG="${IMAGE}:latest"
 
 docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
 docker build --tag "${IMAGE_VERSION_TAG}" --tag "$IMAGE_LATEST_TAG" .
+docker push "${IMAGE_VERSION_TAG}"
 
 echo "$VERSION" > version
 echo "Stored $VERSION in ./version"

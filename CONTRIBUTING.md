@@ -28,17 +28,4 @@ and use [QualityGate](https://confluence.schibsted.io/display/SPTP/Quality+Gate)
 change has test coverage at the unit and ideally also at the integration/end to end level. Pull requests must pass
 QualityGate unless there is a good reason not to - and the PR reviewer agrees to this reason.
 
-Additionally your change must pass the end to end (e2e) test before merging. This test is unfortunately not run in the
-CI system due to technical constraints, and must be run manually.
-
-Do this either via `gradle`:
-
-```
-$ gradle integrationTest
-```
-
-Or by using the python tooling directly:
-
-```
-$ python setup.py test --addopts '-m integration_test -n4 -rxs'
-```
+Additionally your change must pass the end to end (e2e) test before merging. You can run this test suite using `$ tox -e integration_test`

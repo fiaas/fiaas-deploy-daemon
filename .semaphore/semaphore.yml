@@ -1,0 +1,41 @@
+version: v1.0
+name: Fiaas-deploy-daemon docker build
+agent:
+  machine:
+    type: e1-standard-8
+    os_image: ubuntu1804
+
+blocks:
+  - name: "Test, build docker image and run e2e test"
+    task:
+      secrets:
+      - name: docker
+      jobs:
+      - name: Docker build
+        commands:
+          # Check codestyle + run unit tests
+          - checkout
+          - export PATH="$PATH:$HOME/.local/bin"
+          - pip install --user -r requirements.txt
+          - tox -e codestyle,test
+          # Build docker image
+          - ./bin/ci/docker_build
+          # Run end-to-end/integration tests
+          - ./bin/ci/install_e2e_requirements
+          - tox -e integration_test -- -n 7
+          # Store metadata for promotion jobs
+          - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id
+          - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id semaphore_job_id
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha semaphore_git_sha
+          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version version
+          - echo "done"
+promotions:
+  - name: Promote latest
+    pipeline_file: latest.yml
+    auto_promote_on:
+      - result: passed
+        branch:
+          - master
+  - name: Promote stable
+    pipeline_file: stable.yml

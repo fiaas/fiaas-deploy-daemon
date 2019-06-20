@@ -1,0 +1,20 @@
+version: v1.0
+name: Promote stable
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Stable
+    task:
+      secrets:
+      - name: fdd-github
+      jobs:
+        - name: 'Update release channel stable'
+          commands:
+            - echo 'Promoting stable!'
+            - checkout
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha
+            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id
+            - ./bin/ci/update_release_channel "$(tail -1 < semaphore_job_id)" "$(tail -1 < semaphore_git_sha)"  "$(tail -1 < version)" stable

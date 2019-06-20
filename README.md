@@ -12,15 +12,6 @@ Note: The master branch of this repository will be synchronised to https://githu
 
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
 
-When you first run gradle, it will install `pew`, and use it to create a virtualenv
-named 'fiaas-deploy-daemon'. If you wish, you can install pew and/or create the
-virtualenv before you run gradle, in which case gradle will use the ones you provide.
-
-On OSX there may be some problems with pew and you get something like "Python locale error: unsupported locale setting"
-Setting the following solved this for us
-
-`export LC_ALL=$LANG`
-
 
 Supported use-cases
 -------------------
@@ -41,11 +32,12 @@ See the config-module for more information.
 Getting started with developing
 -------------------------------
 
-- `$ finnbuild execute setup` or `$ ./gradlew setup` (adjust as necessary for windows)
-- Learn about pew: `$ pew`
-- Enter the virtualenv `$ pew workon fiaas-deploy-daemon`
+Use  `$ pip install -r requirements.txt` to install dependencies
 - Make changes to code
-- `$ finnbuild execute test` or `$ ./gradlew test` (adjust as necessary for windows)
+Run tests with `tox`:
+- `$ tox -e codestyle` checks code style, indentations etc.
+- `$ tox -e test` runs unit tests
+- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require a working `minikube` with the one of the `hyperkit`, `kvm`, `kvm2`, `xhyve` or `virtualbox` drivers installed.
 
 Useful resources:
 
@@ -164,23 +156,6 @@ Use this configuration both for debugging and for manual bootstrapping into a cl
 * Python Interpreter: Make sure to add the virtualenv as an SDK, and use that interpreter
 
 
-finnbuild
----------
-
-The following commands are nice to know:
-
-- `finnbuild execute` and `finnbuild execute test`
-    - Executes tests
-- `finnbuild execute setup`
-    - Make sure needed tools and virtualenv are created, and initialize the virtualenv
-- `finnbuild execute build`
-    - Runs tests, then builds a binary wheel package
-- `finnbuild execute bake`
-    - Runs tests, builds package, then makes docker image
-- `finnbuild execute run-docker`
-    - Runs the docker image, exposing the web-interface on port 5000
-
-
 fiaas-config
 ------------
 
@@ -193,11 +168,10 @@ running instance.
 Updating the github.com repo
 ----------------------------
 
-Until we move development completely to github.com, we need to periodically push the 
+Until we move development completely to github.com, we need to periodically push the
 latest changes to github.com. Here is one way to do this:
 
 0. git checkout master
 1. git fetch
-2. git remote add open-source git@github.com:fiaas/fiaas-deploy-daemon.git 
+2. git remote add open-source git@github.com:fiaas/fiaas-deploy-daemon.git
 3. git push open-source master
-

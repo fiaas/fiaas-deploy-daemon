@@ -43,7 +43,8 @@ class TestDataDog(object):
 
     @pytest.mark.parametrize("best_effort_required", (False, True))
     def test_adds_env_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
-        app_spec = app_spec._replace(datadog=True)
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags=dict())
+        app_spec = app_spec._replace(datadog=datadog_spec)
         datadog.apply(deployment, app_spec, best_effort_required)
         expected = [
             {"name": "DUMMY", "value": "CANARY"},
@@ -57,7 +58,9 @@ class TestDataDog(object):
         ("rincewind", "discworld")
     ))
     def test_adds_container_when_enabled(self, datadog, app_spec, deployment, best_effort_required, name, namespace):
-        app_spec = app_spec._replace(datadog=True, name=name, namespace=namespace)
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags=dict())
+        app_spec = app_spec._replace(datadog=datadog_spec)
+        app_spec = app_spec._replace(name=name, namespace=namespace)
         datadog.apply(deployment, app_spec, best_effort_required)
         expected = {
             'name': DataDog.DATADOG_CONTAINER_NAME,

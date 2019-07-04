@@ -9,7 +9,8 @@ from requests import Response
 
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer, IngressTls
-from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, \
+from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
+    ResourcesSpec, PrometheusSpec, DatadogSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
     LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 
@@ -29,7 +30,7 @@ def app_spec(**kwargs):
         admin_access=False,
         secrets_in_environment=False,
         prometheus=PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus'),
-        datadog=False,
+        datadog=DatadogSpec(enabled=False,tags=dict()),
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
         ],

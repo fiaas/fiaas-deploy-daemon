@@ -8,9 +8,9 @@ import yaml
 
 from ..factory import BaseFactory, InvalidConfiguration
 from ..lookup import LookupMapping
-from ..models import AppSpec, PrometheusSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, HealthCheckSpec, \
-    CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, LabelAndAnnotationSpec, IngressItemSpec, \
-    IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
+from ..models import AppSpec, PrometheusSpec, DatadogSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, \
+    HealthCheckSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, \
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 
 
@@ -36,7 +36,7 @@ class Factory(BaseFactory):
             admin_access=lookup["admin_access"],
             secrets_in_environment=lookup["secrets_in_environment"],
             prometheus=self._prometheus_spec(lookup["metrics"]["prometheus"]),
-            datadog=lookup["metrics"]["datadog"]["enabled"],
+            datadog=self._datadog_spec(lookup["metrics"]["datadog"]),
             ports=self._port_specs(lookup["ports"]),
             health_checks=self._health_checks_spec(lookup["healthchecks"], lookup["ports"]),
             teams=teams,
@@ -79,6 +79,14 @@ class Factory(BaseFactory):
             port=prometheus_lookup["port"],
             path=prometheus_lookup["path"]
         )
+
+    @staticmethod
+    def _datadog_spec(datadog_lookup):
+        return DatadogSpec(
+            enabled=datadog_lookup["enabled"],
+            tags=datadog_lookup["tags"]
+        )
+
 
     @staticmethod
     def _port_specs(ports_lookup):

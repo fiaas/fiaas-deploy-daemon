@@ -423,6 +423,7 @@ Default value:
 metrics:
   datadog:
     enabled: false
+    tags:
 ```
 
 #### enabled
@@ -447,6 +448,31 @@ Three additional tags are attached to the collected metrics automatically:
 - namespace name
 - application name
 - pod name
+
+#### tags
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Include the given tags for metrics exposed by the Datadog sidecar.
+These metrics will be added to the three metrics injected by default
+(namespace name, app name, pod name.)
+
+For example: 
+
+```yaml
+metrics:
+  datadog:
+    enabled: true
+    tags:
+      tag1: value1
+      tag2: value2
+```
+
+Will add the following to the `DD_TAGS` environment variable in the
+Datadog sidecar:
+
+    tag1:value1,tag2:value2
 
 ## ports
 

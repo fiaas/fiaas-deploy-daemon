@@ -51,6 +51,10 @@ PrometheusSpec = namedtuple("PrometheusSpec", [
     "port",
     "path"])
 
+DatadogSpec = namedtuple("DatadogSpec", [
+  "enabled",
+  "tags"])
+
 PortSpec = namedtuple("PortSpec", [
     "protocol",
     "name",

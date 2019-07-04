@@ -43,7 +43,7 @@ class SpecFactory(object):
         return app_config
 
     def _validate(self, app_spec):
-        if app_spec.datadog and self._config.datadog_container_image is None:
+        if app_spec.datadog.enabled and self._config.datadog_container_image is None:
             raise InvalidConfiguration("Requested datadog sidecar, but datadog-container-image is undefined")
 
 

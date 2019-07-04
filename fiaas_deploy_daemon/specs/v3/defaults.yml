@@ -56,6 +56,7 @@ metrics:
     path: /_/metrics # Path to prometheus-metrics
   datadog:
     enabled: false # if true, attach a datadog sidecar
+    tags: # A list of custom tags to add to all metrics exposed by the pods
 ports: # A list of ports the application listens on. For no exposed ports, specify as []
   - protocol: http # [http|tcp]
     name: http # A logical name for port discovery. Must be <= 63 characters and match [a-z0-9]([-a-z0-9]*[a-z0-9])? (DNS_LABEL)

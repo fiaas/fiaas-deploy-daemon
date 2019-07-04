@@ -126,3 +126,5 @@ Temporary Items
 .python-version
 *.ipr
 *.iws
+
+*.swp

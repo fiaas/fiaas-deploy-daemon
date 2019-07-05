@@ -84,7 +84,7 @@ class Factory(BaseFactory):
     def _datadog_spec(datadog_lookup):
         return DatadogSpec(
             enabled=datadog_lookup["enabled"],
-            tags=datadog_lookup["tags"]
+            tags=dict(datadog_lookup["tags"])
         )
 
 

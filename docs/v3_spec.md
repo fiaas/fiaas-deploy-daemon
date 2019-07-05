@@ -458,7 +458,7 @@ Include the given tags for metrics exposed by the Datadog sidecar.
 These metrics will be added to the three metrics injected by default
 (namespace name, app name, pod name.)
 
-For example: 
+For example:
 
 ```yaml
 metrics:

@@ -423,7 +423,7 @@ Default value:
 metrics:
   datadog:
     enabled: false
-    tags:
+    tags: {}
 ```
 
 #### enabled

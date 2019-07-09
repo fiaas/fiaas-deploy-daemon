@@ -3,7 +3,7 @@
 set -euo pipefail
 
 KVM2_DRIVER_VERSION="v1.0.1"
-MINIKUBE_VERSION="v0.25.2"
+MINIKUBE_VERSION="v1.2.0"
 
 function install_minikube_vm_driver() {
     pushd "/tmp"

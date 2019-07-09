@@ -26,3 +26,4 @@ function install_minikube() {
 install_minikube_vm_driver
 install_minikube
 minikube config set vm-driver kvm2
+minikube version

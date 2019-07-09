@@ -16,7 +16,6 @@ function install_minikube_vm_driver() {
 
 function install_minikube() {
     pushd "/tmp"
-    minikube delete
     curl -LO "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64"
     curl -LO "https://storage.googleapis.com/minikube/releases/${MINIKUBE_VERSION}/minikube-linux-amd64.sha256"
     sha256sum --check - <<< "$(cat minikube-linux-amd64.sha256)  minikube-linux-amd64"

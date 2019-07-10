@@ -160,3 +160,33 @@ This configuration is a YAML file. If any field is missing, a default value will
 The default values, and explanation of their meaning are available at `/defaults` on any
 running instance.
 
+
+Release process
+---------------
+
+When changes are merged to master the master branch is built using
+(semasphoreci)[https://semaphoreci]. The build generates a docker image that is
+published to the
+(fiaas/fiaas-deploy-daemon)[https://cloud.docker.com/u/fiaas/repository/docker/fiaas/fiaas-deploy-daemon]
+repository on docker hub and is publicly available.
+
+Additionally as part of the master build process jobs for updating release
+channels for fiaas-deploy-daemon are executed. Release channels are used by
+(Skipper)[https://github.com/fiaas/skipper] to manage FIAAS in a given cluster
+and it uses metadata from the release channels to determine which version of
+fiaas-deploy-daemon to install and when to upgrade as new versions become
+available.
+
+Release channels are available via (github
+pages)[https://fiaas.github.io/releases] and metadata is source controlled in a
+(repository)[https://github.com/fiaas/releases].
+
+When the master branch is built successfully the `latest` release channel is
+updated with references to the docker image, build and commit for tracability.
+The job for updating the `latest` release channel will persist the release
+metadata to the releases repository.
+
+Similarly a job for updating the `stable` release channel is now pending but
+requires manual judgement and execution by a maintainer of the fiaas
+organization for the release to be promoted to stable and the `stable` release
+channel to be updated.

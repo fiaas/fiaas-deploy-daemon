@@ -1,9 +1,5 @@
 # fiaas-deploy-daemon
 
-<!-- Badger start badges -->
-[![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/travis/finn/fiaas-deploy-daemon)](https://travis.schibsted.io/finn/fiaas-deploy-daemon) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/coverage/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/issues/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/engprod/finn/fiaas-deploy-daemon)](https://github.schibsted.io/spt-engprod/badger)
-<!-- Badger end badges -->
-
 ![FIAAS logo](https://raw.githubusercontent.com/fiaas/design-assets/master/logo/Logo_Fiaas_colour.png)
 
 ---
@@ -164,14 +160,3 @@ This configuration is a YAML file. If any field is missing, a default value will
 The default values, and explanation of their meaning are available at `/defaults` on any
 running instance.
 
-
-Updating the github.com repo
-----------------------------
-
-Until we move development completely to github.com, we need to periodically push the
-latest changes to github.com. Here is one way to do this:
-
-0. git checkout master
-1. git fetch
-2. git remote add open-source git@github.com:fiaas/fiaas-deploy-daemon.git
-3. git push open-source master

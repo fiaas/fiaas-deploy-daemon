@@ -158,7 +158,7 @@ running instance.
 Release process
 ---------------
 
-When changes are merged to master the master branch is built using [Semasphore CI](https://semaphoreci.com). The build generates a docker image that is published to the [fiaas/fiaas-deploy-daemon](https://hub.docker.com/r/fiaas/fiaas-deploy-daemon) repository on Docker Hub and is publicly available.
+When changes are merged to master the master branch is built using [Semaphore CI](https://semaphoreci.com). The build generates a docker image that is published to the [fiaas/fiaas-deploy-daemon](https://hub.docker.com/r/fiaas/fiaas-deploy-daemon) repository on Docker Hub and is publicly available.
 
 Additionally as part of the master build process jobs for updating release channels for fiaas-deploy-daemon are executed. Release channels are used by [Skipper](https://github.com/fiaas/skipper) to manage FIAAS in a given cluster and it uses metadata from the release channels to determine which version of fiaas-deploy-daemon to install and when to upgrade as new versions become available.
 

@@ -1,9 +1,0 @@
-reviewersRaffle:
-  strategies:
-    - default:
-        type: knowledge
-        excludedParticipants:
-          - oliver-soell
-          - espen-krogh-moe
-          - giao-the-cung
-          - audun-fauchald-strand

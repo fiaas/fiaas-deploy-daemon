@@ -4,10 +4,7 @@
 
 ---
 
-Note: The master branch of this repository will be synchronised to https://github.com/fiaas/fiaas-deploy-daemon regularly. Please consider this before committing internal or otherwise sensitive information.
-
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
-
 
 Supported use-cases
 -------------------
@@ -139,9 +136,6 @@ Use this configuration both for debugging and for manual bootstrapping into a cl
     * --debug
     * If you want to deploy to a kubernetes cluster use --api-server, --api-token
      and --api-cert as suitable
-* Environment variables: Add the following two if you wish to pick up pipeline-messages
-    * KAFKA_PIPELINE_SERVICE_HOST=adm-internalmod1.finntech.no
-    * KAFKA_PIPELINE_SERVICE_PORT=7794
 * Python Interpreter: Make sure to add the virtualenv as an SDK, and use that interpreter
 
 

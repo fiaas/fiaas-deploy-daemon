@@ -14,9 +14,9 @@ FIAAS has a minimal governance model that its projects are managed in accordance
 
 ## Create an issue
 
-If you have found a bug, please [submit a a Github issue](/issues/new) to describe the bug and ideally any steps to reproduce it.
+If you have found a bug, please [submit a a Github issue](https://github.com/fiaas/fiaas-deploy-daemon/issues) to describe the bug and ideally any steps to reproduce it.
 
-If you have a new feature or any larger changes in mind we also encourage [creating a Github issue](/issues/new) giving some background for your idea or usecase before submitting code as a pull-request.
+If you have a new feature or any larger changes in mind we also encourage [creating a Github issue](https://github.com/fiaas/fiaas-deploy-daemon/issues) giving some background for your idea or usecase before submitting code as a pull-request.
 
 ## Contributing code
 

@@ -15,7 +15,7 @@ from minikube import MinikubeInstaller, MinikubeError
 from minikube.drivers import MinikubeDriverError
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
-DATADOG_SPEC = DatadogSpec(enabled=False, tags=dict())
+DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))

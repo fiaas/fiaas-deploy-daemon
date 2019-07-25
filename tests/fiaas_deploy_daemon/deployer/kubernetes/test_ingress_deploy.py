@@ -30,7 +30,7 @@ def app_spec(**kwargs):
         admin_access=False,
         secrets_in_environment=False,
         prometheus=PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus'),
-        datadog=DatadogSpec(enabled=False,tags=dict()),
+        datadog=DatadogSpec(enabled=False, tags={}),
         ports=[
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
         ],

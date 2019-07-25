@@ -87,7 +87,6 @@ class Factory(BaseFactory):
             tags=dict(datadog_lookup["tags"])
         )
 
-
     @staticmethod
     def _port_specs(ports_lookup):
         return [PortSpec(protocol=port["protocol"],

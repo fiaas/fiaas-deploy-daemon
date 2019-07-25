@@ -86,6 +86,8 @@ class DeploymentDeployer(object):
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
                 replicas = deployment.spec.replicas
             except NotFound:
+                LOG.warn("deployment not being scaled as autoscaler has been manually set to another value " +
+                         "for %s", app_spec.name)
                 pass
 
         deployment_strategy = DeploymentStrategy(

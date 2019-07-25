@@ -85,9 +85,9 @@ class DeploymentDeployer(object):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
                 replicas = deployment.spec.replicas
+                LOG.warn("configured replica size (%d) for deployment is being ignored, as current running replica size"
+                         " is different (%d) for %s", deployment.spec.replicas, app_spec.replicas, app_spec.name)
             except NotFound:
-                LOG.warn("deployment not being scaled as autoscaler has been manually set to another value " +
-                         "for %s", app_spec.name)
                 pass
 
         deployment_strategy = DeploymentStrategy(

@@ -58,7 +58,11 @@ class TestDataDog(object):
         ("rincewind", "discworld")
     ))
     def test_adds_container_when_enabled(self, datadog, app_spec, deployment, best_effort_required, name, namespace):
-        datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
+        datadog_spec = app_spec.datadog._replace(
+            enabled=True,
+            tags={ "a": "1", "b": "2"}
+        )
+        app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(name=name, namespace=namespace)
         datadog.apply(deployment, app_spec, best_effort_required)
@@ -68,7 +72,11 @@ class TestDataDog(object):
             'volumeMounts': [],
             'command': [],
             'env': [
-                {'name': 'DD_TAGS', 'value': "app:{},k8s_namespace:{}".format(app_spec.name, app_spec.namespace)},
+                {'name': 'DD_TAGS', 'value':
+                    "a:1,app:{},b:2,k8s_namespace:{}".format(
+                        app_spec.name,
+                        app_spec.namespace)
+                },
                 {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
                 {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
                 {'name': 'DD_LOGS_STDOUT', 'value': 'yes'},

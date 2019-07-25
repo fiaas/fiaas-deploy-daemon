@@ -30,7 +30,9 @@ class DataDog(object):
         tags = app_spec.datadog.tags
         tags["app"] = app_spec.name
         tags["k8s_namespace"] = app_spec.namespace
-        dd_tags = ",".join("{}:{}".format(k, tags[k]) for k in tags)
+        # Use an alphabetical order based on keys to ensure that the
+        # output is predictable
+        dd_tags = ",".join("{}:{}".format(k, tags[k]) for k in sorted(tags))
 
         return Container(
             name=self.DATADOG_CONTAINER_NAME,

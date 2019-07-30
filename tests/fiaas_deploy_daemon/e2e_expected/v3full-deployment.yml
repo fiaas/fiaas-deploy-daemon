@@ -162,7 +162,7 @@ spec:
       - command: []
         env:
         - name: DD_TAGS
-          value: app:v3-data-examples-full,k8s_namespace:default
+          value: app:v3-data-examples-full,k8s_namespace:default,tag1:value1,tag2:value2
         - name: API_KEY
           valueFrom:
             secretKeyRef:

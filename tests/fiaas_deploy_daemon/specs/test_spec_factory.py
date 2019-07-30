@@ -65,13 +65,15 @@ class TestSpecFactory(object):
             factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
 
     def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v3, app_spec):
-        v3.return_value = app_spec._replace(datadog=True)
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
+        v3.return_value = app_spec._replace(datadog=datadog_spec)
         with pytest.raises(InvalidConfiguration):
             factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
 
     def test_accept_config_if_datadog_defined_and_requested(self, factory, v3, app_spec, config):
         config.datadog_container_image = "datadog"
-        expected = app_spec._replace(datadog=True)
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
+        expected = app_spec._replace(datadog=datadog_spec)
         v3.return_value = expected
         actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
         assert actual == expected

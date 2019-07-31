@@ -1,17 +1,10 @@
 # fiaas-deploy-daemon
 
-<!-- Badger start badges -->
-[![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/travis/finn/fiaas-deploy-daemon)](https://travis.schibsted.io/finn/fiaas-deploy-daemon) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/coverage/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/issues/finn/fiaas-deploy-daemon)](https://reports.spt-engprod-pro.schibsted.io/#/finn/fiaas-deploy-daemon?branch=master&type=push&daterange&daterange) [![Badger](https://badger.spt-engprod-pro.schibsted.io/badge/engprod/finn/fiaas-deploy-daemon)](https://github.schibsted.io/spt-engprod/badger)
-<!-- Badger end badges -->
-
 ![FIAAS logo](https://raw.githubusercontent.com/fiaas/design-assets/master/logo/Logo_Fiaas_colour.png)
 
 ---
 
-Note: The master branch of this repository will be synchronised to https://github.com/fiaas/fiaas-deploy-daemon regularly. Please consider this before committing internal or otherwise sensitive information.
-
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
-
 
 Supported use-cases
 -------------------
@@ -143,9 +136,6 @@ Use this configuration both for debugging and for manual bootstrapping into a cl
     * --debug
     * If you want to deploy to a kubernetes cluster use --api-server, --api-token
      and --api-cert as suitable
-* Environment variables: Add the following two if you wish to pick up pipeline-messages
-    * KAFKA_PIPELINE_SERVICE_HOST=adm-internalmod1.finntech.no
-    * KAFKA_PIPELINE_SERVICE_PORT=7794
 * Python Interpreter: Make sure to add the virtualenv as an SDK, and use that interpreter
 
 
@@ -165,13 +155,15 @@ The default values, and explanation of their meaning are available at `/defaults
 running instance.
 
 
-Updating the github.com repo
-----------------------------
+Release process
+---------------
 
-Until we move development completely to github.com, we need to periodically push the
-latest changes to github.com. Here is one way to do this:
+When changes are merged to master the master branch is built using [Semaphore CI](https://semaphoreci.com). The build generates a docker image that is published to the [fiaas/fiaas-deploy-daemon](https://hub.docker.com/r/fiaas/fiaas-deploy-daemon) repository on Docker Hub and is publicly available.
 
-0. git checkout master
-1. git fetch
-2. git remote add open-source git@github.com:fiaas/fiaas-deploy-daemon.git
-3. git push open-source master
+Additionally as part of the master build process jobs for updating release channels for fiaas-deploy-daemon are executed. Release channels are used by [Skipper](https://github.com/fiaas/skipper) to manage FIAAS in a given cluster and it uses metadata from the release channels to determine which version of fiaas-deploy-daemon to install and when to upgrade as new versions become available.
+
+Release channels are available via [Github pages](https://fiaas.github.io/releases) and metadata is source controlled in a [Github repository](https://github.com/fiaas/releases).
+
+When the master branch is built successfully the `latest` release channel is updated with references to the docker image, build and commit for tracability.  The job for updating the `latest` release channel will persist the release metadata to the releases repository.
+
+Similarly a job for updating the `stable` release channel is now pending but requires manual judgement and execution by a maintainer of the FIAAS organization for the release to be promoted to stable and the `stable` release channel to be updated.

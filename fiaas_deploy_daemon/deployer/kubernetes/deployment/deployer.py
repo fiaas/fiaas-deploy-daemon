@@ -85,8 +85,8 @@ class DeploymentDeployer(object):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
                 replicas = deployment.spec.replicas
-                LOG.warn("configured replica size (%d) for deployment is being ignored, as current running replica size"
-                         " is different (%d) for %s", deployment.spec.replicas, app_spec.replicas, app_spec.name)
+                LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
+                         " is different (%d) for %s", app_spec.replicas, deployment.spec.replicas, app_spec.name)
             except NotFound:
                 pass
 

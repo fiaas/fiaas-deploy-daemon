@@ -190,7 +190,7 @@ In order to use DataDog in a namespace, a secret named `datadog` needs to be pro
 The container will get these environment variables set:
 
 * `DD_TAGS=app:<application name>,k8s_namespace:<kubernetes namespace>`
-* `API_KEY=<the "apikey" value from the "datadog" secret>`
+* `DD_API_KEY=<the "apikey" value from the "datadog" secret>`
 * `NON_LOCAL_TRAFFIC=false`
 * `DD_LOGS_STDOUT=yes`
 

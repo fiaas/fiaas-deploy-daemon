@@ -76,7 +76,7 @@ class TestDataDog(object):
                     'name': 'DD_TAGS',
                     'value': "a:1,app:{},b:2,k8s_namespace:{}".format(app_spec.name, app_spec.namespace)
                 },
-                {'name': 'API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
+                {'name': 'DD_API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
                 {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
                 {'name': 'DD_LOGS_STDOUT', 'value': 'yes'},
                 {'name': 'DD_EXPVAR_PORT', 'value': '42622'},

@@ -40,7 +40,7 @@ class DataDog(object):
             imagePullPolicy="IfNotPresent",
             env=[
                 EnvVar(name="DD_TAGS", value=dd_tags),
-                EnvVar(name="API_KEY",
+                EnvVar(name="DD_API_KEY",
                        valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),

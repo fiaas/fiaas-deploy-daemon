@@ -17,7 +17,6 @@ from fiaas_deploy_daemon.pipeline.reporter import Reporter
 from fiaas_deploy_daemon.specs.app_config_downloader import AppConfigDownloader
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
-
 DummyMessage = namedtuple("DummyMessage", ("value",))
 EVENT = {
     u'action': u'deploy',
@@ -128,7 +127,7 @@ class TestConsumer(object):
 
         result = queue.get_nowait()
         assert app_spec is result.app_spec
-        assert result.action is "UPDATE"
+        assert result.action == "UPDATE"
 
     def test_skip_message_if_wrong_cluster(self, monkeypatch, kafka_consumer, consumer, queue):
         kafka_consumer.__iter__.return_value = [MESSAGE]
@@ -161,7 +160,7 @@ class TestConsumer(object):
         consumer()
         result = queue.get_nowait()
         assert app_spec is result.app_spec
-        assert result.action is "UPDATE"
+        assert result.action == "UPDATE"
 
     def test_should_not_deploy_apps_in_blacklist(self, monkeypatch, kafka_consumer, factory, queue, consumer, app_spec):
         kafka_consumer.__iter__.return_value = [MESSAGE]

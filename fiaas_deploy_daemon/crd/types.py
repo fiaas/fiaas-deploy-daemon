@@ -22,7 +22,7 @@ class FiaasApplication(Model):
         watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/applications"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
-    apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")
+    apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")  # NOQA
     kind = Field(six.text_type, "Application")
 
     metadata = Field(ObjectMeta)
@@ -37,7 +37,7 @@ class FiaasApplicationStatus(Model):
         watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/application-statuses"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
-    apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")
+    apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")  # NOQA
     kind = Field(six.text_type, "ApplicationStatus")
 
     metadata = Field(ObjectMeta)

@@ -12,23 +12,23 @@ def read(filename):
 
 
 GENERIC_REQ = [
-    "ConfigArgParse == 0.12.0",
-    "prometheus_client == 0.3.1",
-    "PyYAML == 3.12",
-    "pyaml == 16.12.2",
-    "pinject == 0.10.2",
-    "six == 1.10.0",
-    "dnspython == 1.15.0",
-    "k8s == 0.11.0",
-    "monotonic == 1.3",
+    "ConfigArgParse == 0.14.0",
+    "prometheus_client == 0.7.1",
+    "PyYAML == 5.1.2",
+    "pyaml == 19.4.1",
+    "pinject == 0.14.1",
+    "six == 1.12.0",
+    "dnspython == 1.16.0",
+    "k8s == 0.12.0",
+    "monotonic == 1.5",
     "appdirs == 1.4.3",
-    "requests-toolbelt == 0.8.0",
-    "backoff == 1.6",
+    "requests-toolbelt == 0.9.1",
+    "backoff == 1.8.0",
 ]
 
 WEB_REQ = [
-    "Flask == 0.12",
-    "flask-talisman==0.5.1",
+    "Flask == 1.1.1",
+    "flask-talisman==0.7.0",
     "blinker == 1.4",
 ]
 
@@ -38,37 +38,33 @@ PIPELINE_REQ = [
 ]
 
 DEPLOY_REQ = [
-    "requests == 2.13.0",
-    "ipaddress == 1.0.18"  # Required by requests for resolving IP address in SSL cert
+    "requests == 2.22.0",
+    "ipaddress == 1.0.22"  # Required by requests for resolving IP address in SSL cert
 ]
 
 FLAKE8_REQ = [
     'flake8-print == 3.1.0',
     'flake8-comprehensions == 1.4.1',
-    'pep8-naming == 0.7.0',
-    'flake8 == 3.6.0'
+    'pep8-naming == 0.8.2',
+    'flake8 == 3.7.8'
 ]
 
 TESTS_REQ = [
-    'mock == 2.0.0',
-    'pytest-xdist == 1.25.0',
+    'mock == 3.0.5',
+    'pytest-xdist == 1.27.0',
     'pytest-sugar == 0.9.2',
-    'pytest-html == 1.19.0',
-    'pytest-cov == 2.6.0',
-    'pytest-helpers-namespace == 2017.11.11',
+    'pytest-html == 1.22.0',
+    'pytest-cov == 2.7.1',
+    'pytest-helpers-namespace == 2019.1.8',
     'pytest == 3.10.1',
     'requests-file == 1.4.3',
     'callee == 0.3',
 ]
 
 DEV_TOOLS = [
-    "tox==3.6.1",
+    "tox==3.13.2",
 ]
 
-# Transient dependencies that needs to be pinned for various reasons
-TRANSIENT_PINNED_TEST_REQ = [
-    "coverage==4.5.1",  # For some reason we end up pulling a buggy pre-release version without this
-]
 
 if __name__ == "__main__":
     setup(
@@ -84,7 +80,7 @@ if __name__ == "__main__":
         install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ,
         setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
         extras_require={
-            "dev": TESTS_REQ + TRANSIENT_PINNED_TEST_REQ + FLAKE8_REQ + DEV_TOOLS
+            "dev": TESTS_REQ + FLAKE8_REQ + DEV_TOOLS
         },
 
         # Metadata

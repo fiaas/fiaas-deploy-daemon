@@ -22,7 +22,7 @@ class PaasbetaApplication(Model):
         watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetaapplications"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
-    apiVersion = Field(six.text_type, "schibsted.io/v1beta")
+    apiVersion = Field(six.text_type, "schibsted.io/v1beta")  # NOQA
     kind = Field(six.text_type, "PaasbetaApplication")
 
     metadata = Field(ObjectMeta)
@@ -37,7 +37,7 @@ class PaasbetaStatus(Model):
         watch_list_url_template = "/apis/schibsted.io/v1beta/watch/namespaces/{namespace}/paasbetastatuses"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
-    apiVersion = Field(six.text_type, "schibsted.io/v1beta")
+    apiVersion = Field(six.text_type, "schibsted.io/v1beta")  # NOQA
     kind = Field(six.text_type, "PaasbetaStatus")
 
     metadata = Field(ObjectMeta)

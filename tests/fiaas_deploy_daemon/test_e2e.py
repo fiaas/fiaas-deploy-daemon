@@ -270,10 +270,7 @@ class TestE2E(object):
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
             }),
             ("v3/data/examples/tls_enabled_multiple.yml", {
-                Service: "e2e_expected/tls-service-multiple.yml",
-                Deployment: "e2e_expected/tls-deployment-multiple.yml",
                 Ingress: "e2e_expected/tls-ingress-multiple.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-multiple.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):

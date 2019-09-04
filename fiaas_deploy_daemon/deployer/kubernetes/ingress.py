@@ -124,6 +124,7 @@ class IngressTls(object):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
+        self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
 
     def apply(self, ingress, app_spec, hosts):
         if self._should_have_ingress_tls(app_spec):
@@ -137,8 +138,14 @@ class IngressTls(object):
                 ingress.metadata.annotations if ingress.metadata.annotations else {},
                 tls_annotations
             )
-            # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries
-            ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts if len(host) < 64]
+
+            if self.enable_deprecated_tls_entry_per_host:
+                # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries and
+                # associated configuration flag
+                ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts if len(host) < 64]
+            else:
+                ingress.spec.tls = []
+
             collapsed = self._collapse_hosts(app_spec, hosts)
             ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
 

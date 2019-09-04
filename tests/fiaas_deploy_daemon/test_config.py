@@ -64,6 +64,7 @@ class TestConfig(object):
         assert config.blacklist == []
         assert config.whitelist == []
         assert config.enable_deprecated_multi_namespace_support is False
+        assert config.enable_deprecated_tls_entry_per_host is False
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
@@ -109,6 +110,7 @@ class TestConfig(object):
         "enable_tpr_support",
         "enable_crd_support",
         "enable_deprecated_multi_namespace_support",
+        "enable_deprecated_tls_entry_per_host",
     ))
     def test_flags(self, key):
         flag = "--{}".format(key.replace("_", "-"))
@@ -216,6 +218,21 @@ class TestConfig(object):
         getenv.return_value = None
         with pytest.raises(InvalidConfigurationException):
             Configuration([])
+
+    def test_behavior_for_undefined_flags_in_config_yml(self, tmpdir):
+        config_flags = {
+            "undefined_configuration_parameter": "a value",
+            "debug": "true",
+        }
+        config_file = tmpdir.join("config.yaml")
+        with config_file.open("w") as fobj:
+            pyaml.dump(config_flags, fobj, safe=True, default_style='"')
+        config = Configuration(["--config-file", config_file.strpath])
+        # Defined configuration flags should be set
+        assert config.debug is True
+        # Undefined configuration flags should not be available
+        with pytest.raises(AttributeError):
+            config.undefined_configuration_parameter
 
 
 class TestHostRewriteRule(object):

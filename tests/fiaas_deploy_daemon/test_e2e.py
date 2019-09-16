@@ -79,7 +79,7 @@ class TestE2E(object):
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     @pytest.fixture(scope="module")
-    def fdd(self, kubernetes, service_type, k8s_version, use_docker_for_e2e):
+    def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         port = get_unbound_port()
         args = [
             "fiaas-deploy-daemon",
@@ -100,7 +100,7 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, service_type, k8s_version, port) + args
+        args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port) + args
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:

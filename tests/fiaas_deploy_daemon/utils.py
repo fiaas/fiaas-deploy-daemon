@@ -282,7 +282,7 @@ class KindWrapper(object):
         try:
             self._start()
             api_port, config_port = self._get_ports()
-            wait_until(self._endpoint_ready(config_port, "docker-ready"), "docker ready", patience=60)
+            wait_until(self._endpoint_ready(config_port, "config"), "config available")
             resp = requests.get("http://localhost:{}/config".format(config_port))
             resp.raise_for_status()
             config = yaml.safe_load(resp.content)
@@ -295,7 +295,7 @@ class KindWrapper(object):
                 "client-key": client_key,
                 "api-cert": api_cert
             }
-            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=60)
+            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
             return result
         except Exception:
             self.delete()

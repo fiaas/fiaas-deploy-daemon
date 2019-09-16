@@ -30,7 +30,7 @@ Use  `$ pip install -r requirements.txt` to install dependencies
 Run tests with `tox`:
 - `$ tox -e codestyle` checks code style, indentations etc.
 - `$ tox -e test` runs unit tests
-- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require a working `minikube` with the one of the `hyperkit`, `kvm`, `kvm2`, `xhyve` or `virtualbox` drivers installed.
+- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker.
 
 Useful resources:
 

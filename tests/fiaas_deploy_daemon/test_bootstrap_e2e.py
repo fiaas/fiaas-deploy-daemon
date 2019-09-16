@@ -91,7 +91,7 @@ class TestBootstrapE2E(object):
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
-    def run_bootstrap(self, kubernetes, k8s_version, use_docker_for_e2e):
+    def run_bootstrap(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         args = [
             "fiaas-deploy-daemon-bootstrap",
             "--debug",
@@ -105,7 +105,7 @@ class TestBootstrapE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
+        args = use_docker_for_e2e(request, cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
 
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()
@@ -132,7 +132,7 @@ class TestBootstrapE2E(object):
         spec = PaasbetaApplicationSpec(application=name, image=IMAGE, config=fiaas_yml)
         return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
 
-    def test_bootstrap_crd(self, kubernetes, k8s_version, use_docker_for_e2e):
+    def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         skip_if_crd_not_supported(k8s_version)
 
         CrdWatcher.create_custom_resource_definitions()
@@ -149,7 +149,7 @@ class TestBootstrapE2E(object):
 
         expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
 
-        exit_code = self.run_bootstrap(kubernetes, k8s_version, use_docker_for_e2e)
+        exit_code = self.run_bootstrap(request, kubernetes, k8s_version, use_docker_for_e2e)
         assert exit_code == 0
 
         def success():
@@ -164,7 +164,7 @@ class TestBootstrapE2E(object):
                 except NotFound:
                     pass  # already missing
 
-    def test_bootstrap_tpr(self, kubernetes, k8s_version, use_docker_for_e2e):
+    def test_bootstrap_tpr(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         skip_if_tpr_not_supported(k8s_version)
         TprWatcher.create_third_party_resource()
         wait_until(tpr_available(kubernetes, timeout=TIMEOUT), "TPR available", RuntimeError, patience=PATIENCE)
@@ -180,7 +180,7 @@ class TestBootstrapE2E(object):
 
         expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
 
-        exit_code = self.run_bootstrap(kubernetes, k8s_version, use_docker_for_e2e)
+        exit_code = self.run_bootstrap(request, kubernetes, k8s_version, use_docker_for_e2e)
         assert exit_code == 0
 
         def success():

@@ -141,9 +141,9 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def use_docker_for_e2e(request):
-    def dockerize(cert_path, service_type, k8s_version, port):
-        container_name = "{}_{}".format(service_type, k8s_version)
-        request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
+    def dockerize(test_request, cert_path, service_type, k8s_version, port):
+        container_name = "fdd_{}_{}".format(service_type, k8s_version)
+        test_request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
         args = [
             "docker", "run",
             "-i", "--rm",

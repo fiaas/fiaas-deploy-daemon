@@ -18,6 +18,7 @@ import os
 import os.path
 import subprocess
 import sys
+import uuid
 
 import pytest
 from k8s import config
@@ -33,9 +34,9 @@ from fiaas_deploy_daemon.crd.watcher import CrdWatcher
 from fiaas_deploy_daemon.tools import merge_dicts
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec
 from fiaas_deploy_daemon.tpr.watcher import TprWatcher
-from minikube import MinikubeError
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -83,23 +84,17 @@ def file_relative_path(relative_path):
 
 @pytest.mark.integration_test
 class TestBootstrapE2E(object):
-
     @pytest.fixture(scope="module")
-    def kubernetes(self, request, minikube_installer, k8s_version):
+    def kubernetes(self, k8s_version):
         try:
-            minikube = minikube_installer.new(profile="bootstrap", k8s_version=k8s_version)
+            name = "_".join(("bootstrap", k8s_version, str(uuid.uuid4())))
+            kind = KindWrapper(k8s_version, name)
             try:
-                minikube.start()
-                yield {
-                    "server": minikube.server,
-                    "client-cert": minikube.client_cert,
-                    "client-key": minikube.client_key,
-                    "api-cert": minikube.api_cert
-                }
+                yield kind.start()
             finally:
-                minikube.delete()
-        except MinikubeError as e:
-            msg = "Unable to run minikube: %s"
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
     @pytest.fixture(autouse=True)

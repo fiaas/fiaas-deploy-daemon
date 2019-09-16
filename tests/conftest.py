@@ -15,13 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import itertools
+import os
 import re
 import subprocess
 
 import pytest
 from xdist.scheduler import LoadScopeScheduling
-
-from minikube.drivers.common import is_macos
 
 DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
 
@@ -167,7 +166,7 @@ def use_docker_for_e2e(request):
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
         ]
-        if not is_macos():
+        if not _is_macos():
             # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it
             # in a container. To do the same thing on Docker for mac it is enough to use --publish, and enabling host
             # networking will make it impossible to connect to the port.
@@ -178,3 +177,7 @@ def use_docker_for_e2e(request):
         return dockerize
     else:
         return lambda *args, **kwargs: []
+
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'

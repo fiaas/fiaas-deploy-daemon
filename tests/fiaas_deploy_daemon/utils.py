@@ -14,10 +14,12 @@
 # limitations under the License.
 from __future__ import print_function
 
+import base64
 import contextlib
 import re
 import socket
 import sys
+import tempfile
 import time
 import traceback
 from copy import deepcopy
@@ -25,6 +27,7 @@ from datetime import datetime
 from distutils.version import StrictVersion
 from urlparse import urljoin
 
+import docker
 import pytest
 import requests
 import yaml
@@ -61,7 +64,8 @@ def wait_until(action, description=None, exception_class=AssertionError, patienc
     if cause:
         message.append("\nThe last exception was:\n")
         message.extend(cause)
-    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
+    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience,
+                                                                    datetime.now().isoformat(" "))
     message.insert(0, header)
     raise exception_class("".join(message))
 
@@ -86,7 +90,8 @@ def tpr_available(kubernetes, timeout=5):
 
 def crd_available(kubernetes, timeout=5):
     app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["server"],
+                         FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
@@ -158,7 +163,7 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     _ensure_key_missing(actual_dict, "metadata", "generation")
     # resourceVersion is used to handle concurrent updates to the same resource
     _ensure_key_missing(actual_dict, "metadata", "resourceVersion")
-    _ensure_key_missing(actual_dict, "metadata", "selfLink")   # a API link to the resource itself
+    _ensure_key_missing(actual_dict, "metadata", "selfLink")  # a API link to the resource itself
     # a unique id randomly for the resource generated on the Kubernetes side
     _ensure_key_missing(actual_dict, "metadata", "uid")
     # an internal annotation used to track ReplicaSets tied to a particular version of a Deployment
@@ -175,10 +180,14 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     # pod.beta.kubernetes.io/init-container-statuses
     # are automatically set when converting from core.Pod to v1.Pod internally in Kubernetes (in some versions)
     if isinstance(resource, Deployment):
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-container-statuses")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.alpha.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.beta.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.alpha.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.beta.kubernetes.io/init-container-statuses")
     if isinstance(resource, Service):
         _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
         for port in actual_dict["spec"]["ports"]:
@@ -199,6 +208,7 @@ def _set_env(expected_dict, image):
             if item["name"] == "IMAGE":
                 item["value"] = image
             yield item
+
     expected_dict["spec"]["template"]["spec"]["containers"][0]["env"] = list(generate_updated_env())
 
 
@@ -208,6 +218,7 @@ def _set_strongbox_groups(expected_dict, strongbox_groups):
             if item["name"] == "SECRET_GROUPS":
                 item["value"] = ",".join(strongbox_groups)
             yield item
+
     expected_dict["spec"]["template"]["spec"]["initContainers"][0]["env"] = list(generate_updated_env())
 
 
@@ -255,3 +266,69 @@ def get_unbound_port():
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
         return s.getsockname()[1]
+
+
+class KindWrapper(object):
+    DOCKER_IMAGE = "bsycorp/kind"
+
+    def __init__(self, k8s_version, name):
+        self.k8s_version = k8s_version
+        self.name = name
+        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name))
+        self._client = docker.from_env()
+        self._container = None
+
+    def start(self):
+        try:
+            self._start()
+            api_port, config_port = self._get_ports()
+            wait_until(self._endpoint_ready(config_port, "docker-ready"), "docker ready", patience=60)
+            resp = requests.get("http://localhost:{}/config".format(config_port))
+            resp.raise_for_status()
+            config = yaml.safe_load(resp.content)
+            api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
+            client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
+            client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
+            result = {
+                "server": "https://localhost:{}".format(api_port),
+                "client-cert": client_cert,
+                "client-key": client_key,
+                "api-cert": api_cert
+            }
+            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=60)
+            return result
+        except Exception:
+            self.delete()
+            raise
+
+    def delete(self):
+        self._container.stop()
+
+    def _endpoint_ready(self, port, endpoint):
+        url = "http://localhost:{}/{}".format(port, endpoint)
+
+        def ready():
+            resp = requests.get(url)
+            resp.raise_for_status()
+
+        return ready
+
+    def _start(self):
+        self._container = self._client.containers.run("{}:{}".format(self.DOCKER_IMAGE, self.k8s_version),
+                                                      detach=True, remove=True, auto_remove=True, privileged=True,
+                                                      name=self.name, hostname=self.name,
+                                                      ports={"10080/tcp": None, "8443/tcp": None})
+
+    def _get_ports(self):
+        self._container.reload()
+        ports = self._container.attrs["NetworkSettings"]["Ports"]
+        config_port = ports["10080/tcp"][-1]["HostPort"]
+        api_port = ports["8443/tcp"][-1]["HostPort"]
+        return api_port, config_port
+
+    def _save_to_file(self, name, data):
+        raw_data = base64.b64decode(data)
+        path = os.path.join(self._workdir, name)
+        with open(path, "wb") as fobj:
+            fobj.write(raw_data)
+        return path

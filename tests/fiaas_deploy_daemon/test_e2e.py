@@ -18,6 +18,7 @@ import os
 import subprocess
 import sys
 import time
+import uuid
 
 import pytest
 import requests
@@ -33,9 +34,9 @@ from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStat
 from fiaas_deploy_daemon.tools import merge_dicts
 from fiaas_deploy_daemon.tpr.status import create_name
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
-from minikube import MinikubeError
 from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -57,21 +58,16 @@ class TestE2E(object):
         return request.param
 
     @pytest.fixture(scope="module")
-    def kubernetes(self, minikube_installer, service_type, k8s_version):
+    def kubernetes(self, service_type, k8s_version):
         try:
-            minikube = minikube_installer.new(profile=service_type, k8s_version=k8s_version)
+            name = "_".join((service_type, k8s_version, str(uuid.uuid4())))
+            kind = KindWrapper(k8s_version, name)
             try:
-                minikube.start()
-                yield {
-                    "server": minikube.server,
-                    "client-cert": minikube.client_cert,
-                    "client-key": minikube.client_key,
-                    "api-cert": minikube.api_cert
-                }
+                yield kind.start()
             finally:
-                minikube.delete()
-        except MinikubeError as e:
-            msg = "Unable to run minikube: %s"
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
     @pytest.fixture(autouse=True)

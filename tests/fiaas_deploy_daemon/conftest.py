@@ -24,8 +24,6 @@ from fiaas_deploy_daemon.specs.models import AppSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, \
     AutoscalerSpec, ExecCheckSpec, LabelAndAnnotationSpec, \
     IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
-from minikube import MinikubeInstaller, MinikubeError
-from minikube.drivers import MinikubeDriverError
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
@@ -189,20 +187,6 @@ def _open():
         yield mock_open
 
 
-@pytest.fixture(scope="session")
-def minikube_installer():
-    try:
-        mki = MinikubeInstaller(minikube_version="v0.25.2")
-        mki.install()
-        yield mki
-        mki.cleanup()
-    except MinikubeDriverError as e:
-        pytest.skip(str(e))
-    except MinikubeError as e:
-        msg = "Unable to install minikube: %s"
-        pytest.fail(msg % str(e))
-
-
-@pytest.fixture(scope="session", params=("v1.6.4", "v1.8.0", "v1.9.0", "v1.10.0"))
+@pytest.fixture(scope="session", params=("v1.9.11", "v1.10.12", "v1.12.10", "v1.14.4"))
 def k8s_version(request):
     yield request.param

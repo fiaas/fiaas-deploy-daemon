@@ -28,9 +28,4 @@ then
     ARGS=("${ARGS[@]}" '--enable-crd-support')
 fi
 
-if [[ "$SERVER_MINOR_VERSION" -lt 7 ]]
-then
-    ARGS=("${ARGS[@]}" '--enable-tpr-support')
-fi
-
 fiaas-deploy-daemon-bootstrap "${ARGS[@]}"

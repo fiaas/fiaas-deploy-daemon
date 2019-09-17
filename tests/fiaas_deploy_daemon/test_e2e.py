@@ -30,11 +30,10 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
+from fiaas_deploy_daemon.crd.status import create_name
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
 from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.tpr.status import create_name
-from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
-from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
+from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
     KindWrapper
 
@@ -95,8 +94,6 @@ class TestE2E(object):
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--use-ingress-tls", "default_off",
         ]
-        if tpr_supported(k8s_version):
-            args.append("--enable-tpr-support")
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
@@ -112,93 +109,11 @@ class TestE2E(object):
 
         try:
             wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if tpr_supported(k8s_version):
-                wait_until(tpr_available(kubernetes, timeout=TIMEOUT), "TPR available", RuntimeError, patience=PATIENCE)
             if crd_supported(k8s_version):
                 wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(fdd)
-
-    @pytest.fixture(ids=_fixture_names, params=(
-            ("data/v2minimal.yml", {
-                Service: "e2e_expected/v2minimal-service.yml",
-                Deployment: "e2e_expected/v2minimal-deployment.yml",
-                Ingress: "e2e_expected/v2minimal-ingress.yml",
-            }),
-            ("v2/data/examples/host.yml", {
-                Service: "e2e_expected/host-service.yml",
-                Deployment: "e2e_expected/host-deployment.yml",
-                Ingress: "e2e_expected/host-ingress.yml",
-            }),
-            ("v2/data/examples/exec_config.yml", {
-                Service: "e2e_expected/exec-service.yml",
-                Deployment: "e2e_expected/exec-deployment.yml",
-                Ingress: "e2e_expected/exec-ingress.yml",
-            }),
-            ("v2/data/examples/tcp_ports.yml", {
-                Service: "e2e_expected/tcp_ports-service.yml",
-                Deployment: "e2e_expected/tcp_ports-deployment.yml",
-            }),
-            ("v2/data/examples/single_tcp_port.yml", {
-                Service: "e2e_expected/single_tcp_port-service.yml",
-                Deployment: "e2e_expected/single_tcp_port-deployment.yml",
-            }),
-            ("v2/data/examples/partial_override.yml", {
-                Service: "e2e_expected/partial_override-service.yml",
-                Deployment: "e2e_expected/partial_override-deployment.yml",
-                Ingress: "e2e_expected/partial_override-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
-            }),
-            ("v3/data/examples/v3minimal.yml", {
-                Service: "e2e_expected/v3minimal-service.yml",
-                Deployment: "e2e_expected/v3minimal-deployment.yml",
-                Ingress: "e2e_expected/v3minimal-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
-            }),
-            ("v3/data/examples/full.yml", {
-                Service: "e2e_expected/v3full-service.yml",
-                Deployment: "e2e_expected/v3full-deployment.yml",
-                Ingress: "e2e_expected/v3full-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
-            }),
-            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
-                Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
-                Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
-                Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
-            }),
-            ("v3/data/examples/strongbox.yml", {
-                Service: "e2e_expected/strongbox-service.yml",
-                Deployment: "e2e_expected/strongbox-deployment.yml",
-                Ingress: "e2e_expected/strongbox-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
-            }),
-            ("v3/data/examples/tls_enabled.yml", {
-                Service: "e2e_expected/tls-service.yml",
-                Deployment: "e2e_expected/tls-deployment.yml",
-                Ingress: "e2e_expected/tls-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
-            }),
-            ("v3/data/examples/tls_enabled_cert_issuer.yml", {
-                Service: "e2e_expected/tls-service-cert-issuer.yml",
-                Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
-                Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
-            }),
-    ))
-    def third_party_resource(self, request, k8s_version):
-        fiaas_path, expected = request.param
-        skip_if_tpr_not_supported(k8s_version)
-
-        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
-
-        name = sanitize_resource_name(fiaas_path)
-        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
-        request.addfinalizer(lambda: self._ensure_clean(name, expected))
-        return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
 
     @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {
@@ -307,54 +222,6 @@ class TestE2E(object):
             return expected.keys()
         else:
             return [Service, Deployment, Ingress]
-
-    @pytest.mark.usefixtures("fdd")
-    def test_third_party_resource_deploy(self, third_party_resource, service_type):
-        name, paasbetaapplication, expected = third_party_resource
-
-        # check that k8s objects for name doesn't already exist
-        kinds = self._select_kinds(expected)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
-
-        # First deploy
-        paasbetaapplication.save()
-
-        # Check that deployment status is RUNNING
-        def _assert_status():
-            status = PaasbetaStatus.get(create_name(name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
-            assert len(status.logs) > 0
-            assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
-
-        wait_until(_assert_status, patience=PATIENCE)
-
-        # Check deploy success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
-
-        # Redeploy, new image, possibly new init-container
-        paasbetaapplication.spec.image = IMAGE2
-        paasbetaapplication.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
-        strongbox_groups = []
-        if "strongbox" in name:
-            strongbox_groups = ["foo", "bar"]
-            paasbetaapplication.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
-        paasbetaapplication.save()
-
-        # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
-                   patience=PATIENCE)
-
-        # Cleanup
-        PaasbetaApplication.delete(name)
-
-        def cleanup_complete():
-            for kind in kinds:
-                with pytest.raises(NotFound):
-                    kind.get(name)
-
-        wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd")
     def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):

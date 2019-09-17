@@ -106,7 +106,6 @@ class TestConfig(object):
 
     @pytest.mark.parametrize("key", (
         "debug",
-        "enable_tpr_support",
         "enable_crd_support",
         "enable_deprecated_multi_namespace_support",
     ))

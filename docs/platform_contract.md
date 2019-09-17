@@ -8,13 +8,7 @@ The [Operators guide](operator_guide.md) documents what cluster operators need t
 
 ## Supported kubernetes versions
 
-| **version** | **manifest deployment target** |
-|-------------|--------------------------------|
-| 1.6.0       | [Third Party Resource](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-third-party-resource/) |
-| 1.7.0       | [Third Party Resource](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-third-party-resource/) and [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.8.0       | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.9.0       | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.10.0      | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
+We are currently testing Kubernetes version 1.9.0 and above. FIAAS may work on older versions, but is not tested.
 
 ## Notable kubernetes features in use
 

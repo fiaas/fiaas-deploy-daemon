@@ -1,7 +1,0 @@
-apiVersion: extensions/v1beta1
-kind: ThirdPartyResource
-metadata:
-  name: paasbeta-application.schibsted.io
-description: "A paas application definition"
-versions:
-- name: v1beta

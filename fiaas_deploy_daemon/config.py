@@ -134,8 +134,6 @@ class Configuration(Namespace):
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
-        parser.add_argument("--enable-tpr-support", help="Enable Third Party Resource support.",
-                            action="store_true")
         parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support.",
                             action="store_true")
         parser.add_argument("--secrets-init-container-image",

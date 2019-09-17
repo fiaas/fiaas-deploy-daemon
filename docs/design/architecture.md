@@ -1,6 +1,14 @@
 Long term architectural plans
 =============================
 
+Outdated
+--------
+
+This document is no longer up to date, and needs to be reviewed. 
+
+----------------------
+
+
 In order for FiaaS to become a platform that is flexible enough to work in a number of situations, while maintaining high developer velocity and deep integration with surrounding infrastructure, the platform should be built using a microservice mindset. By building the platform from many small components working independently from the same world view, we can install FiaaS in any kubernetes cluster using a selection of components to fit the needs of a particular cluster.
 
 The platform should be split into separate services, so that each piece can be replaced if needed. Making each service small makes it easier to pivot to support new use-cases, without having to rewrite large parts of the platform.
@@ -9,7 +17,7 @@ The FiaaS team should build and maintain a number of services, some of which hav
 
 Building our platform from several microservices also gives the cluster operator the option of replacing one or more of the services with custom services tailored for their own needs. For instance, FINN would have integrated access and ingress controller, while other teams would use a custom controller for access combined with a standard ingress controller like nginx.
 
-The key to building a platform in this fashion is to ensure that all interfaces between services are documented and easily used. The obvious choice in a Kubernetes cluster is to use the Kubernetes API, either by creating custom objects (Third Party Resource aka Custom Resource), or by adding annotations or labels to existing objects. Some actions would need to be applied before objects are created, and in future versions of Kubernetes, this could be solved by ["Initializers"](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/admission_control_extension.md). Otherwise, services should watch the Kubernetes API for events of interest and act on them. CoreOS coined the term "Operators" for services of this type, and we should aim to make as many of our services be Operators.
+The key to building a platform in this fashion is to ensure that all interfaces between services are documented and easily used. The obvious choice in a Kubernetes cluster is to use the Kubernetes API, either by creating custom objects (Custom Resource), or by adding annotations or labels to existing objects. Some actions would need to be applied before objects are created, and in future versions of Kubernetes, this could be solved by ["Initializers"](https://github.com/kubernetes/community/blob/master/contributors/design-proposals/admission_control_extension.md). Otherwise, services should watch the Kubernetes API for events of interest and act on them. CoreOS coined the term "Operators" for services of this type, and we should aim to make as many of our services be Operators.
 
 The problem of applying actions before an object is created is so important that we can't wait for initializers to become production ready, so we need to devise a way to solve that problem.
 

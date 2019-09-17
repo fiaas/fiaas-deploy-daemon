@@ -228,7 +228,6 @@ Permissions:
   * `paasbetaapplications`, `paasbetastatuses`: get, list, watch, create, delete, update (1.6)
   * `applications`, `application-statuses`: get, list, watch, create, delete, update (1.7+)
 * `apiextensions`, `apiextensions.k8s.io`
-  * `thirdpartyresources`: get, list, watch, create, delete, update (1.6)
   * `customresourcedefinitions`: get, list, watch, create, delete, update (1.7+)
 * `""` (core api)
   * `services`, `configmaps`, `pods`, `resourcequotas`: get, list, watch, create, delete, update

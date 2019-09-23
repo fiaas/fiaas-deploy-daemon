@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+import logging
+
+from k8s.client import NotFound
+from k8s.models.deployment import Deployment
 from monotonic import monotonic as time_monotonic
 
-from k8s.models.deployment import Deployment
-from k8s.client import NotFound
+LOG = logging.getLogger(__name__)
 
 FAIL_LIMIT_MULTIPLIER = 10
 
@@ -14,8 +17,8 @@ class ReadyCheck(object):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
-        fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
-        self._fail_after = time_monotonic() + fail_after_seconds
+        self._fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
+        self._fail_after = time_monotonic() + self._fail_after_seconds
 
     def __call__(self):
         repository = _repository(self._app_spec)
@@ -28,6 +31,8 @@ class ReadyCheck(object):
             self._lifecycle.failed(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
                                    deployment_id=self._app_spec.deployment_id, repository=repository)
             self._bookkeeper.failed(self._app_spec)
+            LOG.error("Timed out after %d seconds waiting for %s to become ready",
+                      self._fail_after_seconds, self._app_spec.name)
             return False
         return True
 

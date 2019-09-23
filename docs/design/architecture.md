@@ -1,3 +1,18 @@
+<!--
+Copyright 2017-2019 The FIAAS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 Long term architectural plans
 =============================
 
@@ -54,7 +69,7 @@ One problem with ordering of extensions is who sets the order? The extension dev
 #### Priority number
 
 One approach is that each extensions lists a priority number in its FiaasExtension object. When applying hooks, the extensions are ordered according to their priority. If two extensions have the same priority, the ordering between them is undefined.
- 
+
 #### After and before links
 
 The other approach is that each extension has a list of extensions that needs to be applied before it, and a list of extensions that it knows should be after it. It is possible to create loops this way, but it can also express some more complex relationships.

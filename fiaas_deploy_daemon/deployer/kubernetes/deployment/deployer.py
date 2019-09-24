@@ -115,7 +115,6 @@ class DeploymentDeployer(object):
                               strategy=deployment_strategy)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
-        _clear_pod_init_container_annotations(deployment)
         self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
@@ -182,23 +181,6 @@ class DeploymentDeployer(object):
         ])
         env.sort(key=lambda x: x.name)
         return env
-
-
-def _clear_pod_init_container_annotations(deployment):
-    """Kubernetes 1.5 implemented init-containers using annotations, and in order to preserve backwards compatibility in
-    1.6 and 1.7, those annotations take precedence over the actual initContainer element in the spec object. In order to
-    ensure that any changes we make take effect, we clear the annotations.
-    """
-    keys_to_clear = set()
-    try:
-        if deployment.spec.template.metadata.annotations:
-            for key, _ in deployment.spec.template.metadata.annotations.items():
-                if key.endswith("kubernetes.io/init-containers"):
-                    keys_to_clear.add(key)
-            for key in keys_to_clear:
-                del deployment.spec.template.metadata.annotations[key]
-    except AttributeError:
-        pass
 
 
 def _add_status_label(labels):

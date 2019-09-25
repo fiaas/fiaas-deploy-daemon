@@ -240,11 +240,9 @@ By default FIAAS Deploy Daemon will be run using the default ServiceAccount in t
 
 Permissions:
 * `fiaas.schibsted.io`, `schibsted.io`
-  * `paasbetaapplications`, `paasbetastatuses`: get, list, watch, create, delete, update (1.6)
-  * `applications`, `application-statuses`: get, list, watch, create, delete, update (1.7+)
+  * `applications`, `application-statuses`: get, list, watch, create, delete, update
 * `apiextensions`, `apiextensions.k8s.io`
-  * `thirdpartyresources`: get, list, watch, create, delete, update (1.6)
-  * `customresourcedefinitions`: get, list, watch, create, delete, update (1.7+)
+  * `customresourcedefinitions`: get, list, watch, create, delete, update
 * `""` (core api)
   * `services`, `configmaps`, `pods`, `resourcequotas`: get, list, watch, create, delete, update
 * `extensions`

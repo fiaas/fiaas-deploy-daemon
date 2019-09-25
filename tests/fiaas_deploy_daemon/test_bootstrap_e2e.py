@@ -18,6 +18,7 @@ import os
 import os.path
 import subprocess
 import sys
+import uuid
 
 import pytest
 from k8s import config
@@ -31,11 +32,9 @@ from k8s.models.service import Service
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
 from fiaas_deploy_daemon.crd.watcher import CrdWatcher
 from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec
-from fiaas_deploy_daemon.tpr.watcher import TprWatcher
-from minikube import MinikubeError
-from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
+from utils import wait_until, crd_available, crd_supported, \
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -83,23 +82,17 @@ def file_relative_path(relative_path):
 
 @pytest.mark.integration_test
 class TestBootstrapE2E(object):
-
     @pytest.fixture(scope="module")
-    def kubernetes(self, request, minikube_installer, k8s_version):
+    def kubernetes(self, k8s_version):
         try:
-            minikube = minikube_installer.new(profile="bootstrap", k8s_version=k8s_version)
+            name = "_".join(("bootstrap", k8s_version, str(uuid.uuid4())))
+            kind = KindWrapper(k8s_version, name)
             try:
-                minikube.start()
-                yield {
-                    "server": minikube.server,
-                    "client-cert": minikube.client_cert,
-                    "client-key": minikube.client_key,
-                    "api-cert": minikube.api_cert
-                }
+                yield kind.start()
             finally:
-                minikube.delete()
-        except MinikubeError as e:
-            msg = "Unable to run minikube: %s"
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
     @pytest.fixture(autouse=True)
@@ -110,7 +103,7 @@ class TestBootstrapE2E(object):
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
-    def run_bootstrap(self, kubernetes, k8s_version, use_docker_for_e2e):
+    def run_bootstrap(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         args = [
             "fiaas-deploy-daemon-bootstrap",
             "--debug",
@@ -119,12 +112,10 @@ class TestBootstrapE2E(object):
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
         ]
-        if tpr_supported(k8s_version):
-            args.append("--enable-tpr-support")
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
+        args = use_docker_for_e2e(request, cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
 
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()
@@ -140,18 +131,7 @@ class TestBootstrapE2E(object):
         spec = FiaasApplicationSpec(application=name, image=IMAGE, config=fiaas_yml)
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
-    def third_party_resource_test_case(self, fiaas_path, namespace, labels, expected):
-        fiaas_yml = read_yml(file_relative_path(fiaas_path))
-        expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
-
-        name = sanitize_resource_name(fiaas_path)
-
-        metadata = ObjectMeta(name=name, namespace=namespace,
-                              labels=merge_dicts(labels, {"fiaas/deployment_id": DEPLOYMENT_ID}))
-        spec = PaasbetaApplicationSpec(application=name, image=IMAGE, config=fiaas_yml)
-        return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
-
-    def test_bootstrap_crd(self, kubernetes, k8s_version, use_docker_for_e2e):
+    def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         skip_if_crd_not_supported(k8s_version)
 
         CrdWatcher.create_custom_resource_definitions()
@@ -168,44 +148,13 @@ class TestBootstrapE2E(object):
 
         expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
 
-        exit_code = self.run_bootstrap(kubernetes, k8s_version, use_docker_for_e2e)
+        exit_code = self.run_bootstrap(request, kubernetes, k8s_version, use_docker_for_e2e)
         assert exit_code == 0
 
         def success():
             all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
 
         wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
-
-        for name, namespace, expected in expectations:
-            for kind in expected.keys():
-                try:
-                    kind.delete(name, namespace=namespace)
-                except NotFound:
-                    pass  # already missing
-
-    def test_bootstrap_tpr(self, kubernetes, k8s_version, use_docker_for_e2e):
-        skip_if_tpr_not_supported(k8s_version)
-        TprWatcher.create_third_party_resource()
-        wait_until(tpr_available(kubernetes, timeout=TIMEOUT), "TPR available", RuntimeError, patience=PATIENCE)
-
-        def prepare_test_case(test_case):
-            name, paasbeta_application, expected = self.third_party_resource_test_case(*test_case)
-
-            ensure_resources_not_exists(name, expected, paasbeta_application.metadata.namespace)
-
-            paasbeta_application.save()
-
-            return name, paasbeta_application.metadata.namespace, expected
-
-        expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
-
-        exit_code = self.run_bootstrap(kubernetes, k8s_version, use_docker_for_e2e)
-        assert exit_code == 0
-
-        def success():
-            all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
-
-        wait_until(success, "TPR bootstrapping was successful", patience=PATIENCE)
 
         for name, namespace, expected in expectations:
             for kind in expected.keys():

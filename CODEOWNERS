@@ -1,0 +1,6 @@
+# https://help.github.com/en/articles/about-code-owners
+#
+# Defines code owners for the code base.
+#
+# fiaas/maintainers are global code owners.
+* @fiaas/maintainers

@@ -1,3 +1,17 @@
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import random
 import re
 from collections import namedtuple
@@ -5,17 +19,16 @@ from collections import namedtuple
 import mock
 import pytest
 from blinker import Namespace
-from k8s.models.common import ObjectMeta
 from k8s.client import ClientError, NotFound
+from k8s.models.common import ObjectMeta
 from requests import Response
+from utils import configure_mock_fail_then_success
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
-
-from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."

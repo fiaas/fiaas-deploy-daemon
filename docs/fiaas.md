@@ -1,3 +1,18 @@
+<!--
+Copyright 2017-2019 The FIAAS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 FIAAS
 =====
 
@@ -33,7 +48,7 @@ Helm is great for packaged software. Things that get a version number and has an
 We have tried using Helm in a CD setup, and it is painful, it is hard, and it is error prone. Interestingly enough, a whole ecosystem of tools have emerged that try to wrap Helm to do more useful things.
 
 There are several projects that try to define a set of packages to install, all of them designed in a similar fashion. For the deployment of frameworks, tooling and other cluster level systems, Helm is a perfect choice. If you are a cluster administrator, we encourage the use of Helm, probably combined with things like Keel, Helmfile, Helmsman or Landscaper.
- 
+
 Should I use FIAAS for all my applications?
 -------------------------------------------
 

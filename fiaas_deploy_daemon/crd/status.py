@@ -1,3 +1,17 @@
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from __future__ import absolute_import
 
 import logging
@@ -8,13 +22,13 @@ from functools import partial
 
 import pytz
 from blinker import signal
-from k8s.models.common import ObjectMeta
 from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
 
 from .types import FiaasApplicationStatus
-from ..retry import retry_on_upsert_conflict
 from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from ..log_extras import get_final_logs, get_running_logs
+from ..retry import retry_on_upsert_conflict
 
 LAST_UPDATED_KEY = "fiaas/last_updated"
 OLD_STATUSES_TO_KEEP = 10

@@ -2,19 +2,18 @@
 # -*- coding: utf-8
 
 # Copyright 2017-2019 The FIAAS Authors
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-# 
+#
 #      http://www.apache.org/licenses/LICENSE-2.0
-# 
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 from __future__ import absolute_import, unicode_literals
 
 from Queue import Queue
@@ -33,7 +32,6 @@ from fiaas_deploy_daemon.lifecycle import Lifecycle
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 from fiaas_deploy_daemon.tpr import TprWatcher
 from fiaas_deploy_daemon.tpr.types import PaasbetaApplication
-
 
 ADD_EVENT = {
     "object": {

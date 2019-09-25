@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import base64
 import contextlib
+import os
 import re
 import socket
 import sys

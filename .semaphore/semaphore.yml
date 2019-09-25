@@ -35,7 +35,6 @@ blocks:
           # Build docker image
           - ./bin/ci/docker_build
           # Run end-to-end/integration tests
-          - ./bin/ci/install_e2e_requirements
           - tox -e integration_test -- -n 7
           # Store metadata for promotion jobs
           - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id

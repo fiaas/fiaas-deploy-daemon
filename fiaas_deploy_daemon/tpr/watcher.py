@@ -1,3 +1,17 @@
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 # coding: utf-8
 from __future__ import absolute_import
 
@@ -8,13 +22,13 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.third_party_resource import ThirdPartyResource, APIVersion
 from k8s.watcher import Watcher
+from yaml import YAMLError
 
 from fiaas_deploy_daemon.log_extras import set_extras
 from .types import PaasbetaApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..specs.factory import InvalidConfiguration
-from yaml import YAMLError
 
 LOG = logging.getLogger(__name__)
 

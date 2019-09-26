@@ -30,7 +30,6 @@ from ..deployer import DeployerEvent
 from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from ..log_extras import set_extras
 from ..specs.factory import InvalidConfiguration
-from ..tpr.types import PaasbetaApplication
 
 LOG = logging.getLogger(__name__)
 DEPLOY_SCHEDULED = "deploy_scheduled"
@@ -72,12 +71,9 @@ class Bootstrapper(object):
         if config.enable_crd_support:
             self._resource_class = FiaasApplication
             from ..crd.status import connect_signals
-        elif config.enable_tpr_support:
-            self._resource_class = PaasbetaApplication
-            from ..tpr.status import connect_signals
         else:
             raise InvalidConfigurationException(
-                "Third Party Resource or Custom Resource Definition support must be enabled when bootstrapping")
+                "Custom Resource Definition support must be enabled when bootstrapping")
         connect_signals()
         signal(DEPLOY_STARTED).connect(self._store_started)
         signal(DEPLOY_SUCCESS).connect(self._store_success)

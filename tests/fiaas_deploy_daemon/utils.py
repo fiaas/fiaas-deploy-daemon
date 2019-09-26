@@ -285,7 +285,10 @@ class KindWrapper(object):
 
     def delete(self):
         if self._container:
-            self._container.stop()
+            try:
+                self._container.stop()
+            except docker.errors.NotFound:
+                pass  # container has already stopped
 
     def _endpoint_ready(self, port, endpoint):
         url = "http://localhost:{}/{}".format(port, endpoint)

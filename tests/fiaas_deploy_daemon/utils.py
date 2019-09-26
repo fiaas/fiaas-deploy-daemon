@@ -71,8 +71,8 @@ def wait_until(action, description=None, exception_class=AssertionError, patienc
 
 
 def crd_available(kubernetes, timeout=5):
-    app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"],
+    app_url = urljoin(kubernetes["host-to-container-server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["host-to-container-server"],
                          FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
@@ -247,14 +247,16 @@ class KindWrapper(object):
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version
         self.name = name
-        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name))
+        # on Docker for mac, directories under $TMPDIR can't be mounted by default. use /tmp, which works
+        tmp_dir = '/tmp' if _is_macos() else None
+        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name), dir=tmp_dir)
         self._client = docker.from_env()
         self._container = None
 
     def start(self):
         try:
             self._start()
-            api_port, config_port = self._get_ports()
+            in_container_server_ip, api_port, config_port = self._get_ports()
             wait_until(self._endpoint_ready(config_port, "config"), "config available")
             resp = requests.get("http://localhost:{}/config".format(config_port))
             resp.raise_for_status()
@@ -263,10 +265,16 @@ class KindWrapper(object):
             client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
             client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
             result = {
-                "server": "https://localhost:{}".format(api_port),
+                # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
+                # the TLS cert of the apiserver
+                "container-to-container-server-ip": in_container_server_ip,
+                # apiserver endpoint when running fdd as a container
+                "container-to-container-server": "https://kubernetes:8443",
+                # apiserver endpoint for k8s client in tests, or when running fdd locally
+                "host-to-container-server": "https://localhost:{}".format(api_port),
                 "client-cert": client_cert,
                 "client-key": client_key,
-                "api-cert": api_cert
+                "api-cert": api_cert,
             }
             wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
             return result
@@ -275,7 +283,11 @@ class KindWrapper(object):
             raise
 
     def delete(self):
-        self._container.stop()
+        if self._container:
+            try:
+                self._container.stop()
+            except docker.errors.NotFound:
+                pass  # container has already stopped
 
     def _endpoint_ready(self, port, endpoint):
         url = "http://localhost:{}/{}".format(port, endpoint)
@@ -294,10 +306,11 @@ class KindWrapper(object):
 
     def _get_ports(self):
         self._container.reload()
+        ip = self._container.attrs["NetworkSettings"]["IPAddress"]
         ports = self._container.attrs["NetworkSettings"]["Ports"]
         config_port = ports["10080/tcp"][-1]["HostPort"]
         api_port = ports["8443/tcp"][-1]["HostPort"]
-        return api_port, config_port
+        return ip, api_port, config_port
 
     def _save_to_file(self, name, data):
         raw_data = base64.b64decode(data)
@@ -305,3 +318,7 @@ class KindWrapper(object):
         with open(path, "wb") as fobj:
             fobj.write(raw_data)
         return path
+
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'

@@ -155,7 +155,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def use_docker_for_e2e(request):
-    def dockerize(test_request, cert_path, service_type, k8s_version, port):
+    def dockerize(test_request, cert_path, service_type, k8s_version, port, apiserver_ip):
         container_name = "fdd_{}_{}".format(service_type, k8s_version)
         test_request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
         args = [
@@ -165,6 +165,8 @@ def use_docker_for_e2e(request):
             "--name", container_name,
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
+            # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert
+            "--add-host", "kubernetes:{}".format(apiserver_ip),
         ]
         if not _is_macos():
             # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it

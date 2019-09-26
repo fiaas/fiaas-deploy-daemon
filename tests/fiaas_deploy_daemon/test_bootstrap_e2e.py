@@ -98,25 +98,28 @@ class TestBootstrapE2E(object):
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
         Client.clear_session()
-        config.api_server = kubernetes["server"]
+        config.api_server = kubernetes["host-to-container-server"]
         config.debug = True
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     def run_bootstrap(self, request, kubernetes, k8s_version, use_docker_for_e2e):
+        cert_path = os.path.dirname(kubernetes["api-cert"])
+        docker_args = use_docker_for_e2e(request, cert_path, "bootstrap",  k8s_version, get_unbound_port(),
+                                         kubernetes['container-to-container-server-ip'])
+        server = kubernetes['container-to-container-server'] if docker_args else kubernetes["host-to-container-server"]
         args = [
             "fiaas-deploy-daemon-bootstrap",
             "--debug",
-            "--api-server", kubernetes["server"],
+            "--api-server", server,
             "--api-cert", kubernetes["api-cert"],
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
         ]
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
-        cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(request, cert_path, "bootstrap", k8s_version, get_unbound_port()) + args
 
+        args = docker_args + args
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()
 

@@ -265,7 +265,6 @@ class KindWrapper(object):
             client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
             client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
             result = {
-                # "server": "https://kubernetes:8443",
                 # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
                 # the TLS cert of the apiserver
                 "container-to-container-server-ip": in_container_server_ip,

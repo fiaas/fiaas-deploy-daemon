@@ -247,7 +247,9 @@ class KindWrapper(object):
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version
         self.name = name
-        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name))
+        # on Docker for mac, directories under $TMPDIR can't be mounted by default. use /tmp, which works
+        tmp_dir = '/tmp' if _is_macos() else None
+        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name), dir=tmp_dir)
         self._client = docker.from_env()
         self._container = None
 
@@ -305,3 +307,6 @@ class KindWrapper(object):
         with open(path, "wb") as fobj:
             fobj.write(raw_data)
         return path
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'

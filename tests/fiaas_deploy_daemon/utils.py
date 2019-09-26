@@ -277,7 +277,8 @@ class KindWrapper(object):
             raise
 
     def delete(self):
-        self._container.stop()
+        if self._container:
+            self._container.stop()
 
     def _endpoint_ready(self, port, endpoint):
         url = "http://localhost:{}/{}".format(port, endpoint)

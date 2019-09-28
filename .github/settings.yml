@@ -1,0 +1,6 @@
+# https://github.com/probot/settings
+# Inherits from fiaas/.github:_settings.yml
+_extends: .github:_settings.yml
+
+# Add overrides here, to tailor for your repository. If you do not want to use the globale settings,
+# remove the above line and provide all the settings here. Make sure you know what you are doing.

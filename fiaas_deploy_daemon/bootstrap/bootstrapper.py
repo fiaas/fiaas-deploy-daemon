@@ -113,7 +113,9 @@ class Bootstrapper(object):
                 teams=[],
                 tags=[],
                 deployment_id=deployment_id,
-                namespace=application.metadata.namespace
+                namespace=application.metadata.namespace,
+                additional_labels=application.spec.additional_labels,
+                additional_annotations=application.spec.additional_annotations,
             )
             self._store_status(DEPLOY_SCHEDULED, None, app_spec.name, app_spec.namespace, app_spec.deployment_id)
             self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))

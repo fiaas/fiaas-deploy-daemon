@@ -81,7 +81,7 @@ class TestReadyCheck(object):
     def test_deployment_failed(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
                                lifecycle, annotations, repository):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
 
         self._create_response(get, requested, replicas, available, updated)
 

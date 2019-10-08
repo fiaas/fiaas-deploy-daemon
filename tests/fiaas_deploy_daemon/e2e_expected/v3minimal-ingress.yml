@@ -22,6 +22,8 @@ metadata:
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
+    global/label: "true"
+    ingress/label: "true"
   name: v3-data-examples-v3minimal
   namespace: default
   ownerReferences: []

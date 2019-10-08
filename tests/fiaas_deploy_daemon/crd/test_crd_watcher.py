@@ -28,7 +28,7 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.types import FiaasApplication
+from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
@@ -159,8 +159,8 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
         (DELETED_EVENT, "DELETE", None, None),
     ])
-    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, lifecycle,
-                    annotations, repository):
+    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type,
+                    lifecycle, annotations, repository):
         event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
@@ -182,10 +182,14 @@ class TestWatcher(object):
                                                        repository=repository)
 
         app_config = spec["config"]
+        additional_labels = AdditionalLabelsOrAnnotations()
+        additional_annotations = AdditionalLabelsOrAnnotations()
         spec_factory.assert_called_once_with(name=app_name, image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,
-                                             namespace=namespace)
+                                             namespace=namespace,
+                                             additional_labels=additional_labels,
+                                             additional_annotations=additional_annotations)
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()
@@ -205,7 +209,8 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"),
          {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
     ])
-    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type,
+    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event,
+                                                 deployer_event_type,
                                                  error, lifecycle, annotations, repository):
         event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]

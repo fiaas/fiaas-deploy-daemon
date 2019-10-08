@@ -26,6 +26,8 @@ metadata:
     fiaas/version: VERSION
     i: j
     k: l
+    global/label: "true"
+    ingress/label: "true"
   name: v3-data-examples-full
   namespace: default
   ownerReferences: []

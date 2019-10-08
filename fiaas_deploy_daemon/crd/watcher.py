@@ -93,8 +93,8 @@ class CrdWatcher(DaemonThread):
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
+        repository = _repository(application)
         try:
-            repository = _repository(application)
             self._lifecycle.initiate(app_name=application.spec.application, namespace=application.metadata.namespace,
                                      deployment_id=deployment_id, repository=repository)
             app_spec = self._spec_factory(
@@ -104,7 +104,9 @@ class CrdWatcher(DaemonThread):
                 teams=[],
                 tags=[],
                 deployment_id=deployment_id,
-                namespace=application.metadata.namespace
+                namespace=application.metadata.namespace,
+                additional_labels=application.spec.additional_labels,
+                additional_annotations=application.spec.additional_annotations,
             )
             set_extras(app_spec)
             self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
@@ -122,7 +124,9 @@ class CrdWatcher(DaemonThread):
             teams=[],
             tags=[],
             deployment_id="deletion",
-            namespace=application.metadata.namespace
+            namespace=application.metadata.namespace,
+            additional_labels=application.spec.additional_labels,
+            additional_annotations=application.spec.additional_annotations,
         )
         set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec))

@@ -109,9 +109,9 @@ class TestDeploymentDeployer(object):
         generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
-                                        service={}, pod=pod_labels)
+                                        service={}, pod=pod_labels, status={})
         annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
-                                             service={}, pod=pod_annotations)
+                                             service={}, pod=pod_annotations, status={})
 
         if generic_toggle:
             ports = app_spec.ports

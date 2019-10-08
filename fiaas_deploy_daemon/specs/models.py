@@ -18,29 +18,28 @@ from collections import namedtuple
 
 
 class AppSpec(namedtuple("AppSpec", [
-        "namespace",
-        "name",
-        "image",
-        "replicas",
-        "autoscaler",
-        "resources",
-        "admin_access",
-        "secrets_in_environment",
-        "prometheus",
-        "datadog",
-        "ports",
-        "health_checks",
-        "teams",
-        "tags",
-        "deployment_id",
-        "labels",
-        "annotations",
-        "ingresses",
-        "strongbox",
-        "singleton",
-        "ingress_tls",
+    "namespace",
+    "name",
+    "image",
+    "replicas",
+    "autoscaler",
+    "resources",
+    "admin_access",
+    "secrets_in_environment",
+    "prometheus",
+    "datadog",
+    "ports",
+    "health_checks",
+    "teams",
+    "tags",
+    "deployment_id",
+    "labels",
+    "annotations",
+    "ingresses",
+    "strongbox",
+    "singleton",
+    "ingress_tls",
 ])):
-
     __slots__ = ()
 
     @property
@@ -65,8 +64,8 @@ PrometheusSpec = namedtuple("PrometheusSpec", [
     "path"])
 
 DatadogSpec = namedtuple("DatadogSpec", [
-  "enabled",
-  "tags"])
+    "enabled",
+    "tags"])
 
 PortSpec = namedtuple("PortSpec", [
     "protocol",
@@ -106,13 +105,13 @@ AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "cpu_threshold_percentage"
 ])
 
-
 LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
-  "deployment",
-  "horizontal_pod_autoscaler",
-  "ingress",
-  "service",
-  "pod",
+    "deployment",
+    "horizontal_pod_autoscaler",
+    "ingress",
+    "service",
+    "pod",
+    "status",
 ])
 
 IngressItemSpec = namedtuple("IngressItemSpec", [
@@ -125,14 +124,12 @@ IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
     "port",
 ])
 
-
 StrongboxSpec = namedtuple("StrongboxSpec", [
     "enabled",
     "iam_role",
     "aws_region",
     "groups",
 ])
-
 
 IngressTlsSpec = namedtuple("IngressTlsSpec", [
     "enabled",

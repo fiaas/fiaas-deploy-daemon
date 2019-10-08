@@ -31,7 +31,8 @@ from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
 from fiaas_deploy_daemon.crd.status import create_name
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
+    AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.tools import merge_dicts
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
@@ -46,8 +47,7 @@ TIMEOUT = 5
 
 
 def _fixture_names(fixture_value):
-    name, data = fixture_value
-    return name
+    return fixture_value[0]
 
 
 @pytest.mark.integration_test
@@ -153,13 +153,29 @@ class TestE2E(object):
                 Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                ingress={"ingress/label": "true"},
+                service={"service/label": "true"},
+                pod={"pod/label": "true"},
+                status={"status/label": "true"},
+            )),
             ("v3/data/examples/full.yml", {
                 Service: "e2e_expected/v3full-service.yml",
                 Deployment: "e2e_expected/v3full-deployment.yml",
                 Ingress: "e2e_expected/v3full-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                ingress={"ingress/label": "true"},
+                service={"service/label": "true"},
+                pod={"pod/label": "true", "s": "override"},
+                status={"status/label": "true"},
+            )),
             ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
                 Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
                 Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
@@ -192,7 +208,11 @@ class TestE2E(object):
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):
-        fiaas_path, expected = request.param
+        additional_labels = None
+        if len(request.param) == 2:
+            fiaas_path, expected = request.param
+        elif len(request.param) == 3:
+            fiaas_path, expected, additional_labels = request.param
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
@@ -200,7 +220,8 @@ class TestE2E(object):
 
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
+                                    additional_labels=additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 

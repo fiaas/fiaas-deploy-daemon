@@ -67,7 +67,7 @@ class TestDeploy(object):
     ])
     def test_signals_start_of_deploy(self, app_spec, lifecycle, deployer, annotations, repository):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         deployer()
 
@@ -80,7 +80,7 @@ class TestDeploy(object):
     ])
     def test_signals_failure_on_exception(self, app_spec, lifecycle, deployer, adapter, annotations, repository):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         adapter.deploy.side_effect = Exception("message")
 

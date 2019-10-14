@@ -71,8 +71,12 @@ class TestDeploy(object):
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         deployer()
 
-        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
-                                                        deployment_id=app_spec.deployment_id, repository=repository)
+        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name,
+                                                        namespace=app_spec.namespace,
+                                                        deployment_id=app_spec.deployment_id,
+                                                        repository=repository,
+                                                        labels=app_spec.labels.status,
+                                                        annotations=app_spec.annotations.status)
 
     @pytest.mark.parametrize("annotations,repository", [
         (None, None),
@@ -87,8 +91,12 @@ class TestDeploy(object):
         deployer()
 
         lifecycle.success_signal.send.assert_not_called()
-        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
-                                                       deployment_id=app_spec.deployment_id, repository=repository)
+        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name,
+                                                       namespace=app_spec.namespace,
+                                                       deployment_id=app_spec.deployment_id,
+                                                       repository=repository,
+                                                       labels=app_spec.labels.status,
+                                                       annotations=app_spec.annotations.status)
 
     def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle):
         deployer()

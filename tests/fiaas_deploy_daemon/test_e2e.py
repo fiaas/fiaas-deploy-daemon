@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import os
 import subprocess
 import sys
@@ -268,6 +269,13 @@ class TestE2E(object):
             assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
 
         wait_until(_assert_status, patience=PATIENCE)
+
+        # Check that annotations and labels are applied to status object
+        status_labels = fiaas_application.spec.additional_labels.status
+        if status_labels:
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+            assert label_difference == set()
 
         # Check deploy success
         wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)

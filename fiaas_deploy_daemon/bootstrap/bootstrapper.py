@@ -13,6 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from __future__ import absolute_import
 
 import logging
@@ -105,7 +106,9 @@ class Bootstrapper(object):
         try:
             self._lifecycle.initiate(app_name=application.spec.application,
                                      namespace=application.metadata.namespace,
-                                     deployment_id=deployment_id)
+                                     deployment_id=deployment_id,
+                                     labels=application.spec.additional_labels.status,
+                                     annotations=application.spec.additional_annotations.status)
             app_spec = self._spec_factory(
                 name=application.spec.application,
                 image=application.spec.image,
@@ -124,10 +127,12 @@ class Bootstrapper(object):
         except (YAMLError, InvalidConfiguration):
             self._lifecycle.failed(app_name=application.spec.application,
                                    namespace=application.metadata.namespace,
-                                   deployment_id=deployment_id)
+                                   deployment_id=deployment_id,
+                                   labels=application.spec.additional_labels.status,
+                                   annotations=application.spec.additional_annotations.status)
             raise
 
-    def _store_status(self, status, sender, app_name, namespace, deployment_id, repository=None):
+    def _store_status(self, status, sender, app_name, namespace, deployment_id, **kwargs):
         self._status_collector.store_status(status, app_name, namespace)
 
     def _wait_for_readiness(self, wait_time_seconds, timeout_seconds):

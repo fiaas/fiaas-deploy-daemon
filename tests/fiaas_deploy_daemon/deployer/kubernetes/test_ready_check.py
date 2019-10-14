@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import mock
 import pytest
 from k8s.models.deployment import Deployment
@@ -93,7 +94,8 @@ class TestReadyCheck(object):
         bookkeeper.failed.assert_called_with(app_spec)
         lifecycle.success.assert_not_called()
         lifecycle.failed.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
-                                            deployment_id=app_spec.deployment_id, repository=repository)
+                                            deployment_id=app_spec.deployment_id, repository=repository,
+                                            labels=app_spec.labels.status, annotations=app_spec.annotations.status)
 
     @staticmethod
     def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS):

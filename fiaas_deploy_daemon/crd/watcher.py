@@ -1,3 +1,4 @@
+# coding: utf-8
 
 # Copyright 2017-2019 The FIAAS Authors
 #
@@ -12,7 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# coding: utf-8
+
 from __future__ import absolute_import
 
 import logging
@@ -95,8 +96,12 @@ class CrdWatcher(DaemonThread):
                 application.spec.application))
         repository = _repository(application)
         try:
-            self._lifecycle.initiate(app_name=application.spec.application, namespace=application.metadata.namespace,
-                                     deployment_id=deployment_id, repository=repository)
+            self._lifecycle.initiate(app_name=application.spec.application,
+                                     namespace=application.metadata.namespace,
+                                     deployment_id=deployment_id,
+                                     repository=repository,
+                                     labels=application.spec.additional_labels.status,
+                                     annotations=application.spec.additional_annotations.status)
             app_spec = self._spec_factory(
                 name=application.spec.application,
                 image=application.spec.image,
@@ -113,8 +118,12 @@ class CrdWatcher(DaemonThread):
             LOG.debug("Queued deployment for %s", application.spec.application)
         except (InvalidConfiguration, YAMLError):
             LOG.exception("Failed to create app spec from fiaas config file")
-            self._lifecycle.failed(app_name=application.spec.application, namespace=application.metadata.namespace,
-                                   deployment_id=deployment_id, repository=repository)
+            self._lifecycle.failed(app_name=application.spec.application,
+                                   namespace=application.metadata.namespace,
+                                   deployment_id=deployment_id,
+                                   repository=repository,
+                                   labels=application.spec.additional_labels.status,
+                                   annotations=application.spec.additional_annotations.status)
 
     def _delete(self, application):
         app_spec = self._spec_factory(

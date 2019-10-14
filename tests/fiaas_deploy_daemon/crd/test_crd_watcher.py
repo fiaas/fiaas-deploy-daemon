@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from __future__ import absolute_import, unicode_literals
 
 from Queue import Queue
@@ -179,7 +180,9 @@ class TestWatcher(object):
             lifecycle.initiate.assert_called_once_with(app_name=event["object"]["spec"]["application"],
                                                        namespace=event["object"]["metadata"]["namespace"],
                                                        deployment_id='deployment_id',
-                                                       repository=repository)
+                                                       repository=repository,
+                                                       labels=None,
+                                                       annotations=None)
 
         app_config = spec["config"]
         additional_labels = AdditionalLabelsOrAnnotations()
@@ -222,5 +225,7 @@ class TestWatcher(object):
         lifecycle.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
                                                  namespace=event["object"]["metadata"]["namespace"],
                                                  deployment_id='deployment_id',
-                                                 repository=repository)
+                                                 repository=repository,
+                                                 labels=None,
+                                                 annotations=None)
         assert deploy_queue.empty()

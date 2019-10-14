@@ -22,10 +22,22 @@ from k8s.fields import Field, RequiredField, ListField
 from k8s.models.common import ObjectMeta
 
 
+class AdditionalLabelsOrAnnotations(Model):
+    _global = Field(dict)
+    deployment = Field(dict)
+    horizontal_pod_autoscaler = Field(dict)
+    ingress = Field(dict)
+    service = Field(dict)
+    pod = Field(dict)
+    status = Field(dict)
+
+
 class FiaasApplicationSpec(Model):
     application = RequiredField(six.text_type)
     image = RequiredField(six.text_type)
     config = RequiredField(dict)
+    additional_labels = Field(AdditionalLabelsOrAnnotations)
+    additional_annotations = Field(AdditionalLabelsOrAnnotations)
 
 
 class FiaasApplication(Model):

@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import random
 import re
 from collections import namedtuple
@@ -22,13 +22,14 @@ from blinker import Namespace
 from k8s.client import ClientError, NotFound
 from k8s.models.common import ObjectMeta
 from requests import Response
-from utils import configure_mock_fail_then_success
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
+from fiaas_deploy_daemon.tools import merge_dicts
+from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."
@@ -94,13 +95,19 @@ class TestStatusReport(object):
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_action_on_signal(self, request, get_or_create, app_spec, test_data, signal):
         app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
-        app_spec = app_spec._replace(name=test_data.signal_name)
-        labels = {"app": app_spec.name, "fiaas/deployment_id": app_spec.deployment_id}
-        annotations = {"fiaas/last_updated": LAST_UPDATE}
-        metadata = ObjectMeta(name=app_name, namespace="default", labels=labels, annotations=annotations)
+        labels = app_spec.labels._replace(status={"status/label": "true"})
+        annotations = app_spec.annotations._replace(status={"status/annotations": "true"})
+        app_spec = app_spec._replace(name=test_data.signal_name, labels=labels, annotations=annotations)
+
+        expected_labels = merge_dicts(app_spec.labels.status, {"app": app_spec.name,
+                                                               "fiaas/deployment_id": app_spec.deployment_id})
+        expected_annotations = merge_dicts(app_spec.annotations.status, {"fiaas/last_updated": LAST_UPDATE})
+        expected_metadata = ObjectMeta(name=app_name, namespace="default",
+                                       labels=expected_labels, annotations=expected_annotations)
         expected_logs = [LOG_LINE]
-        get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=metadata,
-                                                            result=test_data.result, logs=expected_logs)
+        get_or_create.return_value = FiaasApplicationStatus(new=test_data.new, metadata=expected_metadata,
+                                                            result=test_data.result, logs=expected_logs
+                                                            )
         status.connect_signals()
         expected_call = {
             'apiVersion': 'fiaas.schibsted.io/v1',
@@ -110,10 +117,12 @@ class TestStatusReport(object):
             'metadata': {
                 'labels': {
                     'app': app_spec.name,
-                    'fiaas/deployment_id': app_spec.deployment_id
+                    'fiaas/deployment_id': app_spec.deployment_id,
+                    'status/label': 'true'
                 },
                 'annotations': {
-                    'fiaas/last_updated': LAST_UPDATE
+                    'fiaas/last_updated': LAST_UPDATE,
+                    'status/annotations': 'true'
                 },
                 'namespace': 'default',
                 'name': app_name,
@@ -128,10 +137,13 @@ class TestStatusReport(object):
 
         with mock.patch("fiaas_deploy_daemon.crd.status.now") as mnow:
             mnow.return_value = LAST_UPDATE
-            signal(test_data.signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                               repository=None)
+            signal(test_data.signal_name).send(app_name=app_spec.name,
+                                               namespace=app_spec.namespace,
+                                               deployment_id=app_spec.deployment_id,
+                                               labels=app_spec.labels.status,
+                                               annotations=app_spec.annotations.status)
 
-        get_or_create.assert_called_once_with(metadata=metadata, result=test_data.result, logs=expected_logs)
+        get_or_create.assert_called_once_with(metadata=expected_metadata, result=test_data.result, logs=expected_logs)
         if test_data.action == "create":
             url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
         else:
@@ -170,9 +182,9 @@ class TestStatusReport(object):
             pytest.fail("delete raised NotFound on signal")
 
     @pytest.mark.parametrize("signal_name,fail_times", (
-        ((signal_name, fail_times)
-         for signal_name in (DEPLOY_INITIATED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_FAILED)
-         for fail_times in range(5))
+            ((signal_name, fail_times)
+             for signal_name in (DEPLOY_INITIATED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_FAILED)
+             for fail_times in range(5))
     ))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, signal_name, fail_times):
@@ -189,8 +201,9 @@ class TestStatusReport(object):
         status.connect_signals()
 
         try:
-            signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
-                                     deployment_id=app_spec.deployment_id, repository=None)
+            signal(signal_name).send(app_name=app_spec.name,
+                                     namespace=app_spec.namespace,
+                                     deployment_id=app_spec.deployment_id)
         except UpsertConflict as e:
             if fail_times < CONFLICT_MAX_RETRIES:
                 pytest.fail('Exception {} was raised when signaling {}'.format(e, signal_name))
@@ -199,10 +212,10 @@ class TestStatusReport(object):
         assert save.call_args_list == [mock.call()] * save_calls
 
     @pytest.mark.parametrize("signal_name", (
-        DEPLOY_INITIATED,
-        DEPLOY_STARTED,
-        DEPLOY_SUCCESS,
-        DEPLOY_FAILED
+            DEPLOY_INITIATED,
+            DEPLOY_STARTED,
+            DEPLOY_SUCCESS,
+            DEPLOY_FAILED
     ))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_fail_on_error(self, get_or_create, save, app_spec, signal, signal_name):
@@ -218,7 +231,7 @@ class TestStatusReport(object):
 
         with pytest.raises(ClientError):
             signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
-                                     deployment_id=app_spec.deployment_id, repository=None)
+                                     deployment_id=app_spec.deployment_id)
 
 
 def _create_status(i, annotate=True):

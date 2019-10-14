@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import pytest
 from blinker import signal
 from mock import create_autospec
@@ -49,8 +50,9 @@ class TestReporter(object):
         reporter = Reporter(config, session)
         reporter.register(app_spec, CALLBACK)
 
-        signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
-                                 deployment_id=app_spec.deployment_id, repository=None)
+        signal(signal_name).send(app_name=app_spec.name,
+                                 namespace=app_spec.namespace,
+                                 deployment_id=app_spec.deployment_id)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

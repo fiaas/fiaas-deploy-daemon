@@ -12,6 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from __future__ import absolute_import
 
 import logging
@@ -29,6 +30,7 @@ from .types import FiaasApplicationStatus
 from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
 from ..log_extras import get_final_logs, get_running_logs
 from ..retry import retry_on_upsert_conflict
+from ..tools import merge_dicts
 
 LAST_UPDATED_KEY = "fiaas/last_updated"
 OLD_STATUSES_TO_KEEP = 10
@@ -48,17 +50,19 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(result, sender, app_name, namespace, deployment_id, repository):
-    _save_status(app_name, namespace, deployment_id, result)
+def _handle_signal(result, sender, app_name, namespace, deployment_id, **kwargs):
+    labels = kwargs.get("labels") or {}
+    annotations = kwargs.get("annotations") or {}
+    _save_status(app_name, namespace, deployment_id, result, labels, annotations)
     _cleanup(app_name, namespace)
 
 
 @retry_on_upsert_conflict
-def _save_status(app_name, namespace, deployment_id, result):
+def _save_status(app_name, namespace, deployment_id, result, labels, annotations):
     LOG.info("Saving result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
     name = create_name(app_name, deployment_id)
-    labels = {"app": app_name, "fiaas/deployment_id": deployment_id}
-    annotations = {LAST_UPDATED_KEY: now()}
+    labels = merge_dicts(labels, {"app": app_name, "fiaas/deployment_id": deployment_id})
+    annotations = merge_dicts(annotations, {LAST_UPDATED_KEY: now()})
     metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
     logs = _get_logs(app_name, namespace, deployment_id, result)
     status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)

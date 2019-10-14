@@ -67,12 +67,16 @@ class TestDeploy(object):
     ])
     def test_signals_start_of_deploy(self, app_spec, lifecycle, deployer, annotations, repository):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         deployer()
 
-        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
-                                                        deployment_id=app_spec.deployment_id, repository=repository)
+        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name,
+                                                        namespace=app_spec.namespace,
+                                                        deployment_id=app_spec.deployment_id,
+                                                        repository=repository,
+                                                        labels=app_spec.labels.status,
+                                                        annotations=app_spec.annotations.status)
 
     @pytest.mark.parametrize("annotations,repository", [
         (None, None),
@@ -80,15 +84,19 @@ class TestDeploy(object):
     ])
     def test_signals_failure_on_exception(self, app_spec, lifecycle, deployer, adapter, annotations, repository):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 5))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
         deployer._queue = [DeployerEvent("UPDATE", app_spec)]
         adapter.deploy.side_effect = Exception("message")
 
         deployer()
 
         lifecycle.success_signal.send.assert_not_called()
-        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name, namespace=app_spec.namespace,
-                                                       deployment_id=app_spec.deployment_id, repository=repository)
+        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name,
+                                                       namespace=app_spec.namespace,
+                                                       deployment_id=app_spec.deployment_id,
+                                                       repository=repository,
+                                                       labels=app_spec.labels.status,
+                                                       annotations=app_spec.annotations.status)
 
     def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle):
         deployer()

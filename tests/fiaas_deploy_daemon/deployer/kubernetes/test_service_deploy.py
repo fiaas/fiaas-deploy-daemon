@@ -91,9 +91,9 @@ class TestServiceDeployer(object):
         post.return_value = mock_response
 
         labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
-                                        service=expected_labels, pod={})
+                                        service=expected_labels, pod={}, status={})
         annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
-                                             service=expected_annotations, pod={})
+                                             service=expected_annotations, pod={}, status={})
         app_spec_custom_labels_and_annotations = app_spec._replace(labels=labels, annotations=annotations)
 
         deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})

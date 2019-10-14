@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import collections
 from datetime import datetime
 
@@ -48,7 +49,7 @@ class DevhoseDeploymentEventTransformer(object):
         self._team = config.usage_reporting_team
         self._deployments_started = {}
 
-    def __call__(self, status, app_name, namespace, deployment_id, repository=None):
+    def __call__(self, status, app_name, namespace, deployment_id, repository):
         timestamp = _timestamp()
         started_timestamp = None
         if status == 'STARTED':

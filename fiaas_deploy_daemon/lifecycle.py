@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from blinker import signal
 
 DEPLOY_FAILED = "deploy_failed"
@@ -28,18 +29,14 @@ class Lifecycle(object):
     success_signal = signal(DEPLOY_SUCCESS, "Signals a successful deployment")
     initiate_signal = signal(DEPLOY_INITIATED, "Signals an initiated deployment")
 
-    def start(self, app_name, namespace, deployment_id, repository=None):
-        self.deploy_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id,
-                                repository=repository)
+    def start(self, app_name, namespace, deployment_id, **kwargs):
+        self.deploy_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
 
-    def failed(self, app_name, namespace, deployment_id, repository=None):
-        self.error_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id,
-                               repository=repository)
+    def failed(self, app_name, namespace, deployment_id, **kwargs):
+        self.error_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
 
-    def success(self, app_name, namespace, deployment_id, repository=None):
-        self.success_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id,
-                                 repository=repository)
+    def success(self, app_name, namespace, deployment_id, **kwargs):
+        self.success_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
 
-    def initiate(self, app_name, namespace, deployment_id, repository=None):
-        self.initiate_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id,
-                                  repository=repository)
+    def initiate(self, app_name, namespace, deployment_id, **kwargs):
+        self.initiate_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)

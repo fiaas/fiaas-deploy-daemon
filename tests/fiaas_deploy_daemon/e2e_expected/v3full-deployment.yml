@@ -25,6 +25,8 @@ metadata:
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
+    global/label: "true"
+    deployment/label: "true"
   name: v3-data-examples-full
   namespace: default
   ownerReferences: []
@@ -56,7 +58,9 @@ spec:
         fiaas/status: active
         fiaas/version: VERSION
         q: r
-        s: u
+        s: override
+        global/label: "true"
+        pod/label: "true"
       name: v3-data-examples-full
       namespace: default
       ownerReferences: []

@@ -37,13 +37,21 @@ class ReadyCheck(object):
     def __call__(self):
         repository = _repository(self._app_spec)
         if self._ready():
-            self._lifecycle.success(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
-                                    deployment_id=self._app_spec.deployment_id, repository=repository)
+            self._lifecycle.success(app_name=self._app_spec.name,
+                                    namespace=self._app_spec.namespace,
+                                    deployment_id=self._app_spec.deployment_id,
+                                    repository=repository,
+                                    labels=self._app_spec.labels.status,
+                                    annotations=self._app_spec.annotations.status)
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
-            self._lifecycle.failed(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
-                                   deployment_id=self._app_spec.deployment_id, repository=repository)
+            self._lifecycle.failed(app_name=self._app_spec.name,
+                                   namespace=self._app_spec.namespace,
+                                   deployment_id=self._app_spec.deployment_id,
+                                   repository=repository,
+                                   labels=self._app_spec.labels.status,
+                                   annotations=self._app_spec.annotations.status)
             self._bookkeeper.failed(self._app_spec)
             LOG.error("Timed out after %d seconds waiting for %s to become ready",
                       self._fail_after_seconds, self._app_spec.name)

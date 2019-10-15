@@ -26,6 +26,7 @@ from ..models import AppSpec, PrometheusSpec, DatadogSpec, ResourcesSpec, Resour
     HealthCheckSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, \
     LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
+from ...tools import merge_dicts
 
 
 class Factory(BaseFactory):
@@ -36,8 +37,10 @@ class Factory(BaseFactory):
         # Overwrite default value based on config flag for ingress_tls
         self._defaults["extensions"]["tls"]["enabled"] = config and config.use_ingress_tls == "default_on"
 
-    def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace):
-        if app_config.get("extensions") and app_config["extensions"].get("tls") and type(app_config["extensions"]["tls"]) == bool:
+    def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace,
+                 additional_labels, additional_annotations):
+        if app_config.get("extensions") and app_config["extensions"].get("tls") and type(
+                app_config["extensions"]["tls"]) == bool:
             app_config["extensions"]["tls"] = {u"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
@@ -56,8 +59,8 @@ class Factory(BaseFactory):
             teams=teams,
             tags=tags,
             deployment_id=deployment_id,
-            labels=self._labels_annotations_spec(lookup["labels"]),
-            annotations=self._labels_annotations_spec(lookup["annotations"]),
+            labels=self._labels_annotations_spec(lookup["labels"], additional_labels),
+            annotations=self._labels_annotations_spec(lookup["annotations"], additional_annotations),
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],
@@ -173,14 +176,21 @@ class Factory(BaseFactory):
         return ExecCheckSpec(command=check_lookup["command"])
 
     @staticmethod
-    def _labels_annotations_spec(labels_annotations_lookup):
-        return LabelAndAnnotationSpec(
-            deployment=dict(labels_annotations_lookup["deployment"]),
-            horizontal_pod_autoscaler=dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
-            ingress=dict(labels_annotations_lookup["ingress"]),
-            service=dict(labels_annotations_lookup["service"]),
-            pod=dict(labels_annotations_lookup["pod"])
-        )
+    def _labels_annotations_spec(labels_annotations_lookup, overrides):
+        params = {
+            'deployment': dict(labels_annotations_lookup["deployment"]),
+            'horizontal_pod_autoscaler': dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
+            'ingress': dict(labels_annotations_lookup["ingress"]),
+            'service': dict(labels_annotations_lookup["service"]),
+            'pod': dict(labels_annotations_lookup["pod"]),
+            'status': {}
+        }
+        if overrides:
+            globals = _get_value("_global", overrides)
+            for key in LabelAndAnnotationSpec._fields:
+                override = _get_value(key, overrides)
+                params[key] = merge_dicts(params.get(key, {}), globals, override)
+        return LabelAndAnnotationSpec(**params)
 
     @staticmethod
     def _ingress_items(ingress_lookup, ports_lookup):
@@ -216,3 +226,10 @@ class Factory(BaseFactory):
         return StrongboxSpec(enabled=enabled, iam_role=iam_role,
                              aws_region=strongbox_lookup["aws_region"],
                              groups=groups)
+
+
+def _get_value(key, overrides):
+    override = getattr(overrides, key)
+    if override is None:
+        override = {}
+    return override

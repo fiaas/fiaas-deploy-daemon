@@ -20,6 +20,8 @@ metadata:
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
+    global/label: "true"
+    horizontal-pod-autoscaler/label: "true"
   name: v3-data-examples-v3minimal
   namespace: default
   ownerReferences: []

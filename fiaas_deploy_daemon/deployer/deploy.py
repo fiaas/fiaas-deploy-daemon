@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from __future__ import absolute_import
 
 import logging
@@ -51,22 +52,34 @@ class Deployer(DaemonThread):
                 raise ValueError("Unknown DeployerEvent action {}".format(event.action))
 
     def _update(self, app_spec):
+        repository = _repository(app_spec)
         try:
-            repository = _repository(app_spec)
-            self._lifecycle.start(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                  repository=repository)
+            self._lifecycle.start(app_name=app_spec.name,
+                                  namespace=app_spec.namespace,
+                                  deployment_id=app_spec.deployment_id,
+                                  repository=repository,
+                                  labels=app_spec.labels.status,
+                                  annotations=app_spec.annotations.status)
             with self._bookkeeper.time(app_spec):
                 self._adapter.deploy(app_spec)
             if app_spec.name != "fiaas-deploy-daemon":
                 self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper, self._lifecycle))
             else:
-                self._lifecycle.success(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                        repository=repository)
+                self._lifecycle.success(app_name=app_spec.name,
+                                        namespace=app_spec.namespace,
+                                        deployment_id=app_spec.deployment_id,
+                                        repository=repository,
+                                        labels=app_spec.labels.status,
+                                        annotations=app_spec.annotations.status)
                 self._bookkeeper.success(app_spec)
             LOG.info("Completed deployment of %r", app_spec)
         except Exception:
-            self._lifecycle.failed(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                   repository=repository)
+            self._lifecycle.failed(app_name=app_spec.name,
+                                   namespace=app_spec.namespace,
+                                   deployment_id=app_spec.deployment_id,
+                                   repository=repository,
+                                   labels=app_spec.labels.status,
+                                   annotations=app_spec.annotations.status)
             self._bookkeeper.failed(app_spec)
             LOG.exception("Error while deploying %s: ", app_spec.name)
 

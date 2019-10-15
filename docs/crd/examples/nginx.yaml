@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: "fiaas.schibsted.io/v1"
+apiVersion: fiaas.schibsted.io/v1
 kind: Application
 metadata:
   name: nginx-example
@@ -24,11 +24,13 @@ spec:
   application: nginx-example
   image: docker.io/nginx:1.13.0
   config:
-    version: 2
-    replicas: 2
+    version: 3
+    replicas:
+      maximum: 2
+      minimum: 1
     resources:
       requests:
-        memory: 128m
+        memory: 128Mi
     ports:
       - target_port: 80
     healthchecks:

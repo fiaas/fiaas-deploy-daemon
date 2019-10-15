@@ -1,0 +1,119 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "title": "FIAAS object schema",
+  "$comment": "TODO: Use a version of this schema in the actual CRD object",
+  "definitions": {
+    "io.schibsted.fiaas.v1.Application": {
+      "$id": "#Application",
+      "description": "Top level object describing your application",
+      "type": "object",
+      "required": [
+        "spec"
+      ],
+      "properties": {
+        "metadata": {
+          "$ref": "https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+          "$comment": "Regular ObjectMeta from the k8s API"
+        },
+        "spec": {
+          "$ref": "#ApplicationSpec"
+        }
+      }
+    },
+    "io.schibsted.fiaas.v1.ApplicationSpec": {
+      "$id": "#ApplicationSpec",
+      "description": "A description of your application",
+      "type": "object",
+      "required": [
+        "application",
+        "image",
+        "config"
+      ],
+      "properties": {
+        "application": {
+          "type": "string",
+          "description": "Name of your application"
+        },
+        "image": {
+          "type": "string",
+          "description": "Reference to docker image (including version)"
+        },
+        "config": {
+          "type": "object",
+          "description": "Your fiaas configuration (contents of fiaas.yml in the general case)"
+        },
+        "additional_labels": {
+          "$ref": "#AdditionalLabelsOrAnnotations",
+          "description": "Additional labels to apply to objects created"
+        },
+        "additional_annotations": {
+          "$ref": "#AdditionalLabelsOrAnnotations",
+          "description": "Additional annotations to apply to objects created"
+        }
+      }
+    },
+    "io.schibsted.fiaas.v1.AdditionalLabelsOrAnnotations": {
+      "$id": "#AdditionalLabelsOrAnnotations",
+      "type": "object",
+      "description": "A set of labels or annotations to apply",
+      "properties": {
+        "global": {
+          "type": "object",
+          "description": "These are applied to all objects created"
+        },
+        "deployment": {
+          "type": "object",
+          "description": "Applied to Deployment object"
+        },
+        "horizontal_pod_autoscaler": {
+          "type": "object",
+          "description": "Applied to HPA object"
+        },
+        "ingress": {
+          "type": "object",
+          "description": "Applied to Ingress object"
+        },
+        "service": {
+          "type": "object",
+          "description": "Applied to Service object"
+        },
+        "pod": {
+          "type": "object",
+          "description": "Applied to Pod objects (via Deployment template)"
+        },
+        "status": {
+          "type": "object",
+          "description": "Applied to the ApplicationStatus object related to this deployment"
+        }
+      }
+    },
+    "io.schibsted.fiaas.v1.ApplicationStatus": {
+      "$id": "#ApplicationStatus",
+      "type": "object",
+      "description": "An object describing the status of a particular deployment",
+      "properties": {
+        "metadata": {
+          "$ref": "https://raw.githubusercontent.com/kubernetes/kubernetes/master/api/openapi-spec/swagger.json#/definitions/io.k8s.apimachinery.pkg.apis.meta.v1.ObjectMeta",
+          "$comment": "Regular ObjectMeta from the k8s API"
+        },
+        "result": {
+          "type": "string",
+          "description": "String describing the current state",
+          "enum": [
+            "INITIATED",
+            "RUNNING",
+            "FAILED",
+            "SUCCESS"
+          ]
+        },
+        "logs": {
+          "type": "array",
+          "description": "A list of log-lines related to this deployment",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -98,9 +98,11 @@ class DeploymentDeployer(object):
         if should_have_autoscaler(app_spec):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
-                replicas = deployment.spec.replicas
-                LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
-                         " is different (%d) for %s", app_spec.replicas, deployment.spec.replicas, app_spec.name)
+                # the autoscaler won't scale up the deployment if the current number of replicas is 0
+                if deployment.spec.replicas > 0:
+                    replicas = deployment.spec.replicas
+                    LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
+                             " is different (%d) for %s", app_spec.replicas, deployment.spec.replicas, app_spec.name)
             except NotFound:
                 pass
 

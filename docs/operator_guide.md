@@ -28,7 +28,7 @@ The Basics
 
 In order for FIAAS to function in a cluster, some basics needs to be in place
 
-* Autoscaling based on CPU metrics requires the metrics API (provided by Heapster or metrics-server), deployed in the kube-system namespace
+* Autoscaling based on CPU metrics requires the metrics API (provided by Heapster or metrics-server)
 * Applications expect DNS to work, so kube-dns, coredns or an equivalent substitute should be installed
 * Log aggregation, so that stdout and stderr from applications are collected and aggregated and collected somewhere it can be found. Typically Fluentd collecting and sending to a suitable storage.
 * An ingress controller capable of handling all the required features
@@ -161,11 +161,11 @@ To deploy an application with FIAAS, you need three things:
 
 - A name for your application (Should follow the [Kubernetes conventions for names](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names))
 - A docker image reference
-- A fiaas configuration for your application (commonly referred to as `fiaas.yml`)
+- A FIAAS configuration for your application (commonly referred to as `fiaas.yml`)
 
 To deploy an application, create an Application object describing your application. A JSON schema describing the various objects FIAAS uses is in [schema.json](schema.json). 
 
-When you create or update your Application object, and at various intervals in between, fiaas-deploy-daemon will load the description of your application and create or update all relevant objects to match what is described in your Application. A requirement is that you also set a label on the Application named `fiaas/deployment_id` (the Deployment ID). This should reflect a particular deployment that is to be considered distinct from previous or later deployments. Typically this will change when you either change your image or your fiaas config. 
+When you create or update your Application object, and at various intervals in between, fiaas-deploy-daemon will load the description of your application and create or update all relevant objects to match what is described in your Application. A requirement is that you also set a label on the Application named `fiaas/deployment_id` (the Deployment ID). This should reflect a particular deployment that is to be considered distinct from previous or later deployments. Typically this will change when you either change your image or your FIAAS config. 
 
 When you want to deploy a new version, you can in the simplest case update the `image` field and the Deployment ID label, and FIAAS will ensure a rolling deploy to the new image is performed. Making changes to the other fields in Application will likewise update the deployment.
 

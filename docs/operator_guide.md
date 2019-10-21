@@ -28,7 +28,7 @@ The Basics
 
 In order for FIAAS to function in a cluster, some basics needs to be in place
 
-* Autoscaling based on CPU metrics requires Heapster, deployed in the kube-system namespace
+* Autoscaling based on CPU metrics requires the metrics API (provided by Heapster or metrics-server)
 * Applications expect DNS to work, so kube-dns, coredns or an equivalent substitute should be installed
 * Log aggregation, so that stdout and stderr from applications are collected and aggregated and collected somewhere it can be found. Typically Fluentd collecting and sending to a suitable storage.
 * An ingress controller capable of handling all the required features
@@ -153,6 +153,30 @@ See the Kubernetes documentation about [emptyDir](https://kubernetes.io/docs/con
 
 Used to configure [Usage Reporting](#usage-reporting).
 
+
+Deploying an application
+------------------------
+
+To deploy an application with FIAAS, you need three things:
+
+- A name for your application (Should follow the [Kubernetes conventions for names](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names))
+- A docker image reference
+- A FIAAS configuration for your application (commonly referred to as `fiaas.yml`)
+
+To deploy an application, create an Application object describing your application. A JSON schema describing the various objects FIAAS uses is in [schema.json](schema.json). 
+
+When you create or update your Application object, and at various intervals in between, fiaas-deploy-daemon will load the description of your application and create or update all relevant objects to match what is described in your Application. A requirement is that you also set a label on the Application named `fiaas/deployment_id` (the Deployment ID). This should reflect a particular deployment that is to be considered distinct from previous or later deployments. Typically this will change when you either change your image or your FIAAS config. 
+
+When you want to deploy a new version, you can in the simplest case update the `image` field and the Deployment ID label, and FIAAS will ensure a rolling deploy to the new image is performed. Making changes to the other fields in Application will likewise update the deployment.
+
+When a deployment is running, fiaas-deploy-daemon will update a ApplicationStatus object that is specific for the specified Deployment ID. The status object indicates the current state of the deployment, as well as collect some relevant information.
+
+Mast is an application you can install in your cluster, that provides a REST interface for creating Application objects. It does not currently support all features of the Application object, but we hope to expand it in the future. Mast also has a view for showing the status object related to a deployment, and can be a good starting point for those that want to create their own flow.
+
+Two example Application definitions are included in the docs:
+
+- [fiaas-deploy-daemon](crd/examples/fiaas-deploy-daemon.yaml)
+- [nginx](crd/examples/nginx.yaml)
 
 Secrets
 -------

@@ -126,7 +126,7 @@ class Consumer(DaemonThread):
         app_config = self._app_config_downloader.get(fiaas_url)
 
         return self._spec_factory(name, image, app_config, teams, tags, deployment_id,
-                                  DEFAULT_NAMESPACE)
+                                  DEFAULT_NAMESPACE, None, None)
 
     def _artifacts(self, event):
         artifacts = event[u"artifacts_by_type"]

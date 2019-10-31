@@ -176,7 +176,7 @@ class TestE2E(object):
                 service={"service/label": "true"},
                 pod={"pod/label": "true", "s": "override"},
                 status={"status/label": "true"},
-            }),
+            )),
             ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
                 Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
                 Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",

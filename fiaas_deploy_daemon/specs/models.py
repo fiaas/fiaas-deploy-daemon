@@ -1,33 +1,45 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from collections import namedtuple
 
 
 class AppSpec(namedtuple("AppSpec", [
-        "namespace",
-        "name",
-        "image",
-        "replicas",
-        "autoscaler",
-        "resources",
-        "admin_access",
-        "secrets_in_environment",
-        "prometheus",
-        "datadog",
-        "ports",
-        "health_checks",
-        "teams",
-        "tags",
-        "deployment_id",
-        "labels",
-        "annotations",
-        "ingresses",
-        "strongbox",
-        "singleton",
-        "ingress_tls",
+    "namespace",
+    "name",
+    "image",
+    "replicas",
+    "autoscaler",
+    "resources",
+    "admin_access",
+    "secrets_in_environment",
+    "prometheus",
+    "datadog",
+    "ports",
+    "health_checks",
+    "teams",
+    "tags",
+    "deployment_id",
+    "labels",
+    "annotations",
+    "ingresses",
+    "strongbox",
+    "singleton",
+    "ingress_tls",
 ])):
-
     __slots__ = ()
 
     @property
@@ -52,8 +64,8 @@ PrometheusSpec = namedtuple("PrometheusSpec", [
     "path"])
 
 DatadogSpec = namedtuple("DatadogSpec", [
-  "enabled",
-  "tags"])
+    "enabled",
+    "tags"])
 
 PortSpec = namedtuple("PortSpec", [
     "protocol",
@@ -93,13 +105,13 @@ AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "cpu_threshold_percentage"
 ])
 
-
 LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
-  "deployment",
-  "horizontal_pod_autoscaler",
-  "ingress",
-  "service",
-  "pod",
+    "deployment",
+    "horizontal_pod_autoscaler",
+    "ingress",
+    "service",
+    "pod",
+    "status",
 ])
 
 IngressItemSpec = namedtuple("IngressItemSpec", [
@@ -112,14 +124,12 @@ IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
     "port",
 ])
 
-
 StrongboxSpec = namedtuple("StrongboxSpec", [
     "enabled",
     "iam_role",
     "aws_region",
     "groups",
 ])
-
 
 IngressTlsSpec = namedtuple("IngressTlsSpec", [
     "enabled",

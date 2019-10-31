@@ -1,27 +1,43 @@
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from __future__ import print_function
 
+import base64
 import contextlib
-from copy import deepcopy
-from datetime import datetime
-from distutils.version import StrictVersion
+import os
 import re
 import socket
 import sys
+import tempfile
 import time
 import traceback
+from copy import deepcopy
+from datetime import datetime
+from distutils.version import StrictVersion
 from urlparse import urljoin
 
+import docker
+import pytest
+import requests
+import yaml
 from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.deployment import Deployment
 from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
-import pytest
-import requests
-import yaml
-
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
-from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaStatus
 
 
 def plog(message):
@@ -48,32 +64,16 @@ def wait_until(action, description=None, exception_class=AssertionError, patienc
     if cause:
         message.append("\nThe last exception was:\n")
         message.extend(cause)
-    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
+    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience,
+                                                                    datetime.now().isoformat(" "))
     message.insert(0, header)
     raise exception_class("".join(message))
 
 
-def tpr_available(kubernetes, timeout=5):
-    app_url = urljoin(kubernetes["server"], PaasbetaApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], PaasbetaStatus._meta.url_template.format(namespace="default", name=""))
-    session = requests.Session()
-    session.verify = kubernetes["api-cert"]
-    session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
-
-    def _tpr_available():
-        plog("Checking if TPRs are available")
-        for url in (app_url, status_url):
-            plog("Checking %s" % url)
-            resp = session.get(url, timeout=timeout)
-            resp.raise_for_status()
-            plog("!!!!! %s is available !!!!" % url)
-
-    return _tpr_available
-
-
 def crd_available(kubernetes, timeout=5):
-    app_url = urljoin(kubernetes["server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["server"], FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
+    app_url = urljoin(kubernetes["host-to-container-server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
+    status_url = urljoin(kubernetes["host-to-container-server"],
+                         FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
@@ -89,17 +89,8 @@ def crd_available(kubernetes, timeout=5):
     return _crd_available
 
 
-def tpr_supported(k8s_version):
-    return StrictVersion("1.6.0") <= StrictVersion(k8s_version[1:]) < StrictVersion("1.8.0")
-
-
 def crd_supported(k8s_version):
     return StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
-
-
-def skip_if_tpr_not_supported(k8s_version):
-    if not tpr_supported(k8s_version):
-        pytest.skip("TPR not supported in version %s of kubernetes, skipping this test" % k8s_version)
 
 
 def skip_if_crd_not_supported(k8s_version):
@@ -145,7 +136,7 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     _ensure_key_missing(actual_dict, "metadata", "generation")
     # resourceVersion is used to handle concurrent updates to the same resource
     _ensure_key_missing(actual_dict, "metadata", "resourceVersion")
-    _ensure_key_missing(actual_dict, "metadata", "selfLink")   # a API link to the resource itself
+    _ensure_key_missing(actual_dict, "metadata", "selfLink")  # a API link to the resource itself
     # a unique id randomly for the resource generated on the Kubernetes side
     _ensure_key_missing(actual_dict, "metadata", "uid")
     # an internal annotation used to track ReplicaSets tied to a particular version of a Deployment
@@ -162,10 +153,14 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     # pod.beta.kubernetes.io/init-container-statuses
     # are automatically set when converting from core.Pod to v1.Pod internally in Kubernetes (in some versions)
     if isinstance(resource, Deployment):
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-container-statuses")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.alpha.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.beta.kubernetes.io/init-containers")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.alpha.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
+                            "pod.beta.kubernetes.io/init-container-statuses")
     if isinstance(resource, Service):
         _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
         for port in actual_dict["spec"]["ports"]:
@@ -186,6 +181,7 @@ def _set_env(expected_dict, image):
             if item["name"] == "IMAGE":
                 item["value"] = image
             yield item
+
     expected_dict["spec"]["template"]["spec"]["containers"][0]["env"] = list(generate_updated_env())
 
 
@@ -195,6 +191,7 @@ def _set_strongbox_groups(expected_dict, strongbox_groups):
             if item["name"] == "SECRET_GROUPS":
                 item["value"] = ",".join(strongbox_groups)
             yield item
+
     expected_dict["spec"]["template"]["spec"]["initContainers"][0]["env"] = list(generate_updated_env())
 
 
@@ -242,3 +239,86 @@ def get_unbound_port():
     with contextlib.closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
         s.bind(("", 0))
         return s.getsockname()[1]
+
+
+class KindWrapper(object):
+    DOCKER_IMAGE = "bsycorp/kind"
+
+    def __init__(self, k8s_version, name):
+        self.k8s_version = k8s_version
+        self.name = name
+        # on Docker for mac, directories under $TMPDIR can't be mounted by default. use /tmp, which works
+        tmp_dir = '/tmp' if _is_macos() else None
+        self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name), dir=tmp_dir)
+        self._client = docker.from_env()
+        self._container = None
+
+    def start(self):
+        try:
+            self._start()
+            in_container_server_ip, api_port, config_port = self._get_ports()
+            wait_until(self._endpoint_ready(config_port, "config"), "config available")
+            resp = requests.get("http://localhost:{}/config".format(config_port))
+            resp.raise_for_status()
+            config = yaml.safe_load(resp.content)
+            api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
+            client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
+            client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
+            result = {
+                # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
+                # the TLS cert of the apiserver
+                "container-to-container-server-ip": in_container_server_ip,
+                # apiserver endpoint when running fdd as a container
+                "container-to-container-server": "https://kubernetes:8443",
+                # apiserver endpoint for k8s client in tests, or when running fdd locally
+                "host-to-container-server": "https://localhost:{}".format(api_port),
+                "client-cert": client_cert,
+                "client-key": client_key,
+                "api-cert": api_cert,
+            }
+            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
+            return result
+        except Exception:
+            self.delete()
+            raise
+
+    def delete(self):
+        if self._container:
+            try:
+                self._container.stop()
+            except docker.errors.NotFound:
+                pass  # container has already stopped
+
+    def _endpoint_ready(self, port, endpoint):
+        url = "http://localhost:{}/{}".format(port, endpoint)
+
+        def ready():
+            resp = requests.get(url)
+            resp.raise_for_status()
+
+        return ready
+
+    def _start(self):
+        self._container = self._client.containers.run("{}:{}".format(self.DOCKER_IMAGE, self.k8s_version),
+                                                      detach=True, remove=True, auto_remove=True, privileged=True,
+                                                      name=self.name, hostname=self.name,
+                                                      ports={"10080/tcp": None, "8443/tcp": None})
+
+    def _get_ports(self):
+        self._container.reload()
+        ip = self._container.attrs["NetworkSettings"]["IPAddress"]
+        ports = self._container.attrs["NetworkSettings"]["Ports"]
+        config_port = ports["10080/tcp"][-1]["HostPort"]
+        api_port = ports["8443/tcp"][-1]["HostPort"]
+        return ip, api_port, config_port
+
+    def _save_to_file(self, name, data):
+        raw_data = base64.b64decode(data)
+        path = os.path.join(self._workdir, name)
+        with open(path, "wb") as fobj:
+            fobj.write(raw_data)
+        return path
+
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'

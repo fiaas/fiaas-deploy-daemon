@@ -1,13 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import itertools
+import os
 import re
 import subprocess
 
 import pytest
 from xdist.scheduler import LoadScopeScheduling
-
-from minikube.drivers.common import is_macos
 
 DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
 
@@ -142,9 +155,9 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def use_docker_for_e2e(request):
-    def dockerize(cert_path, service_type, k8s_version, port):
-        container_name = "{}_{}".format(service_type, k8s_version)
-        request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
+    def dockerize(test_request, cert_path, service_type, k8s_version, port, apiserver_ip):
+        container_name = "fdd_{}_{}".format(service_type, k8s_version)
+        test_request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
         args = [
             "docker", "run",
             "-i", "--rm",
@@ -152,8 +165,10 @@ def use_docker_for_e2e(request):
             "--name", container_name,
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
+            # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert
+            "--add-host", "kubernetes:{}".format(apiserver_ip),
         ]
-        if not is_macos():
+        if not _is_macos():
             # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it
             # in a container. To do the same thing on Docker for mac it is enough to use --publish, and enabling host
             # networking will make it impossible to connect to the port.
@@ -164,3 +179,7 @@ def use_docker_for_e2e(request):
         return dockerize
     else:
         return lambda *args, **kwargs: []
+
+
+def _is_macos():
+    return os.uname()[0] == 'Darwin'

@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import mock
 import pytest
 from k8s.models.common import ObjectMeta
@@ -43,8 +57,8 @@ def app_spec(**kwargs):
         teams=[u'foo'],
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",
-        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
@@ -424,9 +438,9 @@ TEST_DATA = (
     ("custom_labels_and_annotations",
      app_spec(labels=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
                                             ingress={"ingress_deployer": "pass through", "custom": "label"},
-                                            service={}, pod={}),
+                                            service={}, pod={}, status={}),
               annotations=LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={},
-                                                 ingress={"custom": "annotation"}, service={}, pod={})),
+                                                 ingress={"custom": "annotation"}, service={}, pod={}, status={})),
      ingress(metadata=pytest.helpers.create_metadata('testapp', external=False,
                                                      labels={"ingress_deployer": "pass through", "custom": "label"},
                                                      annotations={"fiaas/expose": "false", "custom": "annotation"}))),

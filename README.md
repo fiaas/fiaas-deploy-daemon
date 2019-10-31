@@ -1,3 +1,18 @@
+<!--
+Copyright 2017-2019 The FIAAS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 # fiaas-deploy-daemon
 
 ![FIAAS logo](https://raw.githubusercontent.com/fiaas/design-assets/master/logo/Logo_Fiaas_colour.png)
@@ -30,7 +45,7 @@ Use  `$ pip install -r requirements.txt` to install dependencies
 Run tests with `tox`:
 - `$ tox -e codestyle` checks code style, indentations etc.
 - `$ tox -e test` runs unit tests
-- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require a working `minikube` with the one of the `hyperkit`, `kvm`, `kvm2`, `xhyve` or `virtualbox` drivers installed.
+- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker.
 
 Useful resources:
 
@@ -49,44 +64,9 @@ To run fiaas-deploy-daemon locally and connect it to a minikube cluster, do the 
 * Run `$ bin/run_fdd_against_minikube`
 
 There should be a bunch of logging while fiaas-deploy-daemon starts and initializes the required
-ThirdPartyResources and/or CustomResourceDefinitions. This is normal.
+CustomResourceDefinitions. This is normal.
 
 If you need to test some behavior manually you can deploy applications into minikube via fiaas-deploy-daemon in a few ways:
-
-#### Deploying an application via ThirdPartyResource
-
-In Kubernetes 1.6 and 1.7 you can deploy applications by creating a PaasbetaApplication ThirdPartyResource.
-
-An example PaasbetaApplication:
-
-```yaml
-apiVersion: schibsted.io/v1beta
-kind: PaasbetaApplication
-metadata:
-  labels:
-    app: example
-    fiaas/deployment_id: test
-  name: example
-  namespace: default
-spec:
-  application: example
-  image: nginx:1.13.0
-  config:
-    version: 2
-    host: example.com
-    prometheus:
-      enabled: false
-    resources:
-      limits:
-        memory: 128M
-        cpu: 200m
-      requests:
-        memory: 64M
-        cpu: 100m
-```
-
-Create the resource by saving this in a file like e.g. `example.yml` and then run
-`$ kubectl --context minikube create -f example.yml`.
 
 #### Deploying an application via CustomResourceDefinition
 

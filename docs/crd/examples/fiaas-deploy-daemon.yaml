@@ -1,26 +1,42 @@
-apiVersion: "fiaas.schibsted.io/v1"
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: fiaas.schibsted.io/v1
 kind: Application
 metadata:
-  name: fiaas-deploy-daemon
-  annotations:
-    fiaas/artifact_id: 20180313140557-9af2ccf
   labels:
-    fiaas/deployment_id: 20180313140557-9af2ccf
+    app: fiaas-deploy-daemon
+    fiaas/deployment_id: 59677ef9-7bc6-4cec-bbd5-fc4f5a4d1933
+  name: fiaas-deploy-daemon
 spec:
   application: fiaas-deploy-daemon
-  image: registry:5000/fiaas-deploy-daemon:20180313140557-9af2ccf
+  image: fiaas/fiaas-deploy-daemon:20190812124040-967aba3
   config:
-    version: 2
+    version: 3
     admin_access: true
-    replicas: 1
+    replicas:
+      maximum: 1
+      minimum: 1
     resources:
       requests:
-        memory: 128m
+        memory: 128Mi
     ports:
       - target_port: 5000
     healthchecks:
       liveness:
         http:
           path: /healthz
-    config:
-      volume: true
+    metrics:
+      prometheus:
+        path: /internal-backstage/prometheus

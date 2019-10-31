@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import absolute_import, unicode_literals
 
 from Queue import Queue
@@ -14,11 +29,10 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.types import FiaasApplication
+from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
-
 
 ADD_EVENT = {
     "object": {
@@ -146,8 +160,8 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
         (DELETED_EVENT, "DELETE", None, None),
     ])
-    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type, lifecycle,
-                    annotations, repository):
+    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type,
+                    lifecycle, annotations, repository):
         event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
@@ -166,13 +180,19 @@ class TestWatcher(object):
             lifecycle.initiate.assert_called_once_with(app_name=event["object"]["spec"]["application"],
                                                        namespace=event["object"]["metadata"]["namespace"],
                                                        deployment_id='deployment_id',
-                                                       repository=repository)
+                                                       repository=repository,
+                                                       labels=None,
+                                                       annotations=None)
 
         app_config = spec["config"]
+        additional_labels = AdditionalLabelsOrAnnotations()
+        additional_annotations = AdditionalLabelsOrAnnotations()
         spec_factory.assert_called_once_with(name=app_name, image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,
-                                             namespace=namespace)
+                                             namespace=namespace,
+                                             additional_labels=additional_labels,
+                                             additional_annotations=additional_annotations)
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()
@@ -192,7 +212,8 @@ class TestWatcher(object):
         (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"),
          {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
     ])
-    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event, deployer_event_type,
+    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event,
+                                                 deployer_event_type,
                                                  error, lifecycle, annotations, repository):
         event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
@@ -204,5 +225,7 @@ class TestWatcher(object):
         lifecycle.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
                                                  namespace=event["object"]["metadata"]["namespace"],
                                                  deployment_id='deployment_id',
-                                                 repository=repository)
+                                                 repository=repository,
+                                                 labels=None,
+                                                 annotations=None)
         assert deploy_queue.empty()

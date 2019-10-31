@@ -1,11 +1,26 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from __future__ import absolute_import, unicode_literals
 
 import mock
 import pytest
 
 from fiaas_deploy_daemon import Configuration
+from fiaas_deploy_daemon.crd.types import AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration
 from fiaas_deploy_daemon.specs.lookup import _Lookup
 from fiaas_deploy_daemon.specs.v3.factory import Factory
@@ -329,7 +344,8 @@ class TestFactory(object):
             "v3minimal",
     ))
     def test_name_and_image(self, load_app_config_testdata, factory, filename):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
+                           None, None)
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
@@ -341,10 +357,55 @@ class TestFactory(object):
     ))
     def test_invalid_configuration(self, load_app_config_testdata, factory, filename):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
+            factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
+                    None, None)
+
+    @pytest.mark.parametrize("filename,attribute,value", (
+            ("v3minimal", "annotations.deployment", {"global/annotation": "true", "deployment/annotation": "true"}),
+            ("labels_and_annotations", "annotations.pod", {
+                "global/annotation": "true",
+                "pod/annotation": "true",
+                "x": "y",
+                "z": "override",
+            }),
+            ("labels_and_annotations", "labels.pod", {
+                "global/label": "true",
+                "pod/label": "true",
+                "q": "r",
+                "s": "override",
+            }),
+            ("labels_and_annotations", "labels.status", {"global/label": "true", "status/label": "true"}),
+    ))
+    def test_additional_labels_and_annotations(self, load_app_config_testdata, factory, filename, attribute, value):
+        additional_labels = AdditionalLabelsOrAnnotations(
+            _global={"global/label": "true"},
+            deployment={"deployment/label": "true"},
+            horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+            ingress={"ingress/label": "true"},
+            service={"service/label": "true"},
+            pod={"pod/label": "true", "s": "override"},
+            status={"status/label": "true"},
+        )
+        additional_annotations = AdditionalLabelsOrAnnotations(
+            _global={"global/annotation": "true"},
+            deployment={"deployment/annotation": "true"},
+            horizontal_pod_autoscaler={"horizontal-pod-autoscaler/annotation": "true"},
+            ingress={"ingress/annotation": "true"},
+            service={"service/annotation": "true"},
+            pod={"pod/annotation": "true", "z": "override"},
+            status={"status/annotation": "true"},
+        )
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), [], [], "deployment_id", NAMESPACE,
+                           additional_labels, additional_annotations)
+        assert app_spec is not None
+        code = "app_spec.%s" % attribute
+        actual = eval(code)
+        assert isinstance(actual, _Lookup) is False  # _Lookup objects should not leak to AppSpec
+        assert actual == value
 
     def test(self, load_app_config_testdata, factory, filename, attribute, value):
-        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE)
+        app_spec = factory(NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
+                           None, None)
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)

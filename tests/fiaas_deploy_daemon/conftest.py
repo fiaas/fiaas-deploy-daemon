@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import mock
 import pytest
 from k8s import config
@@ -11,8 +24,6 @@ from fiaas_deploy_daemon.specs.models import AppSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, \
     AutoscalerSpec, ExecCheckSpec, LabelAndAnnotationSpec, \
     IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
-from minikube import MinikubeInstaller, MinikubeError
-from minikube.drivers import MinikubeDriverError
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
@@ -48,8 +59,8 @@ def app_spec():
         teams=[u'foo'],
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",
-        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}),
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
@@ -176,20 +187,6 @@ def _open():
         yield mock_open
 
 
-@pytest.fixture(scope="session")
-def minikube_installer():
-    try:
-        mki = MinikubeInstaller(minikube_version="v0.25.2")
-        mki.install()
-        yield mki
-        mki.cleanup()
-    except MinikubeDriverError as e:
-        pytest.skip(str(e))
-    except MinikubeError as e:
-        msg = "Unable to install minikube: %s"
-        pytest.fail(msg % str(e))
-
-
-@pytest.fixture(scope="session", params=("v1.6.4", "v1.8.0", "v1.9.0", "v1.10.0"))
+@pytest.fixture(scope="session", params=("v1.9.11", "v1.10.12", "v1.12.10", "v1.14.4"))
 def k8s_version(request):
     yield request.param

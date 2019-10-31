@@ -1,6 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 from mock import ANY, create_autospec
 
@@ -51,31 +64,31 @@ class TestSpecFactory(object):
         minimal_config = {}
         if version:
             minimal_config["version"] = version
-        factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+        factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         mock_factory = request.getfuncargvalue(mock_to_call)
         mock_factory.assert_called_with(minimal_config, strip_defaults=False)
 
     @pytest.mark.parametrize("version", [1, 2, 3])
     def test_parsed_by_current_version(self, factory, version, v3):
-        factory(NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
-        v3.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE)
+        factory(NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+        v3.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_raise_invalid_config_if_version_not_supported(self, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+            factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v3, app_spec):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         v3.return_value = app_spec._replace(datadog=datadog_spec)
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_accept_config_if_datadog_defined_and_requested(self, factory, v3, app_spec, config):
         config.datadog_container_image = "datadog"
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         expected = app_spec._replace(datadog=datadog_spec)
         v3.return_value = expected
-        actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+        actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         assert actual == expected
 
     @pytest.mark.parametrize("exception", (
@@ -89,4 +102,4 @@ class TestSpecFactory(object):
     def test_parse_errors_raises_invalid_config(self, factory, v3, exception):
         v3.side_effect = exception
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE)
+            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)

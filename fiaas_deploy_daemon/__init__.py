@@ -1,13 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from __future__ import absolute_import
 
 import logging
-from Queue import Queue
-import sys
 import signal
+import sys
 import threading
 import traceback
+from Queue import Queue
 
 import pinject
 import requests
@@ -24,7 +38,6 @@ from .pipeline import PipelineBindings
 from .secrets import resolve_secrets
 from .specs import SpecBindings
 from .tools import log_request_response
-from .tpr import ThirdPartyResourceBindings, DisabledThirdPartyResourceBindings
 from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
 
@@ -57,7 +70,7 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, tpr_watcher, crd_watcher, usage_reporter):
+    def __init__(self, deployer, consumer, scheduler, crd_watcher, usage_reporter):
         pass
 
     def is_healthy(self):
@@ -65,7 +78,6 @@ class HealthCheck(object):
             self._deployer.is_alive(),
             self._consumer.is_alive(),
             self._scheduler.is_alive(),
-            self._tpr_watcher.is_alive(),
             self._crd_watcher.is_alive(),
             self._usage_reporter.is_alive(),
         ))
@@ -73,14 +85,13 @@ class HealthCheck(object):
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, webapp, config, tpr_watcher, crd_watcher, usage_reporter):
+    def __init__(self, deployer, consumer, scheduler, webapp, config, crd_watcher, usage_reporter):
         pass
 
     def run(self):
         self._deployer.start()
         self._consumer.start()
         self._scheduler.start()
-        self._tpr_watcher.start()
         self._crd_watcher.start()
         self._usage_reporter.start()
         # Run web-app in main thread
@@ -125,7 +136,6 @@ def main():
             WebBindings(),
             SpecBindings(),
             PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
-            ThirdPartyResourceBindings() if cfg.enable_tpr_support else DisabledThirdPartyResourceBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
             UsageReportingBindings(),
         ]

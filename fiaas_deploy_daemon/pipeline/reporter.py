@@ -1,5 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import absolute_import
 
 import logging
@@ -26,13 +41,13 @@ class Reporter(object):
     def register(self, app_spec, url):
         self._callback_urls[(app_spec.name, app_spec.deployment_id)] = url
 
-    def _handle_started(self, sender, app_name, namespace, deployment_id, repository):
+    def _handle_started(self, sender, app_name, namespace, deployment_id, **kwargs):
         self._handle_signal(u"deploy_started", app_name, namespace, deployment_id)
 
-    def _handle_success(self, sender, app_name, namespace, deployment_id, repository):
+    def _handle_success(self, sender, app_name, namespace, deployment_id, **kwargs):
         self._handle_signal(u"deploy_end", app_name, namespace, deployment_id)
 
-    def _handle_failure(self, sender, app_name, namespace, deployment_id, repository):
+    def _handle_failure(self, sender, app_name, namespace, deployment_id, **kwargs):
         self._handle_signal(u"deploy_end", app_name, namespace, deployment_id, status=u"failure")
 
     def _handle_signal(self, event_name, app_name, namespace, deployment_id, status=u"success"):

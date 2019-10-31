@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import os
 import re
@@ -139,8 +153,6 @@ class Configuration(Namespace):
                             env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
-        parser.add_argument("--enable-tpr-support", help="Enable Third Party Resource support.",
-                            action="store_true")
         parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support.",
                             action="store_true")
         parser.add_argument("--secrets-init-container-image",

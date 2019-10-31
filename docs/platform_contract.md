@@ -1,3 +1,18 @@
+<!--
+Copyright 2017-2019 The FIAAS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 # FIAAS platform contract
 
 FIAAS provides a platform for applications, which makes it easier to focus on business logic instead of integrating with the underlying infrastructure. In order to do this, FIAAS has a set of contracts that must be fulfilled so that the platform looks the same in all installations. Some details will not abstracted away in the current implementation, but the platform contracts will continually evolve to include more and more of these details. 
@@ -8,13 +23,7 @@ The [Operators guide](operator_guide.md) documents what cluster operators need t
 
 ## Supported kubernetes versions
 
-| **version** | **manifest deployment target** |
-|-------------|--------------------------------|
-| 1.6.0       | [Third Party Resource](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-third-party-resource/) |
-| 1.7.0       | [Third Party Resource](https://kubernetes.io/docs/tasks/access-kubernetes-api/extend-api-third-party-resource/) and [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.8.0       | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.9.0       | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
-| 1.10.0      | [Custom Resources](https://kubernetes.io/docs/concepts/api-extension/custom-resources/) |
+We are currently testing Kubernetes version 1.9.0 and above. FIAAS may work on older versions, but is not tested.
 
 ## Notable kubernetes features in use
 
@@ -33,7 +42,7 @@ The [Operators guide](operator_guide.md) documents what cluster operators need t
 Secrets and configuration is handled in much the same way.
 
 [Secrets](https://kubernetes.io/docs/concepts/configuration/secret/) will be exposed to the application as a read-only volume, mounted at `/var/run/secrets/fiaas/`. If using Strongbox, the secrets will be grouped in directories under the same path. Each secret will be a file, where the value of the secret is the contents of the file.
- 
+
 If FIAAS is configured to use plain Kubernetes secrets, it is also possible to request that secrets are exposed in the applications environment. This is not possible for the other secret sources, because they rely on init containers to fetch the secrets, and they can't add to the environment. It is possible to write startup scripts in the application container that can expose the files as environment variables.
 
 Configuration in the form of [ConfigMaps](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/) will be exposed in the same way, at `/var/run/config/fiaas/`, each key will be a file, where the value will be the file contents. Keys in the ConfigMap will also be exposed in the application environment automatically, but keep in mind that keys that are invalid will be skipped.

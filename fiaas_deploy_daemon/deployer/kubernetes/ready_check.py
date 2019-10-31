@@ -1,10 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import logging
+
+from k8s.client import NotFound
+from k8s.models.deployment import Deployment
 from monotonic import monotonic as time_monotonic
 
-from k8s.models.deployment import Deployment
-from k8s.client import NotFound
+LOG = logging.getLogger(__name__)
 
 FAIL_LIMIT_MULTIPLIER = 10
 
@@ -14,20 +31,30 @@ class ReadyCheck(object):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
-        fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
-        self._fail_after = time_monotonic() + fail_after_seconds
+        self._fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
+        self._fail_after = time_monotonic() + self._fail_after_seconds
 
     def __call__(self):
         repository = _repository(self._app_spec)
         if self._ready():
-            self._lifecycle.success(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
-                                    deployment_id=self._app_spec.deployment_id, repository=repository)
+            self._lifecycle.success(app_name=self._app_spec.name,
+                                    namespace=self._app_spec.namespace,
+                                    deployment_id=self._app_spec.deployment_id,
+                                    repository=repository,
+                                    labels=self._app_spec.labels.status,
+                                    annotations=self._app_spec.annotations.status)
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
-            self._lifecycle.failed(app_name=self._app_spec.name, namespace=self._app_spec.namespace,
-                                   deployment_id=self._app_spec.deployment_id, repository=repository)
+            self._lifecycle.failed(app_name=self._app_spec.name,
+                                   namespace=self._app_spec.namespace,
+                                   deployment_id=self._app_spec.deployment_id,
+                                   repository=repository,
+                                   labels=self._app_spec.labels.status,
+                                   annotations=self._app_spec.annotations.status)
             self._bookkeeper.failed(self._app_spec)
+            LOG.error("Timed out after %d seconds waiting for %s to become ready",
+                      self._fail_after_seconds, self._app_spec.name)
             return False
         return True
 

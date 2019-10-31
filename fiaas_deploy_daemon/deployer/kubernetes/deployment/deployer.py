@@ -1,5 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
+
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import logging
 import shlex
 
@@ -101,7 +115,6 @@ class DeploymentDeployer(object):
                               strategy=deployment_strategy)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
-        _clear_pod_init_container_annotations(deployment)
         self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
@@ -168,23 +181,6 @@ class DeploymentDeployer(object):
         ])
         env.sort(key=lambda x: x.name)
         return env
-
-
-def _clear_pod_init_container_annotations(deployment):
-    """Kubernetes 1.5 implemented init-containers using annotations, and in order to preserve backwards compatibility in
-    1.6 and 1.7, those annotations take precedence over the actual initContainer element in the spec object. In order to
-    ensure that any changes we make take effect, we clear the annotations.
-    """
-    keys_to_clear = set()
-    try:
-        if deployment.spec.template.metadata.annotations:
-            for key, _ in deployment.spec.template.metadata.annotations.items():
-                if key.endswith("kubernetes.io/init-containers"):
-                    keys_to_clear.add(key)
-            for key in keys_to_clear:
-                del deployment.spec.template.metadata.annotations[key]
-    except AttributeError:
-        pass
 
 
 def _add_status_label(labels):

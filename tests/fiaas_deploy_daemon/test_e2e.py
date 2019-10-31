@@ -1,10 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
+# Copyright 2017-2019 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import os
 import subprocess
 import sys
 import time
+import uuid
 
 import pytest
 import requests
@@ -16,13 +31,13 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec
+from fiaas_deploy_daemon.crd.status import create_name
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
+    AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.tools import merge_dicts
-from fiaas_deploy_daemon.tpr.status import create_name
-from fiaas_deploy_daemon.tpr.types import PaasbetaApplication, PaasbetaApplicationSpec, PaasbetaStatus
-from minikube import MinikubeError
-from utils import wait_until, tpr_available, crd_available, tpr_supported, crd_supported, skip_if_tpr_not_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port
+from utils import wait_until, crd_available, crd_supported, \
+    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
@@ -33,8 +48,7 @@ TIMEOUT = 5
 
 
 def _fixture_names(fixture_value):
-    name, data = fixture_value
-    return name
+    return fixture_value[0]
 
 
 @pytest.mark.integration_test
@@ -44,38 +58,37 @@ class TestE2E(object):
         return request.param
 
     @pytest.fixture(scope="module")
-    def kubernetes(self, minikube_installer, service_type, k8s_version):
+    def kubernetes(self, service_type, k8s_version):
         try:
-            minikube = minikube_installer.new(profile=service_type, k8s_version=k8s_version)
+            name = "_".join((service_type, k8s_version, str(uuid.uuid4())))
+            kind = KindWrapper(k8s_version, name)
             try:
-                minikube.start()
-                yield {
-                    "server": minikube.server,
-                    "client-cert": minikube.client_cert,
-                    "client-key": minikube.client_key,
-                    "api-cert": minikube.api_cert
-                }
+                yield kind.start()
             finally:
-                minikube.delete()
-        except MinikubeError as e:
-            msg = "Unable to run minikube: %s"
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
         Client.clear_session()
-        config.api_server = kubernetes["server"]
+        config.api_server = kubernetes["host-to-container-server"]
         config.debug = True
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     @pytest.fixture(scope="module")
-    def fdd(self, kubernetes, service_type, k8s_version, use_docker_for_e2e):
+    def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         port = get_unbound_port()
+        cert_path = os.path.dirname(kubernetes["api-cert"])
+        docker_args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port,
+                                         kubernetes['container-to-container-server-ip'])
+        server = kubernetes['container-to-container-server'] if docker_args else kubernetes["host-to-container-server"]
         args = [
             "fiaas-deploy-daemon",
             "--port", str(port),
-            "--api-server", kubernetes["server"],
+            "--api-server", server,
             "--api-cert", kubernetes["api-cert"],
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
@@ -86,12 +99,9 @@ class TestE2E(object):
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--use-ingress-tls", "default_off",
         ]
-        if tpr_supported(k8s_version):
-            args.append("--enable-tpr-support")
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
-        cert_path = os.path.dirname(kubernetes["api-cert"])
-        args = use_docker_for_e2e(cert_path, service_type, k8s_version, port) + args
+        args = docker_args + args
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:
@@ -103,8 +113,6 @@ class TestE2E(object):
 
         try:
             wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if tpr_supported(k8s_version):
-                wait_until(tpr_available(kubernetes, timeout=TIMEOUT), "TPR available", RuntimeError, patience=PATIENCE)
             if crd_supported(k8s_version):
                 wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
             yield "http://localhost:{}/fiaas".format(port)
@@ -146,12 +154,28 @@ class TestE2E(object):
                 Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                ingress={"ingress/label": "true"},
+                service={"service/label": "true"},
+                pod={"pod/label": "true"},
+                status={"status/label": "true"},
+            )),
             ("v3/data/examples/full.yml", {
                 Service: "e2e_expected/v3full-service.yml",
                 Deployment: "e2e_expected/v3full-deployment.yml",
                 Ingress: "e2e_expected/v3full-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                ingress={"ingress/label": "true"},
+                service={"service/label": "true"},
+                pod={"pod/label": "true", "s": "override"},
+                status={"status/label": "true"},
             }),
             ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
                 Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
@@ -271,7 +295,11 @@ class TestE2E(object):
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):
-        fiaas_path, expected = request.param
+        additional_labels = None
+        if len(request.param) == 2:
+            fiaas_path, expected = request.param
+        elif len(request.param) == 3:
+            fiaas_path, expected, additional_labels = request.param
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
@@ -279,7 +307,8 @@ class TestE2E(object):
 
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
+                                    additional_labels=additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
@@ -306,54 +335,6 @@ class TestE2E(object):
             return [Service, Deployment, Ingress]
 
     @pytest.mark.usefixtures("fdd")
-    def test_third_party_resource_deploy(self, third_party_resource, service_type):
-        name, paasbetaapplication, expected = third_party_resource
-
-        # check that k8s objects for name doesn't already exist
-        kinds = self._select_kinds(expected)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
-
-        # First deploy
-        paasbetaapplication.save()
-
-        # Check that deployment status is RUNNING
-        def _assert_status():
-            status = PaasbetaStatus.get(create_name(name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
-            assert len(status.logs) > 0
-            assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
-
-        wait_until(_assert_status, patience=PATIENCE)
-
-        # Check deploy success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
-
-        # Redeploy, new image, possibly new init-container
-        paasbetaapplication.spec.image = IMAGE2
-        paasbetaapplication.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
-        strongbox_groups = []
-        if "strongbox" in name:
-            strongbox_groups = ["foo", "bar"]
-            paasbetaapplication.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
-        paasbetaapplication.save()
-
-        # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
-                   patience=PATIENCE)
-
-        # Cleanup
-        PaasbetaApplication.delete(name)
-
-        def cleanup_complete():
-            for kind in kinds:
-                with pytest.raises(NotFound):
-                    kind.get(name)
-
-        wait_until(cleanup_complete, patience=PATIENCE)
-
-    @pytest.mark.usefixtures("fdd")
     def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):
         name, fiaas_application, expected = custom_resource_definition
 
@@ -374,6 +355,13 @@ class TestE2E(object):
             assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
 
         wait_until(_assert_status, patience=PATIENCE)
+
+        # Check that annotations and labels are applied to status object
+        status_labels = fiaas_application.spec.additional_labels.status
+        if status_labels:
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+            assert label_difference == set()
 
         # Check deploy success
         wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)

@@ -1,3 +1,18 @@
+<!--
+Copyright 2017-2019 The FIAAS Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
 How to work on FIAAS apps
 =========================
 
@@ -47,7 +62,7 @@ helm install helm/fiaas-skipper --wait --set ingress.fqdn=skipper.$(minikube ip)
 ```
 
 With these commands, Skipper installs a default configuration for FIAAS in the `default` namespace, and installs the stable version of FIAAS. You may want to adjust the configuration to more closely match the configuration used in your runtime environment. To do that, follow these steps:
- 
+
 1. View a copy of the `fiaas-deploy-daemon` ConfigMap used in your runtime environment (`kubectl get cm fiaas-deploy-daemon -oyaml` using the correct context).
 1. Make sure you are still using the `minikube` context: `kubectl config use-context minikube`
 1. Edit the ConfigMap to your liking: `kubectl edit cm fiaas-deploy-daemon`

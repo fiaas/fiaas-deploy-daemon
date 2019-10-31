@@ -176,7 +176,90 @@ class TestE2E(object):
                 service={"service/label": "true"},
                 pod={"pod/label": "true", "s": "override"},
                 status={"status/label": "true"},
-            )),
+            }),
+            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
+                Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
+                Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
+                Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
+            }),
+            ("v3/data/examples/strongbox.yml", {
+                Service: "e2e_expected/strongbox-service.yml",
+                Deployment: "e2e_expected/strongbox-deployment.yml",
+                Ingress: "e2e_expected/strongbox-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
+            }),
+            ("v3/data/examples/tls_enabled.yml", {
+                Service: "e2e_expected/tls-service.yml",
+                Deployment: "e2e_expected/tls-deployment.yml",
+                Ingress: "e2e_expected/tls-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
+            }),
+            ("v3/data/examples/tls_enabled_cert_issuer.yml", {
+                Service: "e2e_expected/tls-service-cert-issuer.yml",
+                Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
+                Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
+                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
+            }),
+            ("v3/data/examples/tls_enabled_multiple.yml", {
+                Ingress: "e2e_expected/tls-ingress-multiple.yml",
+            }),
+    ))
+    def third_party_resource(self, request, k8s_version):
+        fiaas_path, expected = request.param
+        skip_if_tpr_not_supported(k8s_version)
+
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+
+        name = sanitize_resource_name(fiaas_path)
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        request.addfinalizer(lambda: self._ensure_clean(name, expected))
+        return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
+
+    @pytest.fixture(ids=_fixture_names, params=(
+            ("data/v2minimal.yml", {
+                Service: "e2e_expected/v2minimal-service.yml",
+                Deployment: "e2e_expected/v2minimal-deployment.yml",
+                Ingress: "e2e_expected/v2minimal-ingress.yml",
+            }),
+            ("v2/data/examples/host.yml", {
+                Service: "e2e_expected/host-service.yml",
+                Deployment: "e2e_expected/host-deployment.yml",
+                Ingress: "e2e_expected/host-ingress.yml",
+            }),
+            ("v2/data/examples/exec_config.yml", {
+                Service: "e2e_expected/exec-service.yml",
+                Deployment: "e2e_expected/exec-deployment.yml",
+                Ingress: "e2e_expected/exec-ingress.yml",
+            }),
+            ("v2/data/examples/tcp_ports.yml", {
+                Service: "e2e_expected/tcp_ports-service.yml",
+                Deployment: "e2e_expected/tcp_ports-deployment.yml",
+            }),
+            ("v2/data/examples/single_tcp_port.yml", {
+                Service: "e2e_expected/single_tcp_port-service.yml",
+                Deployment: "e2e_expected/single_tcp_port-deployment.yml",
+            }),
+            ("v2/data/examples/partial_override.yml", {
+                Service: "e2e_expected/partial_override-service.yml",
+                Deployment: "e2e_expected/partial_override-deployment.yml",
+                Ingress: "e2e_expected/partial_override-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
+            }),
+            ("v3/data/examples/v3minimal.yml", {
+                Service: "e2e_expected/v3minimal-service.yml",
+                Deployment: "e2e_expected/v3minimal-deployment.yml",
+                Ingress: "e2e_expected/v3minimal-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+            }),
+            ("v3/data/examples/full.yml", {
+                Service: "e2e_expected/v3full-service.yml",
+                Deployment: "e2e_expected/v3full-deployment.yml",
+                Ingress: "e2e_expected/v3full-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
+            }),
             ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
                 Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
                 Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
@@ -206,6 +289,9 @@ class TestE2E(object):
                 Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
                 Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
+            }),
+            ("v3/data/examples/tls_enabled_multiple.yml", {
+                Ingress: "e2e_expected/tls-ingress-multiple.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):

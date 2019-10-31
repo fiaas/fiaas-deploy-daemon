@@ -92,6 +92,11 @@ Option `disabled` (the default value) will not enable https at all when creating
 ignoring any relevant options set in the configuration for an application.
 """
 
+TLS_ENTRY_PER_HOST_HELP = """
+When using extensions.tls, add a separate TLS entry for each host in addition to the default TLS entry for the
+application containing all hosts. This feature is deprecated and will soon be removed.
+"""
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
@@ -177,6 +182,8 @@ class Configuration(Namespace):
                             default=u"25%", type=_int_or_unicode)
         parser.add_argument("--deployment-max-unavailable", help="The maximum number of pods that can be unavailable during an update",
                             default="0", type=_int_or_unicode)
+        parser.add_argument("--enable-deprecated-tls-entry-per-host", help=TLS_ENTRY_PER_HOST_HELP,
+                            action="store_true")
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

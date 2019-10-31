@@ -207,16 +207,15 @@ class TestE2E(object):
     ))
     def third_party_resource(self, request, k8s_version):
         fiaas_path, expected = request.param
-        skip_if_tpr_not_supported(k8s_version)
 
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = PaasbetaApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
-        return name, PaasbetaApplication(metadata=metadata, spec=spec), expected
+        return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
     @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {

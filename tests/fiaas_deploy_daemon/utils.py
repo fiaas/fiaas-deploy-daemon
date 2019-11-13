@@ -243,6 +243,9 @@ def get_unbound_port():
 
 class KindWrapper(object):
     DOCKER_IMAGE = "bsycorp/kind"
+    # bsycorp/kind for 1.9 isn't being updated, and the latest version has an expired cert
+    DOCKER_IMAGE_19 = "fiaas/kind"
+    DOCKER_IMAGE_19_VERSION = "v1.9.11"
 
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version
@@ -299,7 +302,12 @@ class KindWrapper(object):
         return ready
 
     def _start(self):
-        self._container = self._client.containers.run("{}:{}".format(self.DOCKER_IMAGE, self.k8s_version),
+        if self.k8s_version == self.DOCKER_IMAGE_19_VERSION:
+            image_name = self.DOCKER_IMAGE_19
+        else:
+            image_name = self.DOCKER_IMAGE
+
+        self._container = self._client.containers.run("{}:{}".format(image_name, self.k8s_version),
                                                       detach=True, remove=True, auto_remove=True, privileged=True,
                                                       name=self.name, hostname=self.name,
                                                       ports={"10080/tcp": None, "8443/tcp": None})

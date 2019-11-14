@@ -45,8 +45,12 @@ class TestReadyCheck(object):
             m.return_value = deployment
             return deployment
 
-    def test_deployment_complete(self, get, app_spec, bookkeeper, lifecycle):
-        self._create_response(get)
+    @pytest.mark.parametrize("generation,observedGeneration", (
+            (0, 0),
+            (0, 1)
+    ))
+    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observedGeneration, lifecycle):
+        self._create_response(get, generation=generation, observedGeneration=observedGeneration)
 
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle)
 
@@ -54,15 +58,17 @@ class TestReadyCheck(object):
         bookkeeper.success.assert_called_with(app_spec)
         bookkeeper.failed.assert_not_called()
 
-    @pytest.mark.parametrize("requested,replicas,available,updated", (
-            (8, 9, 7, 2),
-            (2, 2, 1, 2),
-            (2, 2, 2, 1),
-            (2, 1, 1, 1)
+    @pytest.mark.parametrize("requested,replicas,available,updated,generation,observedGeneration", (
+            (8, 9, 7, 2, 0, 0),
+            (2, 2, 1, 2, 0, 0),
+            (2, 2, 2, 1, 0, 0),
+            (2, 1, 1, 1, 0, 0),
+            (1, 2, 1, 1, 0, 0),
+            (2, 2, 2, 2, 1, 0),
     ))
     def test_deployment_incomplete(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                                   lifecycle):
-        self._create_response(get, requested, replicas, available, updated)
+                                   generation, observedGeneration, lifecycle):
+        self._create_response(get, requested, replicas, available, updated, generation, observedGeneration)
 
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle)
 
@@ -98,12 +104,12 @@ class TestReadyCheck(object):
                                             labels=app_spec.labels.status, annotations=app_spec.annotations.status)
 
     @staticmethod
-    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS):
+    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS, generation=0, observedGeneration=0):
         get.side_effect = None
         resp = mock.MagicMock()
         get.return_value = resp
         resp.json.return_value = {
-            'metadata': pytest.helpers.create_metadata('testapp'),
+            'metadata': pytest.helpers.create_metadata('testapp', generation=generation),
             'spec': {
                 'selector': {'matchLabels': {'app': 'testapp'}},
                 'template': {
@@ -121,6 +127,7 @@ class TestReadyCheck(object):
                 'replicas': replicas,
                 'availableReplicas': available,
                 'unavailableReplicas': replicas - available,
-                'updatedReplicas': updated
+                'updatedReplicas': updated,
+                'observedGeneration': observedGeneration,
             }
         }

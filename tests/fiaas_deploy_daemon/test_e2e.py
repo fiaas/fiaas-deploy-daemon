@@ -207,6 +207,9 @@ class TestE2E(object):
                 Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
             }),
+            ("v3/data/examples/tls_enabled_multiple.yml", {
+                Ingress: "e2e_expected/tls-ingress-multiple.yml",
+            }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         additional_labels = None

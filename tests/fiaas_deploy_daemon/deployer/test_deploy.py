@@ -25,7 +25,7 @@ from fiaas_deploy_daemon.deployer.deploy import Deployer
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.deployer.scheduler import Scheduler
-from fiaas_deploy_daemon.lifecycle import Lifecycle
+from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject, STATUS_STARTED, STATUS_FAILED
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
 
 
@@ -37,9 +37,7 @@ class TestDeploy(object):
     @pytest.fixture
     def lifecycle(self):
         lifecycle = Lifecycle()
-        lifecycle.deploy_signal = mock.MagicMock()
-        lifecycle.success_signal = mock.MagicMock()
-        lifecycle.error_signal = mock.MagicMock()
+        lifecycle.state_change_signal = mock.MagicMock()
         return lifecycle
 
     @pytest.fixture
@@ -51,9 +49,14 @@ class TestDeploy(object):
         return mock.create_autospec(Scheduler)
 
     @pytest.fixture
-    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle):
+    def lifecycle_subject(self, app_spec):
+        return Subject(app_spec.name, app_spec.namespace, app_spec.deployment_id, None,
+                       app_spec.labels.status, app_spec.annotations.status)
+
+    @pytest.fixture
+    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle, lifecycle_subject):
         deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle)
-        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
+        deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
         return deployer
 
     def test_use_adapter_to_deploy(self, app_spec, deployer, adapter):
@@ -65,41 +68,30 @@ class TestDeploy(object):
         (None, None),
         ({"fiaas/source-repository": "xyz"}, "xyz"),
     ])
-    def test_signals_start_of_deploy(self, app_spec, lifecycle, deployer, annotations, repository):
+    def test_signals_start_of_deploy(self, app_spec, lifecycle, lifecycle_subject, deployer, annotations, repository):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
-        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
+        deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
         deployer()
 
-        lifecycle.deploy_signal.send.assert_called_with(app_name=app_spec.name,
-                                                        namespace=app_spec.namespace,
-                                                        deployment_id=app_spec.deployment_id,
-                                                        repository=repository,
-                                                        labels=app_spec.labels.status,
-                                                        annotations=app_spec.annotations.status)
+        lifecycle.state_change_signal.send.assert_called_with(status=STATUS_STARTED, subject=lifecycle_subject)
 
     @pytest.mark.parametrize("annotations,repository", [
         (None, None),
         ({"fiaas/source-repository": "xyz"}, "xyz"),
     ])
-    def test_signals_failure_on_exception(self, app_spec, lifecycle, deployer, adapter, annotations, repository):
+    def test_signals_failure_on_exception(self, app_spec, lifecycle, lifecycle_subject, deployer, adapter, annotations, repository):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
-        deployer._queue = [DeployerEvent("UPDATE", app_spec)]
+        deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
         adapter.deploy.side_effect = Exception("message")
 
         deployer()
 
-        lifecycle.success_signal.send.assert_not_called()
-        lifecycle.error_signal.send.assert_called_with(app_name=app_spec.name,
-                                                       namespace=app_spec.namespace,
-                                                       deployment_id=app_spec.deployment_id,
-                                                       repository=repository,
-                                                       labels=app_spec.labels.status,
-                                                       annotations=app_spec.annotations.status)
+        lifecycle.state_change_signal.send.assert_called_with(status=STATUS_FAILED, subject=lifecycle_subject)
 
-    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle):
+    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject):
         deployer()
 
-        lifecycle.error_signal.send.assert_not_called()
-        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle))
+        lifecycle.state_change_signal.send.assert_called_once_with(status=STATUS_STARTED, subject=lifecycle_subject)
+        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject))

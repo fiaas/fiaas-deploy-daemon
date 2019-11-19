@@ -26,9 +26,10 @@ from requests import Response
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
-from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
+from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
 from fiaas_deploy_daemon.tools import merge_dicts
+from fiaas_deploy_daemon.lifecycle import Subject
 from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
@@ -75,29 +76,29 @@ class TestStatusReport(object):
     # create vs update => new_status, url, post/put
     def pytest_generate_tests(self, metafunc):
         if metafunc.cls == self.__class__ and "test_data" in metafunc.fixturenames:
-            TestData = namedtuple("TestData", ("signal_name", "action", "result", "new", "called_mock", "ignored_mock"))
+            TestData = namedtuple("TestData", ("signal_name", "action", "status", "result", "new", "called_mock", "ignored_mock"))
             name2result = {
-                DEPLOY_STARTED: u"RUNNING",
-                DEPLOY_FAILED: u"FAILED",
-                DEPLOY_SUCCESS: u"SUCCESS",
-                DEPLOY_INITIATED: u"INITIATED"
+                STATUS_STARTED: u"RUNNING",
+                STATUS_FAILED: u"FAILED",
+                STATUS_SUCCESS: u"SUCCESS",
+                STATUS_INITIATED: u"INITIATED"
             }
             action2data = {
                 "create": (True, "post", "put"),
                 "update": (False, "put", "post")
             }
-            for signal_name in (DEPLOY_STARTED, DEPLOY_FAILED, DEPLOY_SUCCESS, DEPLOY_INITIATED):
+            for result in (STATUS_STARTED, STATUS_FAILED, STATUS_SUCCESS, STATUS_INITIATED):
                 for action in ("create", "update"):
-                    test_data = TestData(signal_name, action, name2result[signal_name], *action2data[action])
-                    test_id = "{} status on {}".format(action, signal_name)
+                    test_data = TestData(DEPLOY_STATUS_CHANGED, action, result, name2result[result], *action2data[action])
+                    test_id = "{} status on {}".format(action, result)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_action_on_signal(self, request, get_or_create, app_spec, test_data, signal):
-        app_name = '{}-isb5oqum36ylo'.format(test_data.signal_name)
+        app_name = '{}-isb5oqum36ylo'.format(test_data.result)
         labels = app_spec.labels._replace(status={"status/label": "true"})
         annotations = app_spec.annotations._replace(status={"status/annotations": "true"})
-        app_spec = app_spec._replace(name=test_data.signal_name, labels=labels, annotations=annotations)
+        app_spec = app_spec._replace(name=test_data.result, labels=labels, annotations=annotations)
 
         expected_labels = merge_dicts(app_spec.labels.status, {"app": app_spec.name,
                                                                "fiaas/deployment_id": app_spec.deployment_id})
@@ -134,14 +135,11 @@ class TestStatusReport(object):
         mock_response = mock.create_autospec(Response)
         mock_response.json.return_value = expected_call
         called_mock.return_value = mock_response
+        lifecycle_subject = _subject_from_app_spec(app_spec)
 
         with mock.patch("fiaas_deploy_daemon.crd.status.now") as mnow:
             mnow.return_value = LAST_UPDATE
-            signal(test_data.signal_name).send(app_name=app_spec.name,
-                                               namespace=app_spec.namespace,
-                                               deployment_id=app_spec.deployment_id,
-                                               labels=app_spec.labels.status,
-                                               annotations=app_spec.annotations.status)
+            signal(test_data.signal_name).send(status=test_data.status, subject=lifecycle_subject)
 
         get_or_create.assert_called_once_with(metadata=expected_metadata, result=test_data.result, logs=expected_logs)
         if test_data.action == "create":
@@ -181,13 +179,13 @@ class TestStatusReport(object):
         except NotFound:
             pytest.fail("delete raised NotFound on signal")
 
-    @pytest.mark.parametrize("signal_name,fail_times", (
-            ((signal_name, fail_times)
-             for signal_name in (DEPLOY_INITIATED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_FAILED)
+    @pytest.mark.parametrize("result,fail_times", (
+            ((result, fail_times)
+             for result in (STATUS_INITIATED, STATUS_STARTED, STATUS_STARTED, STATUS_FAILED)
              for fail_times in range(5))
     ))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
-    def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, signal_name, fail_times):
+    def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, result, fail_times):
 
         def _fail():
             response = mock.MagicMock(spec=Response)
@@ -199,26 +197,25 @@ class TestStatusReport(object):
         get_or_create.return_value = application_status
 
         status.connect_signals()
+        lifecycle_subject = _subject_from_app_spec(app_spec)
 
         try:
-            signal(signal_name).send(app_name=app_spec.name,
-                                     namespace=app_spec.namespace,
-                                     deployment_id=app_spec.deployment_id)
+            signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
         except UpsertConflict as e:
             if fail_times < CONFLICT_MAX_RETRIES:
-                pytest.fail('Exception {} was raised when signaling {}'.format(e, signal_name))
+                pytest.fail('Exception {} was raised when signaling {}'.format(e, result))
 
         save_calls = min(fail_times + 1, CONFLICT_MAX_RETRIES)
         assert save.call_args_list == [mock.call()] * save_calls
 
-    @pytest.mark.parametrize("signal_name", (
-            DEPLOY_INITIATED,
-            DEPLOY_STARTED,
-            DEPLOY_SUCCESS,
-            DEPLOY_FAILED
+    @pytest.mark.parametrize("result", (
+            STATUS_INITIATED,
+            STATUS_STARTED,
+            STATUS_SUCCESS,
+            STATUS_FAILED
     ))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
-    def test_fail_on_error(self, get_or_create, save, app_spec, signal, signal_name):
+    def test_fail_on_error(self, get_or_create, save, app_spec, signal, result):
         response = mock.MagicMock(spec=Response)
         response.status_code = 403
 
@@ -228,10 +225,19 @@ class TestStatusReport(object):
         get_or_create.return_value = application_status
 
         status.connect_signals()
+        lifecycle_subject = _subject_from_app_spec(app_spec)
 
         with pytest.raises(ClientError):
-            signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace,
-                                     deployment_id=app_spec.deployment_id)
+            signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
+
+
+def _subject_from_app_spec(app_spec):
+    return Subject(app_spec.name,
+                   app_spec.namespace,
+                   app_spec.deployment_id,
+                   None,
+                   app_spec.labels.status,
+                   app_spec.annotations.status)
 
 
 def _create_status(i, annotate=True):

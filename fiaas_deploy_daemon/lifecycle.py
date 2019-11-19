@@ -15,28 +15,36 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from collections import namedtuple
 from blinker import signal
 
-DEPLOY_FAILED = "deploy_failed"
-DEPLOY_STARTED = "deploy_started"
-DEPLOY_SUCCESS = "deploy_success"
-DEPLOY_INITIATED = "deploy_initiated"
+DEPLOY_STATUS_CHANGED = "deploy_status_changed"
+
+STATUS_FAILED = "failed"
+STATUS_STARTED = "started"
+STATUS_SUCCESS = "success"
+STATUS_INITIATED = "initiated"
+
+
+Subject = namedtuple("Subject", ("app_name", "namespace", "deployment_id", "repository", "labels", "annotations"))
 
 
 class Lifecycle(object):
-    deploy_signal = signal(DEPLOY_STARTED, "Signals start of deployment")
-    error_signal = signal(DEPLOY_FAILED, "Signals a failed deployment")
-    success_signal = signal(DEPLOY_SUCCESS, "Signals a successful deployment")
-    initiate_signal = signal(DEPLOY_INITIATED, "Signals an initiated deployment")
+    state_change_signal = signal(DEPLOY_STATUS_CHANGED, "Signals a change in the state of a deploy")
 
-    def start(self, app_name, namespace, deployment_id, **kwargs):
-        self.deploy_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
+    def change(self, status, subject):
+        self.state_change_signal.send(status=status, subject=subject)
 
-    def failed(self, app_name, namespace, deployment_id, **kwargs):
-        self.error_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
+    def initiate(self, *args, **kwargs):
+        subject = Subject(*args, **kwargs)
+        self.state_change_signal.send(status=STATUS_INITIATED, subject=subject)
+        return subject
 
-    def success(self, app_name, namespace, deployment_id, **kwargs):
-        self.success_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
+    def start(self, subject):
+        self.change(STATUS_STARTED, subject)
 
-    def initiate(self, app_name, namespace, deployment_id, **kwargs):
-        self.initiate_signal.send(app_name=app_name, namespace=namespace, deployment_id=deployment_id, **kwargs)
+    def success(self, subject):
+        self.change(STATUS_SUCCESS, subject)
+
+    def failed(self, subject):
+        self.change(STATUS_FAILED, subject)

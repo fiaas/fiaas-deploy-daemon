@@ -26,7 +26,7 @@ from blinker import signal
 from prometheus_client import Counter, Histogram
 
 from fiaas_deploy_daemon.base_thread import DaemonThread
-from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
 from fiaas_deploy_daemon.tools import IterableQueue
 
 LOG = logging.getLogger(__name__)
@@ -61,25 +61,15 @@ class UsageReporter(DaemonThread):
         self._usage_auth = usage_auth
         if self._usage_reporting_endpoint and self._usage_auth:
             LOG.info("Usage reporting enabled, sending events to %s", self._usage_reporting_endpoint)
-            signal(DEPLOY_STARTED).connect(self._handle_started)
-            signal(DEPLOY_SUCCESS).connect(self._handle_success)
-            signal(DEPLOY_FAILED).connect(self._handle_failed)
+            signal(DEPLOY_STATUS_CHANGED).connect(self._handle_signal)
         else:
             LOG.debug("Usage reporting disabled: Endpoint: %r, UsageAuth: %r",
                       self._usage_reporting_endpoint, self._usage_auth)
 
-    def _handle_signal(self, status, app_name, namespace, deployment_id, kwargs):
-        repository = kwargs.get("repository")
-        self._event_queue.put(UsageEvent(status, app_name, namespace, deployment_id, repository))
-
-    def _handle_started(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal("STARTED", app_name, namespace, deployment_id, kwargs)
-
-    def _handle_failed(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal("FAILED", app_name, namespace, deployment_id, kwargs)
-
-    def _handle_success(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal("SUCCESS", app_name, namespace, deployment_id, kwargs)
+    def _handle_signal(self, sender, status, subject):
+        if status in [STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED]:
+            status = status.upper()
+            self._event_queue.put(UsageEvent(status, subject.app_name, subject.namespace, subject.deployment_id, subject.repository))
 
     def __call__(self):
         for event in self._event_queue:

@@ -95,13 +95,13 @@ class CrdWatcher(DaemonThread):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
         repository = _repository(application)
+        lifecycle_subject = self._lifecycle.initiate(app_name=application.spec.application,
+                                                     namespace=application.metadata.namespace,
+                                                     deployment_id=deployment_id,
+                                                     repository=repository,
+                                                     labels=application.spec.additional_labels.status,
+                                                     annotations=application.spec.additional_annotations.status)
         try:
-            self._lifecycle.initiate(app_name=application.spec.application,
-                                     namespace=application.metadata.namespace,
-                                     deployment_id=deployment_id,
-                                     repository=repository,
-                                     labels=application.spec.additional_labels.status,
-                                     annotations=application.spec.additional_annotations.status)
             app_spec = self._spec_factory(
                 name=application.spec.application,
                 image=application.spec.image,
@@ -114,16 +114,11 @@ class CrdWatcher(DaemonThread):
                 additional_annotations=application.spec.additional_annotations,
             )
             set_extras(app_spec)
-            self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
+            self._deploy_queue.put(DeployerEvent("UPDATE", app_spec, lifecycle_subject))
             LOG.debug("Queued deployment for %s", application.spec.application)
         except (InvalidConfiguration, YAMLError):
             LOG.exception("Failed to create app spec from fiaas config file")
-            self._lifecycle.failed(app_name=application.spec.application,
-                                   namespace=application.metadata.namespace,
-                                   deployment_id=deployment_id,
-                                   repository=repository,
-                                   labels=application.spec.additional_labels.status,
-                                   annotations=application.spec.additional_annotations.status)
+            self._lifecycle.failed(lifecycle_subject)
 
     def _delete(self, application):
         app_spec = self._spec_factory(
@@ -138,7 +133,7 @@ class CrdWatcher(DaemonThread):
             additional_annotations=application.spec.additional_annotations,
         )
         set_extras(app_spec)
-        self._deploy_queue.put(DeployerEvent("DELETE", app_spec))
+        self._deploy_queue.put(DeployerEvent("DELETE", app_spec, lifecycle_subject=None))
         LOG.debug("Queued delete for %s", application.spec.application)
 
 

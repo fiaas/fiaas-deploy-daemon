@@ -30,9 +30,6 @@ metadata:
 spec:
   tls:
   - hosts:
-    - v3-data-examples-tls-enabled-cert-issuer.svc.test.example.com
-    secretName: v3-data-examples-tls-enabled-cert-issuer.svc.test.example.com
-  - hosts:
     - cdour67se34teb7c52m2lfjjopq56sbz.svc.test.example.com
     - v3-data-examples-tls-enabled-cert-issuer.svc.test.example.com
     secretName: v3-data-examples-tls-enabled-cert-issuer-ingress-tls

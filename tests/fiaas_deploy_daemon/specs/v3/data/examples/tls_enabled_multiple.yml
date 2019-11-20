@@ -1,0 +1,7 @@
+---
+version: 3
+extensions:
+  tls: true
+ingress:
+  - host: example.com
+  - host: example.org

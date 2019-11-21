@@ -27,31 +27,21 @@ FAIL_LIMIT_MULTIPLIER = 10
 
 
 class ReadyCheck(object):
-    def __init__(self, app_spec, bookkeeper, lifecycle):
+    def __init__(self, app_spec, bookkeeper, lifecycle, lifecycle_subject):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
+        self._lifecycle_subject = lifecycle_subject
         self._fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
         self._fail_after = time_monotonic() + self._fail_after_seconds
 
     def __call__(self):
-        repository = _repository(self._app_spec)
         if self._ready():
-            self._lifecycle.success(app_name=self._app_spec.name,
-                                    namespace=self._app_spec.namespace,
-                                    deployment_id=self._app_spec.deployment_id,
-                                    repository=repository,
-                                    labels=self._app_spec.labels.status,
-                                    annotations=self._app_spec.annotations.status)
+            self._lifecycle.success(self._lifecycle_subject)
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
-            self._lifecycle.failed(app_name=self._app_spec.name,
-                                   namespace=self._app_spec.namespace,
-                                   deployment_id=self._app_spec.deployment_id,
-                                   repository=repository,
-                                   labels=self._app_spec.labels.status,
-                                   annotations=self._app_spec.annotations.status)
+            self._lifecycle.failed(self._lifecycle_subject)
             self._bookkeeper.failed(self._app_spec)
             LOG.error("Timed out after %d seconds waiting for %s to become ready",
                       self._fail_after_seconds, self._app_spec.name)
@@ -69,10 +59,3 @@ class ReadyCheck(object):
     def __eq__(self, other):
         return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper \
                and other._lifecycle == self._lifecycle
-
-
-def _repository(app_spec):
-    try:
-        return app_spec.annotations.deployment["fiaas/source-repository"]
-    except (TypeError, KeyError, AttributeError):
-        pass

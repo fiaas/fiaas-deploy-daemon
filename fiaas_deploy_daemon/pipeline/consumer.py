@@ -71,30 +71,28 @@ class Consumer(DaemonThread):
         event = self._deserialize(message)
         self._logger.debug("Got event: %r", event)
         if event[u"environment"] == self._environment:
+            lifecycle_subject = self._lifecycle.initiate(app_name=event[u"project_name"],
+                                                         namespace=DEFAULT_NAMESPACE,
+                                                         deployment_id=self._deployment_id(event))
             try:
-                self._lifecycle.initiate(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                         deployment_id=self._deployment_id(event))
                 app_spec = self._create_spec(event)
                 set_extras(app_spec)
                 self._check_app_acceptable(app_spec)
                 self._add_deployment_label(app_spec)
-                self._deploy_queue.put(DeployerEvent("UPDATE", app_spec))
+                self._deploy_queue.put(DeployerEvent("UPDATE", app_spec, lifecycle_subject))
                 self._reporter.register(app_spec, event[u"callback_url"])
                 deploy_counter.inc()
             except (NoDockerArtifactException, NoFiaasArtifactException):
                 self._logger.debug("Ignoring event %r with missing artifacts", event)
             except YAMLError:
                 self._logger.exception("Failure when parsing FIAAS-config")
-                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                       deployment_id=self._deployment_id(event))
+                self._lifecycle.failed(lifecycle_subject)
             except InvalidConfiguration:
                 self._logger.exception("Invalid configuration for application %s", event.get("project_name"))
-                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                       deployment_id=self._deployment_id(event))
+                self._lifecycle.failed(lifecycle_subject)
             except HTTPError:
                 self._logger.exception("Failure when downloading FIAAS-config")
-                self._lifecycle.failed(app_name=event[u"project_name"], namespace=DEFAULT_NAMESPACE,
-                                       deployment_id=self._deployment_id(event))
+                self._lifecycle.failed(lifecycle_subject)
             except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
                 self._logger.warn("App not deployed. %s", str(e))
 

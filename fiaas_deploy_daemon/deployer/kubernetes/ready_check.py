@@ -46,6 +46,8 @@ class ReadyCheck(object):
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
+            LOG.error("Timed out after %d seconds waiting for %s to become ready",
+                      self._fail_after_seconds, self._app_spec.name)
             self._lifecycle.failed(app_name=self._app_spec.name,
                                    namespace=self._app_spec.namespace,
                                    deployment_id=self._app_spec.deployment_id,
@@ -53,8 +55,6 @@ class ReadyCheck(object):
                                    labels=self._app_spec.labels.status,
                                    annotations=self._app_spec.annotations.status)
             self._bookkeeper.failed(self._app_spec)
-            LOG.error("Timed out after %d seconds waiting for %s to become ready",
-                      self._fail_after_seconds, self._app_spec.name)
             return False
         return True
 

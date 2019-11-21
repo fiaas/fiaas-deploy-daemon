@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
+import traceback
 import threading
 from collections import defaultdict
 
@@ -38,8 +39,21 @@ class StatusFormatter(logging.Formatter):
         super(StatusFormatter, self).__init__(_LOG_FORMAT, None)
 
     def format(self, record):
+        # clear the cached rendered exception if it's set
+        if record.exc_text:
+            record.exc_text = None
         record = self._flatten_extras(record)
         return super(StatusFormatter, self).format(record)
+
+    def formatException(self, ei):  # noqa: N802
+        """
+        Take just the last line of an exception
+        """
+        trace = traceback.format_exception(ei[0], ei[1], ei[2], None)
+        s = trace[-1]
+        if s[-1:] == "\n":
+            s = s[:-1]
+        return s
 
     @staticmethod
     def _flatten_extras(record):

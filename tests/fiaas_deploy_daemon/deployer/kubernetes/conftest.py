@@ -18,7 +18,7 @@ import pytest
 
 
 @pytest.helpers.register
-def create_metadata(app_name, namespace='default', labels=None, external=None, annotations=None):
+def create_metadata(app_name, namespace='default', labels=None, external=None, annotations=None, generation=None):
     if not labels:
         labels = {
             'app': app_name,
@@ -38,4 +38,7 @@ def create_metadata(app_name, namespace='default', labels=None, external=None, a
     if external is not None:
         expose_annotations = {'fiaas/expose': str(external).lower()}
         metadata.setdefault('annotations', {}).update(expose_annotations)
+
+    if generation is not None:
+        metadata['generation'] = generation
     return metadata

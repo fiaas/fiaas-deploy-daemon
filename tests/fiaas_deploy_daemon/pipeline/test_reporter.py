@@ -21,7 +21,7 @@ from mock import create_autospec
 from requests import Session
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import Subject, DEPLOY_STATUS_CHANGED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
 from fiaas_deploy_daemon.pipeline.reporter import Reporter
 
 CALLBACK = u"http://example.com/callback/"
@@ -41,18 +41,22 @@ class TestReporter(object):
         mock_config.environment = u"test"
         return mock_config
 
-    @pytest.mark.parametrize("signal_name,url", [
-        (DEPLOY_STARTED, u"fiaas_test-diy_deploy_started/success"),
-        (DEPLOY_FAILED, u"fiaas_test-diy_deploy_end/failure"),
-        (DEPLOY_SUCCESS, u"fiaas_test-diy_deploy_end/success")
+    @pytest.mark.parametrize("result,url", [
+        (STATUS_STARTED, u"fiaas_test-diy_deploy_started/success"),
+        (STATUS_FAILED, u"fiaas_test-diy_deploy_end/failure"),
+        (STATUS_SUCCESS, u"fiaas_test-diy_deploy_end/success")
     ])
-    def test_signal_to_callback(self, session, config, signal_name, url, app_spec):
+    def test_signal_to_callback(self, session, config, result, url, app_spec):
         reporter = Reporter(config, session)
         reporter.register(app_spec, CALLBACK)
+        lifecycle_subject = Subject(app_name=app_spec.name,
+                                    namespace=app_spec.namespace,
+                                    deployment_id=app_spec.deployment_id,
+                                    repository=None,
+                                    labels=None,
+                                    annotations=None)
 
-        signal(signal_name).send(app_name=app_spec.name,
-                                 namespace=app_spec.namespace,
-                                 deployment_id=app_spec.deployment_id)
+        signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
 
         session.post.assert_called_with(CALLBACK + url,
                                         json={u"description": u"From fiaas-deploy-daemon"})

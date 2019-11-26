@@ -22,7 +22,7 @@ from blinker import signal
 from requests.auth import AuthBase
 
 from fiaas_deploy_daemon import Configuration
-from fiaas_deploy_daemon.lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from fiaas_deploy_daemon.lifecycle import Subject, DEPLOY_STATUS_CHANGED, STATUS_STARTED, STATUS_FAILED, STATUS_SUCCESS
 from fiaas_deploy_daemon.usage_reporting import DevhoseDeploymentEventTransformer
 from fiaas_deploy_daemon.usage_reporting.usage_reporter import UsageReporter, UsageEvent
 
@@ -46,23 +46,24 @@ class TestUsageReporter(object):
     def mock_auth(self):
         return mock.create_autospec(AuthBase())
 
-    @pytest.mark.parametrize("signal_name,repository", [
-        (DEPLOY_STARTED, None),
-        (DEPLOY_FAILED, None),
-        (DEPLOY_SUCCESS, None),
-        (DEPLOY_STARTED, "repo"),
-        (DEPLOY_FAILED, "repo"),
-        (DEPLOY_SUCCESS, "repo"),
+    @pytest.mark.parametrize("result,repository", [
+        (STATUS_STARTED, None),
+        (STATUS_FAILED, None),
+        (STATUS_SUCCESS, None),
+        (STATUS_STARTED, "repo"),
+        (STATUS_FAILED, "repo"),
+        (STATUS_SUCCESS, "repo"),
     ])
-    def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, app_spec, signal_name, repository):
+    def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, app_spec, result, repository):
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
 
-        signal(signal_name).send(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                 repository=repository)
+        lifecycle_subject = Subject(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
+                                    repository=repository, labels=None, annotations=None)
+        signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
 
         event = reporter._event_queue.get_nowait()
 
-        assert event.status == signal_name.split("_")[-1].upper()
+        assert event.status == result.split("_")[-1].upper()
         assert event.app_name == app_spec.name
         assert event.namespace == app_spec.namespace
         assert event.deployment_id == app_spec.deployment_id

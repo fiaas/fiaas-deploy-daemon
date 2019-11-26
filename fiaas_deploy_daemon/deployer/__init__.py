@@ -35,4 +35,4 @@ class DeployerBindings(pinject.BindingSpec):
         bind("deployer", to_class=Deployer)
 
 
-DeployerEvent = namedtuple('DeployerEvent', ['action', 'app_spec'])
+DeployerEvent = namedtuple('DeployerEvent', ['action', 'app_spec', 'lifecycle_subject'])

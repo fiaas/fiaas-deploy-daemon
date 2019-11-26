@@ -31,7 +31,7 @@ from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.deployer import DeployerEvent
-from fiaas_deploy_daemon.lifecycle import Lifecycle
+from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 
 ADD_EVENT = {
@@ -173,6 +173,8 @@ class TestWatcher(object):
 
         app_spec = app_spec._replace(name=app_name, namespace=namespace, deployment_id=deployment_id)
         spec_factory.return_value = app_spec
+        lifecycle_subject = Subject(app_name, namespace, deployment_id, repository, app_spec.labels.status, app_spec.annotations.status)
+        lifecycle.initiate.return_value = lifecycle_subject
 
         crd_watcher._watch(None)
 
@@ -196,7 +198,10 @@ class TestWatcher(object):
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()
-        assert deployer_event == DeployerEvent(deployer_event_type, app_spec)
+        if event in [ADD_EVENT, MODIFIED_EVENT]:
+            assert deployer_event == DeployerEvent(deployer_event_type, app_spec, lifecycle_subject)
+        else:
+            assert deployer_event == DeployerEvent(deployer_event_type, app_spec, None)
         assert deploy_queue.empty()
 
     @pytest.mark.parametrize("namespace", [None, "default"])
@@ -220,12 +225,15 @@ class TestWatcher(object):
 
         spec_factory.side_effect = error
 
+        lifecycle_subject = Subject(app_name=event["object"]["spec"]["application"],
+                                    namespace=event["object"]["metadata"]["namespace"],
+                                    deployment_id='deployment_id',
+                                    repository=repository,
+                                    labels=None,
+                                    annotations=None)
+        lifecycle.initiate.return_value = lifecycle_subject
+
         crd_watcher._watch(None)
 
-        lifecycle.failed.assert_called_once_with(app_name=event["object"]["spec"]["application"],
-                                                 namespace=event["object"]["metadata"]["namespace"],
-                                                 deployment_id='deployment_id',
-                                                 repository=repository,
-                                                 labels=None,
-                                                 annotations=None)
+        lifecycle.failed.assert_called_once_with(lifecycle_subject)
         assert deploy_queue.empty()

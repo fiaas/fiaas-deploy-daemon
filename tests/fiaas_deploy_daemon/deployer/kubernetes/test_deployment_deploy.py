@@ -189,6 +189,7 @@ class TestDeploymentDeployer(object):
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 3),
             (5, 3, 2, "1", 5),
+            (0, 3, 2, "1", 3),
     ))
     def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
                                               expected_replicas, config, app_spec, get, put, post, datadog, prometheus,

@@ -45,12 +45,12 @@ class TestReadyCheck(object):
             m.return_value = deployment
             return deployment
 
-    @pytest.mark.parametrize("generation,observedGeneration", (
+    @pytest.mark.parametrize("generation,observed_generation", (
             (0, 0),
             (0, 1)
     ))
-    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observedGeneration, lifecycle):
-        self._create_response(get, generation=generation, observedGeneration=observedGeneration)
+    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observed_generation, lifecycle):
+        self._create_response(get, generation=generation, observed_generation=observed_generation)
 
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle)
 
@@ -58,7 +58,7 @@ class TestReadyCheck(object):
         bookkeeper.success.assert_called_with(app_spec)
         bookkeeper.failed.assert_not_called()
 
-    @pytest.mark.parametrize("requested,replicas,available,updated,generation,observedGeneration", (
+    @pytest.mark.parametrize("requested,replicas,available,updated,generation,observed_generation", (
             (8, 9, 7, 2, 0, 0),
             (2, 2, 1, 2, 0, 0),
             (2, 2, 2, 1, 0, 0),
@@ -67,8 +67,8 @@ class TestReadyCheck(object):
             (2, 2, 2, 2, 1, 0),
     ))
     def test_deployment_incomplete(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                                   generation, observedGeneration, lifecycle):
-        self._create_response(get, requested, replicas, available, updated, generation, observedGeneration)
+                                   generation, observed_generation, lifecycle):
+        self._create_response(get, requested, replicas, available, updated, generation, observed_generation)
 
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle)
 
@@ -104,7 +104,8 @@ class TestReadyCheck(object):
                                             labels=app_spec.labels.status, annotations=app_spec.annotations.status)
 
     @staticmethod
-    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS, generation=0, observedGeneration=0):
+    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS,
+                         generation=0, observed_generation=0):
         get.side_effect = None
         resp = mock.MagicMock()
         get.return_value = resp
@@ -128,6 +129,6 @@ class TestReadyCheck(object):
                 'availableReplicas': available,
                 'unavailableReplicas': replicas - available,
                 'updatedReplicas': updated,
-                'observedGeneration': observedGeneration,
+                'observedGeneration': observed_generation,
             }
         }

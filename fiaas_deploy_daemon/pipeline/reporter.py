@@ -23,7 +23,7 @@ import posixpath
 from blinker import signal
 
 from fiaas_deploy_daemon.log_extras import get_final_logs
-from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS
+from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
 
 
 class Reporter(object):
@@ -34,21 +34,18 @@ class Reporter(object):
         self._session = session
         self._callback_urls = {}
         self._logger = logging.getLogger(__name__)
-        signal(DEPLOY_STARTED).connect(self._handle_started)
-        signal(DEPLOY_SUCCESS).connect(self._handle_success)
-        signal(DEPLOY_FAILED).connect(self._handle_failure)
+        signal(DEPLOY_STATUS_CHANGED).connect(self._handle_status_changed)
 
     def register(self, app_spec, url):
         self._callback_urls[(app_spec.name, app_spec.deployment_id)] = url
 
-    def _handle_started(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal(u"deploy_started", app_name, namespace, deployment_id)
-
-    def _handle_success(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal(u"deploy_end", app_name, namespace, deployment_id)
-
-    def _handle_failure(self, sender, app_name, namespace, deployment_id, **kwargs):
-        self._handle_signal(u"deploy_end", app_name, namespace, deployment_id, status=u"failure")
+    def _handle_status_changed(self, sender, status, subject):
+        if status == STATUS_STARTED:
+            self._handle_signal("deploy_started", subject.app_name, subject.namespace, subject.deployment_id)
+        elif status == STATUS_SUCCESS:
+            self._handle_signal(u"deploy_end", subject.app_name, subject.namespace, subject.deployment_id)
+        elif status == STATUS_FAILED:
+            self._handle_signal(u"deploy_end", subject.app_name, subject.namespace, subject.deployment_id, status=u"failure")
 
     def _handle_signal(self, event_name, app_name, namespace, deployment_id, status=u"success"):
         base_url = self._callback_urls.get((app_name, deployment_id))

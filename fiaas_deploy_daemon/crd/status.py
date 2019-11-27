@@ -19,7 +19,6 @@ import logging
 import struct
 from base64 import b32encode
 from datetime import datetime
-from functools import partial
 
 import pytz
 from blinker import signal
@@ -27,7 +26,7 @@ from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 
 from .types import FiaasApplicationStatus
-from ..lifecycle import DEPLOY_FAILED, DEPLOY_STARTED, DEPLOY_SUCCESS, DEPLOY_INITIATED
+from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
 from ..log_extras import get_final_logs, get_running_logs
 from ..retry import retry_on_upsert_conflict
 from ..tools import merge_dicts
@@ -38,10 +37,7 @@ LOG = logging.getLogger(__name__)
 
 
 def connect_signals():
-    signal(DEPLOY_STARTED).connect(_handle_started)
-    signal(DEPLOY_FAILED).connect(_handle_failed)
-    signal(DEPLOY_SUCCESS).connect(_handle_success)
-    signal(DEPLOY_INITIATED).connect(_handle_initiated)
+    signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal)
 
 
 def now():
@@ -50,17 +46,23 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(result, sender, app_name, namespace, deployment_id, **kwargs):
-    labels = kwargs.get("labels") or {}
-    annotations = kwargs.get("annotations") or {}
-    _save_status(app_name, namespace, deployment_id, result, labels, annotations)
-    _cleanup(app_name, namespace)
+def _handle_signal(sender, status, subject):
+    if status == STATUS_STARTED:
+        status = "RUNNING"
+    else:
+        status = status.upper()
+
+    _save_status(status, subject)
+    _cleanup(subject.app_name, subject.namespace)
 
 
 @retry_on_upsert_conflict
-def _save_status(app_name, namespace, deployment_id, result, labels, annotations):
+def _save_status(result, subject):
+    (app_name, namespace, deployment_id, repository, labels, annotations) = subject
     LOG.info("Saving result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
     name = create_name(app_name, deployment_id)
+    labels = labels or {}
+    annotations = annotations or {}
     labels = merge_dicts(labels, {"app": app_name, "fiaas/deployment_id": deployment_id})
     annotations = merge_dicts(annotations, {LAST_UPDATED_KEY: now()})
     metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
@@ -90,12 +92,6 @@ def _cleanup(app_name=None, namespace=None):
             FiaasApplicationStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
         except NotFound:
             pass  # already deleted
-
-
-_handle_started = partial(_handle_signal, u"RUNNING")
-_handle_failed = partial(_handle_signal, u"FAILED")
-_handle_success = partial(_handle_signal, u"SUCCESS")
-_handle_initiated = partial(_handle_signal, u"INITIATED")
 
 
 def create_name(name, deployment_id):

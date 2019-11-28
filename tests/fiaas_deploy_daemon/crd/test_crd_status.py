@@ -109,9 +109,11 @@ class TestStatusReport(object):
                     'labels': {
                         'app': app_spec.name,
                         'fiaas/deployment_id': app_spec.deployment_id,
+                        'label/on_existing_resource': 'label_value',
                     },
                     'annotations': {
                         'fiaas/last_updated': LAST_UPDATE,
+                        'annotation/on_existing_resource': 'annotation_value',
                     },
                     'namespace': 'default',
                     'name': app_name,
@@ -139,11 +141,11 @@ class TestStatusReport(object):
                 'labels': {
                     'app': app_spec.name,
                     'fiaas/deployment_id': app_spec.deployment_id,
-                    'status/label': 'true'
+                    'status/label': 'true',
                 },
                 'annotations': {
                     'fiaas/last_updated': LAST_UPDATE,
-                    'status/annotations': 'true'
+                    'status/annotations': 'true',
                 },
                 'namespace': 'default',
                 'name': app_name,
@@ -151,6 +153,11 @@ class TestStatusReport(object):
                 'finalizers': [],
             }
         }
+        # if we have an existing resource, expect that existing labels and annotations are present after update
+        if not test_data.new:
+            expected_call['metadata']['labels']['label/on_existing_resource'] = 'label_value'
+            expected_call['metadata']['annotations']['annotation/on_existing_resource'] = 'annotation_value'
+
         called_mock = request.getfixturevalue(test_data.called_mock)
         mock_response = mock.create_autospec(Response)
         mock_response.json.return_value = expected_call
@@ -206,7 +213,7 @@ class TestStatusReport(object):
              for result in (STATUS_INITIATED, STATUS_STARTED, STATUS_STARTED, STATUS_FAILED)
              for fail_times in range(5))
     ))
-    @pytest.mark.usefixtures("post", "put", "find", "logs")
+    @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
     def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, result, fail_times):
 
         def _fail():
@@ -236,7 +243,7 @@ class TestStatusReport(object):
             STATUS_SUCCESS,
             STATUS_FAILED
     ))
-    @pytest.mark.usefixtures("post", "put", "find", "logs")
+    @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
     def test_fail_on_error(self, get_or_create, save, app_spec, signal, result):
         response = mock.MagicMock(spec=Response)
         response.status_code = 403

@@ -65,10 +65,19 @@ def _save_status(result, subject):
     annotations = annotations or {}
     labels = merge_dicts(labels, {"app": app_name, "fiaas/deployment_id": deployment_id})
     annotations = merge_dicts(annotations, {LAST_UPDATED_KEY: now()})
-    metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
     logs = _get_logs(app_name, namespace, deployment_id, result)
-    status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
+
+    try:
+        status = FiaasApplicationStatus.get(name, namespace)
+        status.metadata.labels = merge_dicts(status.metadata.labels, labels)
+        status.metadata.annotations = merge_dicts(status.metadata.annotations, annotations)
+        status.logs = logs
+        status.result = result
+    except NotFound:
+        metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
+        status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     resource_version = status.metadata.resourceVersion
+
     LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
               deployment_id, resource_version)
     status.save()

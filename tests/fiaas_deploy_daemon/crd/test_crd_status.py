@@ -28,7 +28,6 @@ from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
 from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
-from fiaas_deploy_daemon.tools import merge_dicts
 from fiaas_deploy_daemon.lifecycle import Subject
 from utils import configure_mock_fail_then_success
 

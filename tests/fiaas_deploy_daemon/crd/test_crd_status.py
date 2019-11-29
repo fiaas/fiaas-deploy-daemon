@@ -75,7 +75,7 @@ class TestStatusReport(object):
 
     # create vs update => new_status, url, post/put
     def pytest_generate_tests(self, metafunc):
-        if metafunc.cls == self.__class__ and "test_data" in metafunc.fixturenames:
+        if metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_action_on_signal":
             TestData = namedtuple("TestData", ("signal_name", "action", "status", "result", "new",
                                                "called_mock", "ignored_mock"))
             name2result = {

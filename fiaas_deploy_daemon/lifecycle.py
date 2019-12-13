@@ -35,8 +35,8 @@ class Lifecycle(object):
     def change(self, status, subject):
         self.state_change_signal.send(status=status, subject=subject)
 
-    def initiate(self, *args, **kwargs):
-        subject = Subject(*args, **kwargs)
+    def initiate(self, app_name, namespace, deployment_id, repository=None, labels=None, annotations=None):
+        subject = Subject(app_name, namespace, deployment_id, repository, labels, annotations)
         self.state_change_signal.send(status=STATUS_INITIATED, subject=subject)
         return subject
 

@@ -19,6 +19,7 @@ from Queue import Queue
 import mock
 import pytest
 
+from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.deployer.deploy import Deployer
@@ -54,8 +55,12 @@ class TestDeploy(object):
                        app_spec.labels.status, app_spec.annotations.status)
 
     @pytest.fixture
-    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle, lifecycle_subject):
-        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle)
+    def config(self):
+        return Configuration([])
+
+    @pytest.fixture
+    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle, lifecycle_subject, config):
+        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle, config)
         deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
         return deployer
 
@@ -90,8 +95,9 @@ class TestDeploy(object):
 
         lifecycle.state_change_signal.send.assert_called_with(status=STATUS_FAILED, subject=lifecycle_subject)
 
-    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject):
+    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject,
+                                   config):
         deployer()
 
         lifecycle.state_change_signal.send.assert_called_once_with(status=STATUS_STARTED, subject=lifecycle_subject)
-        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject))
+        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config))

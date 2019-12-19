@@ -23,16 +23,18 @@ from monotonic import monotonic as time_monotonic
 
 LOG = logging.getLogger(__name__)
 
-FAIL_LIMIT_MULTIPLIER = 10
-
 
 class ReadyCheck(object):
-    def __init__(self, app_spec, bookkeeper, lifecycle, lifecycle_subject):
+    def __init__(self, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
         self._lifecycle_subject = lifecycle_subject
-        self._fail_after_seconds = FAIL_LIMIT_MULTIPLIER * app_spec.replicas * app_spec.health_checks.readiness.initial_delay_seconds
+        self._fail_after_seconds = (
+            config.ready_check_timeout_multiplier *
+            app_spec.replicas *
+            app_spec.health_checks.readiness.initial_delay_seconds
+        )
         self._fail_after = time_monotonic() + self._fail_after_seconds
 
     def __call__(self):

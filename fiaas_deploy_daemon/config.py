@@ -184,6 +184,9 @@ class Configuration(Namespace):
                             default="0", type=_int_or_unicode)
         parser.add_argument("--enable-deprecated-tls-entry-per-host", help=TLS_ENTRY_PER_HOST_HELP,
                             action="store_true")
+        parser.add_argument("--ready-check-timeout-multiplier", type=int,
+                            help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this " +
+                                 "number of seconds  (default: %(default)s)", default=10)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

@@ -32,13 +32,14 @@ class Deployer(DaemonThread):
     Mainly focused on bookkeeping, and leaving the hard work to the framework-adapter.
     """
 
-    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle):
+    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle, config):
         super(Deployer, self).__init__()
         self._queue = _make_gen(deploy_queue.get)
         self._bookkeeper = bookkeeper
         self._adapter = adapter
         self._scheduler = scheduler
         self._lifecycle = lifecycle
+        self._config = config
 
     def __call__(self):
         for event in self._queue:
@@ -57,7 +58,8 @@ class Deployer(DaemonThread):
             with self._bookkeeper.time(app_spec):
                 self._adapter.deploy(app_spec)
             if app_spec.name != "fiaas-deploy-daemon":
-                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper, self._lifecycle, lifecycle_subject))
+                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper, self._lifecycle, lifecycle_subject,
+                                               self._config))
             else:
                 self._lifecycle.success(lifecycle_subject)
                 self._bookkeeper.success(app_spec)

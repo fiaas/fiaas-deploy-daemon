@@ -21,6 +21,7 @@ from k8s.models.deployment import Deployment
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
+from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
@@ -42,6 +43,10 @@ class TestReadyCheck(object):
         return Subject(app_spec.name, app_spec.namespace, app_spec.deployment_id, None, app_spec.labels.status, app_spec.annotations.status)
 
     @pytest.fixture
+    def config(self):
+        return Configuration([])
+
+    @pytest.fixture
     def deployment(self):
         with mock.patch("k8s.models.deployment.Deployment.get") as m:
             deployment = mock.create_autospec(Deployment(), spec_set=True)
@@ -53,9 +58,10 @@ class TestReadyCheck(object):
             (0, 0),
             (0, 1)
     ))
-    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observed_generation, lifecycle, lifecycle_subject):
+    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observed_generation, lifecycle,
+                                 lifecycle_subject, config):
         self._create_response(get, generation=generation, observed_generation=observed_generation)
-        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
 
         assert ready() is False
         bookkeeper.success.assert_called_with(app_spec)
@@ -72,9 +78,9 @@ class TestReadyCheck(object):
             (2, 2, 2, 2, 1, 0),
     ))
     def test_deployment_incomplete(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                                   generation, observed_generation, lifecycle, lifecycle_subject):
+                                   generation, observed_generation, lifecycle, lifecycle_subject, config):
         self._create_response(get, requested, replicas, available, updated, generation, observed_generation)
-        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
 
         assert ready() is True
         bookkeeper.success.assert_not_called()
@@ -90,13 +96,13 @@ class TestReadyCheck(object):
             (2, 1, 1, 1, {"fiaas/source-repository": "xyz"}, "xyz"),
     ))
     def test_deployment_failed(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                               lifecycle, lifecycle_subject, annotations, repository):
+                               lifecycle, lifecycle_subject, annotations, repository, config):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 6))
 
         self._create_response(get, requested, replicas, available, updated)
 
-        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
         ready._fail_after = time_monotonic()
 
         assert ready() is False

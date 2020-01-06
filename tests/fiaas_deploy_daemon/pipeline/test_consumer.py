@@ -211,6 +211,18 @@ class TestConsumer(object):
         lifecycle.failed.assert_called_once()
 
 
+    @pytest.mark.parametrize("artifact_type", (u"docker", u"fiaas"))
+    def test_ignore_event_if_missing_required_artifact_type(self, kafka_consumer, queue, consumer, artifact_type):
+        event = deepcopy(EVENT)
+        del event[u"artifacts_by_type"][artifact_type]
+        message = DummyMessage(json.dumps(event))
+        kafka_consumer.__iter__.return_value = [message]
+
+        consumer()
+
+        with pytest.raises(Empty):
+            queue.get_nowait()
+
 def _make_env_message(template, env):
     message = deepcopy(template)
     message[u"environment"] = env

@@ -54,12 +54,23 @@ Useful resources:
 - http://www.voidspace.org.uk/python/mock
 - http://flask.pocoo.org/
 
-Running fiaas-deploy-daemon with `minikube`
+Running fiaas-deploy-daemon against a local `minikube` or `kind` backed Kubernetes cluster
 -------------------------------------------
 
-To run fiaas-deploy-daemon locally and connect it to a minikube cluster, do the following.
+This workflow is intended for manual testing of fiaas-deploy-daemon against a live Kubernetes cluster while
+developing.
+
+To run fiaas-deploy-daemon locally and connect it to a local cluster, do the following:
 
 * Set up development environment and install fiaas-deploy-daemon (`$ pip install -r requirements.txt`)
+
+With kind:
+* (See https://kind.sigs.k8s.io/docs/user/quick-start/#installation for how to install and configure kind)
+* Start kind: `$ kind create cluster --image kindest/node:v1.15.6`
+* Run `$ bin/run_fdd_against_kind`
+
+With minikube:
+* (See https://minikube.sigs.k8s.io/docs/start/ for how to install and configure minikube)
 * Start minikube: `$ minikube start`
 * Run `$ bin/run_fdd_against_minikube`
 

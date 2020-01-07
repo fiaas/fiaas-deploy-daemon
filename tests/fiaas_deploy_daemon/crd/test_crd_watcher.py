@@ -48,7 +48,8 @@ ADD_EVENT = {
             "config": {
                 "version": 2,
                 "host": "example.com",
-                "namespace": "default"
+                "namespace": "default",
+                "annotations": {}
             },
             "image": "example/app"
         }
@@ -162,7 +163,7 @@ class TestWatcher(object):
     ])
     def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type,
                     lifecycle, annotations, repository):
-        event["object"]["metadata"]["annotations"] = annotations
+        event["object"]["spec"]["config"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         spec = event["object"]["spec"]

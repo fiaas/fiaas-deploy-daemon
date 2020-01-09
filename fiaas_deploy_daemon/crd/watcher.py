@@ -139,6 +139,6 @@ class CrdWatcher(DaemonThread):
 
 def _repository(application):
     try:
-        return application.metadata.annotations["deployment"]["fiaas/source-repository"]
+        return application.spec.config["annotations"]["deployment"]["fiaas/source-repository"]
     except (TypeError, KeyError, AttributeError):
         pass

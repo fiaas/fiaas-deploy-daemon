@@ -60,13 +60,6 @@ Regardless of how a variable is passed in (option, environment variable or in
 a config file), it must be specified as `<key>=<value>`.
 """
 
-BW_LISTS_LONG_HELP = """
-Only one of `--blacklist` or `--whitelist` may be used, but each can be used
-multiple times. The parameter should match exactly the name of an application.
-When whitelisting, only applications in the whitelist is deployed.
-When blacklisting, applications in the blacklist will not be deployed.
-"""
-
 USAGE_REPORTING_LONG_HELP = """
 FIAAS can optionally report usage data to a web-service via POSTs to an
 HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
@@ -103,8 +96,7 @@ Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
 a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
 
-It is possible to specify '--ingress-suffix', '--host-rewrite-rule',
-'--blacklist' and '--whitelist' multiple times to add more than one of each.
+It is possible to specify '--ingress-suffix' and '--host-rewrite-rule' multiple times to add more than one of each.
 In the config-file, these should be defined as a YAML list
 (see https://github.com/bw2/ConfigArgParse#special-values).
 
@@ -244,16 +236,11 @@ class Configuration(Namespace):
         global_env_parser.add_argument("--global-env", default=[], env_var="FIAAS_GLOBAL_ENV",
                                        help="Various non-essential global variables to expose for all applications",
                                        action="append", type=KeyValue, dest="global_env")
-        list_parser = parser.add_argument_group("Blacklisting/whitelisting applications", BW_LISTS_LONG_HELP)
-        list_group = list_parser.add_mutually_exclusive_group()
-        list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
-        list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         secret_init_containers_parser = parser.add_argument_group("Secret init-containers", SECRET_CONTAINERS_LONG_HELP)
         secret_init_containers_parser.add_argument("--secret-init-containers", default=[],
                                                    env_var="FIAAS_SECRET_INIT_CONTAINERS",
                                                    help="Images to use for secret init-containers by key",
                                                    action="append", type=KeyValue, dest="secret_init_containers")
-
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
         self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}

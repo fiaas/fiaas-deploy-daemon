@@ -67,8 +67,6 @@ class TestConfig(object):
         assert config.infrastructure == "diy"
         assert config.log_format == "plain"
         assert config.image == ""
-        assert config.blacklist == []
-        assert config.whitelist == []
         assert config.enable_deprecated_multi_namespace_support is False
         assert config.enable_deprecated_tls_entry_per_host is False
 
@@ -142,8 +140,6 @@ class TestConfig(object):
         ("environment", "environment", "gke"),
         ("proxy", "proxy", "http://proxy.example.com"),
         ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
-        ("blacklist", "blacklist", ["app1", "app2"]),
-        ("whitelist", "whitelist", ["app1", "app2"]),
         ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
     ])
     def test_config_from_file(self, key, attr, value, tmpdir):
@@ -165,10 +161,6 @@ class TestConfig(object):
             pyaml.dump({"host-rewrite-rule": args}, fobj, safe=True, default_style='"')
         config = Configuration(["--config-file", config_file.strpath])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
-
-    def test_mutually_exclusive_lists(self):
-        with pytest.raises(SystemExit):
-            Configuration(["--blacklist", "blacklisted", "--whitelist", "whitelisted"])
 
     def test_global_env_keyvalue(self):
         args = ("pattern=value", "FIAAS_ENV=test")

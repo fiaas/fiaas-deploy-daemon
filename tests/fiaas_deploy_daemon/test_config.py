@@ -14,7 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import dns.rdata
 import mock
 import pyaml
 import pytest
@@ -34,12 +33,6 @@ class TestConfig(object):
         with mock.patch("__builtin__.open", new_callable=mock.mock_open) as _open:
             _open.side_effect = IOError("does not exist")
             yield _open
-
-    @pytest.fixture(autouse=True)
-    def dns_resolver(self):
-        with mock.patch("dns.resolver.query") as mock_resolver:
-            mock_resolver.side_effect = dns.resolver.NXDOMAIN
-            yield mock_resolver
 
     @pytest.mark.parametrize("format", ["plain", "json"])
     def test_resolve_log_format_env(self, monkeypatch, format):
@@ -130,37 +123,6 @@ class TestConfig(object):
         assert getattr(config, key) is False
         config = Configuration([flag])
         assert getattr(config, key) is True
-
-    def test_resolve_service_from_dns(self, dns_resolver):
-        dns_resolver.side_effect = None
-        dns_resolver.return_value = dns.rdataset.from_text('IN', 'SRV', 3600,
-                                                           '10 100 7794 kafka-pipeline.default.svc.cluster.local.')
-
-        config = Configuration([])
-
-        target, port = config.resolve_service('service', 'port')
-        assert target == 'kafka-pipeline.default.svc.cluster.local'
-        assert port == 7794
-
-    @pytest.mark.parametrize("service", ["kafka_pipeline"])
-    def test_resolve_service_from_env(self, monkeypatch, service):
-        monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
-        monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
-        config = Configuration([])
-
-        host, port = config.resolve_service(service)
-        assert host == "host"
-        assert port == 1234
-
-    @pytest.mark.parametrize("service_exists", [True, False])
-    def test_has_service(self, monkeypatch, service_exists):
-        service = "service"
-        if service_exists:
-            monkeypatch.setenv(service.upper() + "_SERVICE_HOST", "host")
-            monkeypatch.setenv(service.upper() + "_SERVICE_PORT", "1234")
-        config = Configuration([])
-
-        assert service_exists == config.has_service(service)
 
     @pytest.mark.parametrize("cmdline,envvar,expected", [
         ([], "", None),

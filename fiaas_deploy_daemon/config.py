@@ -20,8 +20,6 @@ import re
 from argparse import Namespace
 
 import configargparse
-import dns.exception
-import dns.resolver
 
 DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
 DEFAULT_SECRETS_DIR = "/var/run/secrets/fiaas/"
@@ -275,42 +273,6 @@ class Configuration(Namespace):
         version = os.getenv("VERSION")
         if version:
             self.version = version
-
-    def has_service(self, service):
-        try:
-            self.resolve_service(service)
-        except InvalidConfigurationException:
-            return False
-        return True
-
-    def resolve_service(self, service_name, port_name=None):
-        try:
-            return self._resolve_service_from_srv_record(service_name, port_name)
-        except (dns.resolver.NXDOMAIN, dns.exception.Timeout) as e:
-            self._logger.warn("Failed to lookup SRV. %s", str(e))
-        return self._resolve_service_from_env(service_name)
-
-    def _resolve_service_from_env(self, service_name):
-        service = service_name.replace("-", "_").upper()
-        host = self._resolve_required_variable("{}_SERVICE_HOST".format(service), service_name)
-        port_key = "{}_SERVICE_PORT".format(service)
-        port = self._resolve_required_variable(port_key, service_name)
-        try:
-            port = int(port)
-        except ValueError:
-            raise InvalidConfigurationException(
-                "{} is not set to a port-number, but instead {!r}. Unable to resolve service {}".format(port_key, port,
-                                                                                                        service_name))
-        return host, port
-
-    @staticmethod
-    def _resolve_service_from_srv_record(service_name, port_name):
-        service = service_name.replace("_", "-")
-        port = (port_name if port_name else service_name).replace("_", "-")
-        srv = "_{}._tcp.{}".format(port, service)
-        answers = dns.resolver.query(srv, 'SRV')
-        # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
-        return str(answers[0].target)[:-1], answers[0].port
 
     @staticmethod
     def _resolve_required_variable(key, service_name):

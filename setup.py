@@ -94,7 +94,7 @@ if __name__ == "__main__":
         },
 
         # Metadata
-        description="Deploy docker containers to kubernetes when notified by pipeline",
+        description="Deploy applications to Kubernetes",
         long_description=read("README.md"),
         url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
 

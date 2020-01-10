@@ -71,8 +71,9 @@ class Consumer(DaemonThread):
         event = self._deserialize(message)
         self._logger.debug("Got event: %r", event)
         if event[u"environment"] == self._environment:
+            app_name = event[u"project_name"]
             try:
-                lifecycle_subject = self._lifecycle.initiate(app_name=event[u"project_name"],
+                lifecycle_subject = self._lifecycle.initiate(app_name=app_name,
                                                              namespace=DEFAULT_NAMESPACE,
                                                              deployment_id=self._deployment_id(event))
             except (NoDockerArtifactException, NoFiaasArtifactException):
@@ -88,16 +89,16 @@ class Consumer(DaemonThread):
                 self._reporter.register(app_spec, event[u"callback_url"])
                 deploy_counter.inc()
             except YAMLError:
-                self._logger.exception("Failure when parsing FIAAS-config")
+                self._logger.exception("Failure when parsing FIAAS-config for application %s", app_name)
                 self._lifecycle.failed(lifecycle_subject)
             except InvalidConfiguration:
-                self._logger.exception("Invalid configuration for application %s", event.get("project_name"))
+                self._logger.exception("Invalid configuration for application %s", app_name)
                 self._lifecycle.failed(lifecycle_subject)
             except HTTPError:
-                self._logger.exception("Failure when downloading FIAAS-config")
+                self._logger.exception("Failure when downloading FIAAS-config for application %s", app_name)
                 self._lifecycle.failed(lifecycle_subject)
             except (NotWhiteListedApplicationException, BlackListedApplicationException) as e:
-                self._logger.warn("App not deployed. %s", str(e))
+                self._logger.warn("App %s not deployed. %s", app_name, str(e))
 
     def _check_app_acceptable(self, app_spec):
         if self._config.whitelist and app_spec.name not in self._config.whitelist:

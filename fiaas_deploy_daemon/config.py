@@ -151,7 +151,8 @@ class Configuration(Namespace):
                             default=DEFAULT_SECRETS_DIR)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")
-        parser.add_argument("--proxy", help="Use proxy for getting fiaas-artifacts", env_var="http_proxy")
+        parser.add_argument("--proxy", help="Use http proxy (currently only used for for usage reporting)",
+                            env_var="http_proxy")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
         parser.add_argument("--environment", help="Environment to deploy to", env_var="FIAAS_ENVIRONMENT", default="")

@@ -18,9 +18,9 @@ __cleanup() {
 }
 trap __cleanup EXIT
 
-jq -r ".clusters[] | select(.name == \"kind-${CLUSTER_NAME}\") | .cluster.\"certificate-authority-data\"" <<< "$KUBECONFIG_JSON" | base64 -D > "$APISERVER_CERT"
-jq -r ".users[] | select(.name == \"kind-${CLUSTER_NAME}\") | .user.\"client-certificate-data\"" <<< "$KUBECONFIG_JSON" | base64 -D > "$CLIENT_CERT"
-jq -r ".users[] | select(.name == \"kind-${CLUSTER_NAME}\") | .user.\"client-key-data\"" <<< "$KUBECONFIG_JSON" | base64 -D > "$CLIENT_KEY"
+jq -r ".clusters[] | select(.name == \"kind-${CLUSTER_NAME}\") | .cluster.\"certificate-authority-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$APISERVER_CERT"
+jq -r ".users[] | select(.name == \"kind-${CLUSTER_NAME}\") | .user.\"client-certificate-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$CLIENT_CERT"
+jq -r ".users[] | select(.name == \"kind-${CLUSTER_NAME}\") | .user.\"client-key-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$CLIENT_KEY"
 
 ARGS=(
 '--debug'

@@ -123,10 +123,6 @@ In order for this to work DNS entries for the resulting hosts needs to be create
 
 If you wish to expose certain environment variables to every application in your cluster, define them here. Regardless of how a variable is passed in (option, environment variable or in a config file), it must be specified as `<key>=<value>`.
 
-### blacklist / whitelist
-
-This is currently only used for FINN, and will go away soon.
-
 ### use-ingress-tls
 
 Used to extend ingress configuration when deploying applications to enable automatic provisioning and management of certificates for the ingress resources created. This requires infrastructure such as kube-lego/cert-manager to be in place for provisioning of certificates.

@@ -31,7 +31,7 @@ from fiaas_deploy_daemon.tools import merge_dicts
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"deployment_deployer": "pass through", "global_label": "impossible to override"}
-DEPLOYMENTS_URI = '/apis/extensions/v1beta1/namespaces/default/deployments/'
+DEPLOYMENTS_URI = '/apis/apps/v1/namespaces/default/deployments/'
 
 
 def test_make_http_probe():

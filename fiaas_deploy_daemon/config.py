@@ -97,6 +97,9 @@ When using extensions.tls, add a separate TLS entry for each host in addition to
 application containing all hosts. This feature is deprecated and will soon be removed.
 """
 
+DISABLE_PIPELINE_CONSUMER_HELP = """disable pipeline consumer. this flag only exists to ease removing the pipeline
+consumer completely, and will be removed as soon as the pipeline consumer code is removed, do not use this flag"""
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
@@ -187,6 +190,8 @@ class Configuration(Namespace):
         parser.add_argument("--ready-check-timeout-multiplier", type=int,
                             help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this " +
                                  "number of seconds  (default: %(default)s)", default=10)
+        parser.add_argument("--disable-pipeline-consumer", help=DISABLE_PIPELINE_CONSUMER_HELP,
+                            action="store_true")
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

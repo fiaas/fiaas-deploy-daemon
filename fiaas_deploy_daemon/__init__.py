@@ -135,7 +135,7 @@ def main():
             K8sAdapterBindings(),
             WebBindings(),
             SpecBindings(),
-            PipelineBindings() if cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
+            PipelineBindings() if not cfg.disable_pipeline_consumer and cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
             UsageReportingBindings(),
         ]

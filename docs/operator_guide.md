@@ -34,6 +34,9 @@ In order for FIAAS to function in a cluster, some basics needs to be in place
 * An ingress controller capable of handling all the required features
 * One or more DNS wildcards that will direct traffic to the ingress controller (see the [--ingress-suffix](#ingress-suffix) option) 
 
+In addition, some conventions might be useful to know about:
+
+* In fiaas.yml v3, the default paths for probes and metrics starts with `/_/`. As a cluster operator, it might be useful to configure your cluster to disallow public access to any path that starts with this prefix. 
 
 How to set configuration options
 --------------------------------

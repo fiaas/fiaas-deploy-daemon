@@ -15,11 +15,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import, print_function
+
+import contextlib
 import os
 import subprocess
 import sys
 import time
 import uuid
+from datetime import datetime
 
 import pytest
 import requests
@@ -69,6 +73,18 @@ class TestE2E(object):
         except Exception as e:
             msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
+
+    @pytest.fixture
+    def kind_logger(self, kubernetes):
+        @contextlib.contextmanager
+        def wrapped():
+            start_time = datetime.now()
+            try:
+                yield
+            finally:
+                kubernetes["log_dumper"](since=start_time, until=datetime.now())
+
+        return wrapped
 
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
@@ -252,59 +268,60 @@ class TestE2E(object):
             return [Service, Deployment, Ingress]
 
     @pytest.mark.usefixtures("fdd")
-    def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type):
-        name, fiaas_application, expected = custom_resource_definition
+    def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type, kind_logger):
+        with kind_logger():
+            name, fiaas_application, expected = custom_resource_definition
 
-        # check that k8s objects for name doesn't already exist
-        kinds = self._select_kinds(expected)
-        for kind in kinds:
-            with pytest.raises(NotFound):
-                kind.get(name)
-
-        # First deploy
-        fiaas_application.save()
-
-        # Check that deployment status is RUNNING
-        def _assert_status():
-            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
-            assert len(status.logs) > 0
-            assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
-
-        wait_until(_assert_status, patience=PATIENCE)
-
-        # Check that annotations and labels are applied to status object
-        status_labels = fiaas_application.spec.additional_labels.status
-        if status_labels:
-            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-            label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
-            assert label_difference == set()
-
-        # Check deploy success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
-
-        # Redeploy, new image, possibly new init-container
-        fiaas_application.spec.image = IMAGE2
-        fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
-        strongbox_groups = []
-        if "strongbox" in name:
-            strongbox_groups = ["foo", "bar"]
-            fiaas_application.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
-        fiaas_application.save()
-
-        # Check success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
-                   patience=PATIENCE)
-
-        # Cleanup
-        FiaasApplication.delete(name)
-
-        def cleanup_complete():
+            # check that k8s objects for name doesn't already exist
+            kinds = self._select_kinds(expected)
             for kind in kinds:
                 with pytest.raises(NotFound):
                     kind.get(name)
 
-        wait_until(cleanup_complete, patience=PATIENCE)
+            # First deploy
+            fiaas_application.save()
+
+            # Check that deployment status is RUNNING
+            def _assert_status():
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+                assert status.result == u"RUNNING"
+                assert len(status.logs) > 0
+                assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
+
+            wait_until(_assert_status, patience=PATIENCE)
+
+            # Check that annotations and labels are applied to status object
+            status_labels = fiaas_application.spec.additional_labels.status
+            if status_labels:
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+                label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+                assert label_difference == set()
+
+            # Check deploy success
+            wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
+
+            # Redeploy, new image, possibly new init-container
+            fiaas_application.spec.image = IMAGE2
+            fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+            strongbox_groups = []
+            if "strongbox" in name:
+                strongbox_groups = ["foo", "bar"]
+                fiaas_application.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
+            fiaas_application.save()
+
+            # Check success
+            wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
+                       patience=PATIENCE)
+
+            # Cleanup
+            FiaasApplication.delete(name)
+
+            def cleanup_complete():
+                for kind in kinds:
+                    with pytest.raises(NotFound):
+                        kind.get(name)
+
+            wait_until(cleanup_complete, patience=PATIENCE)
 
 
 def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None):

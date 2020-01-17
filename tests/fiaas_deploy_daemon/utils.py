@@ -25,13 +25,13 @@ import time
 import traceback
 from copy import deepcopy
 from datetime import datetime
-from distutils.version import StrictVersion
 from urlparse import urljoin
 
 import docker
 import pytest
 import requests
 import yaml
+from distutils.version import StrictVersion
 from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.deployment import Deployment
 from k8s.models.service import Service
@@ -278,12 +278,20 @@ class KindWrapper(object):
                 "client-cert": client_cert,
                 "client-key": client_key,
                 "api-cert": api_cert,
+                "log_dumper": self.dump_logs,
             }
             wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
             return result
         except Exception:
+            self.dump_logs()
             self.delete()
             raise
+
+    def dump_logs(self, since=None, until=None):
+        if self._container:
+            print("vvvvvvvvvvvvvvvv Output from kind container vvvvvvvvvvvvvvvv")  # NOQA
+            print(self._container.logs(since=since, until=until), end="")  # NOQA
+            print("^^^^^^^^^^^^^^^^ Output from kind container ^^^^^^^^^^^^^^^^")  # NOQA
 
     def delete(self):
         if self._container:
@@ -308,7 +316,8 @@ class KindWrapper(object):
             image_name = self.DOCKER_IMAGE
 
         self._container = self._client.containers.run("{}:{}".format(image_name, self.k8s_version),
-                                                      detach=True, remove=True, auto_remove=True, privileged=True,
+                                                      detach=True, stdout=True, stderr=True,
+                                                      remove=True, auto_remove=True, privileged=True,
                                                       name=self.name, hostname=self.name,
                                                       ports={"10080/tcp": None, "8443/tcp": None})
 

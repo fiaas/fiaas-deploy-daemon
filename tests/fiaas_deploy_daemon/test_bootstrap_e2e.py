@@ -14,11 +14,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import contextlib
 import os
 import os.path
 import subprocess
 import sys
 import uuid
+from datetime import datetime
 
 import pytest
 from k8s import config
@@ -95,6 +97,18 @@ class TestBootstrapE2E(object):
             msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
+    @pytest.fixture
+    def kind_logger(self, kubernetes):
+        @contextlib.contextmanager
+        def wrapped():
+            start_time = datetime.now()
+            try:
+                yield
+            finally:
+                kubernetes["log_dumper"](since=start_time, until=datetime.now())
+
+        return wrapped
+
     @pytest.fixture(autouse=True)
     def k8s_client(self, kubernetes):
         Client.clear_session()
@@ -134,37 +148,38 @@ class TestBootstrapE2E(object):
         spec = FiaasApplicationSpec(application=name, image=IMAGE, config=fiaas_yml)
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
-    def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
-        skip_if_crd_not_supported(k8s_version)
+    def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e, kind_logger):
+        with kind_logger():
+            skip_if_crd_not_supported(k8s_version)
 
-        CrdWatcher.create_custom_resource_definitions()
-        wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
+            CrdWatcher.create_custom_resource_definitions()
+            wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
 
-        def prepare_test_case(test_case):
-            name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case)
+            def prepare_test_case(test_case):
+                name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case)
 
-            ensure_resources_not_exists(name, expected, fiaas_application.metadata.namespace)
+                ensure_resources_not_exists(name, expected, fiaas_application.metadata.namespace)
 
-            fiaas_application.save()
+                fiaas_application.save()
 
-            return name, fiaas_application.metadata.namespace, expected
+                return name, fiaas_application.metadata.namespace, expected
 
-        expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
+            expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
 
-        exit_code = self.run_bootstrap(request, kubernetes, k8s_version, use_docker_for_e2e)
-        assert exit_code == 0
+            exit_code = self.run_bootstrap(request, kubernetes, k8s_version, use_docker_for_e2e)
+            assert exit_code == 0
 
-        def success():
-            all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
+            def success():
+                all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
 
-        wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
+            wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
 
-        for name, namespace, expected in expectations:
-            for kind in expected.keys():
-                try:
-                    kind.delete(name, namespace=namespace)
-                except NotFound:
-                    pass  # already missing
+            for name, namespace, expected in expectations:
+                for kind in expected.keys():
+                    try:
+                        kind.delete(name, namespace=namespace)
+                    except NotFound:
+                        pass  # already missing
 
 
 def ensure_resources_not_exists(name, expected, namespace):

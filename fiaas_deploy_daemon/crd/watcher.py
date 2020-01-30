@@ -26,7 +26,8 @@ from k8s.models.custom_resource_definition import CustomResourceDefinition, Cust
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
-from .types import FiaasApplication
+from .status import create_name
+from .types import FiaasApplication, FiaasApplicationStatus
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
@@ -85,17 +86,21 @@ class CrdWatcher(DaemonThread):
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
 
     def _deploy(self, application):
-        LOG.debug("Deploying %s", application.spec.application)
+        app_name = application.spec.application
+        LOG.debug("Deploying %s", app_name)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
-            set_extras(app_name=application.spec.application,
+            set_extras(app_name=app_name,
                        namespace=application.metadata.namespace,
                        deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
-                application.spec.application))
+                app_name))
+        if self._already_deployed(app_name, application.metadata.namespace, deployment_id):
+            LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)
+            return
         repository = _repository(application)
-        lifecycle_subject = self._lifecycle.initiate(app_name=application.spec.application,
+        lifecycle_subject = self._lifecycle.initiate(app_name=app_name,
                                                      namespace=application.metadata.namespace,
                                                      deployment_id=deployment_id,
                                                      repository=repository,
@@ -103,7 +108,7 @@ class CrdWatcher(DaemonThread):
                                                      annotations=application.spec.additional_annotations.status)
         try:
             app_spec = self._spec_factory(
-                name=application.spec.application,
+                name=app_name,
                 image=application.spec.image,
                 app_config=application.spec.config,
                 teams=[],
@@ -115,7 +120,7 @@ class CrdWatcher(DaemonThread):
             )
             set_extras(app_spec)
             self._deploy_queue.put(DeployerEvent("UPDATE", app_spec, lifecycle_subject))
-            LOG.debug("Queued deployment for %s", application.spec.application)
+            LOG.debug("Queued deployment for %s", app_name)
         except (InvalidConfiguration, YAMLError):
             LOG.exception("Failed to create app spec from fiaas config file")
             self._lifecycle.failed(lifecycle_subject)
@@ -135,6 +140,14 @@ class CrdWatcher(DaemonThread):
         set_extras(app_spec)
         self._deploy_queue.put(DeployerEvent("DELETE", app_spec, lifecycle_subject=None))
         LOG.debug("Queued delete for %s", application.spec.application)
+
+    def _already_deployed(self, app_name, namespace, deployment_id):
+        try:
+            name = create_name(app_name, deployment_id)
+            status = FiaasApplicationStatus.get(name, namespace)
+            return status.result == "SUCCESS"
+        except NotFound:
+            return False
 
 
 def _repository(application):

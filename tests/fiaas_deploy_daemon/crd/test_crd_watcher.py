@@ -29,7 +29,7 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations
+from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations, FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
@@ -92,6 +92,12 @@ class TestWatcher(object):
         crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
         crd_watcher._watcher = watcher
         return crd_watcher
+
+    @pytest.fixture(autouse=True)
+    def status_get(self):
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.get", spec_set=True) as m:
+            m.side_effect = NotFound
+            yield m
 
     def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
         get.side_effect = NotFound("Something")
@@ -238,3 +244,19 @@ class TestWatcher(object):
 
         lifecycle.failed.assert_called_once_with(lifecycle_subject)
         assert deploy_queue.empty()
+
+    @pytest.mark.parametrize("result, count", (
+            ("SUCCESS", 0),
+            ("FAILED", 1),
+            ("RUNNING", 1),
+            ("INITIATED", 1),
+            ("ANY_OTHER_VALUE_THAN_SUCCESS", 1),
+    ))
+    def test_deploy_based_on_status_result(self, crd_watcher, deploy_queue, watcher, status_get, result, count):
+        watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]
+        status_get.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound
+        status_get.return_value = FiaasApplicationStatus(new=False, result=result)
+
+        assert deploy_queue.qsize() == 0
+        crd_watcher._watch(None)
+        assert deploy_queue.qsize() == count

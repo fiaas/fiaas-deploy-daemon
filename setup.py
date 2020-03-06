@@ -76,7 +76,7 @@ TESTS_REQ = [
 ]
 
 DEV_TOOLS = [
-    "tox==3.13.2",
+    "tox==3.14.5",
 ]
 
 

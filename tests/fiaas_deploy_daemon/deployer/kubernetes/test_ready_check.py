@@ -105,9 +105,9 @@ class TestReadyCheck(object):
     def test_deployment_complete_deactivated(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
 
         self._create_response_zero_replicas(get)
-        not_ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
 
-        assert not_ready() is False
+        assert ready() is False
         bookkeeper.success.assert_called_with(app_spec)
         bookkeeper.failed.assert_not_called()
         lifecycle.success.assert_called_with(lifecycle_subject)

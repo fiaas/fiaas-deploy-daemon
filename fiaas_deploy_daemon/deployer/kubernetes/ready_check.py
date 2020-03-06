@@ -30,9 +30,9 @@ class ReadyCheck(object):
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
         self._lifecycle_subject = lifecycle_subject
-        self._fail_after_seconds = (
-            config.ready_check_timeout_multiplier *
-            app_spec.replicas *
+        self._fail_after_seconds = _calculate_fail_time(
+            config.ready_check_timeout_multiplier,
+            app_spec.replicas,
             app_spec.health_checks.readiness.initial_delay_seconds
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
@@ -55,11 +55,17 @@ class ReadyCheck(object):
             dep = Deployment.get(self._app_spec.name, self._app_spec.namespace)
         except NotFound:
             return False
-        return (dep.status.updatedReplicas == dep.spec.replicas and
-                dep.status.replicas == dep.spec.replicas and
-                dep.status.availableReplicas == dep.spec.replicas and
+        expected_value = dep.spec.replicas if dep.spec.replicas > 0 else None
+
+        return (dep.status.updatedReplicas == expected_value and
+                dep.status.replicas == expected_value and
+                dep.status.availableReplicas == expected_value and
                 dep.status.observedGeneration >= dep.metadata.generation)
 
     def __eq__(self, other):
         return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper \
                and other._lifecycle == self._lifecycle
+
+
+def _calculate_fail_time(time_out, replicas, delay_seconds):
+    return time_out*delay_seconds if replicas == 0 else time_out*delay_seconds*replicas

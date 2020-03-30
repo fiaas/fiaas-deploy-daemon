@@ -165,6 +165,8 @@ class Configuration(Namespace):
                             help="The service account that is passed to secrets init containers", default=None)
         parser.add_argument("--datadog-container-image",
                             help="Use specified docker image as datadog sidecar for apps", default=None)
+        parser.add_argument("--datadog-container-memory",
+                            help="The amount of memory (request and limit) for the datadog sidecar", default="2Gi")
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)

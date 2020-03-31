@@ -96,7 +96,7 @@ spec:
   application: example
   image: nginx:1.13.0
   config:
-    version: 2
+    version: 3
     host: example.com
     prometheus:
       enabled: false

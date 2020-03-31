@@ -96,10 +96,12 @@ spec:
   application: example
   image: nginx:1.13.0
   config:
-    version: 2
-    host: example.com
-    prometheus:
-      enabled: false
+    version: 3
+    ingress:
+      - host: example.com
+    metrics:
+      prometheus:
+        enabled: false
     resources:
       limits:
         memory: 128M

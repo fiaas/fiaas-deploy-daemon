@@ -32,6 +32,7 @@ class TestDataDog(object):
     def config(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.datadog_container_image = CONTAINER_IMAGE
+        config.datadog_container_memory = "2Gi"
         return config
 
     @pytest.fixture(scope="module")

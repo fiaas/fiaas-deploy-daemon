@@ -20,26 +20,49 @@ from k8s.models.pod import EnvFromSource, SecretEnvSource, EnvVar, Container, Co
     EmptyDirVolumeSource, ConfigMapVolumeSource, SecretVolumeSource
 
 from fiaas_deploy_daemon.tools import merge_dicts
+from fiaas_deploy_daemon.specs.models import SecretsSpec
 
 LOG = logging.getLogger(__name__)
 
 
 class Secrets(object):
-    def __init__(self, config, kubernetes_secrets, generic_init_secrets, strongbox_secrets):
-        self._secrets_image_set = config.secrets_init_container_image is not None
-        self._strongbox_image_set = config.strongbox_init_container_image is not None
+    def __init__(self, config, kubernetes_secrets, generic_init_secrets):
         self._kubernetes = kubernetes_secrets
         self._generic_init = generic_init_secrets
-        self._strongbox = strongbox_secrets
+        self._secrets_service_account_name = config.secrets_service_account_name
 
-    def _uses_strongbox_init_container(self, app_spec):
-        return self._strongbox_image_set and app_spec.strongbox.enabled
+    def _legacy_strongbox_secrets_spec(self, app_spec):
+        strongbox_params = {
+            "AWS_REGION": app_spec.strongbox.aws_region,
+            "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
+        }
+        strongbox_annotations = {
+            "iam.amazonaws.com/role": app_spec.strongbox.iam_role
+        }
+        return SecretsSpec(type="strongbox",
+                           parameters=strongbox_params,
+                           annotations=strongbox_annotations,
+                           service_account_name=None,
+                           automount_service_account_token=False)
+
+    def _legacy_default_init_secret(self):
+        return SecretsSpec(type="default",
+                           parameters={},
+                           annotations={},
+                           service_account_name=self._secrets_service_account_name,
+                           automount_service_account_token=True)
 
     def apply(self, deployment, app_spec):
-        if self._secrets_image_set:
-            self._generic_init.apply(deployment, app_spec)
-        elif self._uses_strongbox_init_container(app_spec):
-            self._strongbox.apply(deployment, app_spec)
+        secret_specs = []
+        if not secret_specs:
+            if self._generic_init.supports("strongbox") and app_spec.strongbox.enabled:
+                secret_specs = [self._legacy_strongbox_secrets_spec(app_spec)]
+            elif self._generic_init.supports("default"):
+                secret_specs = [self._legacy_default_init_secret()]
+
+        if secret_specs:
+            for secret_spec in secret_specs:
+                self._generic_init.apply(deployment, app_spec, secret_spec)
         else:
             self._kubernetes.apply(deployment, app_spec)
 
@@ -89,26 +112,42 @@ class GenericInitSecrets(KubernetesSecrets):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
 
     def __init__(self, config):
-        self._secrets_init_container_image = config.secrets_init_container_image
-        self._secrets_service_account_name = config.secrets_service_account_name
+        self._available_secrets_containers = {}
+        if config.strongbox_init_container_image is not None:
+            self._available_secrets_containers.setdefault("strongbox", config.strongbox_init_container_image)
+
+        if config.secrets_init_container_image is not None:
+            self._available_secrets_containers.setdefault("default", config.secrets_init_container_image)
+
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
 
-    def apply(self, deployment, app_spec):
+    def supports(self, secrets_type):
+        return secrets_type in self._available_secrets_containers
+
+    def apply(self, deployment, app_spec, secret_spec):
         deployment_spec = deployment.spec
         pod_template_spec = deployment_spec.template
         pod_spec = pod_template_spec.spec
         main_container = pod_spec.containers[0]
+        image = self._available_secrets_containers.get(secret_spec.type)
+        if image is None:
+            LOG.warning("No init-container registered for secrets with type=%s", secret_spec.type)
+            return
 
         if app_spec.secrets_in_environment:
             LOG.warning("%s is attempting to use 'secrets_in_environment', which is not supported.", app_spec.name)
 
         self._apply_mounts(app_spec, main_container)
 
-        init_container = self._make_secrets_init_container(app_spec, self._secrets_init_container_image)
+        init_container = self._make_secrets_init_container(app_spec, image, env_vars=secret_spec.parameters)
         pod_spec.initContainers.append(init_container)
-        if self._secrets_service_account_name:
-            pod_spec.serviceAccountName = self._secrets_service_account_name
-        pod_spec.automountServiceAccountToken = True
+        if secret_spec.service_account_name:
+            pod_spec.serviceAccountName = secret_spec.service_account_name
+        if secret_spec.automount_service_account_token:
+            pod_spec.automountServiceAccountToken = True
+
+        pod_metadata = pod_template_spec.metadata
+        pod_metadata.annotations = merge_dicts(pod_metadata.annotations, secret_spec.annotations)
 
         self._apply_volumes(app_spec, pod_spec)
 
@@ -151,43 +190,3 @@ class GenericInitSecrets(KubernetesSecrets):
                               ],
                               volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
         return container
-
-
-class StrongboxSecrets(GenericInitSecrets):
-    def __init__(self, config):
-        super(StrongboxSecrets, self).__init__(config)
-        self._strongbox_init_container_image = config.strongbox_init_container_image
-
-    def apply(self, deployment, app_spec):
-        deployment_spec = deployment.spec
-        pod_template_spec = deployment_spec.template
-        pod_spec = pod_template_spec.spec
-        main_container = pod_spec.containers[0]
-
-        if app_spec.secrets_in_environment:
-            LOG.warning("%s is attempting to use 'secrets_in_environment' and strongbox at the same time,"
-                        " which is not supported.", app_spec.name)
-
-        self._apply_mounts(app_spec, main_container)
-
-        strongbox_env = {
-            "AWS_REGION": app_spec.strongbox.aws_region,
-            "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
-        }
-        init_container = self._make_secrets_init_container(app_spec, self._strongbox_init_container_image,
-                                                           env_vars=strongbox_env)
-        pod_spec.initContainers.append(init_container)
-
-        self._apply_volumes(app_spec, pod_spec)
-
-        strongbox_annotations = self._make_strongbox_annotations(app_spec) if self._uses_strongbox_init_container(
-            app_spec) else {}
-        pod_metadata = pod_template_spec.metadata
-        pod_metadata.annotations = merge_dicts(pod_metadata.annotations, strongbox_annotations)
-
-    def _uses_strongbox_init_container(self, app_spec):
-        return self._strongbox_init_container_image is not None and app_spec.strongbox.enabled
-
-    @staticmethod
-    def _make_strongbox_annotations(app_spec):
-        return {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}

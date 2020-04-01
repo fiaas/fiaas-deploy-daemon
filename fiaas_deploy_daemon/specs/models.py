@@ -131,6 +131,12 @@ StrongboxSpec = namedtuple("StrongboxSpec", [
     "groups",
 ])
 
+SecretsSpec = namedtuple("SecretsSpec", [
+    "type",
+    "parameters",
+    "annotations"
+])
+
 IngressTlsSpec = namedtuple("IngressTlsSpec", [
     "enabled",
     "certificate_issuer",

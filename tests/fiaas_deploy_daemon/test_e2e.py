@@ -111,7 +111,7 @@ class TestE2E(object):
             "--service-type", service_type,
             "--ingress-suffix", "svc.test.example.com",
             "--environment", "test",
-            "--datadog-container-image", "DATADOG_IMAGE",
+            "--datadog-container-image", "DATADOG_IMAGE:tag",
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--use-ingress-tls", "default_off",
         ]

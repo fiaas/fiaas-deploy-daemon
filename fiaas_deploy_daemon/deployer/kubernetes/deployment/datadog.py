@@ -49,10 +49,14 @@ class DataDog(object):
         # output is predictable
         dd_tags = ",".join("{}:{}".format(k, tags[k]) for k in sorted(tags))
 
+        image_pull_policy = "IfNotPresent"
+        if ":" not in self._datadog_container_image or ":latest" in self._datadog_container_image:
+            image_pull_policy = "Always"
+
         return Container(
             name=self.DATADOG_CONTAINER_NAME,
             image=self._datadog_container_image,
-            imagePullPolicy="IfNotPresent",
+            imagePullPolicy=image_pull_policy,
             env=[
                 EnvVar(name="DD_TAGS", value=dd_tags),
                 EnvVar(name="DD_API_KEY",

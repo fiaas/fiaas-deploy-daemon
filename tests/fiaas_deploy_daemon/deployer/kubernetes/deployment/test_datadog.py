@@ -24,7 +24,8 @@ from k8s.models.pod import PodTemplateSpec, PodSpec, Container, EnvVar
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DataDog
 
-CONTAINER_IMAGE = "datadog_container_image:latest"
+CONTAINER_IMAGE = "datadog_container_image:tag"
+CONTAINER_IMAGE_LATEST = "datadog_container_image:latest"
 
 
 class TestDataDog(object):
@@ -107,3 +108,18 @@ class TestDataDog(object):
                 'requests': {'cpu': '200m', 'memory': '2Gi'}
             }
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
+
+    def test_adds_correct_image_pull_policy_for_latest(self, config, app_spec, deployment):
+        config.datadog_container_image = CONTAINER_IMAGE_LATEST
+        datadog = DataDog(config)
+
+        datadog_spec = app_spec.datadog._replace(
+            enabled=True
+        )
+        app_spec = app_spec._replace(datadog=datadog_spec)
+
+        datadog.apply(deployment, app_spec, False)
+
+        actual = deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
+        assert actual['image'] == CONTAINER_IMAGE_LATEST
+        assert actual['imagePullPolicy'] == "Always"

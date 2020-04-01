@@ -145,7 +145,7 @@ class TestDeploymentDeployer(object):
 
     @pytest.fixture
     def secrets(self, config):
-        return mock.create_autospec(Secrets(config, None, None, None), spec_set=True, instance=True)
+        return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets):

@@ -195,7 +195,7 @@ spec:
         - name: DD_CMD_PORT
           value: "42623"
         envFrom: []
-        image: DATADOG_IMAGE
+        image: DATADOG_IMAGE:tag
         volumeMounts: []
         imagePullPolicy: IfNotPresent
         name: fiaas-datadog-container

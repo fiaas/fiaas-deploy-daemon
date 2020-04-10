@@ -8,7 +8,7 @@ IMAGE_LATEST_TAG="${IMAGE}:latest"
 
 docker build --tag "${IMAGE_VERSION_TAG}" --tag "$IMAGE_LATEST_TAG" .
 
-if [[ "${CI:-false}" == "true" ]]; then
+if [[ "${CI:-false}" == "true" && "${SEMAPHORE_GIT_BRANCH}" == "master" && -z "${SEMAPHORE_GIT_PR_BRANCH:-}" ]]; then
   docker push "${IMAGE_VERSION_TAG}"
 
   echo "$VERSION" > version

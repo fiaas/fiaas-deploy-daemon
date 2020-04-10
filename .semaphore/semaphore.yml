@@ -30,12 +30,13 @@ blocks:
           # Check codestyle + run unit tests
           - checkout
           - export PATH="$PATH:$HOME/.local/bin"
-          - pip install --user -r requirements.txt
+          - pip install --user .[ci]
           - tox -e codestyle,test
           # Build docker image
-          - ./bin/ci/docker_build
+          - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          - ./bin/docker_build
           # Run end-to-end/integration tests
-          - tox -e integration_test -- -n 7
+          - tox -e integration_test -- -n 7 --use-docker-for-e2e
           # Store metadata for promotion jobs
           - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id
           - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha

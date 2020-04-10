@@ -6,9 +6,11 @@ IMAGE="fiaas/fiaas-deploy-daemon"
 IMAGE_VERSION_TAG="${IMAGE}:$VERSION"
 IMAGE_LATEST_TAG="${IMAGE}:latest"
 
-docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
 docker build --tag "${IMAGE_VERSION_TAG}" --tag "$IMAGE_LATEST_TAG" .
-docker push "${IMAGE_VERSION_TAG}"
 
-echo "$VERSION" > version
-echo "Stored $VERSION in ./version"
+if [[ "${CI:-false}" == "true" && "${SEMAPHORE_GIT_BRANCH}" == "master" && -z "${SEMAPHORE_GIT_PR_BRANCH:-}" ]]; then
+  docker push "${IMAGE_VERSION_TAG}"
+
+  echo "$VERSION" > version
+  echo "Stored $VERSION in ./version"
+fi

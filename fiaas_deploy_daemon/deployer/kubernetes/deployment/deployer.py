@@ -42,6 +42,7 @@ class DeploymentDeployer(object):
         self._secrets = deployment_secrets
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
+        self._global_datadog_tags = config.global_datadog_tags
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
@@ -117,7 +118,7 @@ class DeploymentDeployer(object):
                               strategy=deployment_strategy)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
-        self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
+        self._datadog.apply(deployment, app_spec, self._global_datadog_tags, besteffort_qos_is_required)
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
         deployment.save()

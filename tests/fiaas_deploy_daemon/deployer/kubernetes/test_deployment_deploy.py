@@ -159,7 +159,7 @@ class TestDeploymentDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
-        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), {}, app_spec, False) # TODO Add global_datadog_tags
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
@@ -182,7 +182,7 @@ class TestDeploymentDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
-        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, {}, False) # TODO Add global_datadog_tags
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
@@ -294,7 +294,7 @@ class TestDeploymentDeployer(object):
 
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
-        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
+        datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, {}, False) # TODO Add global_datadog_tags
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 

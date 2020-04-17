@@ -42,8 +42,11 @@ class DataDog(object):
             resource_requirements = ResourceRequirements(limits={"cpu": "400m", "memory": self._datadog_container_memory},
                                                          requests={"cpu": "200m", "memory": self._datadog_container_memory})
 
-        tags = global_datadog_tags
-        tags = tags.update(app_spec.datadog.tags)
+        tags = {}
+        if global_datadog_tags:
+            tags.update(global_datadog_tags)
+
+        tags.update(app_spec.datadog.tags)
         tags["app"] = app_spec.name
         tags["k8s_namespace"] = app_spec.namespace
         # Use an alphabetical order based on keys to ensure that the

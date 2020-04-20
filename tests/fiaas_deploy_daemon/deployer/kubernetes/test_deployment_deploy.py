@@ -295,7 +295,7 @@ class TestDeploymentDeployer(object):
         pytest.helpers.assert_no_calls(post)
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, config.global_datadog_tags,
-                                              False)  # TODO test any dict
+                                              False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 

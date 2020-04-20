@@ -23,6 +23,7 @@ class DataDog(object):
     def __init__(self, config):
         self._datadog_container_image = config.datadog_container_image
         self._datadog_container_memory = config.datadog_container_memory
+        self._datadog_global_tags = config.datadog_global_tags
 
     def apply(self, deployment, app_spec, besteffort_qos_is_required):
         if app_spec.datadog.enabled:
@@ -42,7 +43,11 @@ class DataDog(object):
             resource_requirements = ResourceRequirements(limits={"cpu": "400m", "memory": self._datadog_container_memory},
                                                          requests={"cpu": "200m", "memory": self._datadog_container_memory})
 
-        tags = app_spec.datadog.tags
+        tags = {}
+        if self._datadog_global_tags:
+            tags.update(self._datadog_global_tags)
+
+        tags.update(app_spec.datadog.tags)
         tags["app"] = app_spec.name
         tags["k8s_namespace"] = app_spec.namespace
         # Use an alphabetical order based on keys to ensure that the

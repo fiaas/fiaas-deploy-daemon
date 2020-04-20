@@ -115,7 +115,7 @@ override environment variables which override config file values which
 override defaults.
 """.format(DEFAULT_CONFIG_FILE)
 
-GLOBAL_DATADOG_TAGS_LONG_HELP = """
+DATADOG_GLOBAL_TAGS_LONG_HELP = """
 If you wish to send certain tags to datadog in every application
 in your cluster, define them here.
 
@@ -175,6 +175,11 @@ class Configuration(Namespace):
                             help="Use specified docker image as datadog sidecar for apps", default=None)
         parser.add_argument("--datadog-container-memory",
                             help="The amount of memory (request and limit) for the datadog sidecar", default="2Gi")
+        datadog_global_tags_parser = parser.add_argument_group("Datadog Global tags", DATADOG_GLOBAL_TAGS_LONG_HELP)
+        datadog_global_tags_parser.add_argument("--datadog-global-tags", default=[],
+                                                env_var="FIAAS_DATADOG_GLOBAL_TAGS",
+                                                help="Various non-essential global tags to send to datadog for all applications",
+                                                action="append", type=KeyValue, dest="datadog_global_tags")
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)
@@ -232,17 +237,13 @@ class Configuration(Namespace):
         global_env_parser.add_argument("--global-env", default=[], env_var="FIAAS_GLOBAL_ENV",
                                        help="Various non-essential global variables to expose for all applications",
                                        action="append", type=KeyValue, dest="global_env")
-        global_datadog_tags_parser = parser.add_argument_group("Global Datadog tags", GLOBAL_DATADOG_TAGS_LONG_HELP)
-        global_datadog_tags_parser.add_argument("--global-datadog-tags", default=[], env_var="FIAAS_GLOBAL_DATADOG_TAGS",
-                                       help="Various non-essential global tags to send to datadog for all applications",
-                                       action="append", type=KeyValue, dest="global_datadog_tags")
         list_parser = parser.add_argument_group("Blacklisting/whitelisting applications", BW_LISTS_LONG_HELP)
         list_group = list_parser.add_mutually_exclusive_group()
         list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
-        self.global_datadog_tags = {tag.key: tag.value for tag in self.global_datadog_tags}
+        self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}
 
     def _resolve_api_config(self):
         token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"

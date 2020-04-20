@@ -23,19 +23,20 @@ class DataDog(object):
     def __init__(self, config):
         self._datadog_container_image = config.datadog_container_image
         self._datadog_container_memory = config.datadog_container_memory
+        self._datadog_global_tags = config.datadog_global_tags
 
-    def apply(self, deployment, app_spec, global_datadog_tags, besteffort_qos_is_required):
+    def apply(self, deployment, app_spec, besteffort_qos_is_required):
         if app_spec.datadog.enabled:
             containers = deployment.spec.template.spec.containers
             main_container = containers[0]
-            containers.append(self._create_datadog_container(app_spec, global_datadog_tags, besteffort_qos_is_required))
+            containers.append(self._create_datadog_container(app_spec, besteffort_qos_is_required))
             # TODO: Bug in k8s library allows us to mutate the default value here, so we need to take a copy
             env = list(main_container.env)
             env.extend(self._get_env_vars())
             env.sort(key=lambda x: x.name)
             main_container.env = env
 
-    def _create_datadog_container(self, app_spec, global_datadog_tags, besteffort_qos_is_required):
+    def _create_datadog_container(self, app_spec, besteffort_qos_is_required):
         if besteffort_qos_is_required:
             resource_requirements = ResourceRequirements()
         else:
@@ -43,8 +44,8 @@ class DataDog(object):
                                                          requests={"cpu": "200m", "memory": self._datadog_container_memory})
 
         tags = {}
-        if global_datadog_tags:
-            tags.update(global_datadog_tags)
+        if self._datadog_global_tags:
+            tags.update(self._datadog_global_tags)
 
         tags.update(app_spec.datadog.tags)
         tags["app"] = app_spec.name

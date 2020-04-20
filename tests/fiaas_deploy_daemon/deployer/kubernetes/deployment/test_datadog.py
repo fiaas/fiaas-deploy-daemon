@@ -34,6 +34,7 @@ class TestDataDog(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.datadog_container_image = CONTAINER_IMAGE
         config.datadog_container_memory = "2Gi"
+        config.datadog_global_tags = {"tag": "test"}
         return config
 
     @pytest.fixture(scope="module")
@@ -69,6 +70,16 @@ class TestDataDog(object):
         ]
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][0]["env"]
 
+    def test_adds_global_tags_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
+        app_spec = app_spec._replace(datadog=datadog_spec)
+        datadog.apply(deployment, app_spec, best_effort_required)
+        expected = {
+                    'name': 'DD_TAGS',
+                    'value': "app:{},k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
+                }
+        assert expected in deployment.as_dict()["spec"]["template"]["spec"]["containers"][1]["env"]
+
     @pytest.mark.parametrize("name, namespace", (
         ("bilbo", "baggins"),
         ("rincewind", "discworld")
@@ -90,7 +101,7 @@ class TestDataDog(object):
             'env': [
                 {
                     'name': 'DD_TAGS',
-                    'value': "a:1,app:{},b:2,k8s_namespace:{}".format(app_spec.name, app_spec.namespace)
+                    'value': "a:1,app:{},b:2,k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
                 },
                 {'name': 'DD_API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
                 {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},

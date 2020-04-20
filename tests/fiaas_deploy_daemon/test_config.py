@@ -246,6 +246,11 @@ class TestConfig(object):
         with pytest.raises(AttributeError):
             config.undefined_configuration_parameter
 
+    def test_global_datadog_tags_keyvalue(self):
+        args = ("pattern=value", "FIAAS_DD_tag=test")
+        config = Configuration(["--global-datadog-tags=%s" % arg for arg in args])
+        assert config.global_datadog_tags == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
+
 
 class TestHostRewriteRule(object):
     def test_equality(self):

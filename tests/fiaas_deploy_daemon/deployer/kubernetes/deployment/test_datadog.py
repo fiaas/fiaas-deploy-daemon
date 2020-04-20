@@ -54,20 +54,30 @@ class TestDataDog(object):
 
     def test_noop_when_not_enabled(self, datadog, app_spec, deployment):
         expected = deepcopy(deployment)
-        datadog.apply(deployment, app_spec, False)
+        datadog.apply(deployment, app_spec, {}, False)
         assert expected == deployment
 
     @pytest.mark.parametrize("best_effort_required", (False, True))
     def test_adds_env_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         app_spec = app_spec._replace(datadog=datadog_spec)
-        datadog.apply(deployment, app_spec, best_effort_required)
+        datadog.apply(deployment, app_spec, {}, best_effort_required)
         expected = [
             {"name": "DUMMY", "value": "CANARY"},
             {"name": "STATSD_HOST", "value": "localhost"},
             {"name": "STATSD_PORT", "value": "8125"}
         ]
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][0]["env"]
+
+    def test_adds_global_tags_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
+        app_spec = app_spec._replace(datadog=datadog_spec)
+        datadog.apply(deployment, app_spec, {"tag": "test"}, best_effort_required)
+        expected = {
+                    'name': 'DD_TAGS',
+                    'value': "app:{},k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
+                }
+        assert expected in deployment.as_dict()["spec"]["template"]["spec"]["containers"][1]["env"]
 
     @pytest.mark.parametrize("name, namespace", (
         ("bilbo", "baggins"),
@@ -81,7 +91,7 @@ class TestDataDog(object):
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(name=name, namespace=namespace)
-        datadog.apply(deployment, app_spec, best_effort_required)
+        datadog.apply(deployment, app_spec, {}, best_effort_required)
         expected = {
             'name': DataDog.DATADOG_CONTAINER_NAME,
             'image': CONTAINER_IMAGE,
@@ -118,7 +128,7 @@ class TestDataDog(object):
         )
         app_spec = app_spec._replace(datadog=datadog_spec)
 
-        datadog.apply(deployment, app_spec, False)
+        datadog.apply(deployment, app_spec, {}, False)
 
         actual = deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
         assert actual['image'] == CONTAINER_IMAGE_LATEST

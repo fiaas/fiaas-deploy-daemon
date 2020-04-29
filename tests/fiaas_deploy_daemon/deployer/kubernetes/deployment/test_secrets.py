@@ -142,7 +142,8 @@ class TestSecrets(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.strongbox_init_container_image = STRONGBOX_IMAGE
 
-        app_spec = app_spec._replace(strongbox=StrongboxSpec(enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"]))
+        app_spec = app_spec._replace(
+            strongbox=StrongboxSpec(enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"]))
 
         generic_init_secrets = mock.create_autospec(GenericInitSecrets(config), spec_set=True, instance=True)
         generic_init_secrets.supports.side_effect = lambda _type: _type == 'strongbox'
@@ -156,7 +157,6 @@ class TestSecrets(object):
         secrets.apply(deployment, app_spec)
 
         generic_init_secrets.apply.assert_called_once_with(deployment, app_spec, expected_spec)
-
 
 
 class TestKubernetesSecrets(object):

@@ -635,6 +635,36 @@ admin_access: False
 
 ## extensions
 
+### secrets
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+Configuration for pulling secrets from arbitrary sources before application startup. The keys of this
+object should be the 'type' of secret init-container that has been registered in the cluster
+(using `--secret-init-containers`).
+The init-container can be configured using 'parameters', which will be available inside the container as
+Environment Variables; and/or 'annotations', which will be added to the annotations present in the pod.
+
+If no value is provided here, and a 'default' init-container is registered in the cluster it will be used
+for the application.
+
+The init-container should make secrets available as files under `/var/run/secrets/fiaas`. Any additional structure
+or convention will depend on the init-container being used.
+
+Example:
+```yaml
+extensions:
+  secrets:
+    parameter-store:
+      parameters:
+        AWS_REGION: eu-west-1
+        SECRET_ID: somesecret
+      annotations:
+        iam.amazonaws.com/role: arn:aws:iam::12345678:role/the-role-name
+```
+
 ### strongbox
 
 | **Type** | **Required** |

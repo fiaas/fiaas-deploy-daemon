@@ -123,6 +123,15 @@ Regardless of how a variable is passed in (option, environment variable or in
 a config file), it must be specified as `<key>=<value>`.
 """
 
+SECRET_CONTAINERS_LONG_HELP = """
+You can register container-images that can be used as secret init-containers
+by applications. Specify as `type=image`, and then reference this in the
+application config as `extensions.secrets.<type>`.
+
+Using 'default' as the 'type' will mean the container will be attached automatically,
+if the application doesn't specify any.
+"""
+
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -241,9 +250,16 @@ class Configuration(Namespace):
         list_group = list_parser.add_mutually_exclusive_group()
         list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
         list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
+        secret_init_containers_parser = parser.add_argument_group("Secret init-containers", SECRET_CONTAINERS_LONG_HELP)
+        secret_init_containers_parser.add_argument("--secret-init-containers", default=[],
+                                                   env_var="FIAAS_SECRET_INIT_CONTAINERS",
+                                                   help="Images to use for secret init-containers by key",
+                                                   action="append", type=KeyValue, dest="secret_init_containers")
+
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
         self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}
+        self.secret_init_containers = {provider.key: provider.value for provider in self.secret_init_containers}
 
     def _resolve_api_config(self):
         token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"

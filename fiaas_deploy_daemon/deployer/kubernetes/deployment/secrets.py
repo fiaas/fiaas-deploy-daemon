@@ -108,6 +108,8 @@ class GenericInitSecrets(KubernetesSecrets):
 
     def __init__(self, config):
         self._available_secrets_containers = {}
+        self._secrets_service_account_name = None
+        self._automount_service_account_token = False
         if config.strongbox_init_container_image is not None:
             self._available_secrets_containers.setdefault("strongbox", config.strongbox_init_container_image)
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOCKER_CLI_EXPERIMENTAL=enabled
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
 VERSION="$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
 IMAGE="fiaas/fiaas-deploy-daemon"
 IMAGE_VERSION_TAG="${IMAGE}:$VERSION"

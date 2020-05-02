@@ -42,10 +42,16 @@ fi
 
 # Run multi-arch build and push it
 docker buildx build --pull \
-  --tag "${IMAGE_LATEST_TAG}" \
   --tag "${IMAGE_VERSION_TAG}" \
   --platform "${PLATFORMS}" \
   --output "${OUTPUT}" .
+
+# And again to load into docker if not already done
+if [[ "${OUTPUT}" != "type=docker" ]]; then
+  docker buuldx build \
+    --tag "${IMAGE_LATEST_TAG}" \
+    --output type=docker .
+fi
 
 # Once more to get the wheels
 docker buildx build \

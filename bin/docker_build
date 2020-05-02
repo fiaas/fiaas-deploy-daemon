@@ -1,16 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
 VERSION="$(date +%Y%m%d%H%M%S)-$(git rev-parse --short HEAD)"
 IMAGE="fiaas/fiaas-deploy-daemon"
 IMAGE_VERSION_TAG="${IMAGE}:$VERSION"
 IMAGE_LATEST_TAG="${IMAGE}:latest"
+TARBALL=build/fiaas-deploy-daemon.tar
+CACHE_DIR=${PIP_CACHE_DIR:-~/.cache/pip}
 
-docker build --tag "${IMAGE_VERSION_TAG}" --tag "$IMAGE_LATEST_TAG" .
-
-if [[ "${CI:-false}" == "true" && "${SEMAPHORE_GIT_BRANCH}" == "master" && -z "${SEMAPHORE_GIT_PR_BRANCH:-}" ]]; then
-  docker push "${IMAGE_VERSION_TAG}"
-
-  echo "$VERSION" > version
-  echo "Stored $VERSION in ./version"
+if [[ "${CI:-false}" == "true" ]]; then
+  PLATFORMS=linux/arm,linux/arm64,linux/amd64
+  if [[ "${SEMAPHORE_GIT_BRANCH}" == "master" && -z "${SEMAPHORE_GIT_PR_BRANCH:-}" ]]; then
+    OUTPUT=type=image,push=true
+    echo "$VERSION" > version
+    echo "Stored $VERSION in ./version"
+  else
+    OUTPUT=type=image,push=false
+  fi
+else
+  PLATFORMS=linux/amd64
+  OUTPUT=type=docker
 fi
+echo "Building ${OUTPUT} for ${PLATFORMS}"
+
+# Put cached wheels into the docker context so we can use it in our Dockerfile
+mkdir -p .wheel_cache
+mkdir -p build
+mkdir -p "${CACHE_DIR}/wheels"
+find "${CACHE_DIR}/wheels" -name "*.whl" -execdir cp "{}" "${PWD}/.wheel_cache" \;
+
+# Create a multi-arch buildx builder if needed
+if docker buildx ls | grep docker-container | grep multi-arch &> /dev/null; then
+  echo "Using existing multi-arch builder"
+  docker buildx use multi-arch
+else
+  echo "Creating new multi-arch builder"
+  docker buildx create --name multi-arch --driver docker-container --use --platform "${PLATFORMS}"
+fi
+
+# Run multi-arch build and push it
+docker buildx build --pull \
+  --tag "${IMAGE_LATEST_TAG}" \
+  --tag "${IMAGE_VERSION_TAG}" \
+  --platform "${PLATFORMS}" \
+  --output "${OUTPUT}" .
+
+# Once more to get the wheels
+docker buildx build \
+  --platform "${PLATFORMS}" \
+  --output type=tar,dest="${TARBALL}" .
+
+# Grab the wheels out of the tarball and stuff them in the pip cache directory
+tar -v -C "${CACHE_DIR}/wheels" --wildcards -x "*/wheels/*.whl" -x "wheels/*.whl" -f "${TARBALL}" 2>/dev/null || true
+
+# Clean up some wheels we don't want to cache
+find "${CACHE_DIR}/wheels" -name "fiaas*.whl" -delete

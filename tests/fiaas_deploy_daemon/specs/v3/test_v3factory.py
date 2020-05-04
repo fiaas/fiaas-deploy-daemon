@@ -326,7 +326,8 @@ TEST_DATA = {
             "SECRET_PATH": "some-param"
         },
         "secrets[0].annotations": {
-            "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name"
+            "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name",
+            "some.other/annotation": "annotation-value"
         }
     },
     "secrets_strongbox": {

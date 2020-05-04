@@ -39,6 +39,7 @@ class AppSpec(namedtuple("AppSpec", [
     "strongbox",
     "singleton",
     "ingress_tls",
+    "secrets"
 ])):
     __slots__ = ()
 

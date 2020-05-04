@@ -318,6 +318,27 @@ TEST_DATA = {
     "tls_enabled_cert_issuer": {
         "ingress_tls.enabled": True,
         "ingress_tls.certificate_issuer": "myissuer"
+    },
+    "secrets": {
+        "secrets[0].type": "parameter-store",
+        "secrets[0].parameters": {
+            "AWS_REGION": "eu-central-1",
+            "SECRET_PATH": "some-param"
+        },
+        "secrets[0].annotations": {
+            "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name",
+            "some.other/annotation": "annotation-value"
+        }
+    },
+    "secrets_strongbox": {
+        "secrets[0].type": "strongbox",
+        "secrets[0].parameters": {
+            "AWS_REGION": "eu-central-1",
+            "SECRET_GROUPS": "secretgroup1,secretgroup2,secretgroup3"
+        },
+        "secrets[0].annotations": {
+            "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name"
+        }
     }
 }
 
@@ -408,6 +429,7 @@ class TestFactory(object):
                            None, None)
         assert app_spec is not None
         code = "app_spec.%s" % attribute
+        assert app_spec.secrets is not None
         actual = eval(code)
         assert isinstance(actual, _Lookup) is False  # _Lookup objects should not leak to AppSpec
         assert actual == value

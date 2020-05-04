@@ -113,6 +113,7 @@ class TestE2E(object):
             "--environment", "test",
             "--datadog-container-image", "DATADOG_IMAGE:tag",
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
+            "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
             "--use-ingress-tls", "default_off",
         ]
         if crd_supported(k8s_version):
@@ -204,6 +205,9 @@ class TestE2E(object):
                 Deployment: "e2e_expected/strongbox-deployment.yml",
                 Ingress: "e2e_expected/strongbox-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
+            }),
+            ("v3/data/examples/secrets.yml", {
+                Deployment: "e2e_expected/secrets-deployment.yml",
             }),
             ("v3/data/examples/single-replica-singleton.yml", {
                 Deployment: "e2e_expected/single-replica-singleton.yml",

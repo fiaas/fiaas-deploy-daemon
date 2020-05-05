@@ -24,7 +24,7 @@ from ..factory import BaseFactory, InvalidConfiguration
 from ..lookup import LookupMapping
 from ..models import AppSpec, PrometheusSpec, DatadogSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, \
     HealthCheckSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec, SecretsSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 from ...tools import merge_dicts
 
@@ -66,6 +66,7 @@ class Factory(BaseFactory):
             singleton=lookup["replicas"]["singleton"],
             ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"]["enabled"],
                                        certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"]),
+            secrets=self._secrets_specs(lookup["extensions"]["secrets"]),
         )
         return app_spec
 
@@ -226,6 +227,12 @@ class Factory(BaseFactory):
         return StrongboxSpec(enabled=enabled, iam_role=iam_role,
                              aws_region=strongbox_lookup["aws_region"],
                              groups=groups)
+
+    @staticmethod
+    def _secrets_specs(secrets_lookup):
+        return [SecretsSpec(type=k,
+                            parameters=v["parameters"],
+                            annotations=v["annotations"]) for (k, v) in secrets_lookup.iteritems()]
 
 
 def _get_value(key, overrides):

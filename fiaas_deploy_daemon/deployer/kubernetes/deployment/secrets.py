@@ -48,7 +48,7 @@ class Secrets(object):
                            annotations={})
 
     def apply(self, deployment, app_spec):
-        secret_specs = []
+        secret_specs = app_spec.secrets
         if not secret_specs:
             if self._generic_init.supports("strongbox") and app_spec.strongbox.enabled:
                 secret_specs = [self._legacy_strongbox_secrets_spec(app_spec)]
@@ -107,16 +107,27 @@ class GenericInitSecrets(KubernetesSecrets):
     SECRETS_INIT_CONTAINER_NAME = "fiaas-secrets-init-container"
 
     def __init__(self, config):
-        self._available_secrets_containers = {}
-        self._secrets_service_account_name = None
+        self._available_secrets_containers = config.secret_init_containers.copy()
+        self._secrets_service_account_name = config.secrets_service_account_name
         self._automount_service_account_token = False
         if config.strongbox_init_container_image is not None:
-            self._available_secrets_containers.setdefault("strongbox", config.strongbox_init_container_image)
+            if "strongbox" in self._available_secrets_containers:
+                LOG.warn("Image %s for strongbox-init-container-image will be ignored.\
+                     secret-init-container strongbox=%s will be used instead",
+                         config.strongbox_init_container_image,
+                         self._available_secrets_containers["strongbox"])
+            else:
+                self._available_secrets_containers["strongbox"] = config.strongbox_init_container_image
 
         if config.secrets_init_container_image is not None:
-            self._secrets_service_account_name = config.secrets_service_account_name
-            self._automount_service_account_token = True
-            self._available_secrets_containers.setdefault("default", config.secrets_init_container_image)
+            if "default" in self._available_secrets_containers:
+                LOG.warn("Image %s for secrets-init-container-image will be ignored.\
+                     secret-init-container default=%s will be used instead",
+                         config.secrets_init_container_image,
+                         self._available_secrets_containers["default"])
+            else:
+                self._automount_service_account_token = True
+                self._available_secrets_containers["default"] = config.secrets_init_container_image
 
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
 

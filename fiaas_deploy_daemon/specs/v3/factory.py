@@ -230,9 +230,6 @@ class Factory(BaseFactory):
 
     @staticmethod
     def _secrets_specs(secrets_lookup):
-        if not secrets_lookup:
-            return []
-
         return [SecretsSpec(type=k,
                             parameters=v["parameters"],
                             annotations=v["annotations"]) for (k, v) in secrets_lookup.iteritems()]

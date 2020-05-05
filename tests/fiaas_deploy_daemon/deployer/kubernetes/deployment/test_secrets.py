@@ -54,21 +54,37 @@ class TestSecrets(object):
     @pytest.fixture(params=[
         # (Enable generic, Enable strongbox, app strongbox, app-spec secrets, default_secret Name of called mock)
         (True, True, True, False, False, "generic_init_secrets"),
+        (True, True, True, False, True, "generic_init_secrets"),
         (True, True, True, True, False, "generic_init_secrets"),
+        (True, True, True, True, True, "generic_init_secrets"),
         (True, True, False, False, False, "generic_init_secrets"),
+        (True, True, False, False, True, "generic_init_secrets"),
         (True, True, False, True, False, "generic_init_secrets"),
+        (True, True, False, True, True, "generic_init_secrets"),
         (True, False, True, False, False, "generic_init_secrets"),
+        (True, False, True, False, True, "generic_init_secrets"),
         (True, False, True, True, False, "generic_init_secrets"),
+        (True, False, True, True, True, "generic_init_secrets"),
         (True, False, False, False, False, "generic_init_secrets"),
+        (True, False, False, False, True, "generic_init_secrets"),
         (True, False, False, True, False, "generic_init_secrets"),
+        (True, False, False, True, True, "generic_init_secrets"),
         (False, True, True, False, False, "generic_init_secrets"),
+        (False, True, True, False, True, "generic_init_secrets"),
         (False, True, True, True, False, "generic_init_secrets"),
+        (False, True, True, True, True, "generic_init_secrets"),
         (False, True, False, False, False, "kubernetes_secrets"),
+        (False, True, False, False, True, "generic_init_secrets"),
         (False, True, False, True, False, "generic_init_secrets"),
+        (False, True, False, True, True, "generic_init_secrets"),
         (False, False, True, False, False, "kubernetes_secrets"),
+        (False, False, True, False, True, "generic_init_secrets"),
         (False, False, True, True, False, "generic_init_secrets"),
+        (False, False, True, True, True, "generic_init_secrets"),
         (False, False, False, False, False, "kubernetes_secrets"),
+        (False, False, False, False, True, "generic_init_secrets"),
         (False, False, False, True, False, "generic_init_secrets"),
+        (False, False, False, True, True, "generic_init_secrets"),
     ], ids=_secrets_mode_ids)
     def secrets_mode(self, request):
         yield request.param
@@ -96,11 +112,11 @@ class TestSecrets(object):
         return Secrets(config, kubernetes_secrets, generic_init_secrets)
 
     @staticmethod
-    def mock_supports(generic_enabled, strongbox_enabled):
+    def mock_supports(generic_enabled, strongbox_enabled, default_enabled):
         def wrapped(_type):
             if _type == "strongbox" and strongbox_enabled:
                 return True
-            if _type == "default" and generic_enabled:
+            if _type == "default" and (generic_enabled or default_enabled):
                 return True
             return False
 
@@ -111,7 +127,7 @@ class TestSecrets(object):
         generic_enabled, strongbox_enabled, app_strongbox_enabled, app_spec_secrets_enabled, default_enabled, \
             wanted_mock_name = secrets_mode
 
-        generic_init_secrets.supports.side_effect = self.mock_supports(generic_enabled, strongbox_enabled)
+        generic_init_secrets.supports.side_effect = self.mock_supports(generic_enabled, strongbox_enabled, default_enabled)
 
         if not generic_enabled:
             assert config.secrets_init_container_image is None

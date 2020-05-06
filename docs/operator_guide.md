@@ -79,7 +79,7 @@ Service objects can have a number of types in Kubernetes. This option decides wh
 
 This is currently only used for FINN, and will go away soon.
 
-### secrets-init-container-image, secrets-service-account-name and strongbox-init-container-image
+### secret-init-containers, secrets-init-container-image, secrets-service-account-name and strongbox-init-container-image
 
 Used to implement an init-container that will get secrets from some backend and make them available to the application. Read the section about [Secrets](#secrets)
 
@@ -184,7 +184,7 @@ Two example Application definitions are included in the docs:
 Secrets
 -------
 
-FIAAS supports three different sources of secrets. All three options will provide access to secrets in a pre-defined location, currently `/var/run/secrets/fiaas/`. This allows applications to assume their secrets are located at that path, regardless of where the secrets are sourced from.
+FIAAS supports different sources of secrets. All options will provide access to secrets in a pre-defined location, currently `/var/run/secrets/fiaas/`. This allows applications to assume their secrets are located at that path, regardless of where the secrets are sourced from.
 
 ### Kubernetes Secret
 
@@ -192,23 +192,44 @@ The default source is Kubernetes Secret objects. If a Secret with the same name 
 
 When using Kubernetes as a source of secrets it is possible to set the key `secrets_in_environment` in the application configuration to `true`, and each key-value pair in the Secret will be exposed as environment variables to your application. This flag is ignored for by other sources because of technical limitations.
 
-### Secrets init container
+### Using init-containers
 
-Since Kubernetes Secrets are somewhat insecure, operators might want to use other options for storing secrets. The option `secrets-init-container-image` allows selecting an image that will be run as an init-container before the application starts, in order to allow fetching secrets from a different location.
+Since Kubernetes Secrets are somewhat insecure, operators might want to use other options for storing secrets. There are 3 options to
+allow images to be made available to application developers which will be run as an init-container before the application starts, in
+order to allow for fetching secrets from a different location.
 
-The container will be responsible for getting the application secrets from whatever backend is used, and writing them to disk. The path `/var/run/secrets/fiaas` will be an "EmptyDir" with read/write permissions, which is then mounted with read-only permissions in the application container.
-
-If `secrets-service-account-name` is specified, the named service account will be mounted in the init container.
+In all cases, the container will be responsible for getting the application secrets from whatever backend is used, and writing them to disk. The path `/var/run/secrets/fiaas` will be an "EmptyDir" with read/write permissions, which is then mounted with read-only permissions in the application container.
 
 In the init container, the environment variable `K8S_DEPLOYMENT` will be the name of the application. In addition, any variables specified in a ConfigMap named `fiaas-secrets-init-container` will be exposed as environment variables.
 
 The ConfigMap will also be mounted at `/var/run/config/fiaas-secrets-init-container/`. If there exists a ConfigMap for the application then it will be mounted at `/var/run/config/fiaas/`. 
 
-### Strongbox
+#### Secrets init container (--secrets-init-container-image)
 
-In AWS you have the option of using [Strongbox](https://schibsted.github.io/strongbox/) for your secrets. If you wish to use Strongbox, the configuration option `strongbox-init-container-image` should be set to an image that can get secrets from Strongbox. This option is very similar to the previous variant, except that Strongbox gets a few more pieces of information from the application configuration. The application must specify an IAM role, and can select AWS region and a list of secret groups to get secrets from.
+This allows for a single image to be configured per-namespace, that will be attached to applications without them
+having to configure anything.
 
-The Strongbox init container is treated much the same as the previous variant, with two extra environment variables:
+If `secrets-service-account-name` is specified, the named service account will be mounted in the init container.
+
+### Configurable secrets init containers (--secret-init-containers)
+
+This allows for multiple images to be configured per-namespaces, and application developers can choose which
+they wish to use, specify environment variables, and attach annotations to the pod.
+
+The images should be registered with a 'type', e.g. `--secret-init-containers foosecrets=fiaas/some-foo-image:latest`, and this can
+then be used by applications by specifying `extensions.secrets.foosecrets` in their configuration.
+
+Any environment variables specified as `extensions.secrets.foosecrets.parameters` will be available, and any annotations
+specified as `extensions.secrets.foosecrets.parameters` will be added to the pod.
+
+Using the special value 'default' for the 'type' will mean the image will be attached when an application doesn't
+specify any other secrets configuration.
+
+#### Strongbox
+
+In AWS you have the option of using [Strongbox](https://https://github.com/schibsted/strongbox) for your secrets. If you wish to use Strongbox, the configuration option `strongbox-init-container-image` should be set to an image that can get secrets from Strongbox. This option is very similar to the previous variant, except that Strongbox gets a few more pieces of information from the application configuration. The application must specify an IAM role, and can select AWS region and a list of secret groups to get secrets from.
+
+The Strongbox init container is treated much the same as the previous variants, with two extra environment variables:
 
 * `SECRET_GROUPS` is a comma separated list of secret groups from the application config
 * `AWS_REGION` is the AWS region from the application config.

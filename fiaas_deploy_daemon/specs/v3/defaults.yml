@@ -98,3 +98,4 @@ extensions:
   tls: # TLS is only enabled if fiaas-deploy-daemon is run with a value for --use-ingress-tls other than `disabled`
     enabled: false # This is dynamically set based on the value for --use-ingress-tls passed to the instance
     certificate_issuer: # the name of certificate-issuer cert-manager should use
+  secrets: {}

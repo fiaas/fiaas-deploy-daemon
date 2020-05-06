@@ -219,7 +219,7 @@ they wish to use, specify environment variables, and attach annotations to the p
 The images should be registered with a 'type', e.g. `--secret-init-containers foosecrets=fiaas/some-foo-image:latest`, and this can
 then be used by applications by specifying `extensions.secrets.foosecrets` in their configuration.
 
-Any environment variables specified as `extensions.secrets.foosecrets.paramters` will be available, and any annotations
+Any environment variables specified as `extensions.secrets.foosecrets.parameters` will be available, and any annotations
 specified as `extensions.secrets.foosecrets.parameters` will be added to the pod.
 
 Using the special value 'default' for the 'type' will mean the image will be attached when an application doesn't

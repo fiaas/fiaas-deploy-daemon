@@ -22,12 +22,14 @@ import logging
 from itertools import chain
 
 from k8s.client import NotFound
+from k8s.base import Equality, Inequality
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
 
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
+from collections import namedtuple
 
 LOG = logging.getLogger(__name__)
 
@@ -51,25 +53,52 @@ class IngressDeployer(object):
         except NotFound:
             pass
 
-    @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
-        LOG.info("Creating/updating ingress for %s", app_spec.name)
-        annotations = {
-            u"fiaas/expose": u"true" if _has_explicitly_set_host(app_spec) else u"false"
-        }
-
+        LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
-        custom_annotations = merge_dicts(app_spec.annotations.ingress, annotations)
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
-                              annotations=custom_annotations)
+
+        # Group app_spec.ingresses to separate those with annotations
+        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations"])
+        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
+        ingresses_by_annotations = [unannotated_ingress]
+        for ingress_item in app_spec.ingresses:
+            if ingress_item.annotations:
+                next_name = "{}-{}".format(app_spec.name, len(ingresses_by_annotations))
+                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)
+                ingresses_by_annotations.append(annotated_ingresses)
+            else:
+                unannotated_ingress.ingress_items.append(ingress_item)
+
+        for annotated_ingress in ingresses_by_annotations:
+            if len(annotated_ingress.ingress_items) == 0:
+                continue
+
+            self._create_ingress(app_spec, annotated_ingress, custom_labels)
+
+        self._delete_unused(custom_labels)
+
+    @retry_on_upsert_conflict
+    def _create_ingress(self, app_spec, annotated_ingress, labels):
+        default_annotations = {
+            u"fiaas/expose": u"true" if _has_explicitly_set_host(annotated_ingress.ingress_items) else u"false"
+        }
+        annotations = merge_dicts(annotated_ingress.annotations, app_spec.annotations.ingress, default_annotations)
+
+        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels,
+                                annotations=annotations)
 
         per_host_ingress_rules = [
             IngressRule(host=self._apply_host_rewrite_rules(ingress_item.host),
                         http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
-            for ingress_item in app_spec.ingresses
+            for ingress_item in annotated_ingress.ingress_items
             if ingress_item.host is not None
         ]
-        default_host_ingress_rules = self._create_default_host_ingress_rules(app_spec)
+        if annotated_ingress.annotations:
+            default_host_ingress_rules = []
+        else:
+            default_host_ingress_rules = self._create_default_host_ingress_rules(app_spec)
+
+        print per_host_ingress_rules + default_host_ingress_rules
 
         ingress_spec = IngressSpec(rules=per_host_ingress_rules + default_host_ingress_rules)
 
@@ -77,12 +106,19 @@ class IngressDeployer(object):
         self._ingress_tls.apply(ingress, app_spec, self._get_hosts(app_spec))
         ingress.save()
 
+    def _delete_unused(self, labels):
+        filter_labels = {
+            "app": Equality(labels["app"]),
+            "fiaas/deployment_id": Inequality(labels["fiaas/deployment_id"])
+        }
+        Ingress.delete_list(labels=filter_labels)
+
     def _generate_default_hosts(self, name):
         for suffix in self._ingress_suffixes:
             yield u"{}.{}".format(name, suffix)
 
     def _create_default_host_ingress_rules(self, app_spec):
-        all_pathmappings = chain.from_iterable(ingress_item.pathmappings for ingress_item in app_spec.ingresses)
+        all_pathmappings = chain.from_iterable(ingress_item.pathmappings for ingress_item in app_spec.ingresses if not ingress_item.annotations)
         http_ingress_rule_value = self._make_http_ingress_rule_value(app_spec, all_pathmappings)
         return [IngressRule(host=host, http=http_ingress_rule_value)
                 for host in self._generate_default_hosts(app_spec.name)]
@@ -97,7 +133,7 @@ class IngressDeployer(object):
         return self._can_generate_host(app_spec) and _has_ingress(app_spec) and _has_http_port(app_spec)
 
     def _can_generate_host(self, app_spec):
-        return len(self._ingress_suffixes) > 0 or _has_explicitly_set_host(app_spec)
+        return len(self._ingress_suffixes) > 0 or _has_explicitly_set_host(app_spec.ingresses)
 
     @staticmethod
     def _make_http_ingress_rule_value(app_spec, pathmappings):
@@ -113,8 +149,8 @@ class IngressDeployer(object):
                 for ingress_item in app_spec.ingresses if ingress_item.host is not None]
 
 
-def _has_explicitly_set_host(app_spec):
-    return any(ingress.host is not None for ingress in app_spec.ingresses)
+def _has_explicitly_set_host(ingress_items):
+    return any(ingress_item.host is not None for ingress_item in ingress_items)
 
 
 def _has_http_port(app_spec):

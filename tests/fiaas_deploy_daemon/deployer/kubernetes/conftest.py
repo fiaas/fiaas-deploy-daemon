@@ -36,7 +36,7 @@ def create_metadata(app_name, namespace='default', labels=None, external=None, a
         'finalizers': [],
     }
     if annotations is not None:
-        metadata['annotations'] = annotations
+        metadata['annotations'] = annotations.copy()
 
     if external is not None:
         expose_annotations = {'fiaas/expose': str(external).lower()}

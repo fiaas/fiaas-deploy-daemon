@@ -129,4 +129,9 @@ Temporary Items
 
 *.swp
 
-.wheel_cache
+# Misc files
+
+bin
+.semaphore
+docs
+tests

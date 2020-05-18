@@ -105,6 +105,7 @@ class Bootstrapper(object):
 
         try:
             app_spec = self._spec_factory(
+                application.metadata.uid,
                 name=application.spec.application,
                 image=application.spec.image,
                 app_config=application.spec.config,

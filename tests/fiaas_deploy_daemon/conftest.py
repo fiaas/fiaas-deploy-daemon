@@ -37,6 +37,7 @@ EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, m
 @pytest.fixture
 def app_spec():
     return AppSpec(
+        uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
         name="testapp",
         namespace="default",
         image="finntech/testimage:version",

@@ -18,9 +18,13 @@ import pytest
 from mock import create_autospec
 from requests import Response
 
+from k8s.models.autoscaler import HorizontalPodAutoscaler
+
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler, AutoscalerDeployer
 from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec, \
     LabelAndAnnotationSpec
+
+from utils import TypeMatcher
 
 LABELS = {"autoscaler_deployer": "pass through"}
 AUTOSCALER_API = '/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/'
@@ -53,11 +57,11 @@ def test_autoscaler_enabled_and_2_replica_and__requested_cpu_gives_autoscaler(ap
 
 class TestAutoscalerDeployer(object):
     @pytest.fixture
-    def deployer(self):
-        return AutoscalerDeployer()
+    def deployer(self, owner_references):
+        return AutoscalerDeployer(owner_references)
 
     @pytest.mark.usefixtures("get")
-    def test_new_autoscaler(self, deployer, post, app_spec):
+    def test_new_autoscaler(self, deployer, post, app_spec, owner_references):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
         app_spec = app_spec._replace(replicas=4)
@@ -85,6 +89,7 @@ class TestAutoscalerDeployer(object):
         deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, AUTOSCALER_API, expected_autoscaler)
+        owner_references.apply.assert_called_once_with(TypeMatcher(HorizontalPodAutoscaler), app_spec)
 
     @pytest.mark.usefixtures("get")
     def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, post, app_spec):

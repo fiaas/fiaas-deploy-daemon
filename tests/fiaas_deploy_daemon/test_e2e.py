@@ -286,7 +286,7 @@ class TestE2E(object):
                 status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
                 assert status.result == u"RUNNING"
                 assert len(status.logs) > 0
-                assert any("Saving result RUNNING for default/{}".format(name) in l for l in status.logs)
+                assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
             wait_until(_assert_status, patience=PATIENCE)
 

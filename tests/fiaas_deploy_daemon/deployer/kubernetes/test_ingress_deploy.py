@@ -34,6 +34,7 @@ INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
 def app_spec(**kwargs):
     default_app_spec = AppSpec(
+        uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
         name="testapp",
         namespace="default",
         image="finntech/testimage:version",

@@ -284,6 +284,7 @@ class TestE2E(object):
 
             # First deploy
             fiaas_application.save()
+            app_uid = fiaas_application.metadata.uid
 
             # Check that deployment status is RUNNING
             def _assert_status():
@@ -302,7 +303,7 @@ class TestE2E(object):
                 assert label_difference == set()
 
             # Check deploy success
-            wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1), patience=PATIENCE)
+            wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE)
 
             # Redeploy, new image, possibly new init-container
             fiaas_application.spec.image = IMAGE2
@@ -312,9 +313,9 @@ class TestE2E(object):
                 strongbox_groups = ["foo", "bar"]
                 fiaas_application.spec.config["extensions"]["strongbox"]["groups"] = strongbox_groups
             fiaas_application.save()
-
+            app_uid = fiaas_application.metadata.uid
             # Check success
-            wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups),
+            wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups, app_uid=app_uid),
                        patience=PATIENCE)
 
             # Cleanup
@@ -328,7 +329,7 @@ class TestE2E(object):
             wait_until(cleanup_complete, patience=PATIENCE)
 
 
-def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None):
+def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():
         for kind in kinds:
             assert kind.get(name)
@@ -339,6 +340,6 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id, s
 
         for kind, expected_dict in expected.items():
             actual = kind.get(name)
-            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups)
+            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid)
 
     return action

@@ -33,10 +33,11 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls):
+    def __init__(self, config, ingress_tls, owner_references):
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_tls = ingress_tls
+        self._owner_references = owner_references
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -75,6 +76,7 @@ class IngressDeployer(object):
 
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
         self._ingress_tls.apply(ingress, app_spec, self._get_hosts(app_spec))
+        self._owner_references.apply(ingress, app_spec)
         ingress.save()
 
     def _generate_default_hosts(self, name):

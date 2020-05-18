@@ -30,7 +30,7 @@ blocks:
           # Check codestyle + run unit tests
           - checkout
           - sudo apt-get install -y qemu-user
-          - docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+          - docker run --rm --privileged multiarch/qemu-user-static:4.2.0-7 --reset -p yes
           - export PATH="$PATH:$HOME/.local/bin"
           - pip install --user .[ci]
           - tox -e codestyle,test

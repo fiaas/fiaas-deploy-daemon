@@ -26,8 +26,9 @@ RUN apk --no-cache add \
     yaml-dev
 
 COPY . /fiaas-deploy-daemon
+COPY .wheel_cache/*.whl /links/
 WORKDIR /fiaas-deploy-daemon
-RUN pip wheel . --wheel-dir=/wheels/
+RUN pip wheel . --no-cache-dir --wheel-dir=/wheels/ --find-links=/links/
 
 FROM common as production
 # Get rid of all build dependencies, install application using only pre-built binary wheels

@@ -37,13 +37,14 @@ class Factory(BaseFactory):
         # Overwrite default value based on config flag for ingress_tls
         self._defaults["extensions"]["tls"]["enabled"] = config and config.use_ingress_tls == "default_on"
 
-    def __call__(self, name, image, teams, tags, app_config, deployment_id, namespace,
+    def __call__(self, uid, name, image, teams, tags, app_config, deployment_id, namespace,
                  additional_labels, additional_annotations):
         if app_config.get("extensions") and app_config["extensions"].get("tls") and type(
                 app_config["extensions"]["tls"]) == bool:
             app_config["extensions"]["tls"] = {u"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
+            uid=uid,
             namespace=namespace,
             name=name,
             image=image,

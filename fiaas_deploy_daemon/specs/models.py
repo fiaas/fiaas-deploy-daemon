@@ -18,6 +18,7 @@ from collections import namedtuple
 
 
 class AppSpec(namedtuple("AppSpec", [
+    "uid",
     "namespace",
     "name",
     "image",

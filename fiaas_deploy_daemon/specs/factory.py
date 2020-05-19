@@ -31,7 +31,7 @@ class SpecFactory(object):
         self._supported_versions = [factory.version] + transformers.keys()
         self._fiaas_counter = Counter("fiaas_yml_version", "The version of fiaas.yml used", ["version", "app_name"])
 
-    def __call__(self, name, image, app_config, teams, tags, deployment_id, namespace,
+    def __call__(self, uid, name, image, app_config, teams, tags, deployment_id, namespace,
                  additional_labels, additional_annotations):
         """Create an app_spec from app_config"""
         fiaas_version = app_config.get(u"version", 1)
@@ -39,7 +39,7 @@ class SpecFactory(object):
         LOG.info("Attempting to create app_spec for %s from fiaas.yml version %s", name, fiaas_version)
         try:
             app_config = self.transform(app_config)
-            app_spec = self._factory(name, image, teams, tags, app_config, deployment_id, namespace,
+            app_spec = self._factory(uid, name, image, teams, tags, app_config, deployment_id, namespace,
                                      additional_labels, additional_annotations)
         except InvalidConfiguration:
             raise

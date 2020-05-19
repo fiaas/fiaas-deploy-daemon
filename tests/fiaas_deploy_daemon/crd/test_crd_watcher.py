@@ -41,7 +41,8 @@ ADD_EVENT = {
                 "fiaas/deployment_id": "deployment_id"
             },
             "name": "example",
-            "namespace": "the-namespace"
+            "namespace": "the-namespace",
+            "uid": "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c"
         },
         "spec": {
             "application": "example",
@@ -196,7 +197,7 @@ class TestWatcher(object):
         app_config = spec["config"]
         additional_labels = AdditionalLabelsOrAnnotations()
         additional_annotations = AdditionalLabelsOrAnnotations()
-        spec_factory.assert_called_once_with(name=app_name, image=spec["image"], app_config=app_config,
+        spec_factory.assert_called_once_with(uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c", name=app_name, image=spec["image"], app_config=app_config,
                                              teams=[], tags=[],
                                              deployment_id=deployment_id,
                                              namespace=namespace,

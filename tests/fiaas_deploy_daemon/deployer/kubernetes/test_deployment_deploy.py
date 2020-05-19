@@ -118,14 +118,12 @@ class TestDeploymentDeployer(object):
         if generic_toggle:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
-            replicas = 1
         else:
             ports = []
             exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
                                    initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                    failure_threshold=3, timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
-            replicas = 5
 
         yield app_spec._replace(
             admin_access=generic_toggle,
@@ -133,7 +131,6 @@ class TestDeploymentDeployer(object):
             health_checks=health_checks,
             labels=labels,
             annotations=annotations,
-            replicas=replicas,
             singleton=singleton,
         )
 
@@ -168,7 +165,7 @@ class TestDeploymentDeployer(object):
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets, owner_references):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
-        old_app_spec = app_spec._replace(replicas=10, strongbox=old_strongbox_spec)
+        old_app_spec = app_spec._replace(strongbox=old_strongbox_spec)
         old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
         get_mock_response = create_autospec(Response)
         get_mock_response.json.return_value = old_deployment
@@ -190,9 +187,9 @@ class TestDeploymentDeployer(object):
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
-            (5, 3, 2, None, 3),
+            (5, 3, 2, None, 2),
             (5, 3, 2, "1", 5),
-            (0, 3, 2, "1", 3),
+            (0, 3, 2, "1", 2),
     ))
     def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
                                               expected_replicas, config, app_spec, get, put, post, datadog, prometheus,
@@ -202,8 +199,7 @@ class TestDeploymentDeployer(object):
         image = "finntech/testimage:version2"
         version = "version2"
         app_spec = app_spec._replace(
-            replicas=max_replicas,
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, cpu_threshold_percentage=50),
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, max_replicas=max_replicas, cpu_threshold_percentage=50),
             image=image)
         if cpu_request:
             app_spec = app_spec._replace(
@@ -391,7 +387,7 @@ def create_expected_deployment(config,
 
     max_surge = u"25%"
     max_unavailable = 0
-    if app_spec.replicas == 1 and app_spec.singleton:
+    if app_spec.autoscaler.min_replicas == 1 and app_spec.singleton:
         max_surge = 0
         max_unavailable = 1
 
@@ -417,7 +413,7 @@ def create_expected_deployment(config,
                                                            labels=_get_expected_template_labels(app_spec.labels.pod),
                                                            annotations=pod_annotations)
             },
-            'replicas': replicas if replicas else app_spec.replicas,
+            'replicas': replicas if replicas else app_spec.autoscaler.min_replicas,
             'revisionHistoryLimit': 5,
             'strategy': {
                 'type': 'RollingUpdate',

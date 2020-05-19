@@ -34,9 +34,9 @@ TEST_DATA = {
     "v3minimal": {
         "uid": UID,
         "namespace": NAMESPACE,
-        "replicas": 5,
         "autoscaler.enabled": True,
         "autoscaler.min_replicas": 2,
+        "autoscaler.max_replicas": 5,
         "autoscaler.cpu_threshold_percentage": 50,
         "prometheus.enabled": True,
         "prometheus.port": "http",
@@ -90,9 +90,9 @@ TEST_DATA = {
         "strongbox.aws_region": "eu-west-1",
     },
     "autoscaling_disabled": {
-        "replicas": 3,
         "autoscaler.enabled": False,
         "autoscaler.min_replicas": 3,
+        "autoscaler.max_replicas": 3,
         "autoscaler.cpu_threshold_percentage": 50,
     },
     "multiple_hosts_multiple_paths": {
@@ -223,9 +223,9 @@ TEST_DATA = {
     },
     "full": {
         "namespace": NAMESPACE,
-        "replicas": 20,
         "autoscaler.enabled": True,
         "autoscaler.min_replicas": 10,
+        "autoscaler.max_replicas": 20,
         "autoscaler.cpu_threshold_percentage": 60,
         "ingresses[0].host": "www.example.com",
         "ingresses[0].pathmappings[0].path": "/a",

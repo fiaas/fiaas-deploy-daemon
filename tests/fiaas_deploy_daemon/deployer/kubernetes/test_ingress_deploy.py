@@ -38,7 +38,7 @@ def app_spec(**kwargs):
         namespace="default",
         image="finntech/testimage:version",
         replicas=3,
-        autoscaler=AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50),
+        autoscaler=AutoscalerSpec(enabled=False, min_replicas=2, max_replicas=3, cpu_threshold_percentage=50),
         resources=ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                 limits=ResourceRequirementSpec(cpu=None, memory=None)),
         admin_access=False,

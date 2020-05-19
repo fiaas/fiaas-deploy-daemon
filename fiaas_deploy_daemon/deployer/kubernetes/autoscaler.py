@@ -43,7 +43,7 @@ class AutoscalerDeployer(object):
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
             spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
                                                minReplicas=app_spec.autoscaler.min_replicas,
-                                               maxReplicas=app_spec.replicas,
+                                               maxReplicas=app_spec.autoscaler.max_replicas,
                                                targetCPUUtilizationPercentage=app_spec.autoscaler.cpu_threshold_percentage)
             autoscaler = HorizontalPodAutoscaler.get_or_create(metadata=metadata, spec=spec)
             self._owner_references.apply(autoscaler, app_spec)
@@ -67,7 +67,7 @@ def should_have_autoscaler(app_spec):
     if not _autoscaler_enabled(app_spec.autoscaler):
         return False
     if not _enough_replicas_wanted(app_spec):
-        LOG.warn("Can't enable autoscaler for %s with only %d max replicas", app_spec.name, app_spec.replicas)
+        LOG.warn("Can't enable autoscaler for %s with only %d max replicas", app_spec.name, app_spec.autoscaler.max_replicas)
         return False
     if not _request_cpu_is_set(app_spec):
         LOG.warn("Can't enable autoscaler for %s without CPU requests", app_spec.name)
@@ -80,7 +80,7 @@ def _autoscaler_enabled(autoscaler):
 
 
 def _enough_replicas_wanted(app_spec):
-    return app_spec.replicas > 1
+    return app_spec.autoscaler.max_replicas > 1
 
 
 def _request_cpu_is_set(app_spec):

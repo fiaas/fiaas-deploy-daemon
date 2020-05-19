@@ -32,7 +32,7 @@ class ReadyCheck(object):
         self._lifecycle_subject = lifecycle_subject
         self._fail_after_seconds = _calculate_fail_time(
             config.ready_check_timeout_multiplier,
-            app_spec.replicas,
+            app_spec.autoscaler.max_replicas,
             app_spec.health_checks.readiness.initial_delay_seconds
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds

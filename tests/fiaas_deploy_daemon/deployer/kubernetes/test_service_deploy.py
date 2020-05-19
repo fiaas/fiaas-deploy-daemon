@@ -18,9 +18,13 @@ import pytest
 from mock import create_autospec
 from requests import Response
 
+from k8s.models.service import Service
+
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
+
+from utils import TypeMatcher
 
 SELECTOR = {'app': 'testapp'}
 LABELS = {"service": "pass through"}
@@ -33,13 +37,13 @@ class TestServiceDeployer(object):
         return request.param
 
     @pytest.fixture
-    def deployer(self, service_type):
+    def deployer(self, service_type, owner_references):
         config = create_autospec(Configuration([]), spec_set=True)
         config.service_type = service_type
-        return ServiceDeployer(config)
+        return ServiceDeployer(config, owner_references)
 
     @pytest.mark.usefixtures("get")
-    def test_deploy_new_service(self, deployer, service_type, post, app_spec):
+    def test_deploy_new_service(self, deployer, service_type, post, app_spec, owner_references):
         expected_service = {
             'spec': {
                 'selector': SELECTOR,
@@ -63,6 +67,7 @@ class TestServiceDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS)
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
+        owner_references.apply.assert_called_once_with(TypeMatcher(Service), app_spec)
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_service_with_custom_labels_and_annotations(self, deployer, service_type, post, app_spec):

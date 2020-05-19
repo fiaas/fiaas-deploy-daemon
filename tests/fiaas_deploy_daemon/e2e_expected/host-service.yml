@@ -22,7 +22,12 @@ metadata:
     fiaas/version: VERSION
   name: v2-data-examples-host
   namespace: default
-  ownerReferences: []
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: v2-data-examples-host
   finalizers: []
 spec:
   ports:

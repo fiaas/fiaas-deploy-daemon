@@ -28,6 +28,8 @@ from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
     LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
 
+from utils import TypeMatcher
+
 LABELS = {"ingress_deployer": "pass through"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
@@ -494,13 +496,13 @@ class TestIngressDeployer(object):
         return config
 
     @pytest.fixture
-    def deployer(self, config, ingress_tls):
-        return IngressDeployer(config, ingress_tls)
+    def deployer(self, config, ingress_tls, owner_references):
+        return IngressDeployer(config, ingress_tls, owner_references)
 
     @pytest.fixture
-    def deployer_no_suffix(self, config, ingress_tls):
+    def deployer_no_suffix(self, config, ingress_tls, owner_references):
         config.ingress_suffixes = []
-        return IngressDeployer(config, ingress_tls)
+        return IngressDeployer(config, ingress_tls, owner_references)
 
     def pytest_generate_tests(self, metafunc):
         fixtures = ("app_spec", "expected_ingress")
@@ -511,7 +513,7 @@ class TestIngressDeployer(object):
                 metafunc.addcall(params, test_id)
 
     @pytest.mark.usefixtures("get")
-    def test_ingress_deploy(self, post, deployer, app_spec, expected_ingress):
+    def test_ingress_deploy(self, post, deployer, app_spec, expected_ingress, owner_references):
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_ingress
         post.return_value = mock_response
@@ -519,6 +521,7 @@ class TestIngressDeployer(object):
         deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
+        owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
 
     @pytest.mark.parametrize("spec_name", (
             "app_spec_thrift",
@@ -550,12 +553,7 @@ class TestIngressDeployer(object):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
-            ingress_tls.apply.assert_called_once_with(IngressMatcher(), app_spec, hosts)
-
-
-class IngressMatcher(object):
-    def __eq__(self, other):
-        return isinstance(other, Ingress)
+            ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts)
 
 
 class TestIngressTls(object):

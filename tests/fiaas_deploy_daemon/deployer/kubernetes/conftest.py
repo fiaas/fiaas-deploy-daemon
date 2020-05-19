@@ -15,6 +15,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
+import mock
+
+from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
 
 
 @pytest.helpers.register
@@ -42,3 +45,8 @@ def create_metadata(app_name, namespace='default', labels=None, external=None, a
     if generation is not None:
         metadata['generation'] = generation
     return metadata
+
+
+@pytest.fixture
+def owner_references():
+    return mock.create_autospec(OwnerReferences(), spec_set=True, instance=True)

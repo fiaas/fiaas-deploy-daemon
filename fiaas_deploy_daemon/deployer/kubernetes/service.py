@@ -25,12 +25,14 @@ from k8s.models.service import Service, ServicePort, ServiceSpec
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
+
 LOG = logging.getLogger(__name__)
 
 
 class ServiceDeployer(object):
-    def __init__(self, config):
+    def __init__(self, config, owner_references):
         self._service_type = config.service_type
+        self._owner_references = owner_references
 
     def deploy(self, app_spec, selector, labels):
         if self._should_have_service(app_spec):
@@ -60,6 +62,7 @@ class ServiceDeployer(object):
         metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations)
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
+        self._owner_references.apply(svc, app_spec)
         svc.save()
 
     @staticmethod

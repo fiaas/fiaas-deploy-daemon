@@ -36,10 +36,11 @@ LOG = logging.getLogger(__name__)
 class DeploymentDeployer(object):
     MINIMUM_GRACE_PERIOD = 30
 
-    def __init__(self, config, datadog, prometheus, deployment_secrets):
+    def __init__(self, config, datadog, prometheus, deployment_secrets, owner_references):
         self._datadog = datadog
         self._prometheus = prometheus
         self._secrets = deployment_secrets
+        self._owner_references = owner_references
         self._fiaas_env = _build_fiaas_env(config)
         self._global_env = config.global_env
         self._lifecycle = None
@@ -120,6 +121,7 @@ class DeploymentDeployer(object):
         self._datadog.apply(deployment, app_spec, besteffort_qos_is_required)
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
+        self._owner_references.apply(deployment, app_spec)
         deployment.save()
 
     def delete(self, app_spec):

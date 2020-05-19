@@ -23,7 +23,12 @@ metadata:
     fiaas/version: VERSION
   name: v3-data-examples-tls-enabled
   namespace: default
-  ownerReferences: []
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: v3-data-examples-tls-enabled
   finalizers: []
 spec:
   replicas: 5

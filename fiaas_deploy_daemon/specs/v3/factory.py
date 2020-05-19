@@ -76,7 +76,12 @@ class Factory(BaseFactory):
         maximum = replicas_lookup["maximum"]
         enabled = minimum != maximum
         cpu_threshold_percentage = replicas_lookup["cpu_threshold_percentage"]
-        return AutoscalerSpec(enabled=enabled, min_replicas=minimum, max_replicas=maximum, cpu_threshold_percentage=cpu_threshold_percentage)
+        return AutoscalerSpec(
+            enabled=enabled,
+            min_replicas=minimum,
+            max_replicas=maximum,
+            cpu_threshold_percentage=cpu_threshold_percentage
+        )
 
     def _resources_spec(self, resources_lookup):
         return ResourcesSpec(

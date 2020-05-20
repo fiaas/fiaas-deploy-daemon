@@ -41,7 +41,7 @@ class AutoscalerDeployer(object):
                                   annotations=app_spec.annotations.horizontal_pod_autoscaler)
             scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
             spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
-                                               minReplicas=app_spec.autoscaler.min_replicas,
+                                               minReplicas=app_spec.replicas,
                                                maxReplicas=app_spec.autoscaler.max_replicas,
                                                targetCPUUtilizationPercentage=app_spec.autoscaler.cpu_threshold_percentage)
             autoscaler = HorizontalPodAutoscaler.get_or_create(metadata=metadata, spec=spec)

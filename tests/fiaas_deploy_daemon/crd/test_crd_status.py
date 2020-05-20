@@ -148,7 +148,14 @@ class TestStatusReport(object):
                 },
                 'namespace': 'default',
                 'name': app_name,
-                'ownerReferences': [],
+                'ownerReferences': [{
+                    'controller': True,
+                    'apiVersion': 'fiaas.schibsted.io/v1',
+                    'kind': 'Application',
+                    'blockOwnerDeletion': True,
+                    'name': app_spec.name,
+                    'uid': app_spec.uid
+                }],
                 'finalizers': [],
             }
         }

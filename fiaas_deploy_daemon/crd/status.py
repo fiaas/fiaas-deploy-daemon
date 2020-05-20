@@ -23,7 +23,7 @@ from datetime import datetime
 import pytz
 from blinker import signal
 from k8s.client import NotFound
-from k8s.models.common import ObjectMeta
+from k8s.models.common import ObjectMeta, OwnerReference
 
 from .types import FiaasApplicationStatus
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
@@ -80,6 +80,7 @@ def _save_status(result, subject):
 
     LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
               deployment_id, resource_version)
+    _apply_owner_reference(status, subject)
     status.save()
 
 
@@ -111,3 +112,15 @@ def create_name(name, deployment_id):
     """
     suffix = b32encode(struct.pack('q', hash(deployment_id))).lower().strip("=")
     return "{}-{}".format(name, suffix)
+
+
+def _apply_owner_reference(status, subject):
+    if subject.uid:
+        owner_reference = OwnerReference(apiVersion="fiaas.schibsted.io/v1",
+                                         blockOwnerDeletion=True,
+                                         controller=True,
+                                         kind="Application",
+                                         name=subject.app_name,
+                                         uid=subject.uid)
+
+        status.metadata.ownerReferences = [owner_reference]

@@ -73,7 +73,8 @@ class Consumer(DaemonThread):
         if event[u"environment"] == self._environment:
             app_name = event[u"project_name"]
             try:
-                lifecycle_subject = self._lifecycle.initiate(app_name=app_name,
+                lifecycle_subject = self._lifecycle.initiate(uid=None,
+                                                             app_name=app_name,
                                                              namespace=DEFAULT_NAMESPACE,
                                                              deployment_id=self._deployment_id(event))
             except (NoDockerArtifactException, NoFiaasArtifactException):

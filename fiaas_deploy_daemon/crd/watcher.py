@@ -100,7 +100,8 @@ class CrdWatcher(DaemonThread):
             LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)
             return
         repository = _repository(application)
-        lifecycle_subject = self._lifecycle.initiate(app_name=app_name,
+        lifecycle_subject = self._lifecycle.initiate(uid=application.metadata.uid,
+                                                     app_name=app_name,
                                                      namespace=application.metadata.namespace,
                                                      deployment_id=deployment_id,
                                                      repository=repository,

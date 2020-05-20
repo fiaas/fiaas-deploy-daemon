@@ -39,7 +39,8 @@ class TestReadyCheck(object):
 
     @pytest.fixture
     def lifecycle_subject(self, app_spec):
-        return Subject(app_spec.name, app_spec.namespace, app_spec.deployment_id, None, app_spec.labels.status, app_spec.annotations.status)
+        return Subject(app_spec.uid, app_spec.name, app_spec.namespace, app_spec.deployment_id, None,
+                       app_spec.labels.status, app_spec.annotations.status)
 
     @pytest.fixture
     def config(self):

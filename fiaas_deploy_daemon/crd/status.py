@@ -58,7 +58,7 @@ def _handle_signal(sender, status, subject):
 
 @retry_on_upsert_conflict
 def _save_status(result, subject):
-    (app_name, namespace, deployment_id, repository, labels, annotations) = subject
+    (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
     LOG.info("Saving result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
     name = create_name(app_name, deployment_id)
     labels = labels or {}

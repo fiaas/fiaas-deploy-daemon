@@ -108,6 +108,7 @@ class CrdWatcher(DaemonThread):
                                                      annotations=application.spec.additional_annotations.status)
         try:
             app_spec = self._spec_factory(
+                uid=application.metadata.uid,
                 name=app_name,
                 image=application.spec.image,
                 app_config=application.spec.config,
@@ -127,6 +128,7 @@ class CrdWatcher(DaemonThread):
 
     def _delete(self, application):
         app_spec = self._spec_factory(
+            uid=application.metadata.uid,
             name=application.spec.application,
             image=application.spec.image,
             app_config=application.spec.config,

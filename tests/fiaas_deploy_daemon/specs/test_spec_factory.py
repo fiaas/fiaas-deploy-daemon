@@ -26,6 +26,7 @@ TEAMS = "IO"
 TAGS = "Foo"
 DEPLOYMENT_ID = "deployment_id"
 NAMESPACE = "namespace"
+UID = "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c"
 
 
 class TestSpecFactory(object):
@@ -64,31 +65,31 @@ class TestSpecFactory(object):
         minimal_config = {}
         if version:
             minimal_config["version"] = version
-        factory(NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+        factory(UID, NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         mock_factory = request.getfuncargvalue(mock_to_call)
         mock_factory.assert_called_with(minimal_config, strip_defaults=False)
 
     @pytest.mark.parametrize("version", [1, 2, 3])
     def test_parsed_by_current_version(self, factory, version, v3):
-        factory(NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
-        v3.assert_called_with(NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE, None, None)
+        factory(UID, NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+        v3.assert_called_with(UID, NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_raise_invalid_config_if_version_not_supported(self, factory):
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+            factory(UID, NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v3, app_spec):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         v3.return_value = app_spec._replace(datadog=datadog_spec)
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+            factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_accept_config_if_datadog_defined_and_requested(self, factory, v3, app_spec, config):
         config.datadog_container_image = "datadog"
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         expected = app_spec._replace(datadog=datadog_spec)
         v3.return_value = expected
-        actual = factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+        actual = factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         assert actual == expected
 
     @pytest.mark.parametrize("exception", (
@@ -102,4 +103,4 @@ class TestSpecFactory(object):
     def test_parse_errors_raises_invalid_config(self, factory, v3, exception):
         v3.side_effect = exception
         with pytest.raises(InvalidConfiguration):
-            factory(NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+            factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)

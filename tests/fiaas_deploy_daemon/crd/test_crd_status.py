@@ -260,7 +260,8 @@ class TestStatusReport(object):
 
 
 def _subject_from_app_spec(app_spec):
-    return Subject(app_spec.name,
+    return Subject(app_spec.uid,
+                   app_spec.name,
                    app_spec.namespace,
                    app_spec.deployment_id,
                    None,

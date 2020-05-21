@@ -29,8 +29,9 @@ LOG = logging.getLogger(__name__)
 
 
 class AutoscalerDeployer(object):
-    def __init__(self):
+    def __init__(self, owner_references):
         self.name = "autoscaler"
+        self._owner_references = owner_references
 
     @retry_on_upsert_conflict
     def deploy(self, app_spec, labels):
@@ -45,6 +46,7 @@ class AutoscalerDeployer(object):
                                                maxReplicas=app_spec.replicas,
                                                targetCPUUtilizationPercentage=app_spec.autoscaler.cpu_threshold_percentage)
             autoscaler = HorizontalPodAutoscaler.get_or_create(metadata=metadata, spec=spec)
+            self._owner_references.apply(autoscaler, app_spec)
             autoscaler.save()
         else:
             try:

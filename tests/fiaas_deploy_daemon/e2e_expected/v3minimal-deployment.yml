@@ -25,7 +25,12 @@ metadata:
     deployment/label: "true"
   name: v3-data-examples-v3minimal
   namespace: default
-  ownerReferences: []
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: v3-data-examples-v3minimal
   finalizers: []
 spec:
   replicas: 5

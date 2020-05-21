@@ -175,19 +175,22 @@ class TestWatcher(object):
 
         spec = event["object"]["spec"]
         app_name = spec["application"]
+        uid = event["object"]["metadata"]["uid"]
         namespace = event["object"]["metadata"]["namespace"]
         deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
                          if deployer_event_type != "DELETE" else "deletion")
 
         app_spec = app_spec._replace(name=app_name, namespace=namespace, deployment_id=deployment_id)
         spec_factory.return_value = app_spec
-        lifecycle_subject = Subject(app_name, namespace, deployment_id, repository, app_spec.labels.status, app_spec.annotations.status)
+        lifecycle_subject = Subject(uid, app_name, namespace, deployment_id, repository, app_spec.labels.status,
+                                    app_spec.annotations.status)
         lifecycle.initiate.return_value = lifecycle_subject
 
         crd_watcher._watch(None)
 
         if event in [ADD_EVENT, MODIFIED_EVENT]:
-            lifecycle.initiate.assert_called_once_with(app_name=event["object"]["spec"]["application"],
+            lifecycle.initiate.assert_called_once_with(uid=event["object"]["metadata"]["uid"],
+                                                       app_name=event["object"]["spec"]["application"],
                                                        namespace=event["object"]["metadata"]["namespace"],
                                                        deployment_id='deployment_id',
                                                        repository=repository,
@@ -234,7 +237,8 @@ class TestWatcher(object):
 
         spec_factory.side_effect = error
 
-        lifecycle_subject = Subject(app_name=event["object"]["spec"]["application"],
+        lifecycle_subject = Subject(uid=event["object"]["metadata"]["uid"],
+                                    app_name=event["object"]["spec"]["application"],
                                     namespace=event["object"]["metadata"]["namespace"],
                                     deployment_id='deployment_id',
                                     repository=repository,

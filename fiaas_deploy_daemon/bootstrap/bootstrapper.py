@@ -96,7 +96,8 @@ class Bootstrapper(object):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
                 application.spec.application))
 
-        lifecycle_subject = self._lifecycle.initiate(app_name=application.spec.application,
+        lifecycle_subject = self._lifecycle.initiate(uid=application.metadata.uid,
+                                                     app_name=application.spec.application,
                                                      namespace=application.metadata.namespace,
                                                      deployment_id=deployment_id,
                                                      repository=None,

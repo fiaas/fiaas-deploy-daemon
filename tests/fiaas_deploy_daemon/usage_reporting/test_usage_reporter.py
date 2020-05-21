@@ -57,8 +57,8 @@ class TestUsageReporter(object):
     def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, app_spec, result, repository):
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
 
-        lifecycle_subject = Subject(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id,
-                                    repository=repository, labels=None, annotations=None)
+        lifecycle_subject = Subject(uid=app_spec.uid, app_name=app_spec.name, namespace=app_spec.namespace,
+                                    deployment_id=app_spec.deployment_id, repository=repository, labels=None, annotations=None)
         signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
 
         event = reporter._event_queue.get_nowait()

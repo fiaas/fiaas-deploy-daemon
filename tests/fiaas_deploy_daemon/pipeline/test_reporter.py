@@ -49,7 +49,8 @@ class TestReporter(object):
     def test_signal_to_callback(self, session, config, result, url, app_spec):
         reporter = Reporter(config, session)
         reporter.register(app_spec, CALLBACK)
-        lifecycle_subject = Subject(app_name=app_spec.name,
+        lifecycle_subject = Subject(uid=app_spec.name,
+                                    app_name=app_spec.name,
                                     namespace=app_spec.namespace,
                                     deployment_id=app_spec.deployment_id,
                                     repository=None,

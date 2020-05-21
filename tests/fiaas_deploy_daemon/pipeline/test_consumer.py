@@ -111,7 +111,7 @@ class TestConsumer(object):
         assert app_config_downloader.get.call_count == 1
 
         image = EVENT[u"artifacts_by_type"][u"docker"]
-        factory.assert_called_once_with(EVENT[u"project_name"], image, app_config, EVENT[u"teams"], EVENT[u"tags"],
+        factory.assert_called_once_with(None, EVENT[u"project_name"], image, app_config, EVENT[u"teams"], EVENT[u"tags"],
                                         image.split(":")[-1], pipeline_consumer.DEFAULT_NAMESPACE, None, None)
 
     def test_fail_if_no_docker_image(self, consumer):

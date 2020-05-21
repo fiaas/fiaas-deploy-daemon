@@ -24,7 +24,12 @@ metadata:
     fiaas/version: VERSION
   name: data-v2minimal
   namespace: default
-  ownerReferences: []
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: data-v2minimal
   finalizers: []
 spec:
   tls: []

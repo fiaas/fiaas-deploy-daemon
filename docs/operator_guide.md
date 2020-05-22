@@ -220,7 +220,7 @@ The images should be registered with a 'type', e.g. `--secret-init-containers fo
 then be used by applications by specifying `extensions.secrets.foosecrets` in their configuration.
 
 Any environment variables specified as `extensions.secrets.foosecrets.parameters` will be available, and any annotations
-specified as `extensions.secrets.foosecrets.parameters` will be added to the pod.
+specified as `extensions.secrets.foosecrets.annotations` will be added to the pod.
 
 Using the special value 'default' for the 'type' will mean the image will be attached when an application doesn't
 specify any other secrets configuration.

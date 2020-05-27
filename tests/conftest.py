@@ -40,7 +40,7 @@ def assert_any_call(mockk, first, *args):
     __tracebackhide__ = True
 
     def _assertion():
-        mockk.assert_any_call(first, *args)
+        mockk.assert_called_once_with(first, *args)
 
     _add_useful_error_message(_assertion, mockk, first, args)
 

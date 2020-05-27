@@ -25,6 +25,7 @@ ingress: # Generate ingress rules for access from outside cluster. To disable, s
     paths: # List of paths exposed to which application port
     - path: / # Path the application answers on
       port: http # Name of the port path is served on
+    annotations: {}
 healthchecks: # Healthchecks defined for your application. If omitted and a single port is defined, liveness will default to http or tcp depending on port type, and readiness will be a copy of liveness. If no ports or multiple ports are defined, healthchecks are not provided and should be defined explicitly
   liveness:
     # Valid configuration requires exactly one of execute|http|tcp

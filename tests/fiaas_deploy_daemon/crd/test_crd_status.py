@@ -96,7 +96,7 @@ class TestStatusReport(object):
 
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_action_on_signal(self, request, get, app_spec, test_data, signal):
-        app_name = '{}-isb5oqum36ylo'.format(test_data.result)
+        app_name = '{}-bbb41d62e880'.format(test_data.result)
         expected_logs = [LOG_LINE]
         if not test_data.new:
             get.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound
@@ -264,6 +264,18 @@ class TestStatusReport(object):
 
         with pytest.raises(ClientError):
             signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
+
+
+@pytest.mark.parametrize("name, deployment_id, expected", (
+    ("appname", "1", "appname-ebbc39aaf008"),
+    ("appname", "2", "appname-04e42a6ee7a9"),
+    ("another-appname", "1", "another-appname-ebbc39aaf008"),
+    ("app2", "2", "app2-04e42a6ee7a9"),
+    ("app3", "long string", "app3-4022130350cd"),
+    ("app4", "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c", "app4-b2a9dc005201"),
+))
+def test_create_name_produces_stable_hashes(name, deployment_id, expected):
+    assert status.create_name(name, deployment_id) == expected
 
 
 def _subject_from_app_spec(app_spec):

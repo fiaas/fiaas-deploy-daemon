@@ -31,10 +31,8 @@ from .config import Configuration
 from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
-from .fake_consumer import FakeConsumerBindings
 from .lifecycle import Lifecycle
 from .logsetup import init_logging
-from .pipeline import PipelineBindings
 from .secrets import resolve_secrets
 from .specs import SpecBindings
 from .tools import log_request_response
@@ -70,13 +68,12 @@ class MainBindings(pinject.BindingSpec):
 
 class HealthCheck(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, crd_watcher, usage_reporter):
+    def __init__(self, deployer, scheduler, crd_watcher, usage_reporter):
         pass
 
     def is_healthy(self):
         return all((
             self._deployer.is_alive(),
-            self._consumer.is_alive(),
             self._scheduler.is_alive(),
             self._crd_watcher.is_alive(),
             self._usage_reporter.is_alive(),
@@ -85,12 +82,11 @@ class HealthCheck(object):
 
 class Main(object):
     @pinject.copy_args_to_internal_fields
-    def __init__(self, deployer, consumer, scheduler, webapp, config, crd_watcher, usage_reporter):
+    def __init__(self, deployer, scheduler, webapp, config, crd_watcher, usage_reporter):
         pass
 
     def run(self):
         self._deployer.start()
-        self._consumer.start()
         self._scheduler.start()
         self._crd_watcher.start()
         self._usage_reporter.start()
@@ -135,7 +131,6 @@ def main():
             K8sAdapterBindings(),
             WebBindings(),
             SpecBindings(),
-            PipelineBindings() if not cfg.disable_pipeline_consumer and cfg.has_service("kafka_pipeline") else FakeConsumerBindings(),
             CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
             UsageReportingBindings(),
         ]

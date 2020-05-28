@@ -65,7 +65,7 @@ The combination of `LOG_STDOUT` and `LOG_FORMAT` can be used to allow applicatio
 
 ### proxy
 
-This is currently only used for FINN, and will go away soon.
+Use a http proxy for outgoing http requests. This is currently only used for for usage reporting.
 
 ### environment
 

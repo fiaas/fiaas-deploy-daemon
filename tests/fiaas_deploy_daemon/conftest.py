@@ -184,6 +184,6 @@ def _open():
         else:
             return real_open(name, *args, **kwargs)
 
-    with mock.patch("__builtin__.open") as mock_open:
+    with mock.patch("builtins.open") as mock_open:
         mock_open.side_effect = _mock_namespace_file_open
         yield mock_open

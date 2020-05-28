@@ -30,7 +30,7 @@ class TestConfig(object):
 
     @pytest.fixture
     def namespace_file_does_not_exist(self):
-        with mock.patch("__builtin__.open", new_callable=mock.mock_open) as _open:
+        with mock.patch("builtins.open", new_callable=mock.mock_open) as _open:
             _open.side_effect = IOError("does not exist")
             yield _open
 

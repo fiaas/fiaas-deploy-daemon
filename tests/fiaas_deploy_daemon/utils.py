@@ -109,7 +109,7 @@ def sanitize_resource_name(yml_path):
     return re.sub("[^-a-z0-9]", "-", yml_path.replace(".yml", ""))
 
 
-def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id, strongbox_groups):
+def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid=None):
     actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
 
@@ -125,6 +125,10 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
 
     if expected_dict["kind"] == "Service":
         _set_service_type(expected_dict, service_type)
+
+    if app_uid:
+        for ref in expected_dict["metadata"]["ownerReferences"]:
+            ref["uid"] = app_uid
 
     # the k8s client library doesn't return apiVersion or kind, so ignore those fields
     del expected_dict['apiVersion']
@@ -343,3 +347,12 @@ class KindWrapper(object):
 
 def _is_macos():
     return os.uname()[0] == 'Darwin'
+
+
+class TypeMatcher(object):
+
+    def __init__(self, _type):
+        self._type = _type
+
+    def __eq__(self, other):
+        return isinstance(other, self._type)

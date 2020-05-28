@@ -23,7 +23,12 @@ metadata:
     fiaas/version: 1.13.9-alpine
   name: specs-v2-data-examples-v2bootstrap
   namespace: default
-  ownerReferences: []
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: specs-v2-data-examples-v2bootstrap
   finalizers: []
 spec:
   replicas: 2

@@ -162,7 +162,7 @@ class TestBootstrapE2E(object):
 
                 fiaas_application.save()
 
-                return name, fiaas_application.metadata.namespace, expected
+                return name, fiaas_application.metadata.namespace, fiaas_application.metadata.uid, expected
 
             expectations = [prepare_test_case(test_case) for test_case in TEST_CASES]
 
@@ -170,11 +170,11 @@ class TestBootstrapE2E(object):
             assert exit_code == 0
 
             def success():
-                all(deploy_successful(name, namespace, expected) for name, namespace, expected in expectations)
+                all(deploy_successful(name, namespace, app_uid, expected) for name, namespace, app_uid, expected in expectations)
 
             wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
 
-            for name, namespace, expected in expectations:
+            for name, namespace, app_uid, expected in expectations:
                 for kind in expected.keys():
                     try:
                         kind.delete(name, namespace=namespace)
@@ -188,14 +188,14 @@ def ensure_resources_not_exists(name, expected, namespace):
             kind.get(name, namespace=namespace)
 
 
-def deploy_successful(name, namespace, expected):
+def deploy_successful(name, namespace, app_uid, expected):
     for kind, expected_result in expected.items():
         if expected_result == SHOULD_NOT_EXIST:
             with pytest.raises(NotFound):
                 kind.get(name, namespace=namespace)
         else:
             actual = kind.get(name, namespace=namespace)
-            assert_k8s_resource_matches(actual, expected_result, IMAGE, "ClusterIP", DEPLOYMENT_ID, [])
+            assert_k8s_resource_matches(actual, expected_result, IMAGE, "ClusterIP", DEPLOYMENT_ID, [], app_uid)
 
 
 def read_yml_if_exists(path):

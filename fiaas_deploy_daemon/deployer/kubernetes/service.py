@@ -38,9 +38,9 @@ class ServiceDeployer(object):
         if self._should_have_service(app_spec):
             self._create(app_spec, selector, labels)
         else:
-            self.delete(app_spec)
+            self._delete(app_spec)
 
-    def delete(self, app_spec):
+    def _delete(self, app_spec):
         LOG.info("Deleting service for %s", app_spec.name)
         try:
             Service.delete(app_spec.name, app_spec.namespace)

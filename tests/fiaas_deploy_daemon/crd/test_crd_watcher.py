@@ -63,11 +63,6 @@ MODIFIED_EVENT = {
     "type": WatchEvent.MODIFIED,
 }
 
-DELETED_EVENT = {
-    "object": ADD_EVENT["object"],
-    "type": WatchEvent.DELETED,
-}
-
 
 class TestWatcher(object):
 
@@ -166,7 +161,6 @@ class TestWatcher(object):
         (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
         (MODIFIED_EVENT, "UPDATE", None, None),
         (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-        (DELETED_EVENT, "DELETE", None, None),
     ])
     def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type,
                     lifecycle, annotations, repository):
@@ -188,14 +182,13 @@ class TestWatcher(object):
 
         crd_watcher._watch(None)
 
-        if event in [ADD_EVENT, MODIFIED_EVENT]:
-            lifecycle.initiate.assert_called_once_with(uid=event["object"]["metadata"]["uid"],
-                                                       app_name=event["object"]["spec"]["application"],
-                                                       namespace=event["object"]["metadata"]["namespace"],
-                                                       deployment_id='deployment_id',
-                                                       repository=repository,
-                                                       labels=None,
-                                                       annotations=None)
+        lifecycle.initiate.assert_called_once_with(uid=event["object"]["metadata"]["uid"],
+                                                   app_name=event["object"]["spec"]["application"],
+                                                   namespace=event["object"]["metadata"]["namespace"],
+                                                   deployment_id='deployment_id',
+                                                   repository=repository,
+                                                   labels=None,
+                                                   annotations=None)
 
         app_config = spec["config"]
         additional_labels = AdditionalLabelsOrAnnotations()
@@ -210,10 +203,7 @@ class TestWatcher(object):
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()
-        if event in [ADD_EVENT, MODIFIED_EVENT]:
-            assert deployer_event == DeployerEvent(deployer_event_type, app_spec, lifecycle_subject)
-        else:
-            assert deployer_event == DeployerEvent(deployer_event_type, app_spec, None)
+        assert deployer_event == DeployerEvent(deployer_event_type, app_spec, lifecycle_subject)
         assert deploy_queue.empty()
 
     @pytest.mark.parametrize("namespace", [None, "default"])

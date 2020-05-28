@@ -20,8 +20,6 @@ import re
 from argparse import Namespace
 
 import configargparse
-import dns.exception
-import dns.resolver
 
 DEFAULT_CONFIG_FILE = "/var/run/config/fiaas/cluster_config.yaml"
 DEFAULT_SECRETS_DIR = "/var/run/secrets/fiaas/"
@@ -62,13 +60,6 @@ Regardless of how a variable is passed in (option, environment variable or in
 a config file), it must be specified as `<key>=<value>`.
 """
 
-BW_LISTS_LONG_HELP = """
-Only one of `--blacklist` or `--whitelist` may be used, but each can be used
-multiple times. The parameter should match exactly the name of an application.
-When whitelisting, only applications in the whitelist is deployed.
-When blacklisting, applications in the blacklist will not be deployed.
-"""
-
 USAGE_REPORTING_LONG_HELP = """
 FIAAS can optionally report usage data to a web-service via POSTs to an
 HTTP endpoint. Fiaas-deploy-daemon will POST a json structure to the endpoint
@@ -105,8 +96,7 @@ Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
 a YAML 'mapping' (for details, see http://learn.getgrav.org/advanced/yaml).
 
-It is possible to specify '--ingress-suffix', '--host-rewrite-rule',
-'--blacklist' and '--whitelist' multiple times to add more than one of each.
+It is possible to specify '--ingress-suffix' and '--host-rewrite-rule' multiple times to add more than one of each.
 In the config-file, these should be defined as a YAML list
 (see https://github.com/bw2/ConfigArgParse#special-values).
 
@@ -161,7 +151,7 @@ class Configuration(Namespace):
                             default=DEFAULT_SECRETS_DIR)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")
-        parser.add_argument("--proxy", help="Use proxy for requests to pipeline and getting fiaas-artifacts",
+        parser.add_argument("--proxy", help="Use http proxy (currently only used for for usage reporting)",
                             env_var="http_proxy")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
@@ -246,16 +236,11 @@ class Configuration(Namespace):
         global_env_parser.add_argument("--global-env", default=[], env_var="FIAAS_GLOBAL_ENV",
                                        help="Various non-essential global variables to expose for all applications",
                                        action="append", type=KeyValue, dest="global_env")
-        list_parser = parser.add_argument_group("Blacklisting/whitelisting applications", BW_LISTS_LONG_HELP)
-        list_group = list_parser.add_mutually_exclusive_group()
-        list_group.add_argument("--blacklist", help="Do not deploy this application", action="append", default=[])
-        list_group.add_argument("--whitelist", help="Only deploy this application", action="append", default=[])
         secret_init_containers_parser = parser.add_argument_group("Secret init-containers", SECRET_CONTAINERS_LONG_HELP)
         secret_init_containers_parser.add_argument("--secret-init-containers", default=[],
                                                    env_var="FIAAS_SECRET_INIT_CONTAINERS",
                                                    help="Images to use for secret init-containers by key",
                                                    action="append", type=KeyValue, dest="secret_init_containers")
-
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
         self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}
@@ -275,42 +260,6 @@ class Configuration(Namespace):
         version = os.getenv("VERSION")
         if version:
             self.version = version
-
-    def has_service(self, service):
-        try:
-            self.resolve_service(service)
-        except InvalidConfigurationException:
-            return False
-        return True
-
-    def resolve_service(self, service_name, port_name=None):
-        try:
-            return self._resolve_service_from_srv_record(service_name, port_name)
-        except (dns.resolver.NXDOMAIN, dns.exception.Timeout) as e:
-            self._logger.warn("Failed to lookup SRV. %s", str(e))
-        return self._resolve_service_from_env(service_name)
-
-    def _resolve_service_from_env(self, service_name):
-        service = service_name.replace("-", "_").upper()
-        host = self._resolve_required_variable("{}_SERVICE_HOST".format(service), service_name)
-        port_key = "{}_SERVICE_PORT".format(service)
-        port = self._resolve_required_variable(port_key, service_name)
-        try:
-            port = int(port)
-        except ValueError:
-            raise InvalidConfigurationException(
-                "{} is not set to a port-number, but instead {!r}. Unable to resolve service {}".format(port_key, port,
-                                                                                                        service_name))
-        return host, port
-
-    @staticmethod
-    def _resolve_service_from_srv_record(service_name, port_name):
-        service = service_name.replace("_", "-")
-        port = (port_name if port_name else service_name).replace("_", "-")
-        srv = "_{}._tcp.{}".format(port, service)
-        answers = dns.resolver.query(srv, 'SRV')
-        # SRV target: the canonical hostname of the machine providing the service, ending in a dot.
-        return str(answers[0].target)[:-1], answers[0].port
 
     @staticmethod
     def _resolve_required_variable(key, service_name):

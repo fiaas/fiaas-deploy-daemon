@@ -29,9 +29,8 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, His
 from .transformer import Transformer
 from ..specs.factory import InvalidConfiguration
 
-"""Web app that provides metrics and other ways to inspect the action.
-Also, endpoints to manually generate AppSpecs and send to deployer for when no pipeline exists.
-"""
+"""Web app that provides default values for fiaas config, an endpoint to transform between available fiaas config
+versions and prometheus metrics."""
 
 LOG = logging.getLogger(__name__)
 

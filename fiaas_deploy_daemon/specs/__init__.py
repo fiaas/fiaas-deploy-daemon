@@ -21,14 +21,12 @@ import pkgutil
 
 import pinject
 
-from .app_config_downloader import AppConfigDownloader
 from .factory import SpecFactory
 
 
 class SpecBindings(pinject.BindingSpec):
     def configure(self, bind):
         bind("spec_factory", to_class=SpecFactory)
-        bind("app_config_downloader", to_class=AppConfigDownloader)
 
     def provide_factory(self):
         from .v3 import Factory

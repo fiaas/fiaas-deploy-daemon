@@ -45,11 +45,6 @@ WEB_REQ = [
     "blinker == 1.4",
 ]
 
-PIPELINE_REQ = [
-    # "kafka == 1.0.2" # TODO: Switch to 1.0.2 when released
-    "kafka-python == 0.9.5"
-]
-
 DEPLOY_REQ = [
     "requests == 2.22.0",
     "ipaddress == 1.0.22"  # Required by requests for resolving IP address in SSL cert
@@ -91,7 +86,7 @@ if __name__ == "__main__":
         include_package_data=True,
 
         # Requirements
-        install_requires=GENERIC_REQ + WEB_REQ + PIPELINE_REQ + DEPLOY_REQ,
+        install_requires=GENERIC_REQ + WEB_REQ + DEPLOY_REQ,
         setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
         extras_require={
             "dev": TESTS_REQ + FLAKE8_REQ + DEV_TOOLS,
@@ -99,7 +94,7 @@ if __name__ == "__main__":
         },
 
         # Metadata
-        description="Deploy docker containers to kubernetes when notified by pipeline",
+        description="Deploy applications to Kubernetes",
         long_description=read("README.md"),
         url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
 

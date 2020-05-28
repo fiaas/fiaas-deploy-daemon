@@ -15,9 +15,8 @@
 
 
 import logging
-import struct
-from base64 import b32encode
 from datetime import datetime
+import hashlib
 
 import pytz
 from blinker import signal
@@ -109,7 +108,9 @@ def create_name(name, deployment_id):
     By convention, the names of Kubernetes resources should be up to maximum length of 253
     characters and consist of lower case alphanumeric characters, '-', and '.'.
     """
-    suffix = b32encode(struct.pack('q', hash(deployment_id))).lower().strip("=")
+    h = hashlib.blake2b(digest_size=6)  # 6 bytes -> hex digest is 12 characters
+    h.update(deployment_id.encode("utf-8"))
+    suffix = h.hexdigest()
     return "{}-{}".format(name, suffix)
 
 

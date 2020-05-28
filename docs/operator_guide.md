@@ -65,7 +65,7 @@ The combination of `LOG_STDOUT` and `LOG_FORMAT` can be used to allow applicatio
 
 ### proxy
 
-This is currently only used for FINN, and will go away soon.
+Use a http proxy for outgoing http requests. This is currently only used for for usage reporting.
 
 ### environment
 
@@ -122,10 +122,6 @@ In order for this to work DNS entries for the resulting hosts needs to be create
 ### global-env
 
 If you wish to expose certain environment variables to every application in your cluster, define them here. Regardless of how a variable is passed in (option, environment variable or in a config file), it must be specified as `<key>=<value>`.
-
-### blacklist / whitelist
-
-This is currently only used for FINN, and will go away soon.
 
 ### use-ingress-tls
 

@@ -22,7 +22,7 @@ import logging
 from itertools import chain
 
 from k8s.client import NotFound
-from k8s.base import Equality, Inequality
+from k8s.base import Equality, Inequality, Exists
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
@@ -45,12 +45,12 @@ class IngressDeployer(object):
         if self._should_have_ingress(app_spec):
             self._create(app_spec, labels)
         else:
-            self.delete(app_spec)
+            self._delete_unused(app_spec, labels)
 
     def delete(self, app_spec):
-        LOG.info("Deleting ingress for %s", app_spec.name)
+        LOG.info("Deleting ingresses for %s", app_spec.name)
         try:
-            Ingress.delete(app_spec.name, app_spec.namespace)
+            Ingress.delete_list(namespace=app_spec.namespace, labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
         except NotFound:
             pass
 
@@ -76,7 +76,7 @@ class IngressDeployer(object):
 
             self._create_ingress(app_spec, annotated_ingress, custom_labels)
 
-        self._delete_unused(custom_labels)
+        self._delete_unused(app_spec, custom_labels)
 
     @retry_on_upsert_conflict
     def _create_ingress(self, app_spec, annotated_ingress, labels):
@@ -108,12 +108,13 @@ class IngressDeployer(object):
         self._owner_references.apply(ingress, app_spec)
         ingress.save()
 
-    def _delete_unused(self, labels):
-        filter_labels = {
-            "app": Equality(labels["app"]),
-            "fiaas/deployment_id": Inequality(labels["fiaas/deployment_id"])
-        }
-        Ingress.delete_list(labels=filter_labels)
+    def _delete_unused(self, app_spec, labels):
+        filter_labels = [
+            ("app", Equality(labels["app"])),
+            ("fiaas/deployment_id", Exists()),
+            ("fiaas/deployment_id", Inequality(labels["fiaas/deployment_id"]))
+        ]
+        Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
 
     def _generate_default_hosts(self, name):
         for suffix in self._ingress_suffixes:

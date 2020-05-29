@@ -16,6 +16,7 @@
 # limitations under the License.
 import mock
 import pytest
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressTLS
 from mock import create_autospec
@@ -30,7 +31,7 @@ from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
 
 from utils import TypeMatcher
 
-LABELS = {"ingress_deployer": "pass through"}
+LABELS = {"ingress_deployer": "pass through", "app": "testapp", "fiaas/deployment_id": "12345"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
 
@@ -62,7 +63,7 @@ def app_spec(**kwargs):
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
-        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)])],
+        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
@@ -113,7 +114,7 @@ TEST_DATA = (
     ("only_default_hosts", app_spec(), ingress()),
     ("single_explicit_host",
      app_spec(ingresses=[
-         IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+         IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
      ingress(expose=True, rules=[{
          'host': "foo.example.com",
          'http': {
@@ -152,7 +153,7 @@ TEST_DATA = (
      app_spec(ingresses=[
          IngressItemSpec(host="foo.example.com", pathmappings=[
              IngressPathMappingSpec(path="/", port=80),
-             IngressPathMappingSpec(path="/other", port=5000)])],
+             IngressPathMappingSpec(path="/other", port=5000)], annotations={})],
          ports=[
              PortSpec(protocol="http", name="http", port=80, target_port=8080),
              PortSpec(protocol="http", name="other", port=5000, target_port=8081)]),
@@ -210,8 +211,8 @@ TEST_DATA = (
      }])),
     ("multiple_explicit_hosts",
      app_spec(ingresses=[
-         IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)]),
-         IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+         IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+         IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
      ingress(expose=True, rules=[{
          'host': "foo.example.com",
          'http': {
@@ -262,12 +263,11 @@ TEST_DATA = (
          IngressItemSpec(host="foo.example.com", pathmappings=[
              IngressPathMappingSpec(path="/one", port=80),
              IngressPathMappingSpec(path="/two", port=5000)
-         ]
-                         ),
+         ], annotations={}),
          IngressItemSpec(host="bar.example.com", pathmappings=[
              IngressPathMappingSpec(path="/three", port=80),
              IngressPathMappingSpec(path="/four", port=5000)
-         ])],
+         ], annotations={})],
          ports=[
              PortSpec(protocol="http", name="http", port=80, target_port=8080),
              PortSpec(protocol="http", name="other", port=5000, target_port=8081),
@@ -367,7 +367,7 @@ TEST_DATA = (
      }])),
     ("rewrite_host_simple",
      app_spec(ingresses=[
-         IngressItemSpec(host="rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+         IngressItemSpec(host="rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
      ingress(expose=True, rules=[{
          'host': "test.rewrite.example.com",
          'http': {
@@ -404,7 +404,7 @@ TEST_DATA = (
      }])),
     ("rewrite_host_regex_substitution",
      app_spec(ingresses=[
-         IngressItemSpec(host="foo.rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+         IngressItemSpec(host="foo.rewrite.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
      ingress(expose=True, rules=[{
          'host': "test.foo.rewrite.example.com",
          'http': {
@@ -453,7 +453,7 @@ TEST_DATA = (
          IngressItemSpec(host=None, pathmappings=[
              IngressPathMappingSpec(
                  path=r"/(foo|bar/|other/(baz|quux)/stuff|foo.html|[1-5][0-9][0-9]$|[1-5][0-9][0-9]\..*$)",
-                 port=80)])]),
+                 port=80)], annotations={})]),
      ingress(expose=False, rules=[{
          'host': "testapp.svc.test.example.com",
          'http': {
@@ -523,6 +523,44 @@ class TestIngressDeployer(object):
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
         owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
 
+    def test_multiple_ingresses(self, post, delete, deployer, app_spec):
+        with mock.patch('k8s.client.Client.get') as mockk:
+            mockk.side_effect = NotFound()
+            app_spec.ingresses.append(IngressItemSpec(host="extra.example.com",
+                                                    pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
+                                                    annotations={"some/annotation": "some-value"}))
+
+            expected_ingress = ingress()
+            mock_response = create_autospec(Response)
+            mock_response.json.return_value = expected_ingress
+
+            expected_metadata = pytest.helpers.create_metadata('testapp', labels=LABELS, annotations={"some/annotation": "some-value"}, external=True)
+            expected_ingress2 = ingress(rules=[
+                {
+                    "host": "extra.example.com",
+                    "http": {
+                        "paths": [
+                            {
+                                "path": "/",
+                                "backend": {
+                                    "serviceName": app_spec.name,
+                                    "servicePort": 8000
+                                }
+                            }
+                        ]
+                    }
+                }
+            ], metadata=expected_metadata)
+            mock_response2 = create_autospec(Response)
+            mock_response.json.return_value = expected_ingress2
+
+            post.side_effect = iter([mock_response, mock_response])
+
+            deployer.deploy(app_spec, LABELS)
+
+            post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress), mock.call(INGRESSES_URI, expected_ingress2)])
+            delete.assert_called_once_with(INGRESSES_URI, params={"labelSelector": "app=testapp,fiaas/deployment_id!=12345"})
+
     @pytest.mark.parametrize("spec_name", (
             "app_spec_thrift",
             "app_spec_no_ports",
@@ -546,7 +584,7 @@ class TestIngressDeployer(object):
             (app_spec(), [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),
             (app_spec(ingresses=[
                 IngressItemSpec(host="foo.rewrite.example.com",
-                                pathmappings=[IngressPathMappingSpec(path="/", port=80)])]),
+                                pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
              [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io', u'test.foo.rewrite.example.com']),
     ))
     def test_applies_ingress_tls(self, deployer, ingress_tls, app_spec, hosts):

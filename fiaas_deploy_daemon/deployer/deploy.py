@@ -47,8 +47,6 @@ class Deployer(DaemonThread):
             LOG.info("Received %r for %s", event.app_spec, event.action)
             if event.action == "UPDATE":
                 self._update(event.app_spec, event.lifecycle_subject)
-            elif event.action == "DELETE":
-                self._delete(event.app_spec)
             else:
                 raise ValueError("Unknown DeployerEvent action {}".format(event.action))
 
@@ -68,10 +66,6 @@ class Deployer(DaemonThread):
             LOG.exception("Error while deploying %s: ", app_spec.name)
             self._lifecycle.failed(lifecycle_subject)
             self._bookkeeper.failed(app_spec)
-
-    def _delete(self, app_spec):
-        self._adapter.delete(app_spec)
-        LOG.info("Completed removal of %r", app_spec)
 
 
 def _make_gen(func):

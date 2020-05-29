@@ -104,6 +104,7 @@ TcpCheckSpec = namedtuple("TcpCheckSpec", [
 AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "enabled",
     "min_replicas",
+    "max_replicas",
     "cpu_threshold_percentage"
 ])
 

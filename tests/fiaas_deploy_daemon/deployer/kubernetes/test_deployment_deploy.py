@@ -203,7 +203,7 @@ class TestDeploymentDeployer(object):
         version = "version2"
         app_spec = app_spec._replace(
             replicas=max_replicas,
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, cpu_threshold_percentage=50),
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, max_replicas=max_replicas, cpu_threshold_percentage=50),
             image=image)
         if cpu_request:
             app_spec = app_spec._replace(

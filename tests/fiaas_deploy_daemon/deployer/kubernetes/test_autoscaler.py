@@ -35,20 +35,20 @@ def test_default_spec_should_create_no_autoscaler(app_spec):
 
 
 def test_autoscaler_enabled_and_1_replica_gives_no_autoscaler(app_spec):
-    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
+    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=1, cpu_threshold_percentage=50))
     app_spec = app_spec._replace(replicas=1)
     assert should_have_autoscaler(app_spec) is False
 
 
-def test_autoscaler_enabled_and_2_replica_and_no_requested_cpu_gives_no_autoscaler(app_spec):
-    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
-    app_spec = app_spec._replace(replicas=2)
+def test_autoscaler_enabled_and_2_max_replicas_and_no_requested_cpu_gives_no_autoscaler(app_spec):
+    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=2, cpu_threshold_percentage=50))
+    app_spec = app_spec._replace(replicas=1)
 
     assert should_have_autoscaler(app_spec) is False
 
 
-def test_autoscaler_enabled_and_2_replica_and__requested_cpu_gives_autoscaler(app_spec):
-    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
+def test_autoscaler_enabled_and_2_replicas_and__requested_cpu_gives_autoscaler(app_spec):
+    app_spec = app_spec._replace(autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50))
     app_spec = app_spec._replace(replicas=2)
     app_spec = app_spec._replace(resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
 
@@ -63,8 +63,8 @@ class TestAutoscalerDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_new_autoscaler(self, deployer, post, app_spec, owner_references):
         app_spec = app_spec._replace(
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
-        app_spec = app_spec._replace(replicas=4)
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50))
+        app_spec = app_spec._replace(replicas=2)
         app_spec = app_spec._replace(
             resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
 
@@ -94,8 +94,8 @@ class TestAutoscalerDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, post, app_spec):
         app_spec = app_spec._replace(
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, cpu_threshold_percentage=50))
-        app_spec = app_spec._replace(replicas=4)
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50))
+        app_spec = app_spec._replace(replicas=2)
         app_spec = app_spec._replace(
             resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
         labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "label"}, ingress={},

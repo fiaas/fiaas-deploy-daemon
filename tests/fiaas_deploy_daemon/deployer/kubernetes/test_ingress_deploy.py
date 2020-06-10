@@ -530,14 +530,17 @@ class TestIngressDeployer(object):
         with mock.patch('k8s.client.Client.get') as mockk:
             mockk.side_effect = NotFound()
             app_spec.ingresses.append(IngressItemSpec(host="extra.example.com",
-                                                    pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
-                                                    annotations={"some/annotation": "some-value"}))
+                                                      pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
+                                                      annotations={"some/annotation": "some-value"}))
+            app_spec.ingresses.append(IngressItemSpec(host="extra.example.com",
+                                                      pathmappings=[IngressPathMappingSpec(path="/_/ipblocked", port=8000)],
+                                                      annotations={"some/allowlist": "10.0.0.1/12"}))
 
             expected_ingress = ingress()
             mock_response = create_autospec(Response)
             mock_response.json.return_value = expected_ingress
 
-            expected_metadata = pytest.helpers.create_metadata('testapp', labels=LABELS, annotations={"some/annotation": "some-value"}, external=True)
+            expected_metadata2 = pytest.helpers.create_metadata('testapp-1', labels=LABELS, annotations={"some/annotation": "some-value"}, external=True)
             expected_ingress2 = ingress(rules=[
                 {
                     "host": "extra.example.com",
@@ -553,15 +556,36 @@ class TestIngressDeployer(object):
                         ]
                     }
                 }
-            ], metadata=expected_metadata)
+            ], metadata=expected_metadata2)
             mock_response2 = create_autospec(Response)
             mock_response.json.return_value = expected_ingress2
 
-            post.side_effect = iter([mock_response, mock_response])
+            expected_metadata3 = pytest.helpers.create_metadata('testapp-2', labels=LABELS, annotations={"some/allowlist": "10.0.0.1/12"}, external=True)
+            expected_ingress3 = ingress(rules=[
+                {
+                    "host": "extra.example.com",
+                    "http": {
+                        "paths": [
+                            {
+                                "path": "/_/ipblocked",
+                                "backend": {
+                                    "serviceName": app_spec.name,
+                                    "servicePort": 8000
+                                }
+                            }
+                        ]
+                    }
+                }
+            ], metadata=expected_metadata3)
+            mock_response3 = create_autospec(Response)
+            mock_response3.json.return_value = expected_ingress3
+
+            post.side_effect = iter([mock_response, mock_response, mock_response])
 
             deployer.deploy(app_spec, LABELS)
 
-            post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress), mock.call(INGRESSES_URI, expected_ingress2)])
+            post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress), mock.call(INGRESSES_URI, expected_ingress2),
+                                   mock.call(INGRESSES_URI, expected_ingress3)])
             delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
     @pytest.mark.parametrize("spec_name", (
@@ -588,14 +612,14 @@ class TestIngressDeployer(object):
             (app_spec(ingresses=[
                 IngressItemSpec(host="foo.rewrite.example.com",
                                 pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
-             [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io', u'test.foo.rewrite.example.com']),
+             [ u'test.foo.rewrite.example.com', u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),
     ))
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls(self, deployer, ingress_tls, app_spec, hosts):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
-            ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts)
+            ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, use_suffixes=True)
 
 
 class TestIngressTls(object):
@@ -668,7 +692,7 @@ class TestIngressTls(object):
     ], indirect=['tls'])
     def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations):
         ingress = Ingress()
-        ingress.metadata = ObjectMeta()
+        ingress.metadata = ObjectMeta(name=app_spec.name)
         ingress.spec = IngressSpec()
         tls.apply(ingress, app_spec, self.HOSTS)
         assert ingress.metadata.annotations == tls_annotations

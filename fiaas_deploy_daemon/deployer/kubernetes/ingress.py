@@ -63,6 +63,7 @@ class IngressDeployer(object):
         unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
         ingresses_by_annotations = [unannotated_ingress]
         for ingress_item in app_spec.ingresses:
+            LOG.info(ingress_item)
             if ingress_item.annotations:
                 next_name = "{}-{}".format(app_spec.name, len(ingresses_by_annotations))
                 annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)
@@ -70,8 +71,10 @@ class IngressDeployer(object):
             else:
                 unannotated_ingress.ingress_items.append(ingress_item)
 
+        LOG.info("Will create %s ingresses", len(ingresses_by_annotations))
         for annotated_ingress in ingresses_by_annotations:
             if len(annotated_ingress.ingress_items) == 0:
+                LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
 
             self._create_ingress(app_spec, annotated_ingress, custom_labels)
@@ -85,7 +88,7 @@ class IngressDeployer(object):
         }
         annotations = merge_dicts(annotated_ingress.annotations, app_spec.annotations.ingress, default_annotations)
 
-        metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=labels,
+        metadata = ObjectMeta(name=annotated_ingress.name, namespace=app_spec.namespace, labels=labels,
                                 annotations=annotations)
 
         per_host_ingress_rules = [
@@ -95,16 +98,18 @@ class IngressDeployer(object):
             if ingress_item.host is not None
         ]
         if annotated_ingress.annotations:
-            default_host_ingress_rules = []
+            use_suffixes = False
+            host_ingress_rules = per_host_ingress_rules
         else:
-            default_host_ingress_rules = self._create_default_host_ingress_rules(app_spec)
+            use_suffixes = True
+            host_ingress_rules = per_host_ingress_rules + self._create_default_host_ingress_rules(app_spec)
 
-        print per_host_ingress_rules + default_host_ingress_rules
-
-        ingress_spec = IngressSpec(rules=per_host_ingress_rules + default_host_ingress_rules)
+        ingress_spec = IngressSpec(rules=host_ingress_rules)
 
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
-        self._ingress_tls.apply(ingress, app_spec, self._get_hosts(app_spec))
+
+        hosts_for_tls = [rule.host for rule in host_ingress_rules]
+        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, use_suffixes=use_suffixes)
         self._owner_references.apply(ingress, app_spec)
         ingress.save()
 
@@ -179,7 +184,7 @@ class IngressTls(object):
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
 
-    def apply(self, ingress, app_spec, hosts):
+    def apply(self, ingress, app_spec, hosts, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):
             tls_annotations = {}
             if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
@@ -199,8 +204,12 @@ class IngressTls(object):
             else:
                 ingress.spec.tls = []
 
-            collapsed = self._collapse_hosts(app_spec, hosts)
-            ingress.spec.tls.append(IngressTLS(hosts=collapsed, secretName="{}-ingress-tls".format(app_spec.name)))
+            if use_suffixes:
+                # adding app-name to suffixes could result in a host too long to be the common-name of a cert, and
+                # as the user doesn't control it we should generate a host we know will fit
+                hosts = self._collapse_hosts(app_spec, hosts)
+
+            ingress.spec.tls.append(IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(ingress.metadata.name)))
 
     def _collapse_hosts(self, app_spec, hosts):
         """The first hostname in the list will be used as Common Name in the certificate"""

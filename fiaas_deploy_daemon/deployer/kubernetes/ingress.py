@@ -63,7 +63,6 @@ class IngressDeployer(object):
         unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
         ingresses_by_annotations = [unannotated_ingress]
         for ingress_item in app_spec.ingresses:
-            LOG.info(ingress_item)
             if ingress_item.annotations:
                 next_name = "{}-{}".format(app_spec.name, len(ingresses_by_annotations))
                 annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)

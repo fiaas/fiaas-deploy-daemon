@@ -36,11 +36,11 @@ def prometheus_registry():
 
 
 @pytest.helpers.register
-def assert_any_call(mockk, first, *args):
+def assert_any_call(mockk, first, *args, **kwargs):
     __tracebackhide__ = True
 
     def _assertion():
-        mockk.assert_any_call(first, *args)
+        mockk.assert_any_call(first, *args, **kwargs)
 
     _add_useful_error_message(_assertion, mockk, first, args)
 

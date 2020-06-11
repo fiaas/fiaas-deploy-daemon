@@ -207,15 +207,15 @@ class Factory(BaseFactory):
             else:
                 raise InvalidConfiguration("{} is not a valid port name or port number".format(port))
 
-        def ingress_item(host, paths):
+        def ingress_item(host, paths, annotations):
             ingress_path_mapping_specs = [
                 IngressPathMappingSpec(path=pathmapping["path"], port=resolve_port_number(pathmapping["port"]))
                 for pathmapping in paths
             ]
-            return IngressItemSpec(host=host, pathmappings=ingress_path_mapping_specs)
+            return IngressItemSpec(host=host, pathmappings=ingress_path_mapping_specs, annotations=annotations)
 
         if len(http_ports.items()) > 0:
-            return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"])
+            return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"], host_path_mapping["annotations"])
                     for host_path_mapping in ingress_lookup]
         else:
             return []

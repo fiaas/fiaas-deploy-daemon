@@ -328,6 +328,66 @@ class TestE2E(object):
 
             wait_until(cleanup_complete, patience=PATIENCE)
 
+    @pytest.mark.usefixtures("fdd")
+    def test_multiple_ingresses(self, request, kind_logger):
+        with kind_logger():
+            fiaas_path = "v3/data/examples/multiple_ingress.yml"
+            fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+
+            name = sanitize_resource_name(fiaas_path)
+
+            expected = {
+                name: read_yml(request.fspath.dirpath().join("e2e_expected/multiple_ingress1.yml").strpath),
+                "{}-1".format(name): read_yml(request.fspath.dirpath().join("e2e_expected/multiple_ingress2.yml").strpath)
+            }
+            metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+            spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+            fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
+
+            fiaas_application.save()
+            app_uid = fiaas_application.metadata.uid
+
+            # Check that deployment status is RUNNING
+            def _assert_status():
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+                assert status.result == u"RUNNING"
+                assert len(status.logs) > 0
+                assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
+
+            wait_until(_assert_status, patience=PATIENCE)
+
+            def _check_two_ingresses():
+                assert Ingress.get(name)
+                assert Ingress.get("{}-1".format(name))
+
+                for ingress_name, expected_dict in expected.items():
+                    actual = Ingress.get(ingress_name)
+                    assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
+
+            wait_until(_check_two_ingresses, patience=PATIENCE)
+
+            # Remove 2nd ingress to make sure cleanup works
+            fiaas_application.spec.config["ingress"].pop()
+            fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+            fiaas_application.save()
+
+            def _check_one_ingress():
+                assert Ingress.get(name)
+                with pytest.raises(NotFound):
+                    Ingress.get("{}-1".format(name))
+
+            wait_until(_check_one_ingress, patience=PATIENCE)
+
+            # Cleanup
+            FiaasApplication.delete(name)
+
+            def cleanup_complete():
+                for name, _ in expected.items():
+                    with pytest.raises(NotFound):
+                        Ingress.get(name)
+
+            wait_until(cleanup_complete, patience=PATIENCE)
+
 
 def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():

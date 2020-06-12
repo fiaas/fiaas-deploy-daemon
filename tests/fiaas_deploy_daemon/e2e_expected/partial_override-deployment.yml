@@ -31,7 +31,7 @@ metadata:
       name: v2-data-examples-partial-override
   finalizers: []
 spec:
-  replicas: 2
+  replicas: 1
   revisionHistoryLimit: 5
   selector:
     matchLabels:

@@ -410,7 +410,7 @@ def create_expected_deployment(config,
 
     max_surge = u"25%"
     max_unavailable = 0
-    if app_spec.autoscaler.min_replicas == 1 and app_spec.singleton:
+    if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
         max_surge = 0
         max_unavailable = 1
 

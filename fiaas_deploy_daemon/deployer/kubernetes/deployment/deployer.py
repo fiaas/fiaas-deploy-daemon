@@ -110,7 +110,7 @@ class DeploymentDeployer(object):
         deployment_strategy = DeploymentStrategy(
             rollingUpdate=RollingUpdateDeployment(maxUnavailable=self._max_unavailable,
                                                   maxSurge=self._max_surge))
-        if app_spec.autoscaler.min_replicas == 1 and app_spec.singleton:
+        if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(
                 rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),

@@ -37,7 +37,7 @@ metadata:
       name: v3-data-examples-full
   finalizers: []
 spec:
-  replicas: 20
+  replicas: 10
   revisionHistoryLimit: 5
   selector:
     matchLabels:

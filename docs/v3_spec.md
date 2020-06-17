@@ -152,21 +152,22 @@ ingress:
     paths:
     - path: /
       port: http
+    annotations: {}
 ```
 
-All applications will get a set of default hosts, if the cluster operator has defined ingress suffixes. 
+All applications will get a set of default hosts, if the cluster operator has defined ingress suffixes.
 If you do not specify a host in your `ingress` configuration, these default hosts will be used.
-For example : 
+For example :
 1. `your-app.example1.com`
 2. `your-app.example2.com`
 
-When you expose a path on a host you get that one as well. For example : 
+When you expose a path on a host you get that one as well. For example :
 ```yaml
 ingress:
   - host: example.com
     paths:
     - path: /my-path
-``` 
+```
 
 If you want to customize paths for default hosts as well, you can do it as :
 ```yaml
@@ -179,8 +180,8 @@ ingress:
 
 ```
 
-This will make `/some-other-path` available on default hosts, but not on the host you provided in ingress. 
-Remember, default hosts will also contain the paths from the ingress.   
+This will make `/some-other-path` available on default hosts, but not on the host you provided in ingress.
+Remember, default hosts will also contain the paths from the ingress.
 
 ### host
 
@@ -203,7 +204,7 @@ ingress:
   - host: your-app.example.com
 ```
 
-If the operator of your cluster has configured host-rewrite rules they will be applied to the hostname given in this 
+If the operator of your cluster has configured host-rewrite rules they will be applied to the hostname given in this
 field. See [the operator guide](operator_guide.md#host-rewrite-rules) for details about how this feature works.
 
 In typical clusters, this value should be the host used by your application in production, and host-rewrite rules should
@@ -234,6 +235,30 @@ your application. Requests to `your-app.example.com/metrics` will go to the port
 be defined under the `ports` configuration structure. It is also possible to use a port number, but named ports are
 strongly recommended.
 
+### annotations
+
+| **Type** | **Required** |
+|----------|--------------|
+| object   | no           |
+
+A map of annotations to add to the ingress.
+
+Each entry in the ingress list that contains a non-empty `annotations` value will cause a separate Ingress object to
+be created during the deployment. All items that have an empty value will have their hosts/paths merged into a single
+Ingress.
+
+Example:
+```yaml
+ingress:
+  - host: your-app.example.com
+    paths:
+      - path: /foo
+  - host: other.example.com
+    paths:
+      - path: /foo
+    annotations:
+      some/annotation: bar
+```
 
 ## healthchecks
 

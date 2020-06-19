@@ -31,6 +31,7 @@ from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
 from utils import TypeMatcher
 
 LABELS = {"ingress_deployer": "pass through", "app": "testapp", "fiaas/deployment_id": "12345"}
+ANNOTATIONS = {"some/annotation": "val"}
 LABEL_SELECTOR_PARAMS = {"labelSelector": "app=testapp,fiaas/deployment_id,fiaas/deployment_id!=12345"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
 
@@ -62,7 +63,7 @@ def app_spec(**kwargs):
         tags=[u'bar'],
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, ANNOTATIONS.copy(), {}, {}, {}),
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
@@ -97,7 +98,7 @@ def ingress(rules=None, metadata=None, expose=False, tls=None):
             }]
         }
     }]
-    default_metadata = pytest.helpers.create_metadata('testapp', labels=LABELS, external=expose)
+    default_metadata = pytest.helpers.create_metadata('testapp', labels=LABELS, annotations=ANNOTATIONS, external=expose)
 
     expected_ingress = {
         'spec': {
@@ -532,6 +533,7 @@ class TestIngressDeployer(object):
 
     @pytest.mark.usefixtures("dtparse", "get")
     def test_multiple_ingresses(self, post, delete, deployer, app_spec):
+        app_spec.annotations.ingress.update(ANNOTATIONS.copy())
         app_spec.ingresses.append(IngressItemSpec(host="extra.example.com",
                                                   pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
                                                   annotations={"some/annotation": "some-value"}))
@@ -565,7 +567,8 @@ class TestIngressDeployer(object):
         mock_response.json.return_value = expected_ingress2
 
         expected_metadata3 = pytest.helpers.create_metadata('testapp-2', labels=LABELS,
-                                                            annotations={"some/allowlist": "10.0.0.1/12"}, external=True)
+                                                            annotations={"some/annotation": "val",
+                                                                         "some/allowlist": "10.0.0.1/12"}, external=True)
         expected_ingress3 = ingress(rules=[
             {
                 "host": "extra.example.com",

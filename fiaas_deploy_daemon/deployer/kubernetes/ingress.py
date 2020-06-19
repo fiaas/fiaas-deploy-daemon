@@ -92,7 +92,7 @@ class IngressDeployer(object):
         default_annotations = {
             u"fiaas/expose": u"true" if _has_explicitly_set_host(annotated_ingress.ingress_items) else u"false"
         }
-        annotations = merge_dicts(annotated_ingress.annotations, app_spec.annotations.ingress, default_annotations)
+        annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
 
         metadata = ObjectMeta(name=annotated_ingress.name, namespace=app_spec.namespace, labels=labels,
                               annotations=annotations)

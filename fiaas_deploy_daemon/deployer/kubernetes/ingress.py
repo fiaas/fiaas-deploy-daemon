@@ -58,20 +58,10 @@ class IngressDeployer(object):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
 
-        # Group app_spec.ingresses to separate those with annotations
-        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations"])
-        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
-        ingresses_by_annotations = [unannotated_ingress]
-        for ingress_item in app_spec.ingresses:
-            if ingress_item.annotations:
-                next_name = "{}-{}".format(app_spec.name, len(ingresses_by_annotations))
-                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)
-                ingresses_by_annotations.append(annotated_ingresses)
-            else:
-                unannotated_ingress.ingress_items.append(ingress_item)
+        ingresses = self._group_ingresses_by_annotations(app_spec)
 
-        LOG.info("Will create %s ingresses", len(ingresses_by_annotations))
-        for annotated_ingress in ingresses_by_annotations:
+        LOG.info("Will create %s ingresses", len(ingresses))
+        for annotated_ingress in ingresses:
             if len(annotated_ingress.ingress_items) == 0:
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
@@ -79,6 +69,23 @@ class IngressDeployer(object):
             self._create_ingress(app_spec, annotated_ingress, custom_labels)
 
         self._delete_unused(app_spec, custom_labels)
+
+    def _group_ingresses_by_annotations(self, app_spec):
+        ''' Group the ingresses so that those with annotations are individual, keeping all without
+        annotations together
+        '''
+        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations"])
+        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
+        ingresses = [unannotated_ingress]
+        for ingress_item in app_spec.ingresses:
+            if ingress_item.annotations:
+                next_name = "{}-{}".format(app_spec.name, len(ingresses))
+                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)
+                ingresses.append(annotated_ingresses)
+            else:
+                unannotated_ingress.ingress_items.append(ingress_item)
+
+        return ingresses
 
     @retry_on_upsert_conflict
     def _create_ingress(self, app_spec, annotated_ingress, labels):

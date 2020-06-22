@@ -19,6 +19,8 @@ limitations under the License.
 
 ---
 
+[![Build status](https://fiaas-svc.semaphoreci.com/badges/fiaas-deploy-daemon.svg?style=shields)](https://fiaas-svc.semaphoreci.com/projects/fiaas-deploy-daemon)
+
 You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
 
 Supported use-cases

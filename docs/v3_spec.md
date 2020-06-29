@@ -143,7 +143,8 @@ replicas:
 
 This object configures path-based/layer 7 routing of requests to the application.
 It is a list of hosts which can each have a list of path and port combinations. Requests to the combination of host and
-path will be routed to the port specified on the path element.
+path will be routed to the port specified on the path element. Setting annotations on an entry means a separate Ingress
+will be created, and will have metadata.annotations set accordingly.
 
 Default value:
 ```yaml
@@ -259,6 +260,28 @@ ingress:
     annotations:
       some/annotation: bar
 ```
+
+In this example, the first ingress will be created for `your-app.example.com` (along with any default suffixes, if present) and
+a second will be created for `other.example.com` and this will be annotated with the provided values.
+
+Annotations defined within the `ingress.annotations` config will take precedence over any defined in the top-level `annotations`
+configuration.
+
+Example:
+```yaml
+ingress:
+  - host: app.example.com
+  - host: other.example.com
+    annotations:
+      some/annotation: foo
+
+annotations:
+  ingress:
+    some/annotation: bar
+```
+
+In this example, the ingress for `app.example.com` will have the annotation set with the value `bar`, while the ingress for
+`other.example.com` will have it set to `foo`.
 
 ## healthchecks
 

@@ -32,7 +32,7 @@ GENERIC_REQ = [
     "pinject == 0.14.1",
     "six == 1.12.0",
     "dnspython == 1.16.0",
-    "k8s == 0.14.0",
+    "k8s == 0.15.0",
     "monotonic == 1.5",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.9.1",

@@ -22,9 +22,9 @@ spec:
   tls:
   - hosts:
     - qp4ouhml4krhfiltuenvy6ilm5pze3n3.svc.test.example.com
-    - v3-data-examples-tls-enabled-multiple.svc.test.example.com
     - example.com
     - example.org
+    - v3-data-examples-tls-enabled-multiple.svc.test.example.com
     secretName: v3-data-examples-tls-enabled-multiple-ingress-tls
   rules:
   - host: example.com

@@ -119,6 +119,7 @@ LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
 IngressItemSpec = namedtuple("IngressItemSpec", [
     "host",
     "pathmappings",
+    "annotations"
 ])
 
 IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [

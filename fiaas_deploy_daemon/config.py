@@ -88,9 +88,6 @@ When using extensions.tls, add a separate TLS entry for each host in addition to
 application containing all hosts. This feature is deprecated and will soon be removed.
 """
 
-DISABLE_PIPELINE_CONSUMER_HELP = """disable pipeline consumer. this flag only exists to ease removing the pipeline
-consumer completely, and will be removed as soon as the pipeline consumer code is removed, do not use this flag"""
-
 DISABLE_DEPRECATED_MANAGED_ENV_VARS = """disable the deprecated managed environment variables (ARTIFACT_NAME,
 IMAGE and VERSION) in favour of the FIAAS_ prefixed variables (FIAAS_ARTIFACT_NAME, FIAAS_IMAGE and FIAAS_VERSION). """
 
@@ -207,8 +204,6 @@ class Configuration(Namespace):
         parser.add_argument("--ready-check-timeout-multiplier", type=int,
                             help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this " +
                                  "number of seconds  (default: %(default)s)", default=10)
-        parser.add_argument("--disable-pipeline-consumer", help=DISABLE_PIPELINE_CONSUMER_HELP,
-                            action="store_true")
         parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
                             action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)

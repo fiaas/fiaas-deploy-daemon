@@ -81,10 +81,32 @@ class TestDeploymentDeployer(object):
         yield request.param
 
     @pytest.fixture(params=(
-            ("gke", {}, True),
-            ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}, True),
-            ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal',
-                     'ARTIFACT_NAME': 'illegal'}, False),
+        # key: (infrastructure, global_env, use_in_memory_emptydirs)
+        ("gke", {}, True),
+        ("diy", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+        }, True),
+        ("gke", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+            # Variables currently managed by FIAAS which should be possible to override via global_env
+            'CONSTRETTO_TAGS': 'override_constretto',
+            'FINN_ENV': 'override_finn_env',
+            'LOG_FORMAT': 'override_log_format',
+            'LOG_STDOUT': 'false',
+            'FIAAS_ENVIRONMENT': 'override_environment',
+            'FIAAS_INFRASTRUCTURE': 'override_infrastructure',
+        }, False),
+        ("diy", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+            # global_env variables are added as is and also with the key prefix FIAAS_ - ensure it works to override
+            # the following variables even if FIAAS_ prefixed keys clash with the environment and infrastructure
+            # derived FIAAS_INFRASTRUCTURE and FIAAS_ENVIRONMENT
+            'ENVIRONMENT': 'override_fiaas_environment',
+            'INFRASTRUCTURE': 'override_fiaas_infrastructure',
+        }, True)
     ))
     def config(self, request, environment):
         infra, global_env, use_in_memory_emptydirs = request.param
@@ -434,25 +456,27 @@ def create_expected_deployment(config,
 
 
 def create_environment_variables(infrastructure, global_env=None, version="version", environment=None):
-    env = [
-        {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
-        {'name': 'LOG_STDOUT', 'value': 'true'},
-        {'name': 'VERSION', 'value': version},
-        {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
-        {'name': 'LOG_FORMAT', 'value': 'json'},
-        {'name': 'IMAGE', 'value': 'finntech/testimage:' + version},
-        {'name': 'CONSTRETTO_TAGS', 'value': _create_constretto_tag(environment)},
-    ]
+    _env_variables = {
+        'ARTIFACT_NAME': 'testapp',
+        'LOG_STDOUT': 'true',
+        'VERSION': version,
+        'FIAAS_INFRASTRUCTURE': infrastructure,
+        'LOG_FORMAT': 'json',
+        'IMAGE': 'finntech/testimage:' + version,
+        'CONSTRETTO_TAGS': _create_constretto_tag(environment),
+    }
+
     if environment:
-        env.extend([
-            {'name': 'FIAAS_ENVIRONMENT', 'value': environment},
-            {'name': 'FINN_ENV', 'value': environment},
-        ])
+        _env_variables.update({
+            'FIAAS_ENVIRONMENT': environment,
+            'FINN_ENV': environment,
+        })
+
     if global_env:
-        env.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        env.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        env.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
-        env.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+        _env_variables.update(global_env)
+        _env_variables.update({"FIAAS_{}".format(k): v for k, v in global_env.items()})
+
+    env = [{'name': k, 'value': v} for k, v in _env_variables.items()]
 
     env.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'requests.cpu', 'divisor': 1}}})

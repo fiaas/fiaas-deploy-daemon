@@ -41,8 +41,8 @@ class DeploymentDeployer(object):
         self._prometheus = prometheus
         self._secrets = deployment_secrets
         self._owner_references = owner_references
-        self._fiaas_env = _build_fiaas_env(config)
-        self._global_env = config.global_env
+        self._legacy_fiaas_env = _build_fiaas_env(config)
+        self._global_env = _build_global_env(config.global_env)
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
@@ -151,21 +151,17 @@ class DeploymentDeployer(object):
         return volume_mounts
 
     def _make_env(self, app_spec):
-        constants = self._fiaas_env.copy()
-        constants["ARTIFACT_NAME"] = app_spec.name
-        constants["IMAGE"] = app_spec.image
-        constants["VERSION"] = app_spec.version
-        env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
+        fiaas_managed_env = {
+            'ARTIFACT_NAME': app_spec.name,
+            'IMAGE': app_spec.image,
+            'VERSION': app_spec.version,
+        }
+        # fiaas_managed_env overrides global_env overrides legacy_fiaas_env
+        static_env = merge_dicts(self._legacy_fiaas_env, self._global_env, fiaas_managed_env)
 
-        # For backward compatibility. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
-        global_env = []
-        for name, value in self._global_env.iteritems():
-            if "FIAAS_{}".format(name) not in constants and name not in constants:
-                global_env.extend([EnvVar(name=name, value=value), EnvVar(name="FIAAS_{}".format(name), value=value)])
-            else:
-                LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
-        env.extend(global_env)
+        env = [EnvVar(name=name, value=value) for name, value in static_env.items()]
 
+        # FIAAS managed environment variables using the downward API
         env.extend([
             EnvVar(name="FIAAS_REQUESTS_CPU", valueFrom=EnvVarSource(
                 resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu",
@@ -183,7 +179,9 @@ class DeploymentDeployer(object):
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
         ])
+
         env.sort(key=lambda x: x.name)
+
         return env
 
 
@@ -236,3 +234,12 @@ def _build_fiaas_env(config):
             "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
         })
     return env
+
+
+def _build_global_env(global_env):
+    """
+    global_env key/value are added as is and with the key prefix FIAAS_
+    """
+    _global_env_copy = global_env.copy()
+    _global_env_copy.update({'FIAAS_{}'.format(k): v for k, v in _global_env_copy.items()})
+    return _global_env_copy

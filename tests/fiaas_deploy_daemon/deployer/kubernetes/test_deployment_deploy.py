@@ -127,7 +127,6 @@ class TestDeploymentDeployer(object):
             (True, {}, {"bar": "baz"}, {"foo": "bar"}, {}, False),
             (True, {"foo": "bar"}, {}, {}, {"bar": "baz"}, True,),
             (False, {}, {}, {}, {}, True),
-            (False, {}, {}, {}, {}, True),
     ))
     def app_spec(self, request, app_spec):
         generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, singleton = request.param

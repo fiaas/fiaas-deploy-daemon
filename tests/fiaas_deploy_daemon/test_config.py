@@ -69,6 +69,7 @@ class TestConfig(object):
         assert config.image == ""
         assert config.enable_deprecated_multi_namespace_support is False
         assert config.enable_deprecated_tls_entry_per_host is False
+        assert config.disable_deprecated_managed_env_vars is False
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),

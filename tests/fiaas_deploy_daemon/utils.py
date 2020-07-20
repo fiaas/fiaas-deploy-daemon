@@ -180,9 +180,9 @@ def _set_image(expected_dict, image):
 def _set_env(expected_dict, image):
     def generate_updated_env():
         for item in expected_dict["spec"]["template"]["spec"]["containers"][0]["env"]:
-            if item["name"] == "VERSION":
+            if item["name"] == "VERSION" or item["name"] == "FIAAS_VERSION":
                 item["value"] = image.split(":")[-1]
-            if item["name"] == "IMAGE":
+            if item["name"] == "IMAGE" or item["name"] == "FIAAS_IMAGE":
                 item["value"] = image
             yield item
 

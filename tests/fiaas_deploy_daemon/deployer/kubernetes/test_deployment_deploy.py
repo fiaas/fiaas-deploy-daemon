@@ -172,6 +172,19 @@ class TestDeploymentDeployer(object):
         return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
+    def test_managed_environment_variables(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+        env = deployer._make_env(app_spec)
+        env_keys = [var.name for var in env]
+        assert 'FIAAS_ARTIFACT_NAME' in env_keys
+        assert 'FIAAS_IMAGE' in env_keys
+        assert 'FIAAS_VERSION' in env_keys
+        if config.disable_deprecated_managed_env_vars:
+            assert 'ARTIFACT_NAME' not in env_keys
+            assert 'IMAGE' not in env_keys
+            assert 'VERSION' not in env_keys
+
+    @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
         expected_deployment = create_expected_deployment(config, app_spec)
         mock_response = create_autospec(Response)

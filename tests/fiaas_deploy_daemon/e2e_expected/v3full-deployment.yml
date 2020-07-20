@@ -79,8 +79,12 @@ spec:
           value: v3-data-examples-full
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
+        - name: FIAAS_ARTIFACT_NAME
+          value: v3-data-examples-full
         - name: FIAAS_ENVIRONMENT
           value: test
+        - name: FIAAS_IMAGE
+          value: IMAGE
         - name: FIAAS_INFRASTRUCTURE
           value: diy
         - name: FIAAS_LIMITS_CPU
@@ -117,6 +121,8 @@ spec:
               containerName: v3-data-examples-full
               resource: requests.memory
               divisor: "1"
+        - name: FIAAS_VERSION
+          value: VERSION
         - name: FINN_ENV
           value: test
         - name: IMAGE

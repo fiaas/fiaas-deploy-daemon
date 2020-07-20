@@ -70,10 +70,10 @@ spec:
           value: v2-data-examples-host
         - name: FIAAS_ENVIRONMENT
           value: test
-        - name: FIAAS_INFRASTRUCTURE
-          value: diy
         - name: FIAAS_IMAGE
           value: IMAGE
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:

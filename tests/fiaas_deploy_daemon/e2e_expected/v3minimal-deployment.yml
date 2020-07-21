@@ -33,7 +33,7 @@ metadata:
       name: v3-data-examples-v3minimal
   finalizers: []
 spec:
-  replicas: 5
+  replicas: 2
   revisionHistoryLimit: 5
   selector:
     matchLabels:

@@ -15,5 +15,6 @@
 ---
 version: 3
 replicas:
+  minimum: 1
   maximum: 1
   singleton: true

@@ -94,8 +94,8 @@ class DeploymentDeployer(object):
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
                                   annotations=app_spec.annotations.pod)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
-        replicas = app_spec.replicas
-        # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value
+        replicas = app_spec.autoscaler.min_replicas
+        # we must avoid that the deployment scales up to app_spec.autoscaler.min_replicas if autoscaler has set another value
         if should_have_autoscaler(app_spec):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
@@ -103,14 +103,14 @@ class DeploymentDeployer(object):
                 if deployment.spec.replicas > 0:
                     replicas = deployment.spec.replicas
                     LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
-                             " is different (%d) for %s", app_spec.replicas, deployment.spec.replicas, app_spec.name)
+                             " is different (%d) for %s", app_spec.autoscaler.min_replicas, deployment.spec.replicas, app_spec.name)
             except NotFound:
                 pass
 
         deployment_strategy = DeploymentStrategy(
             rollingUpdate=RollingUpdateDeployment(maxUnavailable=self._max_unavailable,
                                                   maxSurge=self._max_surge))
-        if app_spec.replicas == 1 and app_spec.singleton:
+        if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(
                 rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),

@@ -91,6 +91,9 @@ application containing all hosts. This feature is deprecated and will soon be re
 DISABLE_PIPELINE_CONSUMER_HELP = """disable pipeline consumer. this flag only exists to ease removing the pipeline
 consumer completely, and will be removed as soon as the pipeline consumer code is removed, do not use this flag"""
 
+DISABLE_DEPRECATED_MANAGED_ENV_VARS = """disable the deprecated managed environment variables (ARTIFACT_NAME,
+IMAGE and VERSION) in favour of the FIAAS_ prefixed variables (FIAAS_ARTIFACT_NAME, FIAAS_IMAGE and FIAAS_VERSION). """
+
 EPILOG = """
 Args that start with '--' (eg. --log-format) can also be set in a config file
 ({} or specified via -c). The config file uses YAML syntax and must represent
@@ -206,6 +209,8 @@ class Configuration(Namespace):
                                  "number of seconds  (default: %(default)s)", default=10)
         parser.add_argument("--disable-pipeline-consumer", help=DISABLE_PIPELINE_CONSUMER_HELP,
                             action="store_true")
+        parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
+                            action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")
@@ -255,9 +260,14 @@ class Configuration(Namespace):
 
     def _resolve_env(self):
         image = os.getenv("IMAGE")
+        if not image:
+            image = os.getenv("FIAAS_IMAGE")
         if image:
             self.image = image
+
         version = os.getenv("VERSION")
+        if not version:
+            version = os.getenv("FIAAS_VERSION")
         if version:
             self.version = version
 

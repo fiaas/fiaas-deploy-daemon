@@ -52,6 +52,7 @@ class DeploymentDeployer(object):
             self._grace_period += config.pre_stop_delay
         self._max_surge = config.deployment_max_surge
         self._max_unavailable = config.deployment_max_unavailable
+        self._disable_deprecated_managed_env_vars = config.disable_deprecated_managed_env_vars
 
     @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
@@ -152,10 +153,17 @@ class DeploymentDeployer(object):
 
     def _make_env(self, app_spec):
         fiaas_managed_env = {
-            'ARTIFACT_NAME': app_spec.name,
-            'IMAGE': app_spec.image,
-            'VERSION': app_spec.version,
+            'FIAAS_ARTIFACT_NAME': app_spec.name,
+            'FIAAS_IMAGE': app_spec.image,
+            'FIAAS_VERSION': app_spec.version,
         }
+        if not self._disable_deprecated_managed_env_vars:
+            fiaas_managed_env.update({
+                'ARTIFACT_NAME': app_spec.name,
+                'IMAGE': app_spec.image,
+                'VERSION': app_spec.version,
+            })
+
         # fiaas_managed_env overrides global_env overrides legacy_fiaas_env
         static_env = merge_dicts(self._legacy_fiaas_env, self._global_env, fiaas_managed_env)
 

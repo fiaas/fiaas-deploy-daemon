@@ -66,8 +66,12 @@ spec:
           value: v3-data-examples-multiple-hosts-multiple-paths
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
+        - name: FIAAS_ARTIFACT_NAME
+          value: v3-data-examples-multiple-hosts-multiple-paths
         - name: FIAAS_ENVIRONMENT
           value: test
+        - name: FIAAS_IMAGE
+          value: IMAGE
         - name: FIAAS_INFRASTRUCTURE
           value: diy
         - name: FIAAS_LIMITS_CPU
@@ -104,6 +108,8 @@ spec:
               containerName: v3-data-examples-multiple-hosts-multiple-paths
               resource: requests.memory
               divisor: "1"
+        - name: FIAAS_VERSION
+          value: VERSION
         - name: FINN_ENV
           value: test
         - name: IMAGE

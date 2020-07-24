@@ -65,8 +65,12 @@ spec:
           value: v2-data-examples-multiple-ports
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
+        - name: FIAAS_ARTIFACT_NAME
+          value: v2-data-examples-multiple-ports
         - name: FIAAS_ENVIRONMENT
           value: test
+        - name: FIAAS_IMAGE
+          value: IMAGE
         - name: FIAAS_INFRASTRUCTURE
           value: diy
         - name: FIAAS_LIMITS_CPU
@@ -103,6 +107,8 @@ spec:
               containerName: v2-data-examples-multiple-ports
               resource: requests.memory
               divisor: "1"
+        - name: FIAAS_VERSION
+          name: VERSION
         - name: FINN_ENV
           value: test
         - name: IMAGE

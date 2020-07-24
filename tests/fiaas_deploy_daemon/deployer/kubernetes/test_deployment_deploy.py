@@ -81,12 +81,12 @@ class TestDeploymentDeployer(object):
         yield request.param
 
     @pytest.fixture(params=(
-        # key: (infrastructure, global_env, use_in_memory_emptydirs)
-        ("gke", {}, True),
+        # key: (infrastructure, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars)
+        ("gke", {}, True, True),
         ("diy", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
-        }, True),
+        }, True, True),
         ("gke", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
@@ -97,7 +97,7 @@ class TestDeploymentDeployer(object):
             'LOG_STDOUT': 'false',
             'FIAAS_ENVIRONMENT': 'override_environment',
             'FIAAS_INFRASTRUCTURE': 'override_infrastructure',
-        }, False),
+        }, False, False),
         ("diy", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
@@ -106,10 +106,10 @@ class TestDeploymentDeployer(object):
             # derived FIAAS_INFRASTRUCTURE and FIAAS_ENVIRONMENT
             'ENVIRONMENT': 'override_fiaas_environment',
             'INFRASTRUCTURE': 'override_fiaas_infrastructure',
-        }, True)
+        }, True, False)
     ))
     def config(self, request, environment):
-        infra, global_env, use_in_memory_emptydirs = request.param
+        infra, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = environment
@@ -119,6 +119,7 @@ class TestDeploymentDeployer(object):
         config.use_in_memory_emptydirs = use_in_memory_emptydirs
         config.deployment_max_surge = u"25%"
         config.deployment_max_unavailable = 0
+        config.disable_deprecated_managed_env_vars = disable_deprecated_managed_env_vars
         yield config
 
     @pytest.fixture(params=(
@@ -166,6 +167,18 @@ class TestDeploymentDeployer(object):
     @pytest.fixture
     def secrets(self, config):
         return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
+
+    @pytest.mark.usefixtures("get")
+    def test_managed_environment_variables(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+        env = deployer._make_env(app_spec)
+        env_keys = [var.name for var in env]
+        assert 'FIAAS_ARTIFACT_NAME' in env_keys
+        assert 'FIAAS_IMAGE' in env_keys
+        assert 'FIAAS_VERSION' in env_keys
+        assert ('ARTIFACT_NAME' not in env_keys) == config.disable_deprecated_managed_env_vars
+        assert ('IMAGE' not in env_keys) == config.disable_deprecated_managed_env_vars
+        assert ('VERSION' not in env_keys) == config.disable_deprecated_managed_env_vars
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
@@ -267,7 +280,7 @@ class TestDeploymentDeployer(object):
                             'image': 'finntech/testimage:version',
                             'volumeMounts': expected_volume_mounts,
                             'command': [],
-                            'env': create_environment_variables(config.infrastructure,
+                            'env': create_environment_variables(config,
                                                                 global_env=config.global_env,
                                                                 environment=config.environment),
                             'envFrom': [{
@@ -389,7 +402,7 @@ def create_expected_deployment(config,
             }
         },
         'command': [],
-        'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
+        'env': create_environment_variables(config, global_env=config.global_env,
                                             version=version, environment=config.environment),
         'envFrom': expected_env_from,
         'imagePullPolicy': 'IfNotPresent',
@@ -448,16 +461,26 @@ def create_expected_deployment(config,
     return deployment
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version", environment=None):
+def create_environment_variables(config, global_env=None, version="version", environment=None):
     _env_variables = {
-        'ARTIFACT_NAME': 'testapp',
         'LOG_STDOUT': 'true',
-        'VERSION': version,
-        'FIAAS_INFRASTRUCTURE': infrastructure,
+        'FIAAS_INFRASTRUCTURE': config.infrastructure,
         'LOG_FORMAT': 'json',
-        'IMAGE': 'finntech/testimage:' + version,
         'CONSTRETTO_TAGS': _create_constretto_tag(environment),
     }
+
+    _managed_env_variables = {
+        'FIAAS_ARTIFACT_NAME': 'testapp',
+        'FIAAS_VERSION': version,
+        'FIAAS_IMAGE': 'finntech/testimage:' + version,
+    }
+    if not config.disable_deprecated_managed_env_vars:
+        _managed_env_variables.update({
+            'ARTIFACT_NAME': 'testapp',
+            'VERSION': version,
+            'IMAGE': 'finntech/testimage:' + version,
+        })
+    _env_variables.update(_managed_env_variables)
 
     if environment:
         _env_variables.update({

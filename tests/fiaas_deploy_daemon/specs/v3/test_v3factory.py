@@ -341,6 +341,9 @@ TEST_DATA = {
         "secrets[0].annotations": {
             "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name"
         }
+    },
+    "opt_out_of_default_hosts": {
+        "opt_out_of_default_hosts": True
     }
 }
 

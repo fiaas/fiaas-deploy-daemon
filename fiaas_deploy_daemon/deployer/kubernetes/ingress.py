@@ -127,16 +127,17 @@ class IngressDeployer(object):
         ]
         Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
 
-    def _generate_default_hosts(self, name):
-        for suffix in self._ingress_suffixes:
-            yield u"{}.{}".format(name, suffix)
+    def _generate_default_hosts(self, name, opt_out_of_default_hosts):
+        if not opt_out_of_default_hosts:
+            for suffix in self._ingress_suffixes:
+                yield u"{}.{}".format(name, suffix)
 
     def _create_default_host_ingress_rules(self, app_spec):
         all_pathmappings = chain.from_iterable(ingress_item.pathmappings
                                                for ingress_item in app_spec.ingresses if not ingress_item.annotations)
         http_ingress_rule_value = self._make_http_ingress_rule_value(app_spec, all_pathmappings)
         return [IngressRule(host=host, http=http_ingress_rule_value)
-                for host in self._generate_default_hosts(app_spec.name)]
+                for host in self._generate_default_hosts(app_spec.name, app_spec.opt_out_of_default_hosts)]
 
     def _apply_host_rewrite_rules(self, host):
         for rule in self._host_rewrite_rules:
@@ -159,7 +160,7 @@ class IngressDeployer(object):
         return HTTPIngressRuleValue(paths=http_ingress_paths)
 
     def _get_hosts(self, app_spec):
-        return list(self._generate_default_hosts(app_spec.name)) + \
+        return list(self._generate_default_hosts(app_spec.name, app_spec.opt_out_of_default_hosts)) + \
                [self._apply_host_rewrite_rules(ingress_item.host)
                 for ingress_item in app_spec.ingresses if ingress_item.host is not None]
 

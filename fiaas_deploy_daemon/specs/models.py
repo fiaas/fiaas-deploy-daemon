@@ -35,6 +35,7 @@ class AppSpec(namedtuple("AppSpec", [
     "deployment_id",
     "labels",
     "annotations",
+    "opt_out_of_default_hosts",
     "ingresses",
     "strongbox",
     "singleton",

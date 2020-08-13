@@ -63,6 +63,7 @@ def app_spec(**kwargs):
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, ANNOTATIONS.copy(), {}, {}, {}),
+        opt_out_of_default_hosts=False,
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
@@ -613,6 +614,23 @@ class TestIngressDeployer(object):
 
         pytest.helpers.assert_no_calls(post, INGRESSES_URI)
         pytest.helpers.assert_any_call(delete, INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
+
+    @pytest.mark.skip("blah")
+    @pytest.mark.usefixtures("get")
+    def test_opt_out(self, delete, post, deployer, app_spec_opt_out_of_default_hosts):
+        expected_metadata = pytest.helpers.create_metadata('testapp', labels=None, annotations=None,
+                                                           external=False)
+        expected_ingress = {
+            'spec': None,
+            'metadata': expected_metadata
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = ingress()
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec_opt_out_of_default_hosts, LABELS)
+
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
 
     @pytest.mark.parametrize("app_spec, hosts", (
             (app_spec(), [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),

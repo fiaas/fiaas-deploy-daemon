@@ -61,6 +61,7 @@ def app_spec():
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        opt_out_of_default_hosts=False,
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
@@ -68,6 +69,40 @@ def app_spec():
         secrets=[]
     )
 
+@pytest.fixture
+def app_spec_opt_out_of_default_hosts():
+    return AppSpec(
+        uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
+        name="testapp",
+        namespace="default",
+        image="finntech/testimage:version",
+        autoscaler=AUTOSCALER_SPEC,
+        resources=EMPTY_RESOURCE_SPEC,
+        admin_access=False,
+        secrets_in_environment=False,
+        prometheus=PROMETHEUS_SPEC,
+        datadog=DATADOG_SPEC,
+        ports=[
+            PortSpec(protocol="http", name="http", port=80, target_port=8080),
+        ],
+        health_checks=HealthCheckSpec(
+            liveness=CheckSpec(tcp=TcpCheckSpec(port=8080), http=None, execute=None, initial_delay_seconds=10,
+                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
+            readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
+                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
+                                timeout_seconds=1)),
+        teams=[u'foo'],
+        tags=[u'bar'],
+        deployment_id="test_app_deployment_id",
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}),
+        opt_out_of_default_hosts=True,
+        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
+        strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
+        singleton=False,
+        ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
+        secrets=[]
+    )
 
 @pytest.fixture
 def app_spec_thrift(app_spec):

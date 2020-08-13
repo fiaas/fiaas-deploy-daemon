@@ -61,6 +61,7 @@ class Factory(BaseFactory):
             deployment_id=deployment_id,
             labels=self._labels_annotations_spec(lookup["labels"], additional_labels),
             annotations=self._labels_annotations_spec(lookup["annotations"], additional_annotations),
+            opt_out_of_default_hosts=lookup["opt_out_of_default_hosts"],
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],

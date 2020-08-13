@@ -619,7 +619,7 @@ class TestIngressDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_opt_out(self, delete, post, deployer, app_spec_opt_out_of_default_hosts):
         expected_metadata = pytest.helpers.create_metadata('testapp', labels=None, annotations=None,
-                                                          external=False)
+                                                           external=False)
         expected_ingress = {
             'spec': None,
             'metadata': expected_metadata
@@ -631,7 +631,6 @@ class TestIngressDeployer(object):
         deployer.deploy(app_spec_opt_out_of_default_hosts, LABELS)
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
-
 
     @pytest.mark.parametrize("app_spec, hosts", (
             (app_spec(), [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),

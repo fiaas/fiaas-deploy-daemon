@@ -69,6 +69,7 @@ def app_spec():
         secrets=[]
     )
 
+
 @pytest.fixture
 def app_spec_opt_out_of_default_hosts():
     return AppSpec(
@@ -103,6 +104,7 @@ def app_spec_opt_out_of_default_hosts():
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
         secrets=[]
     )
+
 
 @pytest.fixture
 def app_spec_thrift(app_spec):

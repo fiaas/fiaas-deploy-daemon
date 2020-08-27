@@ -33,7 +33,7 @@ spec:
   maxReplicas: 2
   minReplicas: 1
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     name: v2-data-examples-partial-override
   targetCPUUtilizationPercentage: 50

@@ -40,7 +40,7 @@ spec:
   maxReplicas: 20
   minReplicas: 10
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: apps/v1
     kind: Deployment
     name: v3-data-examples-full
   targetCPUUtilizationPercentage: 60

@@ -70,7 +70,7 @@ class TestAutoscalerDeployer(object):
                 "scaleTargetRef": {
                     "kind": "Deployment",
                     "name": "testapp",
-                    "apiVersion": "extensions/v1beta1"
+                    "apiVersion": "apps/v1"
                 },
                 "minReplicas": 2,
                 "maxReplicas": 4,
@@ -107,7 +107,7 @@ class TestAutoscalerDeployer(object):
                 "scaleTargetRef": {
                     "kind": "Deployment",
                     "name": "testapp",
-                    "apiVersion": "extensions/v1beta1"
+                    "apiVersion": "apps/v1"
                 },
                 "minReplicas": 2,
                 "maxReplicas": 4,

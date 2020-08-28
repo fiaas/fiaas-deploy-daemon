@@ -40,7 +40,7 @@ class AutoscalerDeployer(object):
             custom_labels = merge_dicts(app_spec.labels.horizontal_pod_autoscaler, labels)
             metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
                                   annotations=app_spec.annotations.horizontal_pod_autoscaler)
-            scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="extensions/v1beta1")
+            scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="apps/v1")
             spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
                                                minReplicas=app_spec.autoscaler.min_replicas,
                                                maxReplicas=app_spec.autoscaler.max_replicas,

@@ -230,6 +230,15 @@ class TestE2E(object):
             ("v3/data/examples/tls_enabled_multiple.yml", {
                 Ingress: "e2e_expected/tls-ingress-multiple.yml",
             }),
+            ("v3/data/examples/multiple_config_maps.yml", {
+                Deployment: "e2e_expected/v3-multiple-configmap-deployment.yml",
+            }),
+            ("v3/data/examples/v3minimal.yml", {
+                Deployment: "e2e_expected/v3-no-extra-configmap-deployment.yml",
+            }),
+            ("v3/data/examples/single_extra_config_map.yml", {
+                Deployment: "e2e_expected/v3-single-extra-configmap-deployment.yml",
+            }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         additional_labels = None

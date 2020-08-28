@@ -680,6 +680,20 @@ Kubernetes apiserver. If in doubt, leave this disabled.
 admin_access: False
 ```
 
+## config_map
+
+| **Type** | **Required** |
+|----------|--------------|
+| list     | no           |
+
+Add extra configMaps from fiaas to your application, by default a configMap named the same as your application will be 
+added to your app by default.
+
+```yaml
+config_maps:
+    - yourconfigmap
+```
+
 
 ## extensions
 

@@ -15,33 +15,29 @@
 apiVersion: extensions/v1beta1
 kind: Deployment
 metadata:
-  annotations:
-    m: "n"
-    o: p
+  annotations: {}
   labels:
-    a: b
-    app: v3-data-examples-full
-    c: d
+    app: v3-data-examples-v3minimal
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
     global/label: "true"
     deployment/label: "true"
-  name: v3-data-examples-full
+  name: v3-data-examples-v3minimal
   namespace: default
   ownerReferences:
     - apiVersion: fiaas.schibsted.io/v1
       blockOwnerDeletion: true
       controller: true
       kind: Application
-      name: v3-data-examples-full
+      name: v3-data-examples-v3minimal
   finalizers: []
 spec:
-  replicas: 10
+  replicas: 2
   revisionHistoryLimit: 5
   selector:
     matchLabels:
-      app: v3-data-examples-full
+      app: v3-data-examples-v3minimal
   strategy:
     rollingUpdate:
       maxSurge: "25%"
@@ -50,37 +46,32 @@ spec:
   template:
     metadata:
       annotations:
-        prometheus.io/path: /prometheus-metrics-here
-        prometheus.io/port: "31337"
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "8080"
         prometheus.io/scrape: "true"
-        iam.amazonaws.com/role: arn:aws:iam::12345678:role/the-role-name
-        x: y
-        z: y
       labels:
-        app: v3-data-examples-full
+        app: v3-data-examples-v3minimal
         fiaas/deployed_by: ""
         fiaas/deployment_id: DEPLOYMENT_ID
         fiaas/status: active
         fiaas/version: VERSION
-        q: r
-        s: override
         global/label: "true"
         pod/label: "true"
-      name: v3-data-examples-full
+      name: v3-data-examples-v3minimal
       namespace: default
       ownerReferences: []
       finalizers: []
     spec:
-      automountServiceAccountToken: true
+      automountServiceAccountToken: false
       containers:
       - command: []
         env:
         - name: ARTIFACT_NAME
-          value: v3-data-examples-full
+          value: v3-data-examples-v3minimal
         - name: CONSTRETTO_TAGS
           value: kubernetes-test,kubernetes,test
         - name: FIAAS_ARTIFACT_NAME
-          value: v3-data-examples-full
+          value: v3-data-examples-v3minimal
         - name: FIAAS_ENVIRONMENT
           value: test
         - name: FIAAS_IMAGE
@@ -90,13 +81,13 @@ spec:
         - name: FIAAS_LIMITS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v3-data-examples-full
+              containerName: v3-data-examples-v3minimal
               resource: limits.cpu
               divisor: "1"
         - name: FIAAS_LIMITS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v3-data-examples-full
+              containerName: v3-data-examples-v3minimal
               resource: limits.memory
               divisor: "1"
         - name: FIAAS_NAMESPACE
@@ -112,13 +103,13 @@ spec:
         - name: FIAAS_REQUESTS_CPU
           valueFrom:
             resourceFieldRef:
-              containerName: v3-data-examples-full
+              containerName: v3-data-examples-v3minimal
               resource: requests.cpu
               divisor: "1"
         - name: FIAAS_REQUESTS_MEMORY
           valueFrom:
             resourceFieldRef:
-              containerName: v3-data-examples-full
+              containerName: v3-data-examples-v3minimal
               resource: requests.memory
               divisor: "1"
         - name: FIAAS_VERSION
@@ -131,142 +122,72 @@ spec:
           value: plain
         - name: LOG_STDOUT
           value: "true"
-        - name: STATSD_HOST
-          value: localhost
-        - name: STATSD_PORT
-          value: "8125"
         - name: VERSION
           value: VERSION
         envFrom:
         - configMapRef:
-            name: v3-data-examples-full
-            optional: true
-        - configMapRef:
-            name: test1
-            optional: true
-        - configMapRef:
-            name: test2
+            name: v3-data-examples-v3minimal
             optional: true
         image: IMAGE
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
           httpGet:
-            httpHeaders:
-            - name: X-Custom-Header
-              value: liveness-stuff
-            path: /health
-            port: a
+            path: /_/health
+            port: http
             scheme: HTTP
+            httpHeaders: []
           initialDelaySeconds: 10
           periodSeconds: 10
           successThreshold: 1
           timeoutSeconds: 1
-        name: v3-data-examples-full
+        name: v3-data-examples-v3minimal
         ports:
-        - containerPort: 31337
-          name: a
-          protocol: TCP
-        - containerPort: 31338
-          name: b
+        - containerPort: 8080
+          name: http
           protocol: TCP
         readinessProbe:
-          failureThreshold: 6
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          successThreshold: 2
-          tcpSocket:
-            port: b
-          timeoutSeconds: 2
-        resources:
-          limits:
-            cpu: "2"
-            memory: 1Gi
-          requests:
-            cpu: 500m
-            memory: 512Mi
-        volumeMounts:
-        - mountPath: /var/run/secrets/fiaas/
-          name: v3-data-examples-full-secret
-          readOnly: true
-        - mountPath: /var/run/config/fiaas/
-          name: v3-data-examples-full-config
-          readOnly: true
-        - mountPath: /tmp
-          name: tmp
-      - command: []
-        env:
-        - name: DD_TAGS
-          value: app:v3-data-examples-full,k8s_namespace:default,tag1:value1,tag2:value2
-        - name: DD_API_KEY
-          valueFrom:
-            secretKeyRef:
-              name: datadog
-              key: apikey
-        - name: NON_LOCAL_TRAFFIC
-          value: "false"
-        - name: DD_LOGS_STDOUT
-          value: "yes"
-        - name: DD_EXPVAR_PORT
-          value: "42622"
-        - name: DD_CMD_PORT
-          value: "42623"
-        envFrom: []
-        image: DATADOG_IMAGE:tag
-        volumeMounts: []
-        imagePullPolicy: IfNotPresent
-        name: fiaas-datadog-container
-        ports: []
+          failureThreshold: 3
+          httpGet:
+            path: /_/ready
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
         resources:
           limits:
             cpu: 400m
-            memory: 2Gi
+            memory: 512Mi
           requests:
             cpu: 200m
-            memory: 2Gi
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v3-data-examples-v3minimal-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v3-data-examples-v3minimal-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
       terminationGracePeriodSeconds: 30
       volumes:
-      - name: v3-data-examples-full-secret
+      - name: v3-data-examples-v3minimal-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: v3-data-examples-v3minimal
       - configMap:
           defaultMode: 420
-          name: fiaas-secrets-init-container
+          name: v3-data-examples-v3minimal
           optional: true
-        name: fiaas-secrets-init-container-config
-      - configMap:
-          defaultMode: 420
-          name: v3-data-examples-full
-          optional: true
-        name: v3-data-examples-full-config
+        name: v3-data-examples-v3minimal-config
       - name: tmp
-      initContainers:
-      - name: fiaas-secrets-init-container
-        image: STRONGBOX_IMAGE
-        volumeMounts:
-        - mountPath: /var/run/secrets/fiaas/
-          name: v3-data-examples-full-secret
-        - mountPath: /var/run/config/fiaas-secrets-init-container/
-          name: fiaas-secrets-init-container-config
-          readOnly: true
-        - mountPath: /var/run/config/fiaas/
-          name: v3-data-examples-full-config
-          readOnly: true
-        - mountPath: /tmp
-          name: tmp
-        envFrom:
-        - configMapRef:
-            name: fiaas-secrets-init-container
-            optional: true
-        command: []
-        env:
-        - name: K8S_DEPLOYMENT
-          value: v3-data-examples-full
-        - name: AWS_REGION
-          value: eu-central-1
-        - name: SECRET_GROUPS
-          value: secretgroup1,secretgroup2
-        imagePullPolicy: IfNotPresent
-        ports: []
+      initContainers: []
       imagePullSecrets: []

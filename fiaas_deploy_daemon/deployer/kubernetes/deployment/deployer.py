@@ -251,8 +251,7 @@ def _add_config_maps(app_spec):
         for config_map in app_spec.config_maps:
             config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
         return config_maps
-    else:
-        return config_maps
+    return config_maps
 
 def _build_global_env(global_env):
     """

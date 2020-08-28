@@ -87,13 +87,17 @@ TEST_DATA = {
         "strongbox.enabled": False,
         "strongbox.iam_role": None,
         "strongbox.groups": None,
-        "strongbox.aws_region": "eu-west-1",
+        "strongbox.aws_region": "eu-west-1"
     },
     "autoscaling_disabled": {
         "autoscaler.enabled": False,
         "autoscaler.min_replicas": 3,
         "autoscaler.max_replicas": 3,
         "autoscaler.cpu_threshold_percentage": 50,
+    },
+    "multiple_config_maps": {
+        "config_maps[0]": "test1",
+        "config_maps[1]": "test2"
     },
     "multiple_hosts_multiple_paths": {
         "ingresses[0].host": None,
@@ -272,6 +276,8 @@ TEST_DATA = {
         "strongbox.iam_role": "arn:aws:iam::12345678:role/the-role-name",
         "strongbox.groups[0]": "secretgroup1",
         "strongbox.groups[1]": "secretgroup2",
+        "config_maps[0]": "test1",
+        "config_maps[1]": "test2"
 
     },
     "liveness_exec_readiness_http": {

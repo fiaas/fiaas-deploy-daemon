@@ -65,7 +65,8 @@ class DeploymentDeployer(object):
         env = self._make_env(app_spec)
         pull_policy = "IfNotPresent" if (":" in app_spec.image and ":latest" not in app_spec.image) else "Always"
 
-        env_from = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
+        env_from = _add_config_maps(app_spec)
+
         containers = [
             Container(name=app_spec.name,
                       image=app_spec.image,
@@ -243,6 +244,15 @@ def _build_fiaas_env(config):
         })
     return env
 
+
+def _add_config_maps(app_spec):
+    config_maps = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
+    if app_spec.config_maps:
+        for config_map in app_spec.config_maps:
+            config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
+        return config_maps
+    else:
+        return config_maps
 
 def _build_global_env(global_env):
     """

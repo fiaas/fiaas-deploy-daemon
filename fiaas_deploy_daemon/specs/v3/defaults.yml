@@ -100,3 +100,4 @@ extensions:
     enabled: false # This is dynamically set based on the value for --use-ingress-tls passed to the instance
     certificate_issuer: # the name of certificate-issuer cert-manager should use
   secrets: {}
+config_maps: []

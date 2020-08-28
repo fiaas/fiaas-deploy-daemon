@@ -105,3 +105,6 @@ extensions:
     groups:
       - secretgroup1
       - secretgroup2
+config_maps:
+  - "test1"
+  - "test2"

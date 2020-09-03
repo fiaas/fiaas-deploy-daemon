@@ -151,6 +151,10 @@ class DeploymentDeployer(object):
 
     def _make_volume_mounts(self, app_spec):
         volume_mounts = []
+        if app_spec.config_maps:
+            for config_map in app_spec.config_maps:
+                volume_mounts.insert(0, VolumeMount(name="{}-config".format(config_map),
+                                                    readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(
             VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))

@@ -136,6 +136,10 @@ class DeploymentDeployer(object):
 
     def _make_volumes(self, app_spec):
         volumes = []
+        if app_spec.config_maps:
+            for config_map in app_spec.config_maps:
+                volumes.insert(0, Volume(name="{}-config".format(config_map),
+                                         configMap=ConfigMapVolumeSource(name=config_map, optional=True)))
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         if self._use_in_memory_emptydirs:

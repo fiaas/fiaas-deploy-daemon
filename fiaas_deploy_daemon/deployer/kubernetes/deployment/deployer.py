@@ -250,12 +250,16 @@ def _build_fiaas_env(config):
 
 
 def _add_config_maps(app_spec):
+    """
+    adds the configMaps to envFrom. Inserts user-defined configMaps first so the default configMap takes precedence in
+    case of key-collisions
+    """
     config_maps = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
     if app_spec.config_maps:
         for config_map in app_spec.config_maps:
-            config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
-        return config_maps
+            config_maps.insert(0, EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
     return config_maps
+
 
 def _build_global_env(global_env):
     """

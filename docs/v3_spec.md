@@ -686,8 +686,8 @@ admin_access: False
 |----------|--------------|
 | list     | no           |
 
-Add extra configMaps from fiaas to your application, by default a configMap named the same as your application will be 
-added to your app by default.
+Add extra configMaps to your application. By default a configMap named the same as your application will be 
+added.
 
 ```yaml
 config_maps:

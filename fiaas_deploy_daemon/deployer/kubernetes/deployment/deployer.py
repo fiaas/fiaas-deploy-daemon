@@ -138,7 +138,7 @@ class DeploymentDeployer(object):
         volumes = []
         if app_spec.config_maps:
             for config_map in app_spec.config_maps:
-                volumes.insert(0, Volume(name="{}-config".format(config_map),
+                volumes.append(Volume(name="{}-config".format(config_map),
                                          configMap=ConfigMapVolumeSource(name=config_map, optional=True)))
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
@@ -153,8 +153,8 @@ class DeploymentDeployer(object):
         volume_mounts = []
         if app_spec.config_maps:
             for config_map in app_spec.config_maps:
-                volume_mounts.insert(0, VolumeMount(name="{}-config".format(config_map),
-                                                    readOnly=True, mountPath="/var/run/config/fiaas/"))
+                volume_mounts.append(VolumeMount(name="{}-config".format(config_map),
+                                                    readOnly=True, mountPath="/var/run/config/{}/".format(config_map)))
         volume_mounts.append(
             VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))
@@ -258,10 +258,11 @@ def _add_config_maps(app_spec):
     adds the configMaps to envFrom. Inserts user-defined configMaps first so the default configMap takes precedence in
     case of key-collisions
     """
-    config_maps = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
+    config_maps = []
     if app_spec.config_maps:
         for config_map in app_spec.config_maps:
-            config_maps.insert(0, EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
+            config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
+    config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True)))
     return config_maps
 
 

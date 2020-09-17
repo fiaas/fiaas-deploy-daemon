@@ -341,6 +341,7 @@ def create_expected_deployment(config,
                                add_init_container_annotations=False):
     expected_volumes = _get_expected_volumes(app_spec, config.use_in_memory_emptydirs)
     expected_volume_mounts = _get_expected_volume_mounts(app_spec)
+    service_account = app_spec.name if config.enable_service_account_per_app else "default"
 
     base_expected_health_check = {
         'initialDelaySeconds': 10,
@@ -437,7 +438,7 @@ def create_expected_deployment(config,
                 'spec': {
                     'dnsPolicy': 'ClusterFirst',
                     'automountServiceAccountToken': app_spec.admin_access,
-                    'serviceAccountName': "default",
+                    'serviceAccountName': service_account,
                     'terminationGracePeriodSeconds': 31,
                     'restartPolicy': 'Always',
                     'volumes': expected_volumes,

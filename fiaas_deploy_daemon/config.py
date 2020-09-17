@@ -133,6 +133,10 @@ This external service will be called using the url and adding
 between Ingress, Deployment, HorizontalPodAutoscaler or Service.
 """
 
+ENABLE_SERVICE_ACCOUNT_PER_APP = """
+Look for a service account by app name; use this if we find one, else fall back to
+the namespace's default.
+"""
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -210,6 +214,8 @@ class Configuration(Namespace):
         parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
                             action="store_true", default=False)
         parser.add_argument("--extension-hook-url", help=EXTENSION_HOOK_URL_HELP, default=None)
+        parser.add_argument("--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP,
+                            action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

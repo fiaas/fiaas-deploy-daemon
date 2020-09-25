@@ -23,6 +23,7 @@ from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import AutoscalerDeploye
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
+from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
 from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
 
 FIAAS_VERSION = "1"

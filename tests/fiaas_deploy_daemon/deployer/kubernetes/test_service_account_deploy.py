@@ -22,6 +22,8 @@ from k8s.models.service_account import ServiceAccount
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
+from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
+
 from utils import TypeMatcher
 
 SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
@@ -40,7 +42,8 @@ class TestServiceAccountDeployer(object):
         expected_service_account = {
                 'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
                 'secrets': [],
-                'imagePullSecrets': []
+                'imagePullSecrets': [],
+                'automountServiceAccountToken': True
         }
 
         mock_response = create_autospec(Response)

@@ -32,6 +32,7 @@ ARGS=(
 '--environment' 'test'
 '--datadog-container-image' 'datadog/docker-dd-agent:12.2.5172-alpine'
 '--enable-crd-support'
+'--enable-service-account-per-app'
 )
 
 (set -ux; fiaas-deploy-daemon "${ARGS[@]}")

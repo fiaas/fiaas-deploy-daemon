@@ -206,6 +206,15 @@ class TestConfig(object):
         config = Configuration(["--datadog-global-tags=%s" % arg for arg in args])
         assert config.datadog_global_tags == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
 
+    def test_tls_issuers(self):
+        issuer_types = ["foo.bar.com=issuer", "woo.foo.bar.com=other"]
+        args = ["--tls-certificate-issuer-type-overrides=%s" % issuer_type for issuer_type in issuer_types]
+        config = Configuration(args)
+        assert config.tls_certificate_issuer_type_overrides == {
+            "foo.bar.com": "issuer",
+            "woo.foo.bar.com": "other"
+        }
+
 
 class TestHostRewriteRule(object):
     def test_equality(self):

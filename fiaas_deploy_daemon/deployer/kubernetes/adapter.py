@@ -29,29 +29,34 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
     """
 
-    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler):
+    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, service_account=None):
         self._version = config.version
+        self._enable_service_account_per_app = config.enable_service_account_per_app
         self._service_deployer = service_deployer
         self._deployment_deployer = deployment_deployer
         self._ingress_deployer = ingress_deployer
         self._autoscaler_deployer = autoscaler
+        self._service_account = service_account
 
     def deploy(self, app_spec):
         if _besteffort_qos_is_required(app_spec):
             app_spec = _remove_resource_requirements(app_spec)
-
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
         self._autoscaler_deployer.deploy(app_spec, labels)
+        if self._enable_service_account_per_app is True:
+            self._service_account.deploy(app_spec, labels)
 
     def delete(self, app_spec):
         self._ingress_deployer.delete(app_spec)
         self._autoscaler_deployer.delete(app_spec)
         self._service_deployer.delete(app_spec)
         self._deployment_deployer.delete(app_spec)
+        if self._enable_service_account_per_app is True:
+            self._service_account.delete(app_spec)
 
     def _make_labels(self, app_spec):
         labels = {

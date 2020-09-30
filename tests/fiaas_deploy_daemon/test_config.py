@@ -35,19 +35,6 @@ class TestConfig(object):
             yield _open
 
     @pytest.mark.parametrize("format", ["plain", "json"])
-    def test_resolve_log_format_env(self, monkeypatch, format):
-        monkeypatch.setenv("LOG_FORMAT", format)
-        config = Configuration([])
-
-        assert config.log_format == format
-
-    def test_invalid_log_format_env(self, monkeypatch):
-        monkeypatch.setenv("LOG_FORMAT", "fail")
-
-        with pytest.raises(SystemExit):
-            Configuration([])
-
-    @pytest.mark.parametrize("format", ["plain", "json"])
     def test_log_format_param(self, format):
         config = Configuration(["--log-format", format])
 
@@ -90,26 +77,6 @@ class TestConfig(object):
 
         assert config.infrastructure == "gke"
 
-    @pytest.mark.parametrize("env,key", [
-        ("API_SERVER", "api_server"),
-        ("API_TOKEN", "api_token"),
-        ("API_CERT", "api_cert"),
-        ("FIAAS_ENVIRONMENT", "environment"),
-        ("IMAGE", "image"),
-        ("STRONGBOX_INIT_CONTAINER_IMAGE", "strongbox_init_container_image"),
-    ])
-    def test_env(self, monkeypatch, env, key):
-        monkeypatch.setenv(env, "value")
-        config = Configuration([])
-
-        assert getattr(config, key) == "value"
-
-    def test_infrastructure_env(self, monkeypatch):
-        monkeypatch.setenv("FIAAS_INFRASTRUCTURE", "gke")
-        config = Configuration([])
-
-        assert config.infrastructure == "gke"
-
     @pytest.mark.parametrize("key", (
         "debug",
         "enable_crd_support",
@@ -122,20 +89,6 @@ class TestConfig(object):
         assert getattr(config, key) is False
         config = Configuration([flag])
         assert getattr(config, key) is True
-
-    @pytest.mark.parametrize("cmdline,envvar,expected", [
-        ([], "", None),
-        (["--infrastructure", "gke"], "", None),
-        ([], "http://proxy.example.com", "http://proxy.example.com"),
-        (["--infrastructure", "gke"], "http://proxy.example.com", "http://proxy.example.com"),
-        (["--proxy", "http://proxy.example.com"], "", "http://proxy.example.com"),
-    ])
-    def test_proxy(self, monkeypatch, cmdline, envvar, expected):
-        if envvar:
-            monkeypatch.setenv("http_proxy", envvar)
-        config = Configuration(cmdline)
-
-        assert config.proxy == expected
 
     @pytest.mark.parametrize("key,attr,value", [
         ("environment", "environment", "gke"),

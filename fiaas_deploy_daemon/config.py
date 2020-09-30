@@ -44,7 +44,7 @@ regex pattern, and a replacement value. The `host` is matched against each
 pattern in the order given, stopping at the first match. The replacement can
 contain groups using regular regex replace syntax.
 
-Regardless of how a rule is passed in (option, environment variable or in
+Regardless of how a rule is passed in (option or in
 a config file), it must be specified as `<pattern>=<replacement>`. In
 particular, be aware that even if it would be natural to use the map type
 in YAML, this is not possible.
@@ -56,7 +56,7 @@ GLOBAL_ENV_LONG_HELP = """
 If you wish to expose certain environment variables to every application
 in your cluster, define them here.
 
-Regardless of how a variable is passed in (option, environment variable or in
+Regardless of how a variable is passed in (option or in
 a config file), it must be specified as `<key>=<value>`.
 """
 
@@ -101,15 +101,14 @@ In the config-file, these should be defined as a YAML list
 (see https://github.com/bw2/ConfigArgParse#special-values).
 
 If an arg is specified in more than one place, then commandline values
-override environment variables which override config file values which
-override defaults.
+override config file values which override defaults.
 """.format(DEFAULT_CONFIG_FILE)
 
 DATADOG_GLOBAL_TAGS_LONG_HELP = """
 If you wish to send certain tags to datadog in every application
 in your cluster, define them here.
 
-Regardless of how a variable is passed in (option, environment variable or in
+Regardless of how a variable is passed in (option or in
 a config file), it must be specified as `<key>=<value>`.
 """
 
@@ -137,8 +136,7 @@ class Configuration(Namespace):
         self.namespace = self._resolve_namespace()
 
     def _parse_args(self, args):
-        parser = configargparse.ArgParser(auto_env_var_prefix="",
-                                          add_config_file_help=False,
+        parser = configargparse.ArgParser(add_config_file_help=False,
                                           add_env_var_help=False,
                                           config_file_parser_class=configargparse.YAMLConfigFileParser,
                                           default_config_files=[DEFAULT_CONFIG_FILE],
@@ -151,16 +149,15 @@ class Configuration(Namespace):
                             default=DEFAULT_SECRETS_DIR)
         parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
                             default="plain")
-        parser.add_argument("--proxy", help="Use http proxy (currently only used for for usage reporting)",
-                            env_var="http_proxy")
+        parser.add_argument("--proxy", help="Use http proxy (currently only used for for usage reporting)")
         parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
                             action="store_true")
-        parser.add_argument("--environment", help="Environment to deploy to", env_var="FIAAS_ENVIRONMENT", default="")
-        parser.add_argument("--service-type", help="Type of kubernetes Service to create", env_var="FIAAS_SERVICE_TYPE",
+        parser.add_argument("--environment", help="Environment to deploy to", default="")
+        parser.add_argument("--service-type", help="Type of kubernetes Service to create",
                             choices=("ClusterIP", "NodePort", "LoadBalancer"), default="ClusterIP")
         parser.add_argument("--infrastructure",
                             help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
-                            env_var="FIAAS_INFRASTRUCTURE", choices=("diy", "gke"), default="diy")
+                            choices=("diy", "gke"), default="diy")
         parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
                             default=5000)
         parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support.",
@@ -176,7 +173,6 @@ class Configuration(Namespace):
                             help="The amount of memory (request and limit) for the datadog sidecar", default="2Gi")
         datadog_global_tags_parser = parser.add_argument_group("Datadog Global tags", DATADOG_GLOBAL_TAGS_LONG_HELP)
         datadog_global_tags_parser.add_argument("--datadog-global-tags", default=[],
-                                                env_var="FIAAS_DATADOG_GLOBAL_TAGS",
                                                 help="Various non-essential global tags to send to datadog for all applications",
                                                 action="append", type=KeyValue, dest="datadog_global_tags")
         parser.add_argument("--pre-stop-delay", type=int,
@@ -222,18 +218,16 @@ class Configuration(Namespace):
         client_cert_parser.add_argument("--client-key", help="Client certificate key to use", default=None)
         ingress_parser = parser.add_argument_group("Ingress suffix", INGRESS_SUFFIX_LONG_HELP)
         ingress_parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
-                                    dest="ingress_suffixes", env_var="INGRESS_SUFFIXES", default=[])
+                                    dest="ingress_suffixes", default=[])
         host_rule_parser = parser.add_argument_group("Host rewrite rules", HOST_REWRITE_RULE_LONG_HELP)
         host_rule_parser.add_argument("--host-rewrite-rule", help="Rule for rewriting host", action="append",
-                                      type=HostRewriteRule, dest="host_rewrite_rules", env_var="HOST_REWRITE_RULES",
-                                      default=[])
+                                      type=HostRewriteRule, dest="host_rewrite_rules", default=[])
         global_env_parser = parser.add_argument_group("Global environment variables", GLOBAL_ENV_LONG_HELP)
-        global_env_parser.add_argument("--global-env", default=[], env_var="FIAAS_GLOBAL_ENV",
+        global_env_parser.add_argument("--global-env", default=[],
                                        help="Various non-essential global variables to expose for all applications",
                                        action="append", type=KeyValue, dest="global_env")
         secret_init_containers_parser = parser.add_argument_group("Secret init-containers", SECRET_CONTAINERS_LONG_HELP)
         secret_init_containers_parser.add_argument("--secret-init-containers", default=[],
-                                                   env_var="FIAAS_SECRET_INIT_CONTAINERS",
                                                    help="Images to use for secret init-containers by key",
                                                    action="append", type=KeyValue, dest="secret_init_containers")
 

@@ -41,6 +41,7 @@ class IngressDeployer(object):
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references
+        self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -84,14 +85,16 @@ class IngressDeployer(object):
         explicit_host = _has_explicitly_set_host(app_spec.ingresses)
         ingress_items = app_spec.ingresses + self._expand_default_hosts(app_spec)
 
-        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host"])
-        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={}, explicit_host=explicit_host)
+        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type"])
+        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={},
+                                               explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default)
         ingresses = [unannotated_ingress]
         for ingress_item in ingress_items:
             if ingress_item.annotations:
                 next_name = "{}-{}".format(app_spec.name, len(ingresses))
                 annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item],
-                                                       annotations=ingress_item.annotations, explicit_host=True)
+                                                       annotations=ingress_item.annotations,
+                                                       explicit_host=True, issuer_type=self._tls_issuer_type_default)
                 ingresses.append(annotated_ingresses)
             else:
                 unannotated_ingress.ingress_items.append(ingress_item)
@@ -124,7 +127,7 @@ class IngressDeployer(object):
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
-        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, use_suffixes=use_suffixes)
+        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
         self._owner_references.apply(ingress, app_spec)
         ingress.save()
 
@@ -193,12 +196,12 @@ class IngressTls(object):
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
 
-    def apply(self, ingress, app_spec, hosts, use_suffixes=True):
+    def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):
             tls_annotations = {}
             if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
                 issuer = app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._cert_issuer
-                tls_annotations[u"certmanager.k8s.io/cluster-issuer"] = issuer
+                tls_annotations[issuer_type] = issuer
             else:
                 tls_annotations[u"kubernetes.io/tls-acme"] = u"true"
             ingress.metadata.annotations = merge_dicts(

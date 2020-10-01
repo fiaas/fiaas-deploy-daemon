@@ -17,7 +17,7 @@
 import mock
 import pytest
 from k8s.models.common import ObjectMeta
-from k8s.models.ingress import Ingress, IngressSpec, IngressTLS
+from k8s.models.ingress import Ingress, IngressTLS
 from mock import create_autospec
 from requests import Response
 
@@ -34,6 +34,8 @@ LABELS = {"ingress_deployer": "pass through", "app": "testapp", "fiaas/deploymen
 ANNOTATIONS = {"some/annotation": "val"}
 LABEL_SELECTOR_PARAMS = {"labelSelector": "app=testapp,fiaas/deployment_id,fiaas/deployment_id!=12345"}
 INGRESSES_URI = '/apis/extensions/v1beta1/namespaces/default/ingresses/'
+DEFAULT_TLS_ISSUER = "certmanager.k8s.io/cluster-issuer"
+DEFAULT_TLS_ANNOTATIONS = {"certmanager.k8s.io/cluster-issuer": "letsencrypt"}
 
 
 def app_spec(**kwargs):
@@ -494,6 +496,7 @@ class TestIngressDeployer(object):
             HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
             HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
         ]
+        config.tls_certificate_issuer_type_default = DEFAULT_TLS_ISSUER
         return config
 
     @pytest.fixture
@@ -626,7 +629,7 @@ class TestIngressDeployer(object):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
-            ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, use_suffixes=True)
+            ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
 
 
 class TestIngressTls(object):
@@ -655,53 +658,60 @@ class TestIngressTls(object):
         config.enable_deprecated_tls_entry_per_host = request.param["enable_deprecated_tls_entry_per_host"]
         return IngressTls(config)
 
-    @pytest.mark.parametrize("tls, app_spec, spec_tls, tls_annotations", [
+    @pytest.mark.parametrize("tls, app_spec, spec_tls, issuer_type, tls_annotations", [
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         INGRESS_SPEC_TLS, {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         INGRESS_SPEC_TLS, {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS,
-         {"certmanager.k8s.io/cluster-issuer": "letsencrypt"}),
+         "overwrite-issuer",
+         {"overwrite-issuer": "letsencrypt"}),
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
+         INGRESS_SPEC_TLS,
+         DEFAULT_TLS_ISSUER,
+         DEFAULT_TLS_ANNOTATIONS),
         ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
          INGRESS_SPEC_TLS,
+         DEFAULT_TLS_ISSUER,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
          INGRESS_SPEC_TLS,
+         DEFAULT_TLS_ISSUER,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         INGRESS_SPEC_TLS_COLLAPSED_ONLY, {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS_COLLAPSED_ONLY, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
-         INGRESS_SPEC_TLS_COLLAPSED_ONLY, {"kubernetes.io/tls-acme": "true"}),
+         INGRESS_SPEC_TLS_COLLAPSED_ONLY, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
         ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
         ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
-         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], None),
+         app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
     ], indirect=['tls'])
-    def test_apply_tls(self, tls, app_spec, spec_tls, tls_annotations):
+    def test_apply_tls(self, tls, app_spec, spec_tls, issuer_type, tls_annotations):
         ingress = Ingress()
         ingress.metadata = ObjectMeta(name=app_spec.name)
-        ingress.spec = IngressSpec()
-        tls.apply(ingress, app_spec, self.HOSTS)
+        tls.apply(ingress, app_spec, self.HOSTS, issuer_type)
         assert ingress.metadata.annotations == tls_annotations
         assert ingress.spec.tls == spec_tls
 

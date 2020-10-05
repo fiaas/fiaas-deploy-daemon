@@ -497,6 +497,7 @@ class TestIngressDeployer(object):
             HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
         ]
         config.tls_certificate_issuer_type_default = DEFAULT_TLS_ISSUER
+        config.tls_certificate_issuer_type_overrides = {}
         return config
 
     @pytest.fixture
@@ -630,6 +631,45 @@ class TestIngressDeployer(object):
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
             ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
+
+    @pytest.fixture
+    def deployer_issuer_overrides(self, config, ingress_tls, owner_references):
+        config.tls_certificate_issuer_type_overrides = {
+            "foo.example.com": "certmanager.k8s.io/issuer",
+            "bar.example.com": "certmanager.k8s.io/cluster-issuer",
+            "foo.bar.example.com": "certmanager.k8s.io/issuer"
+        }
+        return IngressDeployer(config, ingress_tls, owner_references)
+
+    @pytest.mark.usefixtures("delete")
+    def test_applies_ingress_tls_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls, app_spec):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            app_spec.ingresses[:] = [
+                # has issuer-override
+                IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                # no issuer-override
+                IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                IngressItemSpec(host="foo.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                IngressItemSpec(host="other.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                # suffix has issuer-override
+                IngressItemSpec(host="sub.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                # more specific suffix has issuer-override
+                IngressItemSpec(host="sub.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                # has annotations
+                IngressItemSpec(host="ann.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                                annotations={"some": "annotation"})
+            ]
+
+            deployer_issuer_overrides.deploy(app_spec, LABELS)
+            host_groups = [sorted(call.args[2]) for call in ingress_tls.apply.call_args_list]
+            expected_host_groups = [
+                ["ann.foo.example.com"],
+                ["bar.example.com", "other.example.com", "sub.bar.example.com", "testapp.127.0.0.1.xip.io", "testapp.svc.test.example.com"],
+                ["foo.bar.example.com", "foo.example.com", "sub.foo.example.com"]
+            ]
+            assert ingress_tls.apply.call_count == 3
+            assert expected_host_groups == sorted(host_groups)
 
 
 class TestIngressTls(object):

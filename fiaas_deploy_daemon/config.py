@@ -190,11 +190,6 @@ class Configuration(Namespace):
                             default=None)
         parser.add_argument("--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP,
                             action="store_true")
-        parser.add_argument("--use-ingress-tls", help=TLS_HELP,
-                            choices=("disabled", "default_off", "default_on"),
-                            default="disabled")
-        parser.add_argument("--tls-certificate-issuer", help="Certificate issuer to use with cert-manager to provision certificates",
-                            default=None)
         parser.add_argument("--use-in-memory-emptydirs", help="Use memory for emptydirs mounted in the deployed application",
                             action="store_true")
         parser.add_argument("--deployment-max-surge", help="maximum number of extra pods that can be scheduled above the desired "
@@ -246,10 +241,24 @@ class Configuration(Namespace):
                                                    env_var="FIAAS_SECRET_INIT_CONTAINERS",
                                                    help="Images to use for secret init-containers by key",
                                                    action="append", type=KeyValue, dest="secret_init_containers")
+
+        tls_parser = parser.add_argument_group("Ingress TLS")
+        parser.add_argument("--use-ingress-tls", help=TLS_HELP,
+                            choices=("disabled", "default_off", "default_on"),
+                            default="disabled")
+        parser.add_argument("--tls-certificate-issuer", help="Certificate issuer to use with cert-manager to provision certificates",
+                            default=None)
+        parser.add_argument("--tls-certificate-issuer-type-default", help="The annotation to set for cert-manager to provision certificates",
+                            default="certmanager.k8s.io/cluster-issuer")
+        parser.add_argument("--tls-certificate-issuer-type-overrides", help="Issuers to use for specified domain suffixes",
+                            default=[],
+                            action="append", type=KeyValue, dest="tls_certificate_issuer_type_overrides")
+
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
         self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}
         self.secret_init_containers = {provider.key: provider.value for provider in self.secret_init_containers}
+        self.tls_certificate_issuer_type_overrides = {issuer_type.key: issuer_type.value for issuer_type in self.tls_certificate_issuer_type_overrides}
 
     def _resolve_api_config(self):
         token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"

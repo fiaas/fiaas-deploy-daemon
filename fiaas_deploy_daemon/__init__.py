@@ -144,7 +144,6 @@ def warn_if_env_variable_config(config, log):
         'deployment_max_surge': config.deployment_max_surge,
         'deployment_max_unavailable': config.deployment_max_unavailable,
         'ready_check_timeout_multiplier': config.ready_check_timeout_multiplier,
-        'disable_pipeline_consumer': config.disable_pipeline_consumer,
         'disable_deprecated_managed_env_vars': config.disable_deprecated_managed_env_vars,
         'usage_reporting_cluster_name': config.usage_reporting_cluster_name,
         'usage_reporting_endpoint': config.usage_reporting_endpoint,

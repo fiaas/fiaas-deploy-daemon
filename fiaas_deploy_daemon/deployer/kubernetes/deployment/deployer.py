@@ -70,6 +70,7 @@ class DeploymentDeployer(object):
         containers = [
             Container(name=app_spec.name,
                       image=app_spec.image,
+                      args=[],
                       ports=container_ports,
                       env=env,
                       envFrom=env_from,

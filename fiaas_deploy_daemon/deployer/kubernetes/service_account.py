@@ -46,7 +46,6 @@ class ServiceAccountDeployer(object):
     @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)
-        metadata = ObjectMeta()
         secrets = []
         image_pull_secrets = []
         automount_service_account_token = True
@@ -55,7 +54,6 @@ class ServiceAccountDeployer(object):
             image_pull_secrets = service_account.imagePullSecrets
             secrets = service_account.secrets
             automount_service_account_token = service_account.automountServiceAccountToken
-            metadata = service_account.metadata
         except NotFound:
             pass
         service_account_name = app_spec.name

@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import signal
 import sys
 import threading
@@ -117,11 +118,62 @@ def thread_dump_logger(log):
     return _dump_threads
 
 
+def warn_if_env_variable_config(config, log):
+    """temporary deprecation warning for https://github.com/fiaas/fiaas-deploy-daemon/issues/12"""
+    configuration_env_variables = {
+        'secrets_directory': config.secrets_directory,
+        'log_format': config.log_format,
+        'http_proxy': config.proxy,
+        'debug': config.debug,
+        'FIAAS_ENVIRONMENT': config.environment,
+        'FIAAS_SERVICE_TYPE': config.service_type,
+        'FIAAS_INFRASTRUCTURE': config.infrastructure,
+        'port': config.port,
+        'enable_crd_support': config.enable_crd_support,
+        'secrets_init_container_image': config.secrets_init_container_image,
+        'secrets_service_account_name': config.secrets_service_account_name,
+        'datadog_container_image': config.datadog_container_image,
+        'datadog_container_memory': config.datadog_container_memory,
+        'FIAAS_DATADOG_GLOBAL_TAGS': ','.join('{}={}'.format(k, v) for k, v in config.datadog_global_tags.items()),
+        'pre_stop_delay': config.pre_stop_delay,
+        'strongbox_init_container_image': config.strongbox_init_container_image,
+        'enable_deprecated_multi_namespace_support': config.enable_deprecated_multi_namespace_support,
+        'use_ingress_tls': config.use_ingress_tls,
+        'tls_certificate_issuer': config.tls_certificate_issuer,
+        'use_in_memory_emptydirs': config.use_in_memory_emptydirs,
+        'deployment_max_surge': config.deployment_max_surge,
+        'deployment_max_unavailable': config.deployment_max_unavailable,
+        'ready_check_timeout_multiplier': config.ready_check_timeout_multiplier,
+        'disable_deprecated_managed_env_vars': config.disable_deprecated_managed_env_vars,
+        'usage_reporting_cluster_name': config.usage_reporting_cluster_name,
+        'usage_reporting_endpoint': config.usage_reporting_endpoint,
+        'usage_reporting_tenant': config.usage_reporting_tenant,
+        'usage_reporting_team': config.usage_reporting_team,
+        'api_server': config.api_server,
+        'api_token': config.api_token,
+        'api_cert': config.api_cert,
+        'client_cert': config.client_cert,
+        'client_key': config.client_key,
+        'INGRESS_SUFFIXES': ','.join(config.ingress_suffixes),
+        'HOST_REWRITE_RULES': ','.join(config.host_rewrite_rules),
+        'FIAAS_GLOBAL_ENV':  ','.join('{}={}'.format(k, v) for k, v in config.global_env.items()),
+        'FIAAS_SECRET_INIT_CONTAINERS': ','.join('{}={}'.format(k, v) for k, v in config.secret_init_containers.items()),
+    }
+    not_defined = object()  # some config options default to None, avoid false positives when evironment variable is not set
+    possible_config_env_variables = [key for key, value in configuration_env_variables.items() if os.getenv(key, not_defined) == value]
+    if len(possible_config_env_variables) > 0:
+        log.warn("found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables " +
+                 "will be removed. If these environment variables are the primary source for this configuration, please switch to " +
+                 "configuring via a config file/ConfigMap or command-line flags. See " +
+                 "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information", ', '.join(possible_config_env_variables))
+
+
 def main():
     cfg = Configuration()
     init_logging(cfg)
     init_k8s_client(cfg)
     log = logging.getLogger(__name__)
+    warn_if_env_variable_config(cfg, log)
     signal.signal(signal.SIGUSR2, thread_dump_logger(log))
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))

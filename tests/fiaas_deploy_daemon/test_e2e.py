@@ -114,6 +114,7 @@ class TestE2E(object):
             "--datadog-container-image", "DATADOG_IMAGE:tag",
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
+            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls", "default_off",
         ]
         if crd_supported(k8s_version):
@@ -329,17 +330,24 @@ class TestE2E(object):
             wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd")
-    def test_multiple_ingresses(self, request, kind_logger):
+    @pytest.mark.parametrize("input, expected", [
+        ("multiple_ingress", {
+            "v3-data-examples-multiple-ingress": "e2e_expected/multiple_ingress1.yml",
+            "v3-data-examples-multiple-ingress-1": "e2e_expected/multiple_ingress2.yml"
+        }),
+        ("tls_issuer_override", {
+            "v3-data-examples-tls-issuer-override": "e2e_expected/tls_issuer_override1.yml",
+            "v3-data-examples-tls-issuer-override-1": "e2e_expected/tls_issuer_override2.yml"
+        })
+    ])
+    def test_multiple_ingresses(self, request, kind_logger, input, expected):
         with kind_logger():
-            fiaas_path = "v3/data/examples/multiple_ingress.yml"
+            fiaas_path = "v3/data/examples/%s.yml" % input
             fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
 
             name = sanitize_resource_name(fiaas_path)
 
-            expected = {
-                name: read_yml(request.fspath.dirpath().join("e2e_expected/multiple_ingress1.yml").strpath),
-                "{}-1".format(name): read_yml(request.fspath.dirpath().join("e2e_expected/multiple_ingress2.yml").strpath)
-            }
+            expected = dict((k, read_yml(request.fspath.dirpath().join(v).strpath)) for (k, v) in expected.items())
             metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
             spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
             fiaas_application = FiaasApplication(metadata=metadata, spec=spec)

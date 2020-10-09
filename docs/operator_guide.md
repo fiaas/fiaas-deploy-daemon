@@ -32,11 +32,11 @@ In order for FIAAS to function in a cluster, some basics needs to be in place
 * Applications expect DNS to work, so kube-dns, coredns or an equivalent substitute should be installed
 * Log aggregation, so that stdout and stderr from applications are collected and aggregated and collected somewhere it can be found. Typically Fluentd collecting and sending to a suitable storage.
 * An ingress controller capable of handling all the required features
-* One or more DNS wildcards that will direct traffic to the ingress controller (see the [--ingress-suffix](#ingress-suffix) option) 
+* One or more DNS wildcards that will direct traffic to the ingress controller (see the [--ingress-suffix](#ingress-suffix) option)
 
 In addition, some conventions might be useful to know about:
 
-* In fiaas.yml v3, the default paths for probes and metrics starts with `/_/`. As a cluster operator, it might be useful to configure your cluster to disallow public access to any path that starts with this prefix. 
+* In fiaas.yml v3, the default paths for probes and metrics starts with `/_/`. As a cluster operator, it might be useful to configure your cluster to disallow public access to any path that starts with this prefix.
 
 How to set configuration options
 --------------------------------
@@ -139,6 +139,14 @@ If `default_off` tls configuration can be explicitly requested on a per applicat
 
 If `default_on` tls configuration will be applied unless explicitly disabled in application manifests.
 
+### tls-certificate-issuer-*
+
+Used to configure how the ingress will be annotated for issuing a TLS certificate using cert-manager:
+
+* `tls-certificate-issuer` sets the _value_ of the annotation, for example to decide between production and staging versions of an issuer in different namespaces
+* `tls-certificate-issuer-type-default` sets the default for the _key_ of the annotation, for example to use either `certmanager.k8s.io/cluster-issuer` (the default) or `certmanager.k8s.io/issuer`
+* `tls-certificate-issuer-type-overrides` allows specifying a mapping between the suffix of a domain and the issuer-type, to override the default. For example, assuming the 'cluster-issuer' type as the default, then specifying `--tls-certificate-issuer-type-overrides foo.example.com=certmanager.k8s.io/issuer` would mean that foo.example.com and any of its subdomains will use the 'issuer' type instead. In the case of multiple matching suffixes, the more specific (i.e. longest) will be used.
+
 ### use-in-memory-emptydirs
 
 Inside the container, `/tmp` will be mounted from an emptyDir volume, to allow applications some scratch-space without writing through the underlying docker storage driver. Similarly, when using the [Secrets init container](#secrets-init-container), the secrets are written to an emptyDir volume.
@@ -162,9 +170,9 @@ To deploy an application with FIAAS, you need three things:
 - A docker image reference
 - A FIAAS configuration for your application (commonly referred to as `fiaas.yml`)
 
-To deploy an application, create an Application object describing your application. A JSON schema describing the various objects FIAAS uses is in [schema.json](schema.json). 
+To deploy an application, create an Application object describing your application. A JSON schema describing the various objects FIAAS uses is in [schema.json](schema.json).
 
-When you create or update your Application object, and at various intervals in between, fiaas-deploy-daemon will load the description of your application and create or update all relevant objects to match what is described in your Application. A requirement is that you also set a label on the Application named `fiaas/deployment_id` (the Deployment ID). This should reflect a particular deployment that is to be considered distinct from previous or later deployments. Typically this will change when you either change your image or your FIAAS config. 
+When you create or update your Application object, and at various intervals in between, fiaas-deploy-daemon will load the description of your application and create or update all relevant objects to match what is described in your Application. A requirement is that you also set a label on the Application named `fiaas/deployment_id` (the Deployment ID). This should reflect a particular deployment that is to be considered distinct from previous or later deployments. Typically this will change when you either change your image or your FIAAS config.
 
 When you want to deploy a new version, you can in the simplest case update the `image` field and the Deployment ID label, and FIAAS will ensure a rolling deploy to the new image is performed. Making changes to the other fields in Application will likewise update the deployment.
 
@@ -198,7 +206,7 @@ In all cases, the container will be responsible for getting the application secr
 
 In the init container, the environment variable `K8S_DEPLOYMENT` will be the name of the application. In addition, any variables specified in a ConfigMap named `fiaas-secrets-init-container` will be exposed as environment variables.
 
-The ConfigMap will also be mounted at `/var/run/config/fiaas-secrets-init-container/`. If there exists a ConfigMap for the application then it will be mounted at `/var/run/config/fiaas/`. 
+The ConfigMap will also be mounted at `/var/run/config/fiaas-secrets-init-container/`. If there exists a ConfigMap for the application then it will be mounted at `/var/run/config/fiaas/`.
 
 #### Secrets init container (--secrets-init-container-image)
 
@@ -244,7 +252,7 @@ A Prometheus installation in the cluster, with ability to scrape all pods. It ca
 
 ### Datadog
 
-In order to use DataDog in a namespace, a secret named `datadog` needs to be provisioned. The secret should have a single key, `apikey`, which is a valid DataDog API key. The cluster operator also needs to configure fiaas-deploy-daemon with a `datadog-container-image`, which will be attached as a sidecar on all pods to receive metrics and forward to Datadog. 
+In order to use DataDog in a namespace, a secret named `datadog` needs to be provisioned. The secret should have a single key, `apikey`, which is a valid DataDog API key. The cluster operator also needs to configure fiaas-deploy-daemon with a `datadog-container-image`, which will be attached as a sidecar on all pods to receive metrics and forward to Datadog.
 
 The container will get these environment variables set:
 
@@ -261,7 +269,7 @@ Usage Reporting
 
 FIAAS can optionally report usage data to a web-service via POSTs to an HTTP endpoint. Fiaas-deploy-daemon will POST a JSON structure to the endpoint on deployment start, deployment failure and deployment success.
 
-The JSON document contains details about the application being deployed, where it is deployed and the result of that deployment. In the future, we might consider implementing other formats. 
+The JSON document contains details about the application being deployed, where it is deployed and the result of that deployment. In the future, we might consider implementing other formats.
 
 Except where noted, FIAAS passes these values on to the collector without processing.
 

@@ -62,6 +62,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - command: []
+        args: []
         env:
         - name: ARTIFACT_NAME
           value: v3-data-examples-strongbox
@@ -206,6 +207,7 @@ spec:
         - mountPath: '/tmp'
           name: 'tmp'
         command: []
+        args: [] 
         env:
         - name: 'K8S_DEPLOYMENT'
           value: 'v3-data-examples-strongbox'

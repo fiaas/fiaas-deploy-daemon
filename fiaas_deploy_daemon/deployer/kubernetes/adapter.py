@@ -43,12 +43,12 @@ class K8s(object):
             app_spec = _remove_resource_requirements(app_spec)
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
+        if self._enable_service_account_per_app is True:
+            self._service_account.deploy(app_spec, labels)
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
         self._autoscaler_deployer.deploy(app_spec, labels)
-        if self._enable_service_account_per_app is True:
-            self._service_account.deploy(app_spec, labels)
 
     def delete(self, app_spec):
         self._ingress_deployer.delete(app_spec)

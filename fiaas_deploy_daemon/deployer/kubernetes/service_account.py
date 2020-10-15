@@ -33,7 +33,7 @@ class ServiceAccountDeployer(object):
     def __init__(self, config, owner_references):
         self._owner_references = owner_references
 
-    def deploy(self, app_spec, selector, labels):
+    def deploy(self, app_spec, labels):
         self._create(app_spec, labels)
 
     def delete(self, app_spec):

@@ -29,7 +29,7 @@ from requests.auth import AuthBase
 class DevHoseAuth(AuthBase):
     def __init__(self, key, tenant):
         self._key = base64.b64decode(key.strip())
-        self._auth_context = base64.b64encode(json.dumps({"type": tenant}))
+        self._auth_context = base64.b64encode(json.dumps({"type": tenant}).encode("utf-8")).decode("utf-8")
 
     def __call__(self, r):
         timestamp = time.time()
@@ -43,8 +43,8 @@ class DevHoseAuth(AuthBase):
     def _calculate_signature(self, r, timestamp, nonce):
         signature = hmac.new(self._key, digestmod=hashlib.sha256)
         string_to_sign = self._create_string_to_sign(r, timestamp, nonce)
-        signature.update(string_to_sign)
-        return base64.b64encode(signature.digest())
+        signature.update(string_to_sign.encode("utf-8"))
+        return base64.b64encode(signature.digest()).decode("utf-8")
 
     def _create_string_to_sign(self, r, timestamp, nonce):
         return "\n".join((

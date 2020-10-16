@@ -266,9 +266,9 @@ class IngressTls(object):
 
     def _generate_short_host(self, app_spec):
         h = hashlib.sha1()
-        h.update(app_spec.name)
-        h.update(app_spec.namespace)
-        prefix = base64.b32encode(h.digest()).strip("=").lower()
+        h.update(app_spec.name.encode("utf-8"))
+        h.update(app_spec.namespace.encode("utf-8"))
+        prefix = base64.b32encode(h.digest()).decode("utf-8").strip("=").lower()
         short_prefix = prefix[:62 - len(self._shortest_suffix)]
         short_name = "{}.{}".format(short_prefix, self._shortest_suffix)
         if len(short_name) > 63 or short_name[0] == ".":

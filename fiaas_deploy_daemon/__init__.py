@@ -17,6 +17,7 @@
 from __future__ import absolute_import
 
 import logging
+import os
 import signal
 import sys
 import threading
@@ -117,11 +118,64 @@ def thread_dump_logger(log):
     return _dump_threads
 
 
+def warn_if_env_variable_config(config, log):
+    """temporary deprecation warning for https://github.com/fiaas/fiaas-deploy-daemon/issues/12"""
+
+    configuration_env_variable_keys = {
+        'SECRETS_DIRECTORY',
+        'LOG_FORMAT',
+        'http_proxy',
+        'DEBUG',
+        'FIAAS_ENVIRONMENT',
+        'FIAAS_SERVICE_TYPE',
+        'FIAAS_INFRASTRUCTURE',
+        'PORT',
+        'ENABLE_CRD_SUPPORT',
+        'SECRETS_INIT_CONTAINER_IMAGE',
+        'SECRETS_SERVICE_ACCOUNT_NAME',
+        'DATADOG_CONTAINER_IMAGE',
+        'DATADOG_CONTAINER_MEMORY',
+        'FIAAS_DATADOG_GLOBAL_TAGS',
+        'PRE_STOP_DELAY',
+        'STRONGBOX_INIT_CONTAINER_IMAGE',
+        'ENABLE_DEPRECATED_MULTI_NAMESPACE_SUPPORT',
+        'USE_INGRESS_TLS',
+        'TLS_CERTIFICATE_ISSUER',
+        'USE_IN_MEMORY_EMPTYDIRS',
+        'DEPLOYMENT_MAX_SURGE',
+        'DEPLOYMENT_MAX_UNAVAILABLE',
+        'READY_CHECK_TIMEOUT_MULTIPLIER',
+        'DISABLE_DEPRECATED_MANAGED_ENV_VARS',
+        'USAGE_REPORTING_CLUSTER_NAME',
+        'USAGE_REPORTING_OPERATOR',
+        'USAGE_REPORTING_ENDPOINT',
+        'USAGE_REPORTING_TENANT',
+        'USAGE_REPORTING_TEAM',
+        'API_SERVER',
+        'API_TOKEN',
+        'API_CERT',
+        'CLIENT_CERT',
+        'CLIENT_KEY',
+        'INGRESS_SUFFIXES',
+        'HOST_REWRITE_RULES',
+        'FIAAS_GLOBAL_ENV',
+        'FIAAS_SECRET_INIT_CONTAINERS',
+    }
+    environ_keys = set(os.environ.keys())
+    possible_config_env_variables = sorted(configuration_env_variable_keys & environ_keys)
+    if len(possible_config_env_variables) > 0:
+        log.warn("found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables " +
+                 "will be removed. If these environment variables are the primary source for this configuration, please switch to " +
+                 "configuring via a config file/ConfigMap or command-line flags. See " +
+                 "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information", ', '.join(possible_config_env_variables))
+
+
 def main():
     cfg = Configuration()
     init_logging(cfg)
     init_k8s_client(cfg)
     log = logging.getLogger(__name__)
+    warn_if_env_variable_config(cfg, log)
     signal.signal(signal.SIGUSR2, thread_dump_logger(log))
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))

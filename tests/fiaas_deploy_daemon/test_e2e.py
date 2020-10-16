@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import, print_function
 
 import contextlib
 import os
@@ -43,10 +42,10 @@ from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStat
     AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.tools import merge_dicts
 
-IMAGE1 = u"finntech/application-name:123"
-IMAGE2 = u"finntech/application-name:321"
-DEPLOYMENT_ID1 = u"deployment_id_1"
-DEPLOYMENT_ID2 = u"deployment_id_2"
+IMAGE1 = "finntech/application-name:123"
+IMAGE2 = "finntech/application-name:321"
+DEPLOYMENT_ID1 = "deployment_id_1"
+DEPLOYMENT_ID2 = "deployment_id_2"
 PATIENCE = 40
 TIMEOUT = 5
 
@@ -241,7 +240,7 @@ class TestE2E(object):
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in list(expected.items())}
 
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
@@ -267,8 +266,8 @@ class TestE2E(object):
 
     @staticmethod
     def _select_kinds(expected):
-        if len(expected.keys()) > 0:
-            return expected.keys()
+        if len(list(expected.keys())) > 0:
+            return list(expected.keys())
         else:
             return [Service, Deployment, Ingress]
 
@@ -290,7 +289,7 @@ class TestE2E(object):
             # Check that deployment status is RUNNING
             def _assert_status():
                 status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-                assert status.result == u"RUNNING"
+                assert status.result == "RUNNING"
                 assert len(status.logs) > 0
                 assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
@@ -300,7 +299,7 @@ class TestE2E(object):
             status_labels = fiaas_application.spec.additional_labels.status
             if status_labels:
                 status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-                label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+                label_difference = status_labels.items() - status.metadata.labels.items()
                 assert label_difference == set()
 
             # Check deploy success
@@ -347,7 +346,7 @@ class TestE2E(object):
 
             name = sanitize_resource_name(fiaas_path)
 
-            expected = {k: read_yml(request.fspath.dirpath().join(v).strpath) for (k, v) in expected.items()}
+            expected = {k: read_yml(request.fspath.dirpath().join(v).strpath) for (k, v) in list(expected.items())}
             metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
             spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
             fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
@@ -358,7 +357,7 @@ class TestE2E(object):
             # Check that deployment status is RUNNING
             def _assert_status():
                 status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-                assert status.result == u"RUNNING"
+                assert status.result == "RUNNING"
                 assert len(status.logs) > 0
                 assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
@@ -368,7 +367,7 @@ class TestE2E(object):
                 assert Ingress.get(name)
                 assert Ingress.get("{}-1".format(name))
 
-                for ingress_name, expected_dict in expected.items():
+                for ingress_name, expected_dict in list(expected.items()):
                     actual = Ingress.get(ingress_name)
                     assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
 
@@ -390,7 +389,7 @@ class TestE2E(object):
             FiaasApplication.delete(name)
 
             def cleanup_complete():
-                for name, _ in expected.items():
+                for name, _ in list(expected.items()):
                     with pytest.raises(NotFound):
                         Ingress.get(name)
 
@@ -406,7 +405,7 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id, s
         svc = Service.get(name)
         assert svc.spec.type == service_type
 
-        for kind, expected_dict in expected.items():
+        for kind, expected_dict in list(expected.items()):
             actual = kind.get(name)
             assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid)
 

@@ -167,7 +167,7 @@ class DeploymentDeployer(object):
         # fiaas_managed_env overrides global_env overrides legacy_fiaas_env
         static_env = merge_dicts(self._legacy_fiaas_env, self._global_env, fiaas_managed_env)
 
-        env = [EnvVar(name=name, value=value) for name, value in static_env.items()]
+        env = [EnvVar(name=name, value=value) for name, value in list(static_env.items())]
 
         # FIAAS managed environment variables using the downward API
         env.extend([
@@ -217,7 +217,7 @@ def _make_probe(check_spec):
     if check_spec.http:
         probe.httpGet = HTTPGetAction(path=check_spec.http.path, port=check_spec.http.port,
                                       httpHeaders=[HTTPHeader(name=name, value=value)
-                                                   for name, value in check_spec.http.http_headers.items()])
+                                                   for name, value in list(check_spec.http.http_headers.items())])
     elif check_spec.tcp:
         probe.tcpSocket = TCPSocketAction(port=check_spec.tcp.port)
     elif check_spec.execute:
@@ -249,5 +249,5 @@ def _build_global_env(global_env):
     global_env key/value are added as is and with the key prefix FIAAS_
     """
     _global_env_copy = global_env.copy()
-    _global_env_copy.update({'FIAAS_{}'.format(k): v for k, v in _global_env_copy.items()})
+    _global_env_copy.update({'FIAAS_{}'.format(k): v for k, v in list(_global_env_copy.items())})
     return _global_env_copy

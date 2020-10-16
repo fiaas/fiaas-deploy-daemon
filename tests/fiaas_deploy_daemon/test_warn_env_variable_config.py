@@ -11,16 +11,8 @@ class ConfigFlag():
     def __init__(self, env_key, env_value, config_key=None, config_value=None):
         self.env_key = env_key
         self.env_value = env_value
-        self._config_key = config_key
-        self._config_value = config_value
-
-    @property
-    def config_key(self):
-        return self._config_key if self._config_key is not None else self.env_key.lower()
-
-    @property
-    def config_value(self):
-        return self._config_value if self._config_value is not None else self.env_value
+        self.config_key = config_key if config_key is not None else env_key.lower()
+        self.config_value = config_value if config_value is not None else env_value
 
 
 @pytest.fixture()

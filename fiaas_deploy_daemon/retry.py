@@ -69,7 +69,7 @@ def _count_failure(target, *args, **kwargs):
 def canonical_name(func):
     if inspect.ismethod(func):
         # method's class is im_class, classmethod's class is im_self
-        method_cls = func.im_class if func.im_self is None else func.im_self
+        method_cls = func.__self__.__class__ if func.__self__ is None else func.__self__
         for cls in inspect.getmro(method_cls):
             if func.__name__ in cls.__dict__:
                 return "{}.{}.{}".format(cls.__module__, cls.__name__, func.__name__)

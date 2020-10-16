@@ -21,7 +21,7 @@ import hmac
 import json
 import time
 import uuid
-from urllib import quote, quote_plus
+from urllib.parse import quote, quote_plus
 
 from requests.auth import AuthBase
 

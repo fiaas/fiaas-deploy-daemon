@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import logging
-from Queue import Queue
+from queue import Queue
 from collections import Iterator
 
 from k8s import config
@@ -38,5 +38,5 @@ def log_request_response(resp, *args, **kwargs):
 
 
 class IterableQueue(Queue, Iterator):
-    def next(self):
+    def __next__(self):
         return self.get()

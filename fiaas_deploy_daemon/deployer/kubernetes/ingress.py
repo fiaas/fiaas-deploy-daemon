@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import base64
 import hashlib
@@ -42,8 +42,8 @@ class IngressDeployer(object):
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
-        self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
-                                                 key=lambda (k, v): len(k), reverse=True)
+        self._tls_issuer_type_overrides = sorted(iter(list(config.tls_certificate_issuer_type_overrides.items())),
+                                                 key=lambda k_v: len(k_v[0]), reverse=True)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -123,14 +123,14 @@ class IngressDeployer(object):
             else:
                 default_ingress.ingress_items.append(ingress_item)
 
-        ingresses.extend(i for i in override_issuer_ingresses.values())
+        ingresses.extend(i for i in list(override_issuer_ingresses.values()))
 
         return ingresses
 
     @retry_on_upsert_conflict
     def _create_ingress(self, app_spec, annotated_ingress, labels):
         default_annotations = {
-            u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
+            "fiaas/expose": "true" if annotated_ingress.explicit_host else "false"
         }
         annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
 
@@ -167,7 +167,7 @@ class IngressDeployer(object):
 
     def _generate_default_hosts(self, name):
         for suffix in self._ingress_suffixes:
-            yield u"{}.{}".format(name, suffix)
+            yield "{}.{}".format(name, suffix)
 
     def _apply_host_rewrite_rules(self, host):
         for rule in self._host_rewrite_rules:
@@ -200,7 +200,7 @@ def _has_explicitly_set_host(ingress_items):
 
 
 def _has_http_port(app_spec):
-    return any(port.protocol == u"http" for port in app_spec.ports)
+    return any(port.protocol == "http" for port in app_spec.ports)
 
 
 def _has_ingress(app_spec):
@@ -229,7 +229,7 @@ class IngressTls(object):
                 issuer = app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._cert_issuer
                 tls_annotations[issuer_type] = issuer
             else:
-                tls_annotations[u"kubernetes.io/tls-acme"] = u"true"
+                tls_annotations["kubernetes.io/tls-acme"] = "true"
             ingress.metadata.annotations = merge_dicts(
                 ingress.metadata.annotations if ingress.metadata.annotations else {},
                 tls_annotations

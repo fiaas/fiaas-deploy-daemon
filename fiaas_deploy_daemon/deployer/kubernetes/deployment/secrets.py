@@ -189,7 +189,7 @@ class GenericInitSecrets(KubernetesSecrets):
         if env_vars is None:
             env_vars = {}
         env_vars.update({"K8S_DEPLOYMENT": app_spec.name})
-        environment = [EnvVar(name=k, value=v) for k, v in env_vars.items()]
+        environment = [EnvVar(name=k, value=v) for k, v in list(env_vars.items())]
         container = Container(name=self.SECRETS_INIT_CONTAINER_NAME,
                               image=image,
                               imagePullPolicy="IfNotPresent",

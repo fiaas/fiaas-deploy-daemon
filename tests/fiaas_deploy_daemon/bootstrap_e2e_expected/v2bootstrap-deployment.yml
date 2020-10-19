@@ -62,6 +62,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - command: []
+        args: []
         env:
         - name: ARTIFACT_NAME
           value: specs-v2-data-examples-v2bootstrap

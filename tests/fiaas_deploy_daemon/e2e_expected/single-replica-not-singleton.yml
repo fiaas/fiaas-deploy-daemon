@@ -61,6 +61,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - command: []
+        args: []
         env:
         - name: ARTIFACT_NAME
           value: v3-data-examples-single-replica-not-singleton

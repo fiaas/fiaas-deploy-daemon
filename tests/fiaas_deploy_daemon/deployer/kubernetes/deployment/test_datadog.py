@@ -98,6 +98,7 @@ class TestDataDog(object):
             'image': CONTAINER_IMAGE,
             'volumeMounts': [],
             'command': [],
+            'args': [],
             'env': [
                 {
                     'name': 'DD_TAGS',

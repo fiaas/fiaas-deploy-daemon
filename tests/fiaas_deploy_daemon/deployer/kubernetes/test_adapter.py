@@ -37,6 +37,10 @@ class TestK8s(object):
         return mock.create_autospec(ServiceDeployer)
 
     @pytest.fixture(autouse=True)
+    def service_account_deployer(self):
+        return mock.create_autospec(ServiceAccountDeployer)
+
+    @pytest.fixture(autouse=True)
     def deployment_deployer(self):
         return mock.create_autospec(DeploymentDeployer)
 
@@ -55,10 +59,10 @@ class TestK8s(object):
             yield mockk
 
     @pytest.fixture
-    def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer):
+    def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
-        return K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer)
+        return K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer)
 
     def test_make_labels(self, k8s, app_spec):
         actual = k8s._make_labels(app_spec)

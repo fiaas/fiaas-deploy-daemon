@@ -29,7 +29,7 @@ from utils import TypeMatcher
 SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
 LABELS = {"service": "pass through"}
 
-class TestServiceDeployer(object):
+class TestServiceAccountDeployer(object):
 #    @pytest.fixture(params=("ClusterIP", "NodePort", "LoadBalancer"))
 #    def service_type(self, request):
 #        return request.param
@@ -55,4 +55,3 @@ class TestServiceDeployer(object):
 
         pytest.helpers.assert_any_call(post, SERVICES_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)
-

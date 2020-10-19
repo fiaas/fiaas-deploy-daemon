@@ -42,8 +42,7 @@ class TestServiceAccountDeployer(object):
         expected_service_account = {
                 'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
                 'secrets': [],
-                'imagePullSecrets': [],
-                'automountServiceAccountToken': True
+                'imagePullSecrets': []
         }
 
         mock_response = create_autospec(Response)

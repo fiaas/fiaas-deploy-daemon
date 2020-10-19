@@ -72,11 +72,13 @@ TEST_DATA = {
         "labels.deployment": {},
         "labels.horizontal_pod_autoscaler": {},
         "labels.service": {},
+        "labels.service_account": {},
         "labels.ingress": {},
         "labels.pod": {},
         "annotations.deployment": {},
         "annotations.horizontal_pod_autoscaler": {},
         "annotations.service": {},
+        "annotations.service_account": {},
         "annotations.ingress": {},
         "annotations.pod": {},
         "ingresses[0].host": None,
@@ -408,7 +410,7 @@ class TestFactory(object):
             ingress={"ingress/label": "true"},
             service={"service/label": "true"},
             pod={"pod/label": "true", "s": "override"},
-            status={"status/label": "true"},
+            status={"status/label": "true"}
         )
         additional_annotations = AdditionalLabelsOrAnnotations(
             _global={"global/annotation": "true"},
@@ -417,7 +419,7 @@ class TestFactory(object):
             ingress={"ingress/annotation": "true"},
             service={"service/annotation": "true"},
             pod={"pod/annotation": "true", "z": "override"},
-            status={"status/annotation": "true"},
+            status={"status/annotation": "true"}
         )
         app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), [], [], "deployment_id", NAMESPACE,
                            additional_labels, additional_annotations)

@@ -83,7 +83,7 @@ class DeploymentDeployer(object):
 
         automount_service_account_token = app_spec.admin_access
         init_containers = []
-        service_account_name = app_spec.name if self._enable_service_account_per_app is True else "default"
+        service_account_name = app_spec.name if self._enable_service_account_per_app else "default"
 
         pod_spec = PodSpec(containers=containers,
                            initContainers=init_containers,

@@ -35,7 +35,6 @@ metadata:
 spec:
   tls:
   - hosts:
-    - m3gt6a6nipvljp4l4dixj4jhmge5bii5.svc.test.example.com
     - use-issuer.example.com
     secretName: v3-data-examples-tls-issuer-override-1-ingress-tls
   rules:

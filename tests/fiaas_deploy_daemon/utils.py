@@ -24,6 +24,7 @@ import tempfile
 import time
 import traceback
 from copy import deepcopy
+from collections import defaultdict
 from datetime import datetime
 from urlparse import urljoin
 
@@ -180,9 +181,9 @@ def _set_image(expected_dict, image):
 def _set_env(expected_dict, image):
     def generate_updated_env():
         for item in expected_dict["spec"]["template"]["spec"]["containers"][0]["env"]:
-            if item["name"] == "VERSION":
+            if item["name"] == "VERSION" or item["name"] == "FIAAS_VERSION":
                 item["value"] = image.split(":")[-1]
-            if item["name"] == "IMAGE":
+            if item["name"] == "IMAGE" or item["name"] == "FIAAS_IMAGE":
                 item["value"] = image
             yield item
 
@@ -246,10 +247,12 @@ def get_unbound_port():
 
 
 class KindWrapper(object):
-    DOCKER_IMAGE = "bsycorp/kind"
-    # bsycorp/kind for 1.9 isn't being updated, and the latest version has an expired cert
-    DOCKER_IMAGE_19 = "fiaas/kind"
-    DOCKER_IMAGE_19_VERSION = "v1.9.11"
+    DOCKER_IMAGES = defaultdict(lambda: "bsycorp/kind")
+    # old bsycorp/kind versions isn't being updated, and the latest version has an expired cert
+    # See https://github.com/fiaas/fiaas-deploy-daemon/pull/45
+    DOCKER_IMAGES["v1.9.11"] = "fiaas/kind"
+    # See https://github.com/fiaas/fiaas-deploy-daemon/issues/115
+    DOCKER_IMAGES["v1.12.10"] = "fiaas/kind"
 
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version
@@ -317,10 +320,7 @@ class KindWrapper(object):
         return ready
 
     def _start(self):
-        if self.k8s_version == self.DOCKER_IMAGE_19_VERSION:
-            image_name = self.DOCKER_IMAGE_19
-        else:
-            image_name = self.DOCKER_IMAGE
+        image_name = self.DOCKER_IMAGES[self.k8s_version]
 
         self._container = self._client.containers.run("{}:{}".format(image_name, self.k8s_version),
                                                       detach=True, stdout=True, stderr=True,

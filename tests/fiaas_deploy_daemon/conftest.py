@@ -27,7 +27,7 @@ from fiaas_deploy_daemon.specs.models import AppSpec, \
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
-AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, cpu_threshold_percentage=50)
+AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, max_replicas=3, cpu_threshold_percentage=50)
 EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
                                     limits=ResourceRequirementSpec(cpu=None, memory=None))
 
@@ -41,7 +41,6 @@ def app_spec():
         name="testapp",
         namespace="default",
         image="finntech/testimage:version",
-        replicas=3,
         autoscaler=AUTOSCALER_SPEC,
         resources=EMPTY_RESOURCE_SPEC,
         admin_access=False,
@@ -189,6 +188,6 @@ def _open():
         yield mock_open
 
 
-@pytest.fixture(scope="session", params=("v1.9.11", "v1.12.10", "v1.14.4", pytest.param("v1.16.3", marks=pytest.mark.e2e_latest)))
+@pytest.fixture(scope="session", params=("v1.9.11", "v1.12.10", "v1.14.10", pytest.param("v1.16.3", marks=pytest.mark.e2e_latest)))
 def k8s_version(request):
     yield request.param

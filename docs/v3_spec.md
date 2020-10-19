@@ -313,7 +313,7 @@ healthchecks:
       port: # no default value
     initial_delay_seconds: 10
     period_seconds: 10
-    success_threshold: 1
+    success_threshold: 1 # For liveness, 1 is the only valid value. For readiness, it can be higher
     timeout_seconds: 1
 ```
 

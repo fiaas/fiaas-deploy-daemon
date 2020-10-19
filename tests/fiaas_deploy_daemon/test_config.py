@@ -69,6 +69,7 @@ class TestConfig(object):
         assert config.image == ""
         assert config.enable_deprecated_multi_namespace_support is False
         assert config.enable_deprecated_tls_entry_per_host is False
+        assert config.disable_deprecated_managed_env_vars is False
 
     @pytest.mark.parametrize("arg,key", [
         ("--api-server", "api_server"),
@@ -204,6 +205,15 @@ class TestConfig(object):
         args = ("pattern=value", "FIAAS_DD_tag=test")
         config = Configuration(["--datadog-global-tags=%s" % arg for arg in args])
         assert config.datadog_global_tags == {KeyValue(arg).key: KeyValue(arg).value for arg in args}
+
+    def test_tls_issuers(self):
+        issuer_types = ["foo.bar.com=issuer", "woo.foo.bar.com=other"]
+        args = ["--tls-certificate-issuer-type-overrides=%s" % issuer_type for issuer_type in issuer_types]
+        config = Configuration(args)
+        assert config.tls_certificate_issuer_type_overrides == {
+            "foo.bar.com": "issuer",
+            "woo.foo.bar.com": "other"
+        }
 
 
 class TestHostRewriteRule(object):

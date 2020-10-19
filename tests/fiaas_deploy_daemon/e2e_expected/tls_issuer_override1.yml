@@ -12,35 +12,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: autoscaling/v1
-kind: HorizontalPodAutoscaler
+apiVersion: extensions/v1beta1
+kind: Ingress
 metadata:
   annotations:
-    i: j
-    k: l
+    fiaas/expose: "true"
+    certmanager.k8s.io/cluster-issuer: "someissuer"
   labels:
-    app: v3-data-examples-full
-    e: f
+    app: v3-data-examples-tls-issuer-override
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
-    g: h
-    global/label: "true"
-    horizontal-pod-autoscaler/label: "true"
-  name: v3-data-examples-full
+  name: v3-data-examples-tls-issuer-override
   namespace: default
   ownerReferences:
     - apiVersion: fiaas.schibsted.io/v1
       blockOwnerDeletion: true
       controller: true
       kind: Application
-      name: v3-data-examples-full
+      name: v3-data-examples-tls-issuer-override
   finalizers: []
 spec:
-  maxReplicas: 20
-  minReplicas: 10
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: v3-data-examples-full
-  targetCPUUtilizationPercentage: 60
+  tls:
+  - hosts:
+    - m3gt6a6nipvljp4l4dixj4jhmge5bii5.svc.test.example.com
+    - www.example.com
+    - v3-data-examples-tls-issuer-override.svc.test.example.com
+    secretName: v3-data-examples-tls-issuer-override-ingress-tls
+  rules:
+  - host: www.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-tls-issuer-override
+          servicePort: '80'
+        path: /
+  - host: v3-data-examples-tls-issuer-override.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: v3-data-examples-tls-issuer-override
+          servicePort: '80'
+        path: /

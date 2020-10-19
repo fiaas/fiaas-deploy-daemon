@@ -14,7 +14,10 @@
 # limitations under the License.
 ---
 version: 3
-replicas:
-  minimum: 1
-  maximum: 1
-  singleton: true
+ingress:
+  - host: www.example.com
+  - host: use-issuer.example.com
+extensions:
+  tls:
+    enabled: true
+    certificate_issuer: someissuer

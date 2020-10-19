@@ -27,6 +27,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
 
+from fiaas_deploy_daemon.specs.models import IngressItemSpec
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
@@ -40,6 +41,9 @@ class IngressDeployer(object):
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references
+        self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
+        self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
+                                                 key=lambda (k, v): len(k), reverse=True)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -58,7 +62,7 @@ class IngressDeployer(object):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
 
-        ingresses = self._group_ingresses_by_annotations(app_spec)
+        ingresses = self._group_ingresses(app_spec)
 
         LOG.info("Will create %s ingresses", len(ingresses))
         for annotated_ingress in ingresses:
@@ -70,27 +74,58 @@ class IngressDeployer(object):
 
         self._delete_unused(app_spec, custom_labels)
 
-    def _group_ingresses_by_annotations(self, app_spec):
-        ''' Group the ingresses so that those with annotations are individual, keeping all without
-        annotations together
+    def _expand_default_hosts(self, app_spec):
+        all_pathmappings = list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
+                                                      for ingress_item in app_spec.ingresses if not ingress_item.annotations)))
+        return [IngressItemSpec(host=host, pathmappings=all_pathmappings, annotations=None)
+                for host in self._generate_default_hosts(app_spec.name)]
+
+    def _get_issuer_type(self, host):
+        for (suffix, issuer_type) in self._tls_issuer_type_overrides:
+            if host and (host == suffix or host.endswith("." + suffix)):
+                return issuer_type
+
+        return self._tls_issuer_type_default
+
+    def _group_ingresses(self, app_spec):
+        ''' Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
+        are separated
         '''
-        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations"])
-        unannotated_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={})
-        ingresses = [unannotated_ingress]
-        for ingress_item in app_spec.ingresses:
+        explicit_host = _has_explicitly_set_host(app_spec.ingresses)
+        ingress_items = app_spec.ingresses + self._expand_default_hosts(app_spec)
+
+        AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type"])
+        default_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={},
+                                           explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default)
+        ingresses = [default_ingress]
+        override_issuer_ingresses = {}
+        for ingress_item in ingress_items:
+            issuer_type = self._get_issuer_type(ingress_item.host)
+            next_name = "{}-{}".format(app_spec.name, len(ingresses))
             if ingress_item.annotations:
-                next_name = "{}-{}".format(app_spec.name, len(ingresses))
-                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item], annotations=ingress_item.annotations)
+                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item],
+                                                       annotations=ingress_item.annotations,
+                                                       explicit_host=True, issuer_type=issuer_type)
                 ingresses.append(annotated_ingresses)
+            elif issuer_type != self._tls_issuer_type_default:
+                annotated_ingress = override_issuer_ingresses.setdefault(issuer_type,
+                                                                         AnnotatedIngress(name=next_name,
+                                                                                          ingress_items=[],
+                                                                                          annotations={},
+                                                                                          explicit_host=explicit_host,
+                                                                                          issuer_type=issuer_type))
+                annotated_ingress.ingress_items.append(ingress_item)
             else:
-                unannotated_ingress.ingress_items.append(ingress_item)
+                default_ingress.ingress_items.append(ingress_item)
+
+        ingresses.extend(i for i in override_issuer_ingresses.values())
 
         return ingresses
 
     @retry_on_upsert_conflict
     def _create_ingress(self, app_spec, annotated_ingress, labels):
         default_annotations = {
-            u"fiaas/expose": u"true" if _has_explicitly_set_host(annotated_ingress.ingress_items) else u"false"
+            u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
         }
         annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
 
@@ -105,17 +140,15 @@ class IngressDeployer(object):
         ]
         if annotated_ingress.annotations:
             use_suffixes = False
-            host_ingress_rules = per_host_ingress_rules
         else:
             use_suffixes = True
-            host_ingress_rules = per_host_ingress_rules + self._create_default_host_ingress_rules(app_spec)
 
-        ingress_spec = IngressSpec(rules=host_ingress_rules)
+        ingress_spec = IngressSpec(rules=per_host_ingress_rules)
 
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
 
-        hosts_for_tls = [rule.host for rule in host_ingress_rules]
-        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, use_suffixes=use_suffixes)
+        hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
+        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
         self._owner_references.apply(ingress, app_spec)
         ingress.save()
 
@@ -130,13 +163,6 @@ class IngressDeployer(object):
     def _generate_default_hosts(self, name):
         for suffix in self._ingress_suffixes:
             yield u"{}.{}".format(name, suffix)
-
-    def _create_default_host_ingress_rules(self, app_spec):
-        all_pathmappings = chain.from_iterable(ingress_item.pathmappings
-                                               for ingress_item in app_spec.ingresses if not ingress_item.annotations)
-        http_ingress_rule_value = self._make_http_ingress_rule_value(app_spec, all_pathmappings)
-        return [IngressRule(host=host, http=http_ingress_rule_value)
-                for host in self._generate_default_hosts(app_spec.name)]
 
     def _apply_host_rewrite_rules(self, host):
         for rule in self._host_rewrite_rules:
@@ -165,7 +191,7 @@ class IngressDeployer(object):
 
 
 def _has_explicitly_set_host(ingress_items):
-    return any(ingress_item.host is not None for ingress_item in ingress_items)
+    return any(ingress_item.host is not None and not ingress_item.annotations for ingress_item in ingress_items)
 
 
 def _has_http_port(app_spec):
@@ -191,12 +217,12 @@ class IngressTls(object):
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
 
-    def apply(self, ingress, app_spec, hosts, use_suffixes=True):
+    def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):
             tls_annotations = {}
             if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
                 issuer = app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._cert_issuer
-                tls_annotations[u"certmanager.k8s.io/cluster-issuer"] = issuer
+                tls_annotations[issuer_type] = issuer
             else:
                 tls_annotations[u"kubernetes.io/tls-acme"] = u"true"
             ingress.metadata.annotations = merge_dicts(

@@ -41,8 +41,8 @@ class DeploymentDeployer(object):
         self._prometheus = prometheus
         self._secrets = deployment_secrets
         self._owner_references = owner_references
-        self._fiaas_env = _build_fiaas_env(config)
-        self._global_env = config.global_env
+        self._legacy_fiaas_env = _build_fiaas_env(config)
+        self._global_env = _build_global_env(config.global_env)
         self._lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
@@ -52,6 +52,7 @@ class DeploymentDeployer(object):
             self._grace_period += config.pre_stop_delay
         self._max_surge = config.deployment_max_surge
         self._max_unavailable = config.deployment_max_unavailable
+        self._disable_deprecated_managed_env_vars = config.disable_deprecated_managed_env_vars
 
     @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
@@ -94,8 +95,8 @@ class DeploymentDeployer(object):
         pod_metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=pod_labels,
                                   annotations=app_spec.annotations.pod)
         pod_template_spec = PodTemplateSpec(metadata=pod_metadata, spec=pod_spec)
-        replicas = app_spec.replicas
-        # we must avoid that the deployment scales up to app_spec.replicas if autoscaler has set another value
+        replicas = app_spec.autoscaler.min_replicas
+        # we must avoid that the deployment scales up to app_spec.autoscaler.min_replicas if autoscaler has set another value
         if should_have_autoscaler(app_spec):
             try:
                 deployment = Deployment.get(app_spec.name, app_spec.namespace)
@@ -103,14 +104,14 @@ class DeploymentDeployer(object):
                 if deployment.spec.replicas > 0:
                     replicas = deployment.spec.replicas
                     LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
-                             " is different (%d) for %s", app_spec.replicas, deployment.spec.replicas, app_spec.name)
+                             " is different (%d) for %s", app_spec.autoscaler.min_replicas, deployment.spec.replicas, app_spec.name)
             except NotFound:
                 pass
 
         deployment_strategy = DeploymentStrategy(
             rollingUpdate=RollingUpdateDeployment(maxUnavailable=self._max_unavailable,
                                                   maxSurge=self._max_surge))
-        if app_spec.replicas == 1 and app_spec.singleton:
+        if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(
                 rollingUpdate=RollingUpdateDeployment(maxUnavailable=1, maxSurge=0))
         spec = DeploymentSpec(replicas=replicas, selector=LabelSelector(matchLabels=selector),
@@ -151,21 +152,24 @@ class DeploymentDeployer(object):
         return volume_mounts
 
     def _make_env(self, app_spec):
-        constants = self._fiaas_env.copy()
-        constants["ARTIFACT_NAME"] = app_spec.name
-        constants["IMAGE"] = app_spec.image
-        constants["VERSION"] = app_spec.version
-        env = [EnvVar(name=name, value=value) for name, value in constants.iteritems()]
+        fiaas_managed_env = {
+            'FIAAS_ARTIFACT_NAME': app_spec.name,
+            'FIAAS_IMAGE': app_spec.image,
+            'FIAAS_VERSION': app_spec.version,
+        }
+        if not self._disable_deprecated_managed_env_vars:
+            fiaas_managed_env.update({
+                'ARTIFACT_NAME': app_spec.name,
+                'IMAGE': app_spec.image,
+                'VERSION': app_spec.version,
+            })
 
-        # For backward compatibility. https://github.schibsted.io/finn/fiaas-deploy-daemon/pull/34
-        global_env = []
-        for name, value in self._global_env.iteritems():
-            if "FIAAS_{}".format(name) not in constants and name not in constants:
-                global_env.extend([EnvVar(name=name, value=value), EnvVar(name="FIAAS_{}".format(name), value=value)])
-            else:
-                LOG.warn("Reserved environment-variable: {} declared as global. Ignoring and continuing".format(name))
-        env.extend(global_env)
+        # fiaas_managed_env overrides global_env overrides legacy_fiaas_env
+        static_env = merge_dicts(self._legacy_fiaas_env, self._global_env, fiaas_managed_env)
 
+        env = [EnvVar(name=name, value=value) for name, value in static_env.items()]
+
+        # FIAAS managed environment variables using the downward API
         env.extend([
             EnvVar(name="FIAAS_REQUESTS_CPU", valueFrom=EnvVarSource(
                 resourceFieldRef=ResourceFieldSelector(containerName=app_spec.name, resource="requests.cpu",
@@ -183,7 +187,9 @@ class DeploymentDeployer(object):
             EnvVar(name="FIAAS_POD_NAME", valueFrom=EnvVarSource(
                 fieldRef=ObjectFieldSelector(fieldPath="metadata.name"))),
         ])
+
         env.sort(key=lambda x: x.name)
+
         return env
 
 
@@ -236,3 +242,12 @@ def _build_fiaas_env(config):
             "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
         })
     return env
+
+
+def _build_global_env(global_env):
+    """
+    global_env key/value are added as is and with the key prefix FIAAS_
+    """
+    _global_env_copy = global_env.copy()
+    _global_env_copy.update({'FIAAS_{}'.format(k): v for k, v in _global_env_copy.items()})
+    return _global_env_copy

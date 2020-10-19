@@ -68,6 +68,10 @@ spec:
           value: specs-v2-data-examples-v2bootstrap
         - name: CONSTRETTO_TAGS
           value: kubernetes
+        - name: FIAAS_ARTIFACT_NAME
+          value: specs-v2-data-examples-v2bootstrap
+        - name: FIAAS_IMAGE
+          value: IMAGE
         - name: FIAAS_INFRASTRUCTURE
           value: diy
         - name: FIAAS_LIMITS_CPU
@@ -104,6 +108,8 @@ spec:
               containerName: specs-v2-data-examples-v2bootstrap
               divisor: "1"
               resource: requests.memory
+        - name: FIAAS_VERSION
+          value: VERSION
         - name: IMAGE
           value: nginx:1.13.9-alpine
         - name: LOG_FORMAT

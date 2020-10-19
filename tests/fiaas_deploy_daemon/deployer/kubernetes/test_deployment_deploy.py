@@ -81,13 +81,35 @@ class TestDeploymentDeployer(object):
         yield request.param
 
     @pytest.fixture(params=(
-            ("gke", {}, True),
-            ("diy", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test'}, True),
-            ("gke", {'A_GLOBAL_DIGIT': '0.01', 'A_GLOBAL_STRING': 'test', 'INFRASTRUCTURE': 'illegal',
-                     'ARTIFACT_NAME': 'illegal'}, False),
+        # key: (infrastructure, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars)
+        ("gke", {}, True, True),
+        ("diy", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+        }, True, True),
+        ("gke", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+            # Variables currently managed by FIAAS which should be possible to override via global_env
+            'CONSTRETTO_TAGS': 'override_constretto',
+            'FINN_ENV': 'override_finn_env',
+            'LOG_FORMAT': 'override_log_format',
+            'LOG_STDOUT': 'false',
+            'FIAAS_ENVIRONMENT': 'override_environment',
+            'FIAAS_INFRASTRUCTURE': 'override_infrastructure',
+        }, False, False),
+        ("diy", {
+            'A_GLOBAL_DIGIT': '0.01',
+            'A_GLOBAL_STRING': 'test',
+            # global_env variables are added as is and also with the key prefix FIAAS_ - ensure it works to override
+            # the following variables even if FIAAS_ prefixed keys clash with the environment and infrastructure
+            # derived FIAAS_INFRASTRUCTURE and FIAAS_ENVIRONMENT
+            'ENVIRONMENT': 'override_fiaas_environment',
+            'INFRASTRUCTURE': 'override_fiaas_infrastructure',
+        }, True, False)
     ))
     def config(self, request, environment):
-        infra, global_env, use_in_memory_emptydirs = request.param
+        infra, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = environment
@@ -97,6 +119,7 @@ class TestDeploymentDeployer(object):
         config.use_in_memory_emptydirs = use_in_memory_emptydirs
         config.deployment_max_surge = u"25%"
         config.deployment_max_unavailable = 0
+        config.disable_deprecated_managed_env_vars = disable_deprecated_managed_env_vars
         yield config
 
     @pytest.fixture(params=(
@@ -104,7 +127,6 @@ class TestDeploymentDeployer(object):
              {"bar": "foo", "global_label": "attempt to override"}, {"quux": "bax"}, False),
             (True, {}, {"bar": "baz"}, {"foo": "bar"}, {}, False),
             (True, {"foo": "bar"}, {}, {}, {"bar": "baz"}, True,),
-            (False, {}, {}, {}, {}, True),
             (False, {}, {}, {}, {}, True),
     ))
     def app_spec(self, request, app_spec):
@@ -118,14 +140,12 @@ class TestDeploymentDeployer(object):
         if generic_toggle:
             ports = app_spec.ports
             health_checks = app_spec.health_checks
-            replicas = 1
         else:
             ports = []
             exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
                                    initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                    failure_threshold=3, timeout_seconds=1)
             health_checks = HealthCheckSpec(liveness=exec_check, readiness=exec_check)
-            replicas = 5
 
         yield app_spec._replace(
             admin_access=generic_toggle,
@@ -133,7 +153,6 @@ class TestDeploymentDeployer(object):
             health_checks=health_checks,
             labels=labels,
             annotations=annotations,
-            replicas=replicas,
             singleton=singleton,
         )
 
@@ -148,6 +167,18 @@ class TestDeploymentDeployer(object):
     @pytest.fixture
     def secrets(self, config):
         return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
+
+    @pytest.mark.usefixtures("get")
+    def test_managed_environment_variables(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+        env = deployer._make_env(app_spec)
+        env_keys = [var.name for var in env]
+        assert 'FIAAS_ARTIFACT_NAME' in env_keys
+        assert 'FIAAS_IMAGE' in env_keys
+        assert 'FIAAS_VERSION' in env_keys
+        assert ('ARTIFACT_NAME' not in env_keys) == config.disable_deprecated_managed_env_vars
+        assert ('IMAGE' not in env_keys) == config.disable_deprecated_managed_env_vars
+        assert ('VERSION' not in env_keys) == config.disable_deprecated_managed_env_vars
 
     @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
@@ -168,7 +199,7 @@ class TestDeploymentDeployer(object):
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets, owner_references):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
-        old_app_spec = app_spec._replace(replicas=10, strongbox=old_strongbox_spec)
+        old_app_spec = app_spec._replace(strongbox=old_strongbox_spec)
         old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
         get_mock_response = create_autospec(Response)
         get_mock_response.json.return_value = old_deployment
@@ -190,9 +221,9 @@ class TestDeploymentDeployer(object):
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
-            (5, 3, 2, None, 3),
+            (5, 3, 2, None, 2),
             (5, 3, 2, "1", 5),
-            (0, 3, 2, "1", 3),
+            (0, 3, 2, "1", 2),
     ))
     def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
                                               expected_replicas, config, app_spec, get, put, post, datadog, prometheus,
@@ -202,8 +233,7 @@ class TestDeploymentDeployer(object):
         image = "finntech/testimage:version2"
         version = "version2"
         app_spec = app_spec._replace(
-            replicas=max_replicas,
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, cpu_threshold_percentage=50),
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=min_replicas, max_replicas=max_replicas, cpu_threshold_percentage=50),
             image=image)
         if cpu_request:
             app_spec = app_spec._replace(
@@ -251,7 +281,7 @@ class TestDeploymentDeployer(object):
                             'volumeMounts': expected_volume_mounts,
                             'command': [],
                             'args': [],
-                            'env': create_environment_variables(config.infrastructure,
+                            'env': create_environment_variables(config,
                                                                 global_env=config.global_env,
                                                                 environment=config.environment),
                             'envFrom': [{
@@ -374,7 +404,7 @@ def create_expected_deployment(config,
         },
         'command': [],
         'args': [],
-        'env': create_environment_variables(config.infrastructure, global_env=config.global_env,
+        'env': create_environment_variables(config, global_env=config.global_env,
                                             version=version, environment=config.environment),
         'envFrom': expected_env_from,
         'imagePullPolicy': 'IfNotPresent',
@@ -393,7 +423,7 @@ def create_expected_deployment(config,
 
     max_surge = u"25%"
     max_unavailable = 0
-    if app_spec.replicas == 1 and app_spec.singleton:
+    if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
         max_surge = 0
         max_unavailable = 1
 
@@ -419,7 +449,7 @@ def create_expected_deployment(config,
                                                            labels=_get_expected_template_labels(app_spec.labels.pod),
                                                            annotations=pod_annotations)
             },
-            'replicas': replicas if replicas else app_spec.replicas,
+            'replicas': replicas if replicas else app_spec.autoscaler.min_replicas,
             'revisionHistoryLimit': 5,
             'strategy': {
                 'type': 'RollingUpdate',
@@ -433,26 +463,38 @@ def create_expected_deployment(config,
     return deployment
 
 
-def create_environment_variables(infrastructure, global_env=None, version="version", environment=None):
-    env = [
-        {'name': 'ARTIFACT_NAME', 'value': 'testapp'},
-        {'name': 'LOG_STDOUT', 'value': 'true'},
-        {'name': 'VERSION', 'value': version},
-        {'name': 'FIAAS_INFRASTRUCTURE', 'value': infrastructure},
-        {'name': 'LOG_FORMAT', 'value': 'json'},
-        {'name': 'IMAGE', 'value': 'finntech/testimage:' + version},
-        {'name': 'CONSTRETTO_TAGS', 'value': _create_constretto_tag(environment)},
-    ]
+def create_environment_variables(config, global_env=None, version="version", environment=None):
+    _env_variables = {
+        'LOG_STDOUT': 'true',
+        'FIAAS_INFRASTRUCTURE': config.infrastructure,
+        'LOG_FORMAT': 'json',
+        'CONSTRETTO_TAGS': _create_constretto_tag(environment),
+    }
+
+    _managed_env_variables = {
+        'FIAAS_ARTIFACT_NAME': 'testapp',
+        'FIAAS_VERSION': version,
+        'FIAAS_IMAGE': 'finntech/testimage:' + version,
+    }
+    if not config.disable_deprecated_managed_env_vars:
+        _managed_env_variables.update({
+            'ARTIFACT_NAME': 'testapp',
+            'VERSION': version,
+            'IMAGE': 'finntech/testimage:' + version,
+        })
+    _env_variables.update(_managed_env_variables)
+
     if environment:
-        env.extend([
-            {'name': 'FIAAS_ENVIRONMENT', 'value': environment},
-            {'name': 'FINN_ENV', 'value': environment},
-        ])
+        _env_variables.update({
+            'FIAAS_ENVIRONMENT': environment,
+            'FINN_ENV': environment,
+        })
+
     if global_env:
-        env.append({'name': 'A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        env.append({'name': 'FIAAS_A_GLOBAL_STRING', 'value': global_env['A_GLOBAL_STRING']})
-        env.append({'name': 'A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
-        env.append({'name': 'FIAAS_A_GLOBAL_DIGIT', 'value': global_env['A_GLOBAL_DIGIT']})
+        _env_variables.update(global_env)
+        _env_variables.update({"FIAAS_{}".format(k): v for k, v in global_env.items()})
+
+    env = [{'name': k, 'value': v} for k, v in _env_variables.items()]
 
     env.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'requests.cpu', 'divisor': 1}}})

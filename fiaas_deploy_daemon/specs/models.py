@@ -22,7 +22,6 @@ class AppSpec(namedtuple("AppSpec", [
     "namespace",
     "name",
     "image",
-    "replicas",
     "autoscaler",
     "resources",
     "admin_access",
@@ -104,6 +103,7 @@ TcpCheckSpec = namedtuple("TcpCheckSpec", [
 AutoscalerSpec = namedtuple("AutoscalerSpec", [
     "enabled",
     "min_replicas",
+    "max_replicas",
     "cpu_threshold_percentage"
 ])
 

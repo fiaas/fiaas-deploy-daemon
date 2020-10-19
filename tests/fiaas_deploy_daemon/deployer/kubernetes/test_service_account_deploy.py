@@ -29,7 +29,6 @@ from utils import TypeMatcher
 SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
 LABELS = {"service": "pass through"}
 
-
 class TestServiceAccountDeployer(object):
 
     @pytest.fixture

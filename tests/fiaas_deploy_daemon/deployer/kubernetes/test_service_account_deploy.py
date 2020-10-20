@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8
 
-# Copyright 2017-2019 The FIAAS Authors
+# Copyright 2017-2020 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,17 +22,13 @@ from k8s.models.service_account import ServiceAccount
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
-from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
-
 from utils import TypeMatcher
 
 SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
 LABELS = {"service": "pass through"}
 
+
 class TestServiceAccountDeployer(object):
-#    @pytest.fixture(params=("ClusterIP", "NodePort", "LoadBalancer"))
-#    def service_type(self, request):
-#        return request.param
 
     @pytest.fixture
     def deployer(self, owner_references):
@@ -51,7 +47,7 @@ class TestServiceAccountDeployer(object):
         mock_response.json.return_value = expected_service_account
         post.return_value = mock_response
 
-        deployer.deploy(app_spec , LABELS)
+        deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, SERVICES_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)

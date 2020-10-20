@@ -138,6 +138,7 @@ Look for a service account by app name; use this if we find one, else fall back 
 the namespace's default.
 """
 
+
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
 

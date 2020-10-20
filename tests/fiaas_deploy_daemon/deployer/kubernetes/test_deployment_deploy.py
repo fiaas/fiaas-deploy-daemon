@@ -73,10 +73,6 @@ def test_make_probe_should_fail_when_no_healthcheck_is_defined():
     with pytest.raises(RuntimeError):
         _make_probe(check_spec)
 
-class Feature(enum.Enum):
-    USE_IN_MEMORY_EMPTYDIRS = 1
-    DISABLE_DEPRECATED_MANAGED_ENV_VARS = 2
-    ENABLE_SERVICE_ACCOUNT_PER_APP = 3
 
 class Feature(enum.Enum):
     USE_IN_MEMORY_EMPTYDIRS = 1
@@ -149,7 +145,7 @@ class TestDeploymentDeployer(object):
         generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
-                                        service={}, service_account={},pod=pod_labels, status={})
+                                        service={}, service_account={}, pod=pod_labels, status={})
         annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
                                              service={}, service_account={}, pod=pod_annotations, status={})
 

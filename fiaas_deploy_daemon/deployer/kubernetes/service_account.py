@@ -19,9 +19,9 @@ from __future__ import absolute_import
 import logging
 
 from k8s.client import NotFound
-from k8s.models.common import ObjectMeta, LocalObjectReference
 from k8s.models.service_account import ServiceAccount
 
+from k8s.models.common import ObjectMeta
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
@@ -41,8 +41,7 @@ class ServiceAccountDeployer(object):
         try:
             service_account = ServiceAccount.get(app_spec.name, app_spec.namespace)
             if not self._owned_by_fiaas(service_account):
-              return
-
+                return
             ServiceAccount.delete(app_spec.name, app_spec.namespace)
         except NotFound:
             pass
@@ -55,7 +54,7 @@ class ServiceAccountDeployer(object):
             service_account = ServiceAccount.get(app_spec.name, app_spec.namespace)
             if not self._owned_by_fiaas(service_account):
                 LOG.info("Found serviceAccount %s not managed by us.", app_spec.name)
-                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", app_spec.name, labels) 
+                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", app_spec.name, labels)
                 return
         except NotFound:
             pass

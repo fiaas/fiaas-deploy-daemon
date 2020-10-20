@@ -74,6 +74,7 @@ spec:
       automountServiceAccountToken: true
       containers:
       - command: []
+        args: []
         env:
         - name: ARTIFACT_NAME
           value: v3-data-examples-full
@@ -189,6 +190,7 @@ spec:
         - mountPath: /tmp
           name: tmp
       - command: []
+        args: []
         env:
         - name: DD_TAGS
           value: app:v3-data-examples-full,k8s_namespace:default,tag1:value1,tag2:value2
@@ -254,6 +256,7 @@ spec:
             name: fiaas-secrets-init-container
             optional: true
         command: []
+        args: []
         env:
         - name: K8S_DEPLOYMENT
           value: v3-data-examples-full

@@ -246,7 +246,7 @@ class Configuration(Namespace):
                                 default=None)
         tls_parser.add_argument("--tls-certificate-issuer-type-default",
                                 help="The annotation to set for cert-manager to provision certificates",
-                                default="certmanager.k8s.io/cluster-issuer")
+                                default="cert-manager.k8s.io/cluster-issuer")
         tls_parser.add_argument("--tls-certificate-issuer-type-overrides", help="Issuers to use for specified domain suffixes",
                                 default=[],
                                 action="append", type=KeyValue, dest="tls_certificate_issuer_type_overrides")

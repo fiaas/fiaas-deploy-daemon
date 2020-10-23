@@ -114,7 +114,7 @@ class TestE2E(object):
             "--datadog-container-image", "DATADOG_IMAGE:tag",
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
-            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
+            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=cert-manager.k8s.io/issuer",
             "--use-ingress-tls", "default_off",
         ]
         if crd_supported(k8s_version):

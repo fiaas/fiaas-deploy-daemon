@@ -92,7 +92,8 @@ class IngressDeployer(object):
         are separated
         '''
         explicit_host = _has_explicitly_set_host(app_spec.ingresses)
-        ingress_items = app_spec.ingresses + self._expand_default_hosts(app_spec)
+        ingress_items = [item._replace(host=self._apply_host_rewrite_rules(item.host)) for item in app_spec.ingresses if item.host]
+        ingress_items += self._expand_default_hosts(app_spec)
 
         AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host",
                                       "issuer_type", "default"])
@@ -137,7 +138,7 @@ class IngressDeployer(object):
                               annotations=annotations)
 
         per_host_ingress_rules = [
-            IngressRule(host=self._apply_host_rewrite_rules(ingress_item.host),
+            IngressRule(host=ingress_item.host,
                         http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
             for ingress_item in annotated_ingress.ingress_items
             if ingress_item.host is not None

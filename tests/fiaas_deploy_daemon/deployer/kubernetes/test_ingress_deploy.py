@@ -494,7 +494,9 @@ class TestIngressDeployer(object):
         config.ingress_suffixes = ["svc.test.example.com", "127.0.0.1.xip.io"]
         config.host_rewrite_rules = [
             HostRewriteRule("rewrite.example.com=test.rewrite.example.com"),
-            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com")
+            HostRewriteRule(r"([a-z0-9](?:[-a-z0-9]*[a-z0-9])?).rewrite.example.com=test.\1.rewrite.example.com"),
+            HostRewriteRule(r"([\w\.\-]+)\.svc.test.example.com=dont-rewrite-suffix-urls.example.com"),
+            HostRewriteRule(r"([\w\.\-]+)\.127.0.0.1.xip.io=dont-rewrite-suffix-urls.example.com"),
         ]
         config.tls_certificate_issuer_type_default = DEFAULT_TLS_ISSUER
         config.tls_certificate_issuer_type_overrides = {}

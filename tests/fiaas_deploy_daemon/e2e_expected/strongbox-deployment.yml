@@ -207,12 +207,12 @@ spec:
           name: 'tmp'
         command: []
         env:
-        - name: 'K8S_DEPLOYMENT'
-          value: 'v3-data-examples-strongbox'
         - name: 'AWS_REGION'
           value: 'eu-central-1'
         - name: 'SECRET_GROUPS'
           value: 'secretgroup1,secretgroup2,secretgroup3'
+        - name: 'K8S_DEPLOYMENT'
+          value: 'v3-data-examples-strongbox'
         imagePullPolicy: 'IfNotPresent'
         ports: []
       imagePullSecrets: []

@@ -355,10 +355,12 @@ class TestStrongboxSecrets(object):
         init_container = deployment.spec.template.spec.initContainers[0]
         assert init_container is not None
 
-        assert 3 == len(init_container.env)
-        self._assert_env_var(init_container.env[0], "K8S_DEPLOYMENT", app_spec.name)
-        self._assert_env_var(init_container.env[1], "AWS_REGION", self.AWS_REGION)
-        self._assert_env_var(init_container.env[2], "SECRET_GROUPS", self.GROUPS)
+        expected = [
+            EnvVar(name="AWS_REGION", value=self.AWS_REGION),
+            EnvVar(name="SECRET_GROUPS", value=self.GROUPS),
+            EnvVar(name="K8S_DEPLOYMENT", value=app_spec.name),
+        ]
+        assert init_container.env == expected
 
     def test_annotations(self, deployment, app_spec, strongbox_secrets, secrets_spec):
         strongbox_secrets.apply(deployment, app_spec, secrets_spec)
@@ -368,10 +370,3 @@ class TestStrongboxSecrets(object):
             CANARY_NAME: CANARY_VALUE,
             "iam.amazonaws.com/role": self.IAM_ROLE
         }
-
-    @staticmethod
-    def _assert_env_var(env_var, name, value):
-        __tracebackhide__ = True
-
-        assert name == env_var.name
-        assert value == env_var.value

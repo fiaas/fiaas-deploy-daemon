@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-import inspect
 import sys
 
 import backoff
@@ -68,13 +67,7 @@ def _count_failure(target, *args, **kwargs):
 
 
 def canonical_name(func):
-    if inspect.ismethod(func):
-        # method's class is im_class, classmethod's class is im_self
-        method_cls = func.__self__.__class__ if func.__self__ is None else func.__self__
-        for cls in inspect.getmro(method_cls):
-            if func.__name__ in cls.__dict__:
-                return "{}.{}.{}".format(cls.__module__, cls.__name__, func.__name__)
-    return "{}.{}".format(func.__module__, func.__name__)
+    return "{}.{}".format(func.__module__, func.__qualname__)
 
 
 def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, max_tries=CONFLICT_MAX_RETRIES):

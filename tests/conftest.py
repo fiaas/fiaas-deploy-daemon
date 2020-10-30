@@ -62,8 +62,8 @@ def assert_dicts(actual, expected):
 
     try:
         assert actual == expected
-    except AssertionError as ae:
-        raise AssertionError(ae.message + _add_argument_diff(actual, expected))
+    except AssertionError:
+        raise AssertionError(_add_argument_diff(actual, expected))
 
 
 def _add_useful_error_message(assertion, mockk, first, args):
@@ -74,14 +74,14 @@ def _add_useful_error_message(assertion, mockk, first, args):
     __tracebackhide__ = True
     try:
         assertion()
-    except AssertionError as ae:
+    except AssertionError:
         other_calls = [call[0] for call in mockk.call_args_list if (first is None or call[0][0] == first)]
         if other_calls:
             extra_info = '\n\nURI {} got the following other calls:\n{}\n'.format(first, '\n'.join(
                 _format_call(call) for call in other_calls))
             if len(other_calls) == 1 and len(other_calls[0]) == 2 and args is not None:
                 extra_info += _add_argument_diff(other_calls[0][1], args[0])
-            raise AssertionError(ae.message + extra_info)
+            raise AssertionError(extra_info)
         else:
             raise
 

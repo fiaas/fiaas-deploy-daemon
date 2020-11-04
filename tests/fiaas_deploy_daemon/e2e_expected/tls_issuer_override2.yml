@@ -17,7 +17,7 @@ kind: Ingress
 metadata:
   annotations:
     fiaas/expose: "true"
-    cert-manager.k8s.io/issuer: "someissuer"
+    certmanager.k8s.io/issuer: "someissuer"
   labels:
     app: v3-data-examples-tls-issuer-override
     fiaas/deployed_by: ""

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM python:2-alpine3.8 as common
+FROM python:3.8.6-alpine3.12 as common
 MAINTAINER fiaas@googlegroups.com
 # Install any binary package dependencies here
 RUN apk --no-cache add \

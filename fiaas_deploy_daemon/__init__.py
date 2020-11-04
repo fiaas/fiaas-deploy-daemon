@@ -14,14 +14,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 import signal
 import sys
 import threading
 import traceback
-from Queue import Queue
+from queue import Queue
 
 import pinject
 import requests
@@ -110,7 +110,7 @@ def thread_dump_logger(log):
     def _dump_threads(signum, frame):
         log.info("Received signal %s, dumping thread stacks", signum)
         thread_names = {t.ident: t.name for t in threading.enumerate()}
-        for thread_ident, frame in sys._current_frames().items():
+        for thread_ident, frame in list(sys._current_frames().items()):
             log.info("Thread ident=0x%x name=%s", thread_ident, thread_names.get(thread_ident, "unknown"))
             log.info("".join(traceback.format_stack(frame)))
 

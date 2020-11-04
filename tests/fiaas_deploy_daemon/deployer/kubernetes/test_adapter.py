@@ -26,8 +26,8 @@ from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
 
 FIAAS_VERSION = "1"
-TEAMS = u"foo"
-TAGS = u"bar"
+TEAMS = "foo"
+TAGS = "bar"
 
 
 class TestK8s(object):

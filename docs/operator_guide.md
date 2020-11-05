@@ -144,8 +144,8 @@ If `default_on` tls configuration will be applied unless explicitly disabled in 
 Used to configure how the ingress will be annotated for issuing a TLS certificate using cert-manager:
 
 * `tls-certificate-issuer` sets the _value_ of the annotation, for example to decide between production and staging versions of an issuer in different namespaces
-* `tls-certificate-issuer-type-default` sets the default for the _key_ of the annotation, for example to use either `cert-manager.k8s.io/cluster-issuer` (the default) or `cert-manager.k8s.io/issuer`
-* `tls-certificate-issuer-type-overrides` allows specifying a mapping between the suffix of a domain and the issuer-type, to override the default. For example, assuming the 'cluster-issuer' type as the default, then specifying `--tls-certificate-issuer-type-overrides foo.example.com=cert-manager.k8s.io/issuer` would mean that foo.example.com and any of its subdomains will use the 'issuer' type instead. In the case of multiple matching suffixes, the more specific (i.e. longest) will be used.
+* `tls-certificate-issuer-type-default` sets the default for the _key_ of the annotation, for example to use either `certmanager.k8s.io/cluster-issuer` (the default) or `certmanager.k8s.io/issuer`
+* `tls-certificate-issuer-type-overrides` allows specifying a mapping between the suffix of a domain and the issuer-type, to override the default. For example, assuming the 'cluster-issuer' type as the default, then specifying `--tls-certificate-issuer-type-overrides foo.example.com=certmanager.k8s.io/issuer` would mean that foo.example.com and any of its subdomains will use the 'issuer' type instead. In the case of multiple matching suffixes, the more specific (i.e. longest) will be used.
 
 ### use-in-memory-emptydirs
 

@@ -109,7 +109,7 @@ def name_test_function():
 
 
 @pytest.mark.parametrize("func, expected", (
-    (id, "__builtin__.id"),
+    (id, "builtins.id"),
     (name_test_function, "{}.name_test_function".format(__name__)),
     (NameTester.clsmethod, "{}.NameTester.clsmethod".format(__name__)),
     (NameTester.method, "{}.NameTester.method".format(__name__)),

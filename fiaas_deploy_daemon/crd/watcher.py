@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
 
@@ -26,7 +25,6 @@ from k8s.models.custom_resource_definition import CustomResourceDefinition, Cust
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
-from .status import create_name
 from .types import FiaasApplication, FiaasApplicationStatus
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
@@ -146,9 +144,18 @@ class CrdWatcher(DaemonThread):
 
     def _already_deployed(self, app_name, namespace, deployment_id):
         try:
-            name = create_name(app_name, deployment_id)
-            status = FiaasApplicationStatus.get(name, namespace)
-            return status.result == "SUCCESS"
+            selector = {
+                "app": app_name,
+                "fiaas/deployment_id": deployment_id,
+            }
+            statuses = FiaasApplicationStatus.find(namespace=namespace, labels=selector)
+            # sort by creationTimestamp in case of more than one result (could happen in transition from py2 to py3)
+            statuses.sort(key=lambda status: status.metadata.creationTimestamp, reverse=True)
+            if len(statuses) >= 1:
+                status = statuses[0]
+                return status.result == "SUCCESS"
+            else:
+                return False
         except NotFound:
             return False
 

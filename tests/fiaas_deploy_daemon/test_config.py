@@ -30,7 +30,7 @@ class TestConfig(object):
 
     @pytest.fixture
     def namespace_file_does_not_exist(self):
-        with mock.patch("__builtin__.open", new_callable=mock.mock_open) as _open:
+        with mock.patch("builtins.open", new_callable=mock.mock_open) as _open:
             _open.side_effect = IOError("does not exist")
             yield _open
 
@@ -151,12 +151,12 @@ class TestConfig(object):
         assert getattr(config, attr) == value
 
     def test_host_rewrite_rules(self):
-        args = ("pattern=value", r"(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        args = ("pattern=value", r"(\d+)\.example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config = Configuration(["--host-rewrite-rule=%s" % arg for arg in args])
         assert config.host_rewrite_rules == [HostRewriteRule(arg) for arg in args]
 
     def test_host_rewrite_rules_from_file(self, tmpdir):
-        args = ("pattern=value", r"(\d+)\.\example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
+        args = ("pattern=value", r"(\d+)\.example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")
         config_file = tmpdir.join("config.yaml")
         with config_file.open("w") as fobj:
             pyaml.dump({"host-rewrite-rule": args}, fobj, safe=True, default_style='"')

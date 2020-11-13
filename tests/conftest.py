@@ -31,7 +31,7 @@ pytest_plugins = ['helpers_namespace']
 def prometheus_registry():
     from prometheus_client.core import REGISTRY
     yield REGISTRY
-    for c in REGISTRY._collector_to_names.keys():
+    for c in list(REGISTRY._collector_to_names.keys()):
         REGISTRY.unregister(c)
 
 
@@ -62,8 +62,8 @@ def assert_dicts(actual, expected):
 
     try:
         assert actual == expected
-    except AssertionError as ae:
-        raise AssertionError(ae.message + _add_argument_diff(actual, expected))
+    except AssertionError:
+        raise AssertionError(_add_argument_diff(actual, expected))
 
 
 def _add_useful_error_message(assertion, mockk, first, args):
@@ -74,14 +74,14 @@ def _add_useful_error_message(assertion, mockk, first, args):
     __tracebackhide__ = True
     try:
         assertion()
-    except AssertionError as ae:
+    except AssertionError:
         other_calls = [call[0] for call in mockk.call_args_list if (first is None or call[0][0] == first)]
         if other_calls:
             extra_info = '\n\nURI {} got the following other calls:\n{}\n'.format(first, '\n'.join(
                 _format_call(call) for call in other_calls))
             if len(other_calls) == 1 and len(other_calls[0]) == 2 and args is not None:
                 extra_info += _add_argument_diff(other_calls[0][1], args[0])
-            raise AssertionError(ae.message + extra_info)
+            raise AssertionError(extra_info)
         else:
             raise
 
@@ -94,14 +94,14 @@ def _add_argument_diff(actual, expected, indent=0, acc=None):
     if type(actual) != type(expected):
         acc.append("{}{!r} {} {!r}".format(" " * indent * 2, actual, "==" if actual == expected else "!=", expected))
     elif isinstance(actual, dict):
-        for k in set(actual.keys() + expected.keys()):
+        for k in set(list(actual.keys()) + list(expected.keys())):
             acc.append("{}{}:".format(" " * indent * 2, k))
             a = actual.get(k)
             e = expected.get(k)
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
     elif isinstance(actual, list):
-        for a, e in itertools.izip_longest(actual, expected):
+        for a, e in itertools.zip_longest(actual, expected):
             acc.append("{}-".format(" " * indent * 2))
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
@@ -139,7 +139,7 @@ class FixtureScheduling(LoadScopeScheduling):
         return scope
 
     def _select_scope(self, fixture_values):
-        groups = itertools.izip_longest(fillvalue="", *([iter(fixture_values)] * 3))
+        groups = itertools.zip_longest(fillvalue="", *([iter(fixture_values)] * 3))
         return "-".join(next(groups))
 
 

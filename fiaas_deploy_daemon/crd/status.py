@@ -13,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
-import struct
-from base64 import b32encode
 from datetime import datetime
+import hashlib
 
 import pytz
 from blinker import signal
@@ -85,7 +83,7 @@ def _save_status(result, subject):
 
 
 def _get_logs(app_name, namespace, deployment_id, result):
-    return get_running_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+    return get_running_logs(app_name, namespace, deployment_id) if result in ["RUNNING", "INITIATED"] else \
            get_final_logs(app_name, namespace, deployment_id)
 
 
@@ -110,7 +108,9 @@ def create_name(name, deployment_id):
     By convention, the names of Kubernetes resources should be up to maximum length of 253
     characters and consist of lower case alphanumeric characters, '-', and '.'.
     """
-    suffix = b32encode(struct.pack('q', hash(deployment_id))).lower().strip("=")
+    h = hashlib.blake2b(digest_size=6)  # 6 bytes -> hex digest is 12 characters
+    h.update(deployment_id.encode("utf-8"))
+    suffix = h.hexdigest()
     return "{}-{}".format(name, suffix)
 
 

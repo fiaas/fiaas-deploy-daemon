@@ -139,7 +139,7 @@ class TestBootstrapE2E(object):
 
     def custom_resource_definition_test_case(self, fiaas_path, namespace, labels, expected):
         fiaas_yml = read_yml(file_relative_path(fiaas_path))
-        expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
+        expected = {kind: read_yml_if_exists(path) for kind, path in list(expected.items())}
 
         name = sanitize_resource_name(fiaas_path)
 
@@ -175,7 +175,7 @@ class TestBootstrapE2E(object):
             wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
 
             for name, namespace, app_uid, expected in expectations:
-                for kind in expected.keys():
+                for kind in list(expected.keys()):
                     try:
                         kind.delete(name, namespace=namespace)
                     except NotFound:
@@ -183,13 +183,13 @@ class TestBootstrapE2E(object):
 
 
 def ensure_resources_not_exists(name, expected, namespace):
-    for kind in expected.keys():
+    for kind in list(expected.keys()):
         with pytest.raises(NotFound):
             kind.get(name, namespace=namespace)
 
 
 def deploy_successful(name, namespace, app_uid, expected):
-    for kind, expected_result in expected.items():
+    for kind, expected_result in list(expected.items()):
         if expected_result == SHOULD_NOT_EXIST:
             with pytest.raises(NotFound):
                 kind.get(name, namespace=namespace)

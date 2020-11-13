@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import datetime
 from queue import Queue
 
 import mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
 from k8s.watcher import Watcher
 from requests import Response
 from yaml import YAMLError
@@ -94,8 +95,8 @@ class TestWatcher(object):
         return crd_watcher
 
     @pytest.fixture(autouse=True)
-    def status_get(self):
-        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.get", spec_set=True) as m:
+    def status_find(self):
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.find", spec_set=True) as m:
             m.side_effect = NotFound
             yield m
 
@@ -250,17 +251,45 @@ class TestWatcher(object):
         lifecycle.failed.assert_called_once_with(lifecycle_subject)
         assert deploy_queue.empty()
 
-    @pytest.mark.parametrize("result, count", (
-            ("SUCCESS", 0),
-            ("FAILED", 1),
-            ("RUNNING", 1),
-            ("INITIATED", 1),
-            ("ANY_OTHER_VALUE_THAN_SUCCESS", 1),
+    NEW = datetime.datetime(2020, 2, 20, 20, 2, 21)
+    OLD = datetime.datetime(2020, 2, 20, 20, 2, 20)
+
+    @pytest.mark.parametrize("statuses, count", (
+            # (((result, creationTimestamp), ...) count)
+            ((("SUCCESS", NEW),), 0),
+            ((("FAILED", NEW),), 1),
+            ((("RUNNING", NEW),), 1),
+            ((("INITIATED", NEW),), 1),
+            ((("ANY_OTHER_VALUE_THAN_SUCCESS", NEW),), 1),
+            # check the most recently created status if multiple are found
+            ((("SUCCESS", NEW),
+              ("FAILED", OLD)), 0),
+            ((("FAILED", OLD),
+              ("SUCCESS", NEW)), 0),
+            ((("FAILED", NEW),
+              ("SUCCESS", OLD)), 1),
+            ((("RUNNING", NEW),
+              ("SUCCESS", OLD)), 1),
+            ((("INITIATED", NEW),
+              ("SUCCESS", OLD)), 1),
+            ((("ANY_OTHER_VALUE_THAN_SUCCESS", NEW),
+              ("SUCCESS", OLD)), 1),
+            # deploy if no statuses are found
+            ((), 1),
     ))
-    def test_deploy_based_on_status_result(self, crd_watcher, deploy_queue, watcher, status_get, result, count):
+    def test_deploy_based_on_status_result(self, crd_watcher, deploy_queue, watcher, status_find, statuses, count):
+        def _metadata(creation_timestamp):
+            # use from_dict because creationTimestamp is a ReadOnlyField
+            return ObjectMeta.from_dict({
+                'creationTimestamp': creation_timestamp,
+            })
+
         watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]
-        status_get.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound
-        status_get.return_value = FiaasApplicationStatus(new=False, result=result)
+        status_find.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound
+        status_find.return_value = [FiaasApplicationStatus(new=False,
+                                                           metadata=_metadata(creation_timestamp),
+                                                           result=result)
+                                    for (result, creation_timestamp) in statuses]
 
         assert deploy_queue.qsize() == 0
         crd_watcher._watch(None)

@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import datetime
 import json
@@ -44,7 +44,7 @@ class FiaasFormatter(logging.Formatter):
         fields["extras"] = getattr(record, "extras", {})
         if "exc_info" in fields and fields["exc_info"]:
             fields["throwable"] = self.formatException(fields["exc_info"])
-        for original, replacement in self.RENAME.iteritems():
+        for original, replacement in list(self.RENAME.items()):
             fields[replacement] = fields.pop(original)
         for unwanted in self.UNWANTED:
             fields.pop(unwanted)

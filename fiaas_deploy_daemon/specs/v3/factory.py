@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, unicode_literals
+
 
 import pkgutil
 
@@ -41,7 +41,7 @@ class Factory(BaseFactory):
                  additional_labels, additional_annotations):
         if app_config.get("extensions") and app_config["extensions"].get("tls") and type(
                 app_config["extensions"]["tls"]) == bool:
-            app_config["extensions"]["tls"] = {u"enabled": app_config["extensions"]["tls"]}
+            app_config["extensions"]["tls"] = {"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
             uid=uid,
@@ -206,7 +206,7 @@ class Factory(BaseFactory):
             port_number = http_ports.get(port)
             if port_number:
                 return port_number
-            elif port in http_ports.values():
+            elif port in list(http_ports.values()):
                 return port
             else:
                 raise InvalidConfiguration("{} is not a valid port name or port number".format(port))
@@ -218,7 +218,7 @@ class Factory(BaseFactory):
             ]
             return IngressItemSpec(host=host, pathmappings=ingress_path_mapping_specs, annotations=annotations)
 
-        if len(http_ports.items()) > 0:
+        if len(list(http_ports.items())) > 0:
             return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"], host_path_mapping["annotations"])
                     for host_path_mapping in ingress_lookup]
         else:
@@ -237,7 +237,7 @@ class Factory(BaseFactory):
     def _secrets_specs(secrets_lookup):
         return [SecretsSpec(type=k,
                             parameters=v["parameters"],
-                            annotations=v["annotations"]) for (k, v) in secrets_lookup.iteritems()]
+                            annotations=v["annotations"]) for (k, v) in list(secrets_lookup.items())]
 
 
 def _get_value(key, overrides):

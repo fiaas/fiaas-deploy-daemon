@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # coding: utf-8
-from __future__ import absolute_import
+
 
 import mock
 import pytest

@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import collections
-from itertools import izip_longest
+from itertools import zip_longest
 
 from .factory import InvalidConfiguration
 
@@ -91,7 +91,7 @@ class _LookupList(_Lookup, collections.Sequence):
     def __eq__(self, other):
         if not isinstance(other, collections.Sequence):
             return NotImplemented
-        for self_i, other_i in izip_longest(self, other, fillvalue=object()):
+        for self_i, other_i in zip_longest(self, other, fillvalue=object()):
             if self_i != other_i:
                 return False
         return True

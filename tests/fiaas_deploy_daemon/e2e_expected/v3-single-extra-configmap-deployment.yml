@@ -126,10 +126,10 @@ spec:
               value: VERSION
           envFrom:
             - configMapRef:
-                name: v3-data-examples-single-extra-config-map
+                name: test1
                 optional: true
             - configMapRef:
-                name: test1
+                name: v3-data-examples-single-extra-config-map
                 optional: true
           image: IMAGE
           imagePullPolicy: IfNotPresent
@@ -171,6 +171,9 @@ spec:
             - mountPath: /var/run/secrets/fiaas/
               name: v3-data-examples-single-extra-config-map-secret
               readOnly: true
+            - mountPath: /var/run/config/test1/
+              name: test1-config
+              readOnly: true
             - mountPath: /var/run/config/fiaas/
               name: v3-data-examples-single-extra-config-map-config
               readOnly: true
@@ -186,6 +189,11 @@ spec:
             defaultMode: 420
             optional: true
             secretName: v3-data-examples-single-extra-config-map
+        - configMap:
+            defaultMode: 420
+            name: test1
+            optional: true
+          name: test1-config
         - configMap:
             defaultMode: 420
             name: v3-data-examples-single-extra-config-map

@@ -65,7 +65,8 @@ class DeploymentDeployer(object):
         env = self._make_env(app_spec)
         pull_policy = "IfNotPresent" if (":" in app_spec.image and ":latest" not in app_spec.image) else "Always"
 
-        env_from = [EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True))]
+        env_from = _add_config_maps(app_spec)
+
         containers = [
             Container(name=app_spec.name,
                       image=app_spec.image,
@@ -135,6 +136,10 @@ class DeploymentDeployer(object):
 
     def _make_volumes(self, app_spec):
         volumes = []
+        if app_spec.config_maps:
+            for config_map in app_spec.config_maps:
+                volumes.append(Volume(name="{}-config".format(config_map),
+                                         configMap=ConfigMapVolumeSource(name=config_map, optional=True)))
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         if self._use_in_memory_emptydirs:
@@ -146,6 +151,10 @@ class DeploymentDeployer(object):
 
     def _make_volume_mounts(self, app_spec):
         volume_mounts = []
+        if app_spec.config_maps:
+            for config_map in app_spec.config_maps:
+                volume_mounts.append(VolumeMount(name="{}-config".format(config_map),
+                                                    readOnly=True, mountPath="/var/run/config/{}/".format(config_map)))
         volume_mounts.append(
             VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))
@@ -242,6 +251,19 @@ def _build_fiaas_env(config):
             "CONSTRETTO_TAGS": ",".join(("kubernetes-{}".format(config.environment), "kubernetes", config.environment)),
         })
     return env
+
+
+def _add_config_maps(app_spec):
+    """
+    adds the configMaps to envFrom. Inserts user-defined configMaps first so the default configMap takes precedence in
+    case of key-collisions
+    """
+    config_maps = []
+    if app_spec.config_maps:
+        for config_map in app_spec.config_maps:
+            config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=config_map, optional=True)))
+    config_maps.append(EnvFromSource(configMapRef=ConfigMapEnvSource(name=app_spec.name, optional=True)))
+    return config_maps
 
 
 def _build_global_env(global_env):

@@ -104,8 +104,10 @@ class DeploymentDeployer(object):
                 # the autoscaler won't scale up the deployment if the current number of replicas is 0
                 if deployment.spec.replicas > 0:
                     replicas = deployment.spec.replicas
-                    LOG.info("Configured replica size (%d) for deployment is being ignored, as current running replica size"
-                             " is different (%d) for %s", app_spec.autoscaler.min_replicas, deployment.spec.replicas, app_spec.name)
+                    LOG.info(
+                        "Configured replica size (%d) for deployment is being ignored, as current running replica size"
+                        " is different (%d) for %s", app_spec.autoscaler.min_replicas, deployment.spec.replicas,
+                        app_spec.name)
             except NotFound:
                 pass
 
@@ -139,7 +141,7 @@ class DeploymentDeployer(object):
         if app_spec.config_maps:
             for config_map in app_spec.config_maps:
                 volumes.append(Volume(name="{}-config".format(config_map),
-                                         configMap=ConfigMapVolumeSource(name=config_map, optional=True)))
+                                      configMap=ConfigMapVolumeSource(name=config_map, optional=True)))
         volumes.append(Volume(name="{}-config".format(app_spec.name),
                               configMap=ConfigMapVolumeSource(name=app_spec.name, optional=True)))
         if self._use_in_memory_emptydirs:
@@ -154,7 +156,7 @@ class DeploymentDeployer(object):
         if app_spec.config_maps:
             for config_map in app_spec.config_maps:
                 volume_mounts.append(VolumeMount(name="{}-config".format(config_map),
-                                                    readOnly=True, mountPath="/var/run/config/{}/".format(config_map)))
+                                                 readOnly=True, mountPath="/var/run/config/{}/".format(config_map)))
         volume_mounts.append(
             VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"))
         volume_mounts.append(VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"))

@@ -680,6 +680,21 @@ Kubernetes apiserver. If in doubt, leave this disabled.
 admin_access: False
 ```
 
+## config_maps
+
+| **Type** | **Required** |
+|----------|--------------|
+| list     | no           |
+
+Add extra ConfigMaps to your application. A ConfigMap named the same as your application will always be added to the end of the list.
+
+```yaml
+config_maps:
+    - yourconfigmap
+```
+
+##### A note about file-paths:
+ The default ConfigMap is mounted at `/var/run/config/fiaas/<app_name>` while other configmaps will be mounted at `/var/run/config/<config_map_name>`
 
 ## extensions
 

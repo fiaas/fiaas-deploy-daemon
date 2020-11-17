@@ -69,7 +69,8 @@ def app_spec(**kwargs):
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
-        secrets=[]
+        secrets=[],
+        config_maps=[]
     )
 
     return default_app_spec._replace(**kwargs)

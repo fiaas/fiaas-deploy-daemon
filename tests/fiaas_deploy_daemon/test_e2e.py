@@ -232,13 +232,25 @@ class TestE2E(object):
             }),
             ("v3/data/examples/multiple_config_maps.yml", {
                 Deployment: "e2e_expected/v3-multiple-configmap-deployment.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                pod={"pod/label": "true"}
+            )),
             ("v3/data/examples/v3minimal.yml", {
                 Deployment: "e2e_expected/v3-no-extra-configmap-deployment.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                pod={"pod/label": "true"}
+            )),
             ("v3/data/examples/single_extra_config_map.yml", {
                 Deployment: "e2e_expected/v3-single-extra-configmap-deployment.yml",
-            }),
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                pod={"pod/label": "true"}
+            )),
     ))
     def custom_resource_definition(self, request, k8s_version):
         additional_labels = None

@@ -95,6 +95,12 @@ TEST_DATA = {
         "autoscaler.max_replicas": 3,
         "autoscaler.cpu_threshold_percentage": 50,
     },
+    "autoscaling_max_less_than_min": {
+        "autoscaler.enabled": False,
+        "autoscaler.min_replicas": 1,
+        "autoscaler.max_replicas": 1,
+        "autoscaler.cpu_threshold_percentage": 50,
+    },
     "multiple_hosts_multiple_paths": {
         "ingresses[0].host": None,
         "ingresses[0].pathmappings[0].path": "/0noport",
@@ -371,6 +377,15 @@ class TestFactory(object):
                            None, None)
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
+
+    @pytest.mark.parametrize("filename", (
+            "autoscaling_max_less_than_min",
+    ))
+    def test_autoscaling_max_less_than_min(self, load_app_config_testdata, factory, filename):
+        app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
+                           None, None)
+        assert app_spec.autoscaler.min_replicas == TEST_DATA[filename]["autoscaler.min_replicas"]
+        assert app_spec.autoscaler.max_replicas == TEST_DATA[filename]["autoscaler.max_replicas"]
 
     @pytest.mark.parametrize("filename", (
             "invalid_no_health_check_defined_http",

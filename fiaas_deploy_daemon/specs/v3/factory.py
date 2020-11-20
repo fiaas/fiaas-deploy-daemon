@@ -72,8 +72,9 @@ class Factory(BaseFactory):
 
     @staticmethod
     def _autoscaler_spec(replicas_lookup):
-        minimum = replicas_lookup["minimum"]
         maximum = replicas_lookup["maximum"]
+        minimum = replicas_lookup["minimum"]
+        minimum = maximum if maximum < minimum else minimum
         enabled = minimum != maximum
         cpu_threshold_percentage = replicas_lookup["cpu_threshold_percentage"]
         return AutoscalerSpec(

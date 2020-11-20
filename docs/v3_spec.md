@@ -41,6 +41,10 @@ version: 3
 Number of pods (instances) to run of the application. Based on the values of `minimum` and `maximum`, this object also
 controls whether the number of replicas should be automatically scaled based on load.
 
+If `minimum` and `maximum` are set to the same value, autoscaling will be disabled. 
+
+If `minimum` is higher than `maximum`, `minimum` will be set to `maximum` and autoscaling will be disabled as well.
+
 
 Default value:
 ```yaml
@@ -59,8 +63,6 @@ replicas:
 
 Minimum number of pods to run for the application.
 
-If `minimum` and `maximum` are set to the same value, autoscaling will be disabled.
-
 Default value:
 ```yaml
 replicas:
@@ -75,9 +77,6 @@ replicas:
 | int      | no           |
 
 Maximum number of pods to run for the application.
-
-If `minimum` and `maximum` are set to the same value, autoscaling will be disabled.
-
 
 Default value:
 ```yaml

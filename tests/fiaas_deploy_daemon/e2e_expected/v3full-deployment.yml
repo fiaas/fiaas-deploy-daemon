@@ -250,7 +250,7 @@ spec:
           defaultMode: 420
           name: test2
           optional: true
-      - name: test2-config
+        name: test2-config
       - configMap:
           defaultMode: 420
           name: v3-data-examples-full

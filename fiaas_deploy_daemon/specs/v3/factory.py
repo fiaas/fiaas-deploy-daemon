@@ -67,6 +67,7 @@ class Factory(BaseFactory):
             ingress_tls=IngressTlsSpec(enabled=lookup["extensions"]["tls"]["enabled"],
                                        certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"]),
             secrets=self._secrets_specs(lookup["extensions"]["secrets"]),
+            config_maps=lookup["config_maps"],
         )
         return app_spec
 

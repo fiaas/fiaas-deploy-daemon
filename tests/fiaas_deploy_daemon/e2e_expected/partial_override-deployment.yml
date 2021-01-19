@@ -61,6 +61,7 @@ spec:
       automountServiceAccountToken: false
       containers:
       - command: []
+        args: []
         env:
         - name: ARTIFACT_NAME
           value: v2-data-examples-partial-override

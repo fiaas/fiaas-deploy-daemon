@@ -55,8 +55,6 @@ class K8s(object):
         self._autoscaler_deployer.delete(app_spec)
         self._service_deployer.delete(app_spec)
         self._deployment_deployer.delete(app_spec)
-        if self._enable_service_account_per_app is True:
-            self._service_account_deployer.delete(app_spec)
 
     def _make_labels(self, app_spec):
         labels = {

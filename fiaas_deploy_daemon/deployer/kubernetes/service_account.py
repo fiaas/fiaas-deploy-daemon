@@ -36,16 +36,6 @@ class ServiceAccountDeployer(object):
     def deploy(self, app_spec, labels):
         self._create(app_spec, labels)
 
-    def delete(self, app_spec):
-        LOG.info("Deleting serviceAccount for %s", app_spec.name)
-        try:
-            service_account = ServiceAccount.get(app_spec.name, app_spec.namespace)
-            if not self._owned_by_fiaas(service_account):
-                return
-            ServiceAccount.delete(app_spec.name, app_spec.namespace)
-        except NotFound:
-            pass
-
     @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)
@@ -60,11 +50,10 @@ class ServiceAccountDeployer(object):
             pass
 
         try:
-            default_service_account = ServiceAccount.get("default", app_spec.namespace)
-            image_pull_secrets = default_service_account.imagePullSecrets
+            image_pull_secrets = self._get_image_pull_secrets(namespace)
         except NotFound:
-            LOG.info("No default service account found in namespace: %s", app_spec.namespace)
-            pass
+            LOG.warn("No default service account found in namespace: %s. imagePullSecrets will not be set on the serviceAccount", app_spec.namespace)
+
         service_account_name = app_spec.name
         custom_labels = labels
         custom_annotations = {}
@@ -82,3 +71,7 @@ class ServiceAccountDeployer(object):
         return any(
                 ref.apiVersion == 'fiaas.schibsted.io/v1' and ref.kind == 'Application' for ref in service_account.metadata.ownerReferences
         )
+
+    def _get_image_pull_secrets(self, namespace):
+        default_service_account = ServiceAccount.get("default", namespace)
+        return default_service_account.imagePullSecrets

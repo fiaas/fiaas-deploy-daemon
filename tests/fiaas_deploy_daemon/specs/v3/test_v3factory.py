@@ -85,7 +85,6 @@ TEST_DATA = {
         "ingresses[0].pathmappings[0].path": "/",
         "ingresses[0].pathmappings[0].port": 80,
         "secrets_in_environment": False,
-        ""
         "admin_access": False,
         "strongbox.enabled": False,
         "strongbox.iam_role": None,

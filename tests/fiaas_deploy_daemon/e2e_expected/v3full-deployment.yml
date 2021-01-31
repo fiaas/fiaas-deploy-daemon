@@ -140,6 +140,12 @@ spec:
           value: VERSION
         envFrom:
         - configMapRef:
+            name: test1
+            optional: true
+        - configMapRef:
+            name: test2
+            optional: true
+        - configMapRef:
             name: v3-data-examples-full
             optional: true
         image: IMAGE
@@ -183,6 +189,12 @@ spec:
         volumeMounts:
         - mountPath: /var/run/secrets/fiaas/
           name: v3-data-examples-full-secret
+          readOnly: true
+        - mountPath: /var/run/config/test1/
+          name: test1-config
+          readOnly: true
+        - mountPath: /var/run/config/test2/
+          name: test2-config
           readOnly: true
         - mountPath: /var/run/config/fiaas/
           name: v3-data-examples-full-config
@@ -231,6 +243,16 @@ spec:
           name: fiaas-secrets-init-container
           optional: true
         name: fiaas-secrets-init-container-config
+      - configMap:
+          defaultMode: 420
+          name: test1
+          optional: true
+        name: test1-config
+      - configMap:
+          defaultMode: 420
+          name: test2
+          optional: true
+        name: test2-config
       - configMap:
           defaultMode: 420
           name: v3-data-examples-full

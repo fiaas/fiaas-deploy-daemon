@@ -1,0 +1,193 @@
+
+# Copyright 2017-2020 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  annotations: {}
+  labels:
+    app: v3-data-examples-v3minimal
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+    global/label: "true"
+    deployment/label: "true"
+  name: v3-data-examples-v3minimal
+  namespace: default
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: v3-data-examples-v3minimal
+  finalizers: []
+spec:
+  replicas: 2
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: v3-data-examples-v3minimal
+  strategy:
+    rollingUpdate:
+      maxSurge: "25%"
+      maxUnavailable: 0
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /_/metrics
+        prometheus.io/port: "8080"
+        prometheus.io/scrape: "true"
+      labels:
+        app: v3-data-examples-v3minimal
+        fiaas/deployed_by: ""
+        fiaas/deployment_id: DEPLOYMENT_ID
+        fiaas/status: active
+        fiaas/version: VERSION
+        global/label: "true"
+        pod/label: "true"
+      name: v3-data-examples-v3minimal
+      namespace: default
+      ownerReferences: []
+      finalizers: []
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - command: []
+        env:
+        - name: ARTIFACT_NAME
+          value: v3-data-examples-v3minimal
+        - name: CONSTRETTO_TAGS
+          value: kubernetes-test,kubernetes,test
+        - name: FIAAS_ARTIFACT_NAME
+          value: v3-data-examples-v3minimal
+        - name: FIAAS_ENVIRONMENT
+          value: test
+        - name: FIAAS_IMAGE
+          value: IMAGE
+        - name: FIAAS_INFRASTRUCTURE
+          value: diy
+        - name: FIAAS_LIMITS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-v3minimal
+              resource: limits.cpu
+              divisor: "1"
+        - name: FIAAS_LIMITS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-v3minimal
+              resource: limits.memory
+              divisor: "1"
+        - name: FIAAS_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+              apiVersion: "v1"
+        - name: FIAAS_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+              apiVersion: "v1"
+        - name: FIAAS_REQUESTS_CPU
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-v3minimal
+              resource: requests.cpu
+              divisor: "1"
+        - name: FIAAS_REQUESTS_MEMORY
+          valueFrom:
+            resourceFieldRef:
+              containerName: v3-data-examples-v3minimal
+              resource: requests.memory
+              divisor: "1"
+        - name: FIAAS_VERSION
+          value: VERSION
+        - name: FINN_ENV
+          value: test
+        - name: IMAGE
+          value: IMAGE
+        - name: LOG_FORMAT
+          value: plain
+        - name: LOG_STDOUT
+          value: "true"
+        - name: VERSION
+          value: VERSION
+        envFrom:
+        - configMapRef:
+            name: v3-data-examples-v3minimal
+            optional: true
+        image: IMAGE
+        imagePullPolicy: IfNotPresent
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/health
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: v3-data-examples-v3minimal
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /_/ready
+            port: http
+            scheme: HTTP
+            httpHeaders: []
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 400m
+            memory: 512Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/fiaas/
+          name: v3-data-examples-v3minimal-secret
+          readOnly: true
+        - mountPath: /var/run/config/fiaas/
+          name: v3-data-examples-v3minimal-config
+          readOnly: true
+        - mountPath: /tmp
+          name: tmp
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: v3-data-examples-v3minimal-secret
+        secret:
+          defaultMode: 420
+          optional: true
+          secretName: v3-data-examples-v3minimal
+      - configMap:
+          defaultMode: 420
+          name: v3-data-examples-v3minimal
+          optional: true
+        name: v3-data-examples-v3minimal-config
+      - name: tmp
+      initContainers: []
+      imagePullSecrets: []

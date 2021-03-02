@@ -27,7 +27,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
 
-from fiaas_deploy_daemon.specs.models import IngressItemSpec
+from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
@@ -77,6 +77,10 @@ class IngressDeployer(object):
     def _expand_default_hosts(self, app_spec):
         all_pathmappings = list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
                                                       for ingress_item in app_spec.ingresses if not ingress_item.annotations)))
+
+        if not all_pathmappings:
+            all_pathmappings = [IngressPathMappingSpec(path='/', port=80)]
+
         return [IngressItemSpec(host=host, pathmappings=all_pathmappings, annotations=None)
                 for host in self._generate_default_hosts(app_spec.name)]
 

@@ -28,6 +28,7 @@ RUN apk --no-cache add \
 COPY . /fiaas-deploy-daemon
 COPY .wheel_cache/*.whl /links/
 WORKDIR /fiaas-deploy-daemon
+RUN pip install -U setuptools
 RUN pip wheel . --no-cache-dir --wheel-dir=/wheels/ --find-links=/links/
 
 FROM common as production

@@ -21,12 +21,14 @@ import pkgutil
 
 import pinject
 
+from .default import DefaultAppSpec
 from .factory import SpecFactory
 
 
 class SpecBindings(pinject.BindingSpec):
     def configure(self, bind):
         bind("spec_factory", to_class=SpecFactory)
+        bind("default_app_spec", to_class=DefaultAppSpec)
 
     def provide_factory(self):
         from .v3 import Factory

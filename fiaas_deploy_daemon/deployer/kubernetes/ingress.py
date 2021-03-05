@@ -36,7 +36,8 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls, owner_references):
+    def __init__(self, config, ingress_tls, owner_references, default_app_spec):
+        self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_tls = ingress_tls
@@ -75,8 +76,15 @@ class IngressDeployer(object):
         self._delete_unused(app_spec, custom_labels)
 
     def _expand_default_hosts(self, app_spec):
-        all_pathmappings = list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
-                                                      for ingress_item in app_spec.ingresses if not ingress_item.annotations)))
+        def extract_pathmappings(ingresses):
+            return list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
+                                                                  for ingress_item in ingresses if
+                                                                  not ingress_item.annotations)))
+
+        all_pathmappings = extract_pathmappings(app_spec.ingresses)
+        if not all_pathmappings:
+            all_pathmappings = extract_pathmappings(self._default_app_spec().ingresses)
+
         return [IngressItemSpec(host=host, pathmappings=all_pathmappings, annotations=None)
                 for host in self._generate_default_hosts(app_spec.name)]
 

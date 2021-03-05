@@ -335,6 +335,10 @@ class TestE2E(object):
             "v3-data-examples-multiple-ingress": "e2e_expected/multiple_ingress1.yml",
             "v3-data-examples-multiple-ingress-1": "e2e_expected/multiple_ingress2.yml"
         }),
+        ("multiple_ingress_default_host", {
+            "v3-data-examples-multiple-ingress-default-host": "e2e_expected/multiple_ingress_default_host1.yml",
+            "v3-data-examples-multiple-ingress-default-host-1": "e2e_expected/multiple_ingress_default_host2.yml"
+        }),
         ("tls_issuer_override", {
             "v3-data-examples-tls-issuer-override": "e2e_expected/tls_issuer_override1.yml",
             "v3-data-examples-tls-issuer-override-1": "e2e_expected/tls_issuer_override2.yml"
@@ -376,6 +380,10 @@ class TestE2E(object):
 
             # Remove 2nd ingress to make sure cleanup works
             fiaas_application.spec.config["ingress"].pop()
+            if not fiaas_application.spec.config["ingress"]:
+                # if the test contains only one ingress,
+                # deleting the list will force the creation of the default ingress
+                del fiaas_application.spec.config["ingress"]
             fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
             fiaas_application.save()
 

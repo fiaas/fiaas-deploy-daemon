@@ -27,7 +27,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
     IngressTLS
 
-from fiaas_deploy_daemon.specs.models import IngressItemSpec
+from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
@@ -76,17 +76,28 @@ class IngressDeployer(object):
         self._delete_unused(app_spec, custom_labels)
 
     def _expand_default_hosts(self, app_spec):
-        def extract_pathmappings(ingresses):
-            return list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
-                                                                  for ingress_item in ingresses if
-                                                                  not ingress_item.annotations)))
+        all_pathmappings = list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
+                                                      for ingress_item in app_spec.ingresses if not ingress_item.annotations)))
 
-        all_pathmappings = extract_pathmappings(app_spec.ingresses)
         if not all_pathmappings:
-            all_pathmappings = extract_pathmappings(self._default_app_spec().ingresses)
+            # no pathmappings were found, build the default ingress
+            http_port = self._resolve_http_port(app_spec)
+            default_path = self._resolve_default_path()
+            all_pathmappings = [IngressPathMappingSpec(path=default_path, port=http_port)]
 
         return [IngressItemSpec(host=host, pathmappings=all_pathmappings, annotations=None)
                 for host in self._generate_default_hosts(app_spec.name)]
+
+    @staticmethod
+    def _resolve_http_port(app_spec):
+        try:
+            return next(portspec.port for portspec in app_spec.ports if portspec.name == "http")
+        except StopIteration:
+            raise ValueError("Cannot find http port mapping in application spec")
+
+    def _resolve_default_path(self):
+        default_ingress_item = next(ingress_item for ingress_item in self._default_app_spec().ingresses)
+        return next(pathmapping.path for pathmapping in default_ingress_item.pathmappings)
 
     def _get_issuer_type(self, host):
         for (suffix, issuer_type) in self._tls_issuer_type_overrides:

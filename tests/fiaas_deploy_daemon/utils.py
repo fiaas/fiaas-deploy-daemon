@@ -288,7 +288,7 @@ class KindWrapper(object):
                 "log_dumper": self.dump_logs,
             }
             plog("Waiting for container {} with name {} to become ready".format(self._container.id, self.name))
-            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
+            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=200)
             return result
         except Exception:
             self.dump_logs()

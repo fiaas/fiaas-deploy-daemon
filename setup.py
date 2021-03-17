@@ -51,10 +51,10 @@ DEPLOY_REQ = [
 ]
 
 FLAKE8_REQ = [
-    'flake8-print == 3.1.0',
+    'flake8-print == 3.1.4',
     'flake8-comprehensions == 1.4.1',
-    'pep8-naming == 0.8.2',
-    'flake8 == 3.7.8'
+    'pep8-naming == 0.11.1',
+    'flake8 == 3.9.0'
 ]
 
 TESTS_REQ = [

@@ -91,12 +91,11 @@ def test_warn_if_env_variable_config(monkeypatch, config_flags):
 
     expected_env_keys = ', '.join(sorted(cf.env_key for cf in config_flags))
     expected_log_message = (
-        "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment "
-        "variables will be removed. If these environment variables are the primary source for this configuration, please switch to "
-        "configuring via a config file/ConfigMap or command-line flags. See "
-        "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information"
+        "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables has been "
+        "removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, that configuration will not take "
+        "effect. Please switch to configuring via a config file/ConfigMap or command-line flags. See "
+        "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information."
     )
-
     log.warn.assert_called_once_with(expected_log_message, expected_env_keys)
 
 

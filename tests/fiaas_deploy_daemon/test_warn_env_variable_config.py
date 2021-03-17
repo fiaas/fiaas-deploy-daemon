@@ -68,18 +68,6 @@ def config_flags():
     ]
 
 
-def test_env_variable_config(monkeypatch, config_flags):
-    """tests setting config flags via environment variables, but primarily it exists to ensure
-test_warn_env_variable_config has a complete, valid set of test data"""
-    for config_flag in config_flags:
-        monkeypatch.setenv(config_flag.env_key, config_flag.env_value)
-
-    config = Configuration([])
-
-    for config_flag in config_flags:
-        assert getattr(config, config_flag.config_key) == config_flag.config_value
-
-
 def test_warn_if_env_variable_config(monkeypatch, config_flags):
     for config_flag in config_flags:
         monkeypatch.setenv(config_flag.env_key, config_flag.env_value)
@@ -99,7 +87,7 @@ def test_warn_if_env_variable_config(monkeypatch, config_flags):
     log.warn.assert_called_once_with(expected_log_message, expected_env_keys)
 
 
-def test_dont_warn_if_no_env_config(monkeypatch, config_flags):
+def test_dont_warn_if_no_env_config():
     config = Configuration([])
 
     log = mock.MagicMock(spec=logging.Logger)

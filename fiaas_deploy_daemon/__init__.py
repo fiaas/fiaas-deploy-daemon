@@ -165,9 +165,10 @@ def warn_if_env_variable_config(config, log):
     possible_config_env_variables = sorted(configuration_env_variable_keys & environ_keys)
     if len(possible_config_env_variables) > 0:
         log.warn("found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables " +
-                 "will be removed. If these environment variables are the primary source for this configuration, please switch to " +
-                 "configuring via a config file/ConfigMap or command-line flags. See " +
-                 "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information", ', '.join(possible_config_env_variables))
+                 "has been removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, " +
+                 "that configuration will not take effect. Please switch to configuring via a config file/ConfigMap or command-line " +
+                 "flags. See https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information.",
+                 ', '.join(possible_config_env_variables))
 
 
 def main():

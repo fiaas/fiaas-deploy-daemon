@@ -30,6 +30,7 @@ GENERIC_REQ = [
     "PyYAML == 5.1.2",
     "pyaml == 19.4.1",
     "pinject == 0.14.1",
+    "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)
     "six == 1.12.0",
     "dnspython == 1.16.0",
     "k8s == 0.17.0",

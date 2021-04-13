@@ -68,18 +68,6 @@ def config_flags():
     ]
 
 
-def test_env_variable_config(monkeypatch, config_flags):
-    """tests setting config flags via environment variables, but primarily it exists to ensure
-test_warn_env_variable_config has a complete, valid set of test data"""
-    for config_flag in config_flags:
-        monkeypatch.setenv(config_flag.env_key, config_flag.env_value)
-
-    config = Configuration([])
-
-    for config_flag in config_flags:
-        assert getattr(config, config_flag.config_key) == config_flag.config_value
-
-
 def test_warn_if_env_variable_config(monkeypatch, config_flags):
     for config_flag in config_flags:
         monkeypatch.setenv(config_flag.env_key, config_flag.env_value)
@@ -91,16 +79,15 @@ def test_warn_if_env_variable_config(monkeypatch, config_flags):
 
     expected_env_keys = ', '.join(sorted(cf.env_key for cf in config_flags))
     expected_log_message = (
-        "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment "
-        "variables will be removed. If these environment variables are the primary source for this configuration, please switch to "
-        "configuring via a config file/ConfigMap or command-line flags. See "
-        "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information"
+        "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables has been "
+        "removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, that configuration will not take "
+        "effect. Please switch to configuring via a config file/ConfigMap or command-line flags. See "
+        "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information."
     )
-
     log.warn.assert_called_once_with(expected_log_message, expected_env_keys)
 
 
-def test_dont_warn_if_no_env_config(monkeypatch, config_flags):
+def test_dont_warn_if_no_env_config():
     config = Configuration([])
 
     log = mock.MagicMock(spec=logging.Logger)

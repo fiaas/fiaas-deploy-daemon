@@ -42,6 +42,8 @@ See the config-module for more information.
 Getting started with developing
 -------------------------------
 
+First ensure you have the most recent version of setuptools for python2. This is required for the following steps to work
+- `pip install setuptools==44.0.0`
 Use  `$ pip install -r requirements.txt` to install dependencies
 - Make changes to code
 Run tests with `tox`:

@@ -701,7 +701,7 @@ for the application.
 The init-container should make secrets available as files under `/var/run/secrets/fiaas`. Any additional structure
 or convention will depend on the init-container being used.
 
-Example:
+Example (Note: the specific structure of this will depend on the configuration of FIAAS in your cluster/namespace):
 ```yaml
 extensions:
   secrets:

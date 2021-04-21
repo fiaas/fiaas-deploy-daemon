@@ -26,7 +26,8 @@ from k8s.models.custom_resource_definition import CustomResourceDefinition, Cust
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
-from .types import FiaasApplication, FiaasApplicationStatus
+from .status import find_status
+from .types import FiaasApplication
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
@@ -145,15 +146,8 @@ class CrdWatcher(DaemonThread):
 
     def _already_deployed(self, app_name, namespace, deployment_id):
         try:
-            selector = {
-                "app": app_name,
-                "fiaas/deployment_id": deployment_id,
-            }
-            statuses = FiaasApplicationStatus.find(namespace=namespace, labels=selector)
-            # sort by creationTimestamp in case of more than one result (could happen in transition from py2 to py3)
-            statuses.sort(key=lambda status: status.metadata.creationTimestamp, reverse=True)
-            if len(statuses) >= 1:
-                status = statuses[0]
+            status = find_status(namespace, app_name, deployment_id)
+            if status:
                 return status.result == "SUCCESS"
             else:
                 return False

@@ -17,7 +17,6 @@ from __future__ import absolute_import
 
 import logging
 from datetime import datetime
-import hashlib
 
 import pytz
 from blinker import signal
@@ -45,6 +44,22 @@ def now():
     return now.isoformat()
 
 
+def find_status(namespace, app_name, deployment_id):
+    selector = {
+        "app": app_name,
+        "fiaas/deployment_id": deployment_id,
+    }
+    statuses = FiaasApplicationStatus.find(namespace=namespace, labels=selector)
+    # sort by creationTimestamp in case of more than one result (could happen in transition from py2 to py3)
+    statuses.sort(key=lambda status: status.metadata.creationTimestamp, reverse=True)
+    if len(statuses) > 1:
+        LOG.warn("Found %d ApplicationStatuses for %s/%s deployment_id=%s", len(statuses), namespace, app_name, deployment_id)
+    if statuses:
+        return statuses[0]
+    else:
+        return None
+
+
 def _handle_signal(sender, status, subject):
     if status == STATUS_STARTED:
         status = "RUNNING"
@@ -59,21 +74,20 @@ def _handle_signal(sender, status, subject):
 def _save_status(result, subject):
     (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
     LOG.info("Saving result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
-    name = create_name(app_name, deployment_id)
     labels = labels or {}
     annotations = annotations or {}
     labels = merge_dicts(labels, {"app": app_name, "fiaas/deployment_id": deployment_id})
     annotations = merge_dicts(annotations, {LAST_UPDATED_KEY: now()})
     logs = _get_logs(app_name, namespace, deployment_id, result)
 
-    try:
-        status = FiaasApplicationStatus.get(name, namespace)
+    status = find_status(namespace, app_name, deployment_id)
+    if status is not None:
         status.metadata.labels = merge_dicts(status.metadata.labels, labels)
         status.metadata.annotations = merge_dicts(status.metadata.annotations, annotations)
         status.logs = logs
         status.result = result
-    except NotFound:
-        metadata = ObjectMeta(name=name, namespace=namespace, labels=labels, annotations=annotations)
+    else:
+        metadata = ObjectMeta(generateName="{}-".format(app_name), namespace=namespace, labels=labels, annotations=annotations)
         status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     resource_version = status.metadata.resourceVersion
 
@@ -101,18 +115,6 @@ def _cleanup(app_name=None, namespace=None):
             FiaasApplicationStatus.delete(old_status.metadata.name, old_status.metadata.namespace)
         except NotFound:
             pass  # already deleted
-
-
-def create_name(name, deployment_id):
-    """Create a name for the status object
-
-    By convention, the names of Kubernetes resources should be up to maximum length of 253
-    characters and consist of lower case alphanumeric characters, '-', and '.'.
-    """
-    h = hashlib.blake2b(digest_size=6)  # 6 bytes -> hex digest is 12 characters
-    h.update(deployment_id.encode("utf-8"))
-    suffix = h.hexdigest()
-    return "{}-{}".format(name, suffix)
 
 
 def _apply_owner_reference(status, subject):

@@ -23,6 +23,7 @@ import pinject
 from .bookkeeper import Bookkeeper
 from .deploy import Deployer
 from .scheduler import Scheduler
+from .version_exporter import VersionExporter
 
 
 class DeployerBindings(pinject.BindingSpec):
@@ -33,6 +34,7 @@ class DeployerBindings(pinject.BindingSpec):
         bind("bookkeeper", to_class=Bookkeeper)
         bind("scheduler", to_class=Scheduler)
         bind("deployer", to_class=Deployer)
+        bind("version_exporter", to_class=VersionExporter)
 
 
 DeployerEvent = namedtuple('DeployerEvent', ['action', 'app_spec', 'lifecycle_subject'])

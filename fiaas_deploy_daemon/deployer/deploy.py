@@ -32,7 +32,7 @@ class Deployer(DaemonThread):
     Mainly focused on bookkeeping, and leaving the hard work to the framework-adapter.
     """
 
-    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle, config, version_exporter):
+    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle, config):
         super(Deployer, self).__init__()
         self._queue = _make_gen(deploy_queue.get)
         self._bookkeeper = bookkeeper
@@ -40,7 +40,6 @@ class Deployer(DaemonThread):
         self._scheduler = scheduler
         self._lifecycle = lifecycle
         self._config = config
-        self._version_exporter = version_exporter
 
     def __call__(self):
         for event in self._queue:
@@ -64,7 +63,6 @@ class Deployer(DaemonThread):
             else:
                 self._lifecycle.success(lifecycle_subject)
                 self._bookkeeper.success(app_spec)
-                self._version_exporter.fdd_version(app_spec)
             LOG.info("Completed deployment of %r", app_spec)
         except Exception:
             LOG.exception("Error while deploying %s: ", app_spec.name)

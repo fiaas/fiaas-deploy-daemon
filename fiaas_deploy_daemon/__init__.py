@@ -39,6 +39,7 @@ from .specs import SpecBindings
 from .tools import log_request_response
 from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
+from prometheus_client import Info
 
 
 class MainBindings(pinject.BindingSpec):
@@ -170,6 +171,9 @@ def warn_if_env_variable_config(config, log):
                  "flags. See https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information.",
                  ', '.join(possible_config_env_variables))
 
+def expose_fdd_version(config):
+    i = Info('fdd_docker_image_version', 'The image tag of the running fiaas-deploy-daemon docker image.')
+    i.info({'fdd_version': config.version})
 
 def main():
     cfg = Configuration()
@@ -177,7 +181,9 @@ def main():
     init_k8s_client(cfg)
     log = logging.getLogger(__name__)
     warn_if_env_variable_config(cfg, log)
+    expose_fdd_version(cfg)
     signal.signal(signal.SIGUSR2, thread_dump_logger(log))
+
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
         binding_specs = [

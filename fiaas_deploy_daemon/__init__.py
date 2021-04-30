@@ -171,9 +171,11 @@ def warn_if_env_variable_config(config, log):
                  "flags. See https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information.",
                  ', '.join(possible_config_env_variables))
 
+
 def expose_fdd_version(config):
     i = Info('fiaas_fdd_version', 'The tag of the running fiaas-deploy-daemon docker image.')
     i.info({'fiaas_fdd_version': config.version})
+
 
 def main():
     cfg = Configuration()

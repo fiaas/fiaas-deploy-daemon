@@ -88,7 +88,7 @@ def _save_status(result, subject):
         status.result = result
     else:
         metadata = ObjectMeta(generateName="{}-".format(app_name), namespace=namespace, labels=labels, annotations=annotations)
-        status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
+        status = FiaasApplicationStatus(metadata=metadata, result=result, logs=logs)
     resource_version = status.metadata.resourceVersion
 
     LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,

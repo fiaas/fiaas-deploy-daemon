@@ -38,15 +38,15 @@ from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
     KindWrapper
 
-from fiaas_deploy_daemon.crd.status import find_status
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec, AdditionalLabelsOrAnnotations
+from fiaas_deploy_daemon.crd.status import create_name
+from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
+    AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.tools import merge_dicts
 
 IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
-NAMESPACE = "default"
 PATIENCE = 40
 TIMEOUT = 5
 
@@ -120,7 +120,7 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         args = docker_args + args
-        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": NAMESPACE}))
+        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:
             pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
@@ -244,7 +244,7 @@ class TestE2E(object):
         expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
-        metadata = ObjectMeta(name=name, namespace=NAMESPACE, labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
                                     additional_labels=additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
@@ -289,17 +289,17 @@ class TestE2E(object):
 
             # Check that deployment status is RUNNING
             def _assert_status():
-                status = find_status(NAMESPACE, name, DEPLOYMENT_ID1)
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
                 assert status.result == u"RUNNING"
                 assert len(status.logs) > 0
-                assert any("Saving result RUNNING for {}/{}".format(NAMESPACE, name) in line for line in status.logs)
+                assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
             wait_until(_assert_status, patience=PATIENCE)
 
             # Check that annotations and labels are applied to status object
             status_labels = fiaas_application.spec.additional_labels.status
             if status_labels:
-                status = find_status(NAMESPACE, name, DEPLOYMENT_ID1)
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
                 label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
                 assert label_difference == set()
 
@@ -352,7 +352,7 @@ class TestE2E(object):
             name = sanitize_resource_name(fiaas_path)
 
             expected = {k: read_yml(request.fspath.dirpath().join(v).strpath) for (k, v) in expected.items()}
-            metadata = ObjectMeta(name=name, namespace=NAMESPACE, labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+            metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
             spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
             fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
 
@@ -361,7 +361,7 @@ class TestE2E(object):
 
             # Check that deployment status is RUNNING
             def _assert_status():
-                status = find_status(NAMESPACE, name, DEPLOYMENT_ID1)
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
                 assert status.result == u"RUNNING"
                 assert len(status.logs) > 0
                 assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)

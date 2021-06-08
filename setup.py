@@ -38,6 +38,7 @@ GENERIC_REQ = [
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.9.1",
     "backoff == 1.8.0",
+    "py27hash == 1.1.0",
 ]
 
 WEB_REQ = [

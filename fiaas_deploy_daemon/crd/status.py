@@ -22,6 +22,7 @@ from datetime import datetime
 
 import pytz
 from blinker import signal
+from py27hash.hash import hash27
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta, OwnerReference
 
@@ -110,7 +111,7 @@ def create_name(name, deployment_id):
     By convention, the names of Kubernetes resources should be up to maximum length of 253
     characters and consist of lower case alphanumeric characters, '-', and '.'.
     """
-    suffix = b32encode(struct.pack('q', hash(deployment_id))).lower().strip("=")
+    suffix = b32encode(struct.pack('q', hash27(deployment_id))).decode("utf-8").lower().strip("=")
     return "{}-{}".format(name, suffix)
 
 

@@ -29,9 +29,6 @@ COPY . /fiaas-deploy-daemon
 COPY .wheel_cache/*.whl /links/
 WORKDIR /fiaas-deploy-daemon
 
-# setuptools needs to be upgraded in order to perform the build of the wheels
-# Note: setuptools 45.0.0 will drop the support for python 2
-RUN pip install -U setuptools==44.1.1
 RUN pip wheel . --no-cache-dir --wheel-dir=/wheels/ --find-links=/links/
 
 FROM common as production

@@ -207,7 +207,7 @@ spec:
         - mountPath: '/tmp'
           name: 'tmp'
         command: []
-        args: [] 
+        args: []
         env:
         - name: 'K8S_DEPLOYMENT'
           value: 'v3-data-examples-strongbox'

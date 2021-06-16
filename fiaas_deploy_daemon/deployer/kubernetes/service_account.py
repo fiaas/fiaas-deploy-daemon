@@ -64,7 +64,6 @@ class ServiceAccountDeployer(object):
             image_pull_secrets = default_service_account.imagePullSecrets
         except NotFound:
             LOG.info("No default service account found in namespace: %s", app_spec.namespace)
-            pass
         service_account_name = app_spec.name
         custom_labels = labels
         custom_annotations = {}

@@ -19,7 +19,7 @@ Long term architectural plans
 Outdated
 --------
 
-This document is no longer up to date, and needs to be reviewed. 
+This document is no longer up to date, and needs to be reviewed.
 
 ----------------------
 
@@ -41,7 +41,7 @@ Extension mechanism
 
 If we build our platform as above, the services (operators) will often need to know about others operating in the same cluster. Services implemented by others, to integrate with our platform, will also need to be discovered. To solve this, we will use a generic extension mechanism for both services developed by us, and for services developed by cluster operators. We will call these services "Extensions". An extension can be an operator, or a simple service integrating via hooks.
 
-This allows for a wide range of use-cases, some specific to a single site and outside the scope of FiaaS itself, and others developed and maintained as part of FiaaS. Site-specific features can be implemented in much the same way as generic FiaaS features, and an extension that starts life as a site-specific solution can easily by lifted up and deployed to all users of FiaaS if it is useful to others. 
+This allows for a wide range of use-cases, some specific to a single site and outside the scope of FiaaS itself, and others developed and maintained as part of FiaaS. Site-specific features can be implemented in much the same way as generic FiaaS features, and an extension that starts life as a site-specific solution can easily by lifted up and deployed to all users of FiaaS if it is useful to others.
 
 Extensions in the cluster needs to be registered, by creating a FiaasExtension object, with details about how it integrates with the rest of the platform, a name and possibly other identifying details like maintainer and code repo.
 
@@ -52,7 +52,7 @@ When an extension needs configuration that can't be applied as annotations on ex
 Hooks of various kinds
 ----------------------
 
-To replace initializers, we will need to implement some kind of pre-create hook. We should make sure that this mechanism is extensible and flexible enough to handle other hooks as well. There are already a couple hooks we can envision, and we should be able to add more should the need arise.  
+To replace initializers, we will need to implement some kind of pre-create hook. We should make sure that this mechanism is extensible and flexible enough to handle other hooks as well. There are already a couple hooks we can envision, and we should be able to add more should the need arise.
 
 Operators that wish to use hooks should add the hooks it wishes to use to its FiaasExtension object.
 
@@ -60,7 +60,7 @@ At the start, we should support two hooks: `pre-create` and `lint`. Each one is 
 
 ### Pre-create hooks
 
-When FDD is creating or updating a new k8s object, it will post the proposed object (using JSON) and the configuration to all registered pre-create hooks. The hook can then modify, reject or ignore the object. After all hooks have been involved, the object is created/updated. The exact semantics should be clearly documented once implemented, but something along the lines of 304 Not Modified if the hook does not have any "comment", a 200 OK followed by a modified body if the hook wants to apply changes, and a suitable code from the 4XX range if the object should not be created/updated at all. In the last case, FDD should log the reason and fail the deployment. 
+When FDD is creating or updating a new k8s object, it will post the proposed object (using JSON) and the configuration to all registered pre-create hooks. The hook can then modify, reject or ignore the object. After all hooks have been involved, the object is created/updated. The exact semantics should be clearly documented once implemented, but something along the lines of 304 Not Modified if the hook does not have any "comment", a 200 OK followed by a modified body if the hook wants to apply changes, and a suitable code from the 4XX range if the object should not be created/updated at all. In the last case, FDD should log the reason and fail the deployment.
 
 ### Linting hooks
 
@@ -70,7 +70,7 @@ Again, the exact semantics of how results of the linting should be reported will
 
 ### Ordering
 
-Hooks, and in particular pre-create hooks, might be sensitive to the order they are applied in. There are two basic approaches to deal with this, each with variations to some degree. It is hard to guess which one will make the most sense, but we probably need to pick one and go with it. 
+Hooks, and in particular pre-create hooks, might be sensitive to the order they are applied in. There are two basic approaches to deal with this, each with variations to some degree. It is hard to guess which one will make the most sense, but we probably need to pick one and go with it.
 
 One problem with ordering of extensions is who sets the order? The extension developer, or the cluster operator? The developer knows what the extension needs, while the cluster operator knows which other extensions are active in the cluster. It would be nice if we could express what an extension needs and what it provides in a meaningful and machine readable way, but it sounds like it might be something you need a master thesis more than a short section in an architecture document to define.
 
@@ -82,7 +82,7 @@ One approach is that each extensions lists a priority number in its FiaasExtensi
 
 The other approach is that each extension has a list of extensions that needs to be applied before it, and a list of extensions that it knows should be after it. It is possible to create loops this way, but it can also express some more complex relationships.
 
-When ordering the extensions, the platform needs to create a graph describing the relationships and apply accordingly. This is a more complex operation than simply ordering by number, and might require some thought. 
+When ordering the extensions, the platform needs to create a graph describing the relationships and apply accordingly. This is a more complex operation than simply ordering by number, and might require some thought.
 
 We can extend this by adding categories to each extension, where you can say that an extension needs to be after extension "xyz", and after all extensions in category "network", while being before the operators in category "access". This of course creates the additional problem of defining useful categories, and who does the defining.
 
@@ -124,5 +124,5 @@ This could be implemented as a custom ingress annotation that is parsed by the i
 
 ### Case 6: Monitoring Directives (SLA SLO SLI)
 
-This is a case for an extension that might be promoted to the root configuration, depending on where the company is moving. It could be implemented as a combination pre-create hook and operator, with a linting hook as an optional extra. The pre-create hook would read the configuration and modify the object in some way that allows the operator to set up extra monitoring. It might also be possible to do without the pre-create hook, because when the operator finds an object it needs to act on it can look up the configuration itself, from the TPR that belongs to the application. 
+This is a case for an extension that might be promoted to the root configuration, depending on where the company is moving. It could be implemented as a combination pre-create hook and operator, with a linting hook as an optional extra. The pre-create hook would read the configuration and modify the object in some way that allows the operator to set up extra monitoring. It might also be possible to do without the pre-create hook, because when the operator finds an object it needs to act on it can look up the configuration itself, from the TPR that belongs to the application.
 

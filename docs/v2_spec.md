@@ -264,7 +264,7 @@ ports:
     name: http
     port: 80
     target_port: 80
-    path: / 
+    path: /
 ```
 
 

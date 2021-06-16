@@ -77,6 +77,10 @@
           "type": "object",
           "description": "Applied to Service object"
         },
+        "service_account": {
+          "type": "object",
+          "description": "Applied to Service Account object"
+        },
         "pod": {
           "type": "object",
           "description": "Applied to Pod objects (via Deployment template)"

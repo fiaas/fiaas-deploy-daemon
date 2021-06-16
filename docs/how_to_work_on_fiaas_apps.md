@@ -58,7 +58,7 @@ helm init --upgrade --wait
 # Install Skipper, which will install FIAAS
 helm install helm/fiaas-skipper --wait --set ingress.fqdn=skipper.$(minikube ip).xip.io \
  --set ingress.suffix=$(minikube ip).xip.io --set ingress.enableTLS=false --set addFiaasDeployDaemonConfigmap=true \
- --set rbac.enabled=true 
+ --set rbac.enabled=true
 ```
 
 With these commands, Skipper installs a default configuration for FIAAS in the `default` namespace, and installs the stable version of FIAAS. You may want to adjust the configuration to more closely match the configuration used in your runtime environment. To do that, follow these steps:
@@ -81,7 +81,7 @@ Now that you have a cluster, you will want to run things in it. The first thing 
 
 Now you can build your application like you normally would, and the docker image will be available to your Kubernetes cluster. A common pitfall is to just build `latest`, as `latest` will always be considered "the same version" when Kubernetes considers if it needs to pull the image and restart. You should adjust your build scripts to add a timestamp to the version.
 
-Once you have a docker image, you need to make FIAAS deploy it to your cluster. This is done by creating an Application object in the cluster. `docs/crd/examples/nginx.yaml` has an example YAML manifest for an Application. 
+Once you have a docker image, you need to make FIAAS deploy it to your cluster. This is done by creating an Application object in the cluster. `docs/crd/examples/nginx.yaml` has an example YAML manifest for an Application.
 
 If we start with the `nginx.yaml` file, you need to change the following parts:
 
@@ -93,6 +93,6 @@ If we start with the `nginx.yaml` file, you need to change the following parts:
     - image: The docker image you wish to deploy. Remember to include version
     - config: A direct copy of your `fiaas.yml`
 
-Once you have your new YAML file, deploy the application: `kubectl create -f <your.yaml>`. This will trigger FIAAS to deploy the application. Depending on your configuration, after a bit of startup, you should be able to use your application. You can find a working web-address by listing the Ingress: `kubectl get ing <application name>`. 
+Once you have your new YAML file, deploy the application: `kubectl create -f <your.yaml>`. This will trigger FIAAS to deploy the application. Depending on your configuration, after a bit of startup, you should be able to use your application. You can find a working web-address by listing the Ingress: `kubectl get ing <application name>`.
 
 When you build a new image, you must change the `deployment_id` and `image` fields, and update the Application: `kubectl replace -f <your.yaml>`.

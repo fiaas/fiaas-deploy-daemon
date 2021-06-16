@@ -36,16 +36,6 @@ class ServiceAccountDeployer(object):
     def deploy(self, app_spec, labels):
         self._create(app_spec, labels)
 
-    def delete(self, app_spec):
-        LOG.info("Deleting serviceAccount for %s", app_spec.name)
-        try:
-            service_account = ServiceAccount.get(app_spec.name, app_spec.namespace)
-            if not self._owned_by_fiaas(service_account):
-                return
-            ServiceAccount.delete(app_spec.name, app_spec.namespace)
-        except NotFound:
-            pass
-
     @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)

@@ -23,6 +23,7 @@ from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import AutoscalerDeploye
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
+from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
 from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
 
 FIAAS_VERSION = "1"
@@ -34,6 +35,10 @@ class TestK8s(object):
     @pytest.fixture(autouse=True)
     def service_deployer(self):
         return mock.create_autospec(ServiceDeployer)
+
+    @pytest.fixture(autouse=True)
+    def service_account_deployer(self):
+        return mock.create_autospec(ServiceAccountDeployer)
 
     @pytest.fixture(autouse=True)
     def deployment_deployer(self):
@@ -54,10 +59,10 @@ class TestK8s(object):
             yield mockk
 
     @pytest.fixture
-    def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer):
+    def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
-        return K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer)
+        return K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer)
 
     def test_make_labels(self, k8s, app_spec):
         actual = k8s._make_labels(app_spec)

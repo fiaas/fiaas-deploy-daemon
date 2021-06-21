@@ -24,6 +24,10 @@ spec:
   application: nginx-example
   image: docker.io/nginx:1.13.0
   config:
+    annotations:
+      service_account:
+        eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/iam_role
+        abc: "test1"
     version: 3
     replicas:
       maximum: 2

@@ -160,6 +160,9 @@ See the Kubernetes documentation about [emptyDir](https://kubernetes.io/docs/con
 
 Used to configure [Usage Reporting](#usage-reporting).
 
+### enable-service-account-per-app
+
+Used to create a serviceaccount for each deployed application, using the application name. If there are imagePullSecrets set on the 'default' service account, these are propagated the per-application service accounts. If a service account with the same name as the application already exists, the application will run under that service account but FIAAS will not overwrite/manage the service account.
 
 Deploying an application
 ------------------------

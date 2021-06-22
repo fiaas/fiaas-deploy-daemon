@@ -22,6 +22,7 @@ from k8s.models.deployment import Deployment
 from mock import create_autospec
 from requests import Response
 
+from fiaas_deploy_daemon.extension_hook_caller import ExtensionHookCaller
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer, DataDog, Prometheus, Secrets
 from fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer import _make_probe
@@ -120,6 +121,7 @@ class TestDeploymentDeployer(object):
         config.deployment_max_surge = u"25%"
         config.deployment_max_unavailable = 0
         config.disable_deprecated_managed_env_vars = disable_deprecated_managed_env_vars
+        config.hook_service = None
         yield config
 
     @pytest.fixture(params=(
@@ -168,9 +170,14 @@ class TestDeploymentDeployer(object):
     def secrets(self, config):
         return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
 
+    @pytest.fixture
+    def extension_hook(self, config):
+        return mock.create_autospec(ExtensionHookCaller, spec_set=True, instance=True)
+
     @pytest.mark.usefixtures("get")
-    def test_managed_environment_variables(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
-        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+    def test_managed_environment_variables(self, post, config, app_spec, datadog, prometheus, secrets,
+                                           owner_references, extension_hook):
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
         env = deployer._make_env(app_spec)
         env_keys = [var.name for var in env]
         assert 'FIAAS_ARTIFACT_NAME' in env_keys
@@ -181,14 +188,15 @@ class TestDeploymentDeployer(object):
         assert ('VERSION' not in env_keys) == config.disable_deprecated_managed_env_vars
 
     @pytest.mark.usefixtures("get")
-    def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets, owner_references):
+    def test_deploy_new_deployment(self, post, config, app_spec, datadog, prometheus, secrets, owner_references,
+                                   extension_hook):
         expected_deployment = create_expected_deployment(config, app_spec)
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_deployment
         post.side_effect = None
         post.return_value = mock_response
 
-        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
@@ -196,8 +204,10 @@ class TestDeploymentDeployer(object):
         prometheus.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
         secrets.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
         owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
+        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
 
-    def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets, owner_references):
+    def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets,
+                                                  owner_references, extension_hook):
         old_strongbox_spec = app_spec.strongbox._replace(enabled=True, groups=["group1", "group2"])
         old_app_spec = app_spec._replace(strongbox=old_strongbox_spec)
         old_deployment = create_expected_deployment(config, old_app_spec, add_init_container_annotations=True)
@@ -212,13 +222,14 @@ class TestDeploymentDeployer(object):
         put.side_effect = None
         put.return_value = put_mock_response
 
-        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
         deployer.deploy(app_spec, SELECTOR, LABELS, False)
 
         pytest.helpers.assert_any_call(put, DEPLOYMENTS_URI + "testapp", expected_deployment)
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
+        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 2),
@@ -227,8 +238,8 @@ class TestDeploymentDeployer(object):
     ))
     def test_replicas_when_autoscaler_enabled(self, previous_replicas, max_replicas, min_replicas, cpu_request,
                                               expected_replicas, config, app_spec, get, put, post, datadog, prometheus,
-                                              secrets, owner_references):
-        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references)
+                                              secrets, owner_references, extension_hook):
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
 
         image = "finntech/testimage:version2"
         version = "version2"
@@ -331,6 +342,7 @@ class TestDeploymentDeployer(object):
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
+        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
 
 
 def create_expected_deployment(config,

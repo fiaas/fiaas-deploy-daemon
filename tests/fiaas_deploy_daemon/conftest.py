@@ -65,7 +65,8 @@ def app_spec():
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
-        secrets=[]
+        secrets=[],
+        hooks={}
     )
 
 

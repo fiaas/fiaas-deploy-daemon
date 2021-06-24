@@ -21,7 +21,8 @@ from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerRefere
 
 
 @pytest.helpers.register
-def create_metadata(app_name, namespace='default', labels=None, external=None, annotations=None, generation=None):
+def create_metadata(app_name, namespace='default', labels=None, external=None,
+                    annotations=None, generation=None, owner_references=None):
     if not labels:
         labels = {
             'app': app_name,
@@ -32,9 +33,10 @@ def create_metadata(app_name, namespace='default', labels=None, external=None, a
         'labels': labels,
         'namespace': namespace,
         'name': app_name,
-        'ownerReferences': [],
+        'ownerReferences': [] if owner_references is None else owner_references,
         'finalizers': [],
     }
+
     if annotations is not None:
         metadata['annotations'] = annotations.copy()
 

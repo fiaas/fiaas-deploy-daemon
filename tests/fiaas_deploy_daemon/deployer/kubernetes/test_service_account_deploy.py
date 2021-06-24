@@ -27,6 +27,8 @@ from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
 from utils import TypeMatcher
 
+from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
+
 SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
 LABELS = {"service": "pass through"}
 
@@ -54,6 +56,80 @@ class TestServiceAccountDeployer(object):
 
         pytest.helpers.assert_any_call(post, SERVICES_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)
+
+    @pytest.mark.parametrize('owner_references', (
+        [],
+        [{
+                "apiVersion": "example.com/v1",
+                "kind": "random",
+                "name": "testapp",
+        }],
+        [
+            {
+                "apiVersion": "example.com/v1",
+                "kind": "random",
+                "name": "testapp",
+            },
+            {
+                "apiVersion": "example.com/v1",
+                "kind": "random2",
+                "name": "testapp",
+            },
+        ],
+    ))
+    def test_deploy_existing_service_account(self, get, deployer, post, app_spec, owner_references):
+        existing_service_account = {
+                'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, owner_references=owner_references),
+                'secrets': [],
+                'imagePullSecrets': []
+        }
+
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = existing_service_account
+        get.side_effect = None
+        get.return_value = mock_response
+
+        deployer.deploy(app_spec, LABELS)
+        post.assert_not_called()
+
+    def test_deploy_existing_fiaas_owned_service_account(self, get, post, put, app_spec):
+        existing_service_account = {
+                'metadata': pytest.helpers.create_metadata(
+                    app_spec.name,
+                    labels=LABELS,
+                    owner_references=[{
+                        "apiVersion": "fiaas.schibsted.io/v1",
+                        "blockOwnerDeletion": True,
+                        "controller": True,
+                        "kind": "Application",
+                        "name": app_spec.name,
+                        "uid": app_spec.uid,
+                    }],
+                ),
+                'secrets': [],
+                'imagePullSecrets': []
+        }
+
+        def get_default_or_not(uri):
+            mock_response = create_autospec(Response)
+            mock_response.json.return_value = existing_service_account
+            if uri == SERVICES_ACCOUNT_URI + app_spec.name:
+                return mock_response
+            else:
+                raise NotFound
+
+        get.side_effect = get_default_or_not
+
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = existing_service_account
+        put.return_value = mock_response
+
+        config = create_autospec(Configuration([]), spec_set=True)
+        deployer = ServiceAccountDeployer(config, OwnerReferences())
+
+        deployer.deploy(app_spec, LABELS)
+        post.assert_not_called()
+        pytest.helpers.assert_any_call(put, SERVICES_ACCOUNT_URI + app_spec.name, existing_service_account)
 
     @pytest.fixture
     def service_account_get(self):

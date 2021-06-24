@@ -134,3 +134,24 @@ class TestK8s(object):
         k8s.deploy(app_spec)
 
         pytest.helpers.assert_any_call(service_deployer.deploy, app_spec, selector, labels)
+
+    @pytest.mark.parametrize('service_account_per_app_enabled', (True, False))
+    def test_pass_to_service_account(self, app_spec, k8s, service_deployer,
+                                     resource_quota_list, deployment_deployer,
+                                     ingress_deployer, autoscaler_deployer,
+                                     service_account_deployer,
+                                     service_account_per_app_enabled):
+
+        config = mock.create_autospec(Configuration([]), spec_set=True)
+        config.version = FIAAS_VERSION
+        config.enable_service_account_per_app = service_account_per_app_enabled
+        k8s = K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer)
+
+        labels = k8s._make_labels(app_spec)
+
+        k8s.deploy(app_spec)
+
+        if service_account_per_app_enabled:
+            pytest.helpers.assert_any_call(service_account_deployer.deploy, app_spec, labels)
+        else:
+            service_account_deployer.deploy.assert_not_called()

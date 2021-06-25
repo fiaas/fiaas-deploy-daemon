@@ -34,6 +34,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
+from k8s.models.service_account import ServiceAccount
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
     KindWrapper
@@ -49,6 +50,7 @@ DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
 PATIENCE = 40
 TIMEOUT = 5
+SHOULD_NOT_EXIST = object()  # Mapped to Kinds that should not exist in a test case
 
 
 def _fixture_names(fixture_value):
@@ -74,6 +76,20 @@ class TestE2E(object):
             msg = "Unable to run kind: %s"
             pytest.fail(msg % str(e))
 
+    @pytest.fixture(scope="module")
+    def kubernetes_per_app_service_account(self, k8s_version):
+        service_type = "ClusterIP"
+        try:
+            name = "_".join((service_type, k8s_version, str(uuid.uuid4())))
+            kind = KindWrapper(k8s_version, name)
+            try:
+                yield kind.start()
+            finally:
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
+            pytest.fail(msg % str(e))
+
     @pytest.fixture
     def kind_logger(self, kubernetes):
         @contextlib.contextmanager
@@ -86,13 +102,33 @@ class TestE2E(object):
 
         return wrapped
 
-    @pytest.fixture(autouse=True)
+    @pytest.fixture
+    def kind_logger_per_app_service_account(self, kubernetes_per_app_service_account):
+        @contextlib.contextmanager
+        def wrapped():
+            start_time = datetime.now()
+            try:
+                yield
+            finally:
+                kubernetes_per_app_service_account["log_dumper"](since=start_time, until=datetime.now())
+
+        return wrapped
+
+    @pytest.fixture()
     def k8s_client(self, kubernetes):
         Client.clear_session()
         config.api_server = kubernetes["host-to-container-server"]
         config.debug = True
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
+
+    @pytest.fixture()
+    def k8s_client_service_account(self, kubernetes_per_app_service_account):
+        Client.clear_session()
+        config.api_server = kubernetes_per_app_service_account["host-to-container-server"]
+        config.debug = True
+        config.verify_ssl = False
+        config.cert = (kubernetes_per_app_service_account["client-cert"], kubernetes_per_app_service_account["client-key"])
 
     @pytest.fixture(scope="module")
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
@@ -137,11 +173,63 @@ class TestE2E(object):
         finally:
             self._end_popen(fdd)
 
+    @pytest.fixture(scope="module")
+    def fdd_service_account(self, request, kubernetes_per_app_service_account, k8s_version, use_docker_for_e2e):
+        service_type = "ClusterIP"
+        port = get_unbound_port()
+        cert_path = os.path.dirname(kubernetes_per_app_service_account["api-cert"])
+        docker_args = use_docker_for_e2e(
+            request, cert_path, service_type,
+            k8s_version, port,
+            kubernetes_per_app_service_account['container-to-container-server-ip']
+        )
+        server = kubernetes_per_app_service_account['container-to-container-server'] if docker_args else kubernetes_per_app_service_account["host-to-container-server"]
+        args = [
+            "fiaas-deploy-daemon",
+            "--port", str(port),
+            "--api-server", server,
+            "--api-cert", kubernetes_per_app_service_account["api-cert"],
+            "--client-cert", kubernetes_per_app_service_account["client-cert"],
+            "--client-key", kubernetes_per_app_service_account["client-key"],
+            "--service-type", service_type,
+            "--ingress-suffix", "svc.test.example.com",
+            "--environment", "test",
+            "--datadog-container-image", "DATADOG_IMAGE:tag",
+            "--strongbox-init-container-image", "STRONGBOX_IMAGE",
+            "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
+            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
+            "--use-ingress-tls", "default_off",
+            "--enable-service-account-per-app",
+        ]
+        if crd_supported(k8s_version):
+            args.append("--enable-crd-support")
+        args = docker_args + args
+        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+        time.sleep(1)
+        if fdd.poll() is not None:
+            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+
+        def ready():
+            resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
+            resp.raise_for_status()
+
+        try:
+            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
+            if crd_supported(k8s_version):
+                wait_until(
+                    crd_available(kubernetes_per_app_service_account, timeout=TIMEOUT),
+                    "CRD available", RuntimeError, patience=PATIENCE
+                )
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(fdd)
+
     @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
                 Ingress: "e2e_expected/v2minimal-ingress.yml",
+                ServiceAccount: SHOULD_NOT_EXIST,
             }),
             ("v2/data/examples/host.yml", {
                 Service: "e2e_expected/host-service.yml",
@@ -172,6 +260,7 @@ class TestE2E(object):
                 Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+                ServiceAccount: SHOULD_NOT_EXIST,
             }, AdditionalLabelsOrAnnotations(
                 _global={"global/label": "true"},
                 deployment={"deployment/label": "true"},
@@ -241,6 +330,52 @@ class TestE2E(object):
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = {}
+        for kind, path in expected.items():
+            if path == SHOULD_NOT_EXIST:
+                expected[kind] = SHOULD_NOT_EXIST
+            else:
+                expected[kind] = read_yml(request.fspath.dirpath().join(path).strpath)
+
+        name = sanitize_resource_name(fiaas_path)
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
+                                    additional_labels=additional_labels)
+        request.addfinalizer(lambda: self._ensure_clean(name, expected))
+        return name, FiaasApplication(metadata=metadata, spec=spec), expected
+
+    @pytest.fixture(ids=_fixture_names, params=(
+            ("data/v2minimal.yml", {
+                Service: "e2e_expected/v2minimal-service.yml",
+                Deployment: "e2e_expected/v2minimal-deployment-per-app-service-account.yml",
+                Ingress: "e2e_expected/v2minimal-ingress.yml",
+                ServiceAccount: "e2e_expected/v2minimal-service-account.yml",
+            }),
+            ("v3/data/examples/v3minimal.yml", {
+                Service: "e2e_expected/v3minimal-service.yml",
+                Deployment: "e2e_expected/v3minimal-deployment-per-app-service-account.yml",
+                Ingress: "e2e_expected/v3minimal-ingress.yml",
+                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+                ServiceAccount: "e2e_expected/v3minimal-service-account.yml",
+            }, AdditionalLabelsOrAnnotations(
+                _global={"global/label": "true"},
+                deployment={"deployment/label": "true"},
+                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                ingress={"ingress/label": "true"},
+                service={"service/label": "true"},
+                pod={"pod/label": "true"},
+                status={"status/label": "true"},
+            )),
+    ))
+    def custom_resource_definition_service_account(self, request, k8s_version):
+        additional_labels = None
+        if len(request.param) == 2:
+            fiaas_path, expected = request.param
+        elif len(request.param) == 3:
+            fiaas_path, expected, additional_labels = request.param
+
+        skip_if_crd_not_supported(k8s_version)
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
@@ -272,8 +407,9 @@ class TestE2E(object):
         else:
             return [Service, Deployment, Ingress]
 
-    @pytest.mark.usefixtures("fdd")
-    def test_custom_resource_definition_deploy(self, custom_resource_definition, service_type, kind_logger):
+    @pytest.mark.usefixtures("fdd", "k8s_client")
+    def test_custom_resource_definition_deploy(self, custom_resource_definition,
+                                               service_type, kind_logger):
         with kind_logger():
             name, fiaas_application, expected = custom_resource_definition
 
@@ -329,7 +465,55 @@ class TestE2E(object):
 
             wait_until(cleanup_complete, patience=PATIENCE)
 
-    @pytest.mark.usefixtures("fdd")
+    @pytest.mark.usefixtures("fdd_service_account", "k8s_client_service_account")
+    def test_custom_resource_definition_deploy_with_service_account(self,
+                                                                    custom_resource_definition_service_account,
+                                                                    kind_logger_per_app_service_account):
+        service_type = "ClusterIP"
+
+        with kind_logger_per_app_service_account():
+            name, fiaas_application, expected = custom_resource_definition_service_account
+
+            # check that k8s objects for name doesn't already exist
+            kinds = self._select_kinds(expected)
+            for kind in kinds:
+                with pytest.raises(NotFound):
+                    kind.get(name)
+
+            # First deploy
+            fiaas_application.save()
+            app_uid = fiaas_application.metadata.uid
+
+            # Check that deployment status is RUNNING
+            def _assert_status():
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+                assert status.result == u"RUNNING"
+                assert len(status.logs) > 0
+                assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
+
+            wait_until(_assert_status, patience=PATIENCE)
+
+            # Check that annotations and labels are applied to status object
+            status_labels = fiaas_application.spec.additional_labels.status
+            if status_labels:
+                status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+                label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+                assert label_difference == set()
+
+            # Check deploy success
+            wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE)
+
+            # Cleanup
+            FiaasApplication.delete(name)
+
+            def cleanup_complete():
+                for kind in kinds:
+                    with pytest.raises(NotFound):
+                        kind.get(name)
+
+            wait_until(cleanup_complete, patience=PATIENCE)
+
+    @pytest.mark.usefixtures("fdd", "k8s_client")
     @pytest.mark.parametrize("input, expected", [
         ("multiple_ingress", {
             "v3-data-examples-multiple-ingress": "e2e_expected/multiple_ingress1.yml",
@@ -415,7 +599,11 @@ def _deploy_success(name, kinds, service_type, image, expected, deployment_id, s
         assert svc.spec.type == service_type
 
         for kind, expected_dict in expected.items():
-            actual = kind.get(name)
-            assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid)
+            if expected_dict == SHOULD_NOT_EXIST:
+                with pytest.raises(NotFound):
+                    kind.get(name)
+            else:
+                actual = kind.get(name)
+                assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid)
 
     return action

@@ -28,7 +28,7 @@ The abstractions provided by FIAAS also means that an application can be deploye
 FIAAS has an opinion about how you should deploy your application on Kubernetes. It will, in many cases, give you the option of overriding that opinion, but the defaults are chosen for a reason. They have two purposes:
 
 1. Drive applications towards a common convention that is sensible
-2. Provide guidance based on what we have learned along the way 
+2. Provide guidance based on what we have learned along the way
 
 For a new project, the goal is that the defaults provided by FIAAS makes sense, and in most cases work for that application. We try to find the balance between giving developers too many choices vs. hiding too much, but this is always going to be difficult. Neither end of the spectrum is good, FIAAS maintains a fine balance somewhere in the middle.
 

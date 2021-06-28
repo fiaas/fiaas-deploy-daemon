@@ -183,7 +183,11 @@ class TestE2E(object):
             k8s_version, port,
             kubernetes_per_app_service_account['container-to-container-server-ip']
         )
-        server = kubernetes_per_app_service_account['container-to-container-server'] if docker_args else kubernetes_per_app_service_account["host-to-container-server"]
+
+        server = kubernetes_per_app_service_account["host-to-container-server"]
+        if docker_args:
+            server = kubernetes_per_app_service_account['container-to-container-server']
+
         args = [
             "fiaas-deploy-daemon",
             "--port", str(port),
@@ -322,11 +326,7 @@ class TestE2E(object):
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):
-        additional_labels = None
-        if len(request.param) == 2:
-            fiaas_path, expected = request.param
-        elif len(request.param) == 3:
-            fiaas_path, expected, additional_labels = request.param
+        fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
@@ -337,23 +337,20 @@ class TestE2E(object):
             else:
                 expected[kind] = read_yml(request.fspath.dirpath().join(path).strpath)
 
-        name = sanitize_resource_name(fiaas_path)
-        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
-                                    additional_labels=additional_labels)
+        name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
     @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {
                 Service: "e2e_expected/v2minimal-service.yml",
-                Deployment: "e2e_expected/v2minimal-deployment-per-app-service-account.yml",
+                Deployment: "e2e_expected/v2minimal-deployment.yml",
                 Ingress: "e2e_expected/v2minimal-ingress.yml",
                 ServiceAccount: "e2e_expected/v2minimal-service-account.yml",
             }),
             ("v3/data/examples/v3minimal.yml", {
                 Service: "e2e_expected/v3minimal-service.yml",
-                Deployment: "e2e_expected/v3minimal-deployment-per-app-service-account.yml",
+                Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
                 ServiceAccount: "e2e_expected/v3minimal-service-account.yml",
@@ -368,22 +365,37 @@ class TestE2E(object):
             )),
     ))
     def custom_resource_definition_service_account(self, request, k8s_version):
-        additional_labels = None
-        if len(request.param) == 2:
-            fiaas_path, expected = request.param
-        elif len(request.param) == 3:
-            fiaas_path, expected, additional_labels = request.param
+        fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
 
+        # modify the expected service account for this test
+        for k, _ in expected.items():
+            if expected[k]['kind'] != 'Deployment':
+                continue
+            name = expected[k]['metadata']['name']
+            expected[k]['spec']['template']['spec']['serviceAccountName'] = name
+
+        name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
+        request.addfinalizer(lambda: self._ensure_clean(name, expected))
+        return name, FiaasApplication(metadata=metadata, spec=spec), expected
+
+    def _resource_components(self, fiaas_path, fiaas_yml, additional_labels):
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
                                     additional_labels=additional_labels)
-        request.addfinalizer(lambda: self._ensure_clean(name, expected))
-        return name, FiaasApplication(metadata=metadata, spec=spec), expected
+        return name, metadata, spec
+
+    def _resource_labels(self, param):
+        additional_labels = None
+        if len(param) == 2:
+            fiaas_path, expected = param
+        elif len(param) == 3:
+            fiaas_path, expected, additional_labels = param
+        return fiaas_path, expected, additional_labels
 
     def _ensure_clean(self, name, expected):
         kinds = self._select_kinds(expected)

@@ -116,22 +116,57 @@ class TestE2E(object):
 
     @pytest.fixture()
     def k8s_client(self, kubernetes):
+        self.prepare_k8s_client(kubernetes)
+
+    @pytest.fixture()
+    def k8s_client_service_account(self, kubernetes_per_app_service_account):
+        self.prepare_k8s_client(kubernetes_per_app_service_account)
+
+    def prepare_k8s_client(self, kubernetes):
         Client.clear_session()
         config.api_server = kubernetes["host-to-container-server"]
         config.debug = True
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
-    @pytest.fixture()
-    def k8s_client_service_account(self, kubernetes_per_app_service_account):
-        Client.clear_session()
-        config.api_server = kubernetes_per_app_service_account["host-to-container-server"]
-        config.debug = True
-        config.verify_ssl = False
-        config.cert = (kubernetes_per_app_service_account["client-cert"], kubernetes_per_app_service_account["client-key"])
-
     @pytest.fixture(scope="module")
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
+        args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version, use_docker_for_e2e, service_type)
+        fdd = self.start_fdd(args)
+
+        try:
+            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
+            if crd_supported(k8s_version):
+                wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(fdd)
+
+    @pytest.fixture(scope="module")
+    def fdd_service_account(self, request, kubernetes_per_app_service_account, k8s_version, use_docker_for_e2e):
+        args, port, ready = self.prepare_fdd(request, kubernetes_per_app_service_account, k8s_version,
+                                             use_docker_for_e2e, "ClusterIP", service_account=True)
+        fdd = self.start_fdd(args)
+
+        try:
+            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
+            if crd_supported(k8s_version):
+                wait_until(
+                    crd_available(kubernetes_per_app_service_account, timeout=TIMEOUT),
+                    "CRD available", RuntimeError, patience=PATIENCE
+                )
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(fdd)
+
+    def start_fdd(self, args):
+        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+        time.sleep(1)
+        if fdd.poll() is not None:
+            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+        return fdd
+
+    def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
         port = get_unbound_port()
         cert_path = os.path.dirname(kubernetes["api-cert"])
         docker_args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port,
@@ -153,80 +188,17 @@ class TestE2E(object):
             "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls", "default_off",
         ]
+        if service_account:
+            args.append("--enable-service-account-per-app")
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         args = docker_args + args
-        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
-        time.sleep(1)
-        if fdd.poll() is not None:
-            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
             resp.raise_for_status()
 
-        try:
-            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if crd_supported(k8s_version):
-                wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
-            yield "http://localhost:{}/fiaas".format(port)
-        finally:
-            self._end_popen(fdd)
-
-    @pytest.fixture(scope="module")
-    def fdd_service_account(self, request, kubernetes_per_app_service_account, k8s_version, use_docker_for_e2e):
-        service_type = "ClusterIP"
-        port = get_unbound_port()
-        cert_path = os.path.dirname(kubernetes_per_app_service_account["api-cert"])
-        docker_args = use_docker_for_e2e(
-            request, cert_path, service_type,
-            k8s_version, port,
-            kubernetes_per_app_service_account['container-to-container-server-ip']
-        )
-
-        server = kubernetes_per_app_service_account["host-to-container-server"]
-        if docker_args:
-            server = kubernetes_per_app_service_account['container-to-container-server']
-
-        args = [
-            "fiaas-deploy-daemon",
-            "--port", str(port),
-            "--api-server", server,
-            "--api-cert", kubernetes_per_app_service_account["api-cert"],
-            "--client-cert", kubernetes_per_app_service_account["client-cert"],
-            "--client-key", kubernetes_per_app_service_account["client-key"],
-            "--service-type", service_type,
-            "--ingress-suffix", "svc.test.example.com",
-            "--environment", "test",
-            "--datadog-container-image", "DATADOG_IMAGE:tag",
-            "--strongbox-init-container-image", "STRONGBOX_IMAGE",
-            "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
-            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
-            "--use-ingress-tls", "default_off",
-            "--enable-service-account-per-app",
-        ]
-        if crd_supported(k8s_version):
-            args.append("--enable-crd-support")
-        args = docker_args + args
-        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
-        time.sleep(1)
-        if fdd.poll() is not None:
-            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
-
-        def ready():
-            resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
-            resp.raise_for_status()
-
-        try:
-            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if crd_supported(k8s_version):
-                wait_until(
-                    crd_available(kubernetes_per_app_service_account, timeout=TIMEOUT),
-                    "CRD available", RuntimeError, patience=PATIENCE
-                )
-            yield "http://localhost:{}/fiaas".format(port)
-        finally:
-            self._end_popen(fdd)
+        return args, port, ready
 
     @pytest.fixture(ids=_fixture_names, params=(
             ("data/v2minimal.yml", {

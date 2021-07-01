@@ -77,7 +77,7 @@ class TestServiceAccountDeployer(object):
             },
         ],
     ))
-    def test_deploy_existing_service_account(self, get, deployer, post, app_spec, owner_references):
+    def test_deploy_existing_service_account(self, get, deployer, post, put, app_spec, owner_references):
         existing_service_account = {
                 'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, owner_references=owner_references),
                 'secrets': [],
@@ -90,6 +90,7 @@ class TestServiceAccountDeployer(object):
         get.return_value = mock_response
 
         deployer.deploy(app_spec, LABELS)
+        put.assert_not_called()
         post.assert_not_called()
 
     def test_deploy_existing_fiaas_owned_service_account(self, get, post, put, app_spec):
@@ -110,7 +111,7 @@ class TestServiceAccountDeployer(object):
                 'imagePullSecrets': []
         }
 
-        def get_default_or_not(uri):
+        def get_existing_or_not(uri):
             mock_response = create_autospec(Response)
             mock_response.json.return_value = existing_service_account
             if uri == SERVICES_ACCOUNT_URI + app_spec.name:
@@ -118,7 +119,7 @@ class TestServiceAccountDeployer(object):
             else:
                 raise NotFound
 
-        get.side_effect = get_default_or_not
+        get.side_effect = get_existing_or_not
 
         mock_response = create_autospec(Response)
         mock_response.json.return_value = existing_service_account

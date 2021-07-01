@@ -92,6 +92,13 @@ class TestE2E(object):
 
     @pytest.fixture
     def kind_logger(self, kubernetes):
+        return self.get_wrapped(kubernetes)
+
+    @pytest.fixture
+    def kind_logger_per_app_service_account(self, kubernetes_per_app_service_account):
+        return self.get_wrapped(kubernetes_per_app_service_account)
+
+    def get_wrapped(self, kubernetes):
         @contextlib.contextmanager
         def wrapped():
             start_time = datetime.now()
@@ -99,19 +106,6 @@ class TestE2E(object):
                 yield
             finally:
                 kubernetes["log_dumper"](since=start_time, until=datetime.now())
-
-        return wrapped
-
-    @pytest.fixture
-    def kind_logger_per_app_service_account(self, kubernetes_per_app_service_account):
-        @contextlib.contextmanager
-        def wrapped():
-            start_time = datetime.now()
-            try:
-                yield
-            finally:
-                kubernetes_per_app_service_account["log_dumper"](since=start_time, until=datetime.now())
-
         return wrapped
 
     @pytest.fixture()
@@ -132,12 +126,8 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version, use_docker_for_e2e, service_type)
-        fdd = self.start_fdd(args)
-
         try:
-            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if crd_supported(k8s_version):
-                wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
+            fdd = self.start_fdd(args)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(fdd)
@@ -146,24 +136,23 @@ class TestE2E(object):
     def fdd_service_account(self, request, kubernetes_per_app_service_account, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes_per_app_service_account, k8s_version,
                                              use_docker_for_e2e, "ClusterIP", service_account=True)
-        fdd = self.start_fdd(args)
-
         try:
-            wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-            if crd_supported(k8s_version):
-                wait_until(
-                    crd_available(kubernetes_per_app_service_account, timeout=TIMEOUT),
-                    "CRD available", RuntimeError, patience=PATIENCE
-                )
+            fdd = self.start_fdd(args, k8s_version, kubernetes_per_app_service_account, ready)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(fdd)
 
-    def start_fdd(self, args):
+    def start_fdd(self, k8s_version, kubernetes, args, ready):
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         time.sleep(1)
         if fdd.poll() is not None:
             pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+        wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
+        if crd_supported(k8s_version):
+            wait_until(
+                crd_available(kubernetes, timeout=TIMEOUT),
+                "CRD available", RuntimeError, patience=PATIENCE
+            )
         return fdd
 
     def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
@@ -345,10 +334,10 @@ class TestE2E(object):
 
         # modify the expected service account for this test
         for k, _ in expected.items():
-            if expected[k]['kind'] != 'Deployment':
-                continue
-            name = expected[k]['metadata']['name']
-            expected[k]['spec']['template']['spec']['serviceAccountName'] = name
+            if expected[k]['kind'] == 'Deployment':
+                name = expected[k]['metadata']['name']
+                expected[k]['spec']['template']['spec']['serviceAccountName'] = name
+                break
 
         name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))

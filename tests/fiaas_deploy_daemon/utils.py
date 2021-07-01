@@ -127,6 +127,9 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     if expected_dict["kind"] == "Service":
         _set_service_type(expected_dict, service_type)
 
+    if expected_dict["kind"] == "ServiceAccount":
+        _ensure_key_missing(actual_dict, "secrets")
+
     if app_uid:
         for ref in expected_dict["metadata"]["ownerReferences"]:
             ref["uid"] = app_uid

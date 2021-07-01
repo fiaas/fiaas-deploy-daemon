@@ -121,6 +121,14 @@ Using 'default' as the 'type' will mean the container will be attached automatic
 if the application doesn't specify any.
 """
 
+ENABLE_SERVICE_ACCOUNT_PER_APP = """
+Create a service account for each deployed application, using the application name.
+If there are imagePullSecrets set on the 'default' service account, these are propagated
+to the per-application service accounts. If a service account with the same name as
+the application already exists, the application will run under that service account,
+but FIAAS will not overwrite/manage the service account.
+"""
+
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -196,6 +204,8 @@ class Configuration(Namespace):
                             help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this " +
                                  "number of seconds  (default: %(default)s)", default=10)
         parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
+                            action="store_true", default=False)
+        parser.add_argument("--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP,
                             action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",

@@ -291,12 +291,7 @@ class TestE2E(object):
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {}
-        for kind, path in expected.items():
-            if path == SHOULD_NOT_EXIST:
-                expected[kind] = SHOULD_NOT_EXIST
-            else:
-                expected[kind] = read_yml(request.fspath.dirpath().join(path).strpath)
+        expected = self._construct_expected(expected, request)
 
         name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
@@ -330,7 +325,7 @@ class TestE2E(object):
 
         skip_if_crd_not_supported(k8s_version)
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = {kind: read_yml(request.fspath.dirpath().join(path).strpath) for kind, path in expected.items()}
+        expected = self._construct_expected(expected, request)
 
         # modify the expected service account for this test
         for k, _ in expected.items():
@@ -342,6 +337,15 @@ class TestE2E(object):
         name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
+
+    def _construct_expected(self, expected, request):
+        new_expected = {}
+        for kind, path in expected.items():
+            if path == SHOULD_NOT_EXIST:
+                new_expected[kind] = SHOULD_NOT_EXIST
+            else:
+                new_expected[kind] = read_yml(request.fspath.dirpath().join(path).strpath)
+        return new_expected
 
     def _resource_components(self, fiaas_path, fiaas_yml, additional_labels):
         name = sanitize_resource_name(fiaas_path)

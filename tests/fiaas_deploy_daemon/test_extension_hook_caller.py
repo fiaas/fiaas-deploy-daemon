@@ -20,11 +20,10 @@ import mock
 import pytest
 from k8s.models.deployment import Deployment, DeploymentSpec
 from k8s.models.pod import Container, PodSpec, PodTemplateSpec, EnvVar
-from requests import Response, Session
+from requests import Response, Session, HTTPError
 
 from fiaas_deploy_daemon.extension_hook_caller import ExtensionHookCaller
 
-SENT_KIND = "Deployment"
 URL_PARAM = "URL"
 
 
@@ -85,6 +84,7 @@ class TestExtensionHookCaller(object):
     def response_other(status):
         mock_response = mock.create_autospec(Response)
         mock_response.status_code = status
+        mock_response.raise_for_status.side_effect = HTTPError
         return mock_response
 
     @pytest.mark.usefixtures("session_respond_404")
@@ -93,7 +93,7 @@ class TestExtensionHookCaller(object):
         a.hook_service = URL_PARAM
         extension_hook_caller = ExtensionHookCaller(a, session_respond_404)
         obj = copy.deepcopy(deployment)
-        extension_hook_caller.apply(SENT_KIND, obj, app_spec)
+        extension_hook_caller.apply(obj, app_spec)
         assert obj == deployment
 
     @pytest.mark.usefixtures("session_respond_200")
@@ -103,7 +103,7 @@ class TestExtensionHookCaller(object):
         extension_hook_caller = ExtensionHookCaller(a, session_respond_200)
         obj = copy.deepcopy(deployment)
         expected = self.deployment_v2()
-        extension_hook_caller.apply(SENT_KIND, obj, app_spec)
+        extension_hook_caller.apply(obj, app_spec)
         assert isinstance(obj, type(deployment))
         assert obj != deployment
         assert obj.as_dict() == expected
@@ -114,8 +114,8 @@ class TestExtensionHookCaller(object):
         a.hook_service = URL_PARAM
         extension_hook_caller = ExtensionHookCaller(a, session_respond_500)
         obj = copy.deepcopy(deployment)
-        with pytest.raises(Exception):
-            extension_hook_caller.apply(SENT_KIND, obj, app_spec)
+        with pytest.raises(HTTPError):
+            extension_hook_caller.apply(obj, app_spec)
 
     @pytest.mark.usefixtures("session_respond_404")
     def test_return_same_object_when_no_url_in_config(self, session, app_spec, deployment):
@@ -123,6 +123,6 @@ class TestExtensionHookCaller(object):
         a.hook_service = None
         extension_hook_caller = ExtensionHookCaller(a, session)
         obj = copy.deepcopy(deployment)
-        extension_hook_caller.apply(SENT_KIND, obj, app_spec)
+        extension_hook_caller.apply(obj, app_spec)
         assert obj == deployment
         session.post.assert_not_called()

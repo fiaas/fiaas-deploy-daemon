@@ -16,10 +16,8 @@
 # limitations under the License.
 import json
 import logging
-from collections import OrderedDict
-
-from six import string_types
-
+import posixpath
+import urlparse
 
 LOG = logging.getLogger(__name__)
 
@@ -30,11 +28,12 @@ class ExtensionHookCaller(object):
         self._url = config.hook_service
         self._session = session
 
-    def apply(self, kind, obj, app_spec):
+    def apply(self, obj, app_spec):
         if self._url is None:
             return obj
-        url = str(self._url) + "/fiaas/deploy/" + str(kind)
-        dump = json.dumps({"object": obj.as_dict(), "application": self._app_spec_to_dict(app_spec)})
+        url = urlparse.urljoin(self._url, "fiaas/deploy/")
+        url = posixpath.join(url, type(obj).__name__)
+        dump = json.dumps({"object": obj.as_dict(), "application": app_spec.app})
         response = self._session.post(
             url,
             data=dump,
@@ -44,25 +43,4 @@ class ExtensionHookCaller(object):
             data = response.json()
             obj.update_from_dict(data)
         elif response.status_code != 404:
-            raise Exception("The api call to " + url + " returns an status code of " + response.status_code)
-
-    @staticmethod
-    def _app_spec_to_dict(app_spec):
-        def _obj_to_dict(obj):
-            ''' check for namedtuples and collections that could contain namedtuples, recursively,
-            to turn them into dicts
-            '''
-            if hasattr(obj, "_asdict"):  # detect namedtuple
-                return OrderedDict(zip(obj._fields, (_obj_to_dict(item) for item in obj)))
-            elif isinstance(obj, string_types):  # strings are iterable but they can't contain namedtuples
-                return obj
-            elif hasattr(obj, "keys"):
-                return OrderedDict(zip(obj.keys(), (_obj_to_dict(item) for item in obj.values())))
-            elif hasattr(obj, "__iter__"):
-                return [_obj_to_dict(item) for item in obj]
-            else:  # non-iterable cannot contain namedtuples
-                return obj
-
-        app_spec_dict = _obj_to_dict(app_spec)
-        LOG.error(app_spec_dict)
-        return app_spec_dict
+            response.raise_for_status()

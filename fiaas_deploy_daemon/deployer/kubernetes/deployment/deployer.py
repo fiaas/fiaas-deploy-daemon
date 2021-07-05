@@ -124,7 +124,7 @@ class DeploymentDeployer(object):
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
         self._owner_references.apply(deployment, app_spec)
-        self._extension_hook.apply("Deployment", deployment, app_spec)
+        self._extension_hook.apply(deployment, app_spec)
         deployment.save()
 
     def delete(self, app_spec):

@@ -171,7 +171,7 @@ class TestDeploymentDeployer(object):
         return mock.create_autospec(Secrets(config, None, None), spec_set=True, instance=True)
 
     @pytest.fixture
-    def extension_hook(self, config):
+    def extension_hook(self):
         return mock.create_autospec(ExtensionHookCaller, spec_set=True, instance=True)
 
     @pytest.mark.usefixtures("get")
@@ -204,7 +204,7 @@ class TestDeploymentDeployer(object):
         prometheus.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
         secrets.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
         owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
-        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
 
     def test_deploy_clears_alpha_beta_annotations(self, put, get, config, app_spec, datadog, prometheus, secrets,
                                                   owner_references, extension_hook):
@@ -229,7 +229,7 @@ class TestDeploymentDeployer(object):
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
-        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
 
     @pytest.mark.parametrize("previous_replicas,max_replicas,min_replicas,cpu_request,expected_replicas", (
             (5, 3, 2, None, 2),
@@ -342,7 +342,7 @@ class TestDeploymentDeployer(object):
         datadog.apply.assert_called_once_with(DeploymentMatcher(), app_spec, False)
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
-        extension_hook.apply.assert_called_once_with("Deployment", TypeMatcher(Deployment), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
 
 
 def create_expected_deployment(config,

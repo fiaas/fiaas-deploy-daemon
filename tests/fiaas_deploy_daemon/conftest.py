@@ -66,7 +66,8 @@ def app_spec():
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
         secrets=[],
-        hooks={}
+        hooks={},
+        app={}
     )
 
 

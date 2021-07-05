@@ -39,6 +39,7 @@ from .specs import SpecBindings
 from .tools import log_request_response
 from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
+from .extension_hook_caller import ExtensionHookCaller
 from prometheus_client import Info
 
 
@@ -52,6 +53,7 @@ class MainBindings(pinject.BindingSpec):
         bind("deploy_queue", to_instance=self._deploy_queue)
         bind("health_check", to_class=HealthCheck)
         bind("lifecycle", to_class=Lifecycle)
+        bind("extension_hook", to_class=ExtensionHookCaller)
 
     def provide_session(self, config):
         session = requests.Session()

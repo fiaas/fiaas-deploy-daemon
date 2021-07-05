@@ -21,6 +21,7 @@ from k8s.models.ingress import Ingress, IngressTLS
 from mock import create_autospec, Mock
 from requests import Response
 
+from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer, IngressTls
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
@@ -69,7 +70,9 @@ def app_spec(**kwargs):
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
-        secrets=[]
+        secrets=[],
+        hooks={},
+        app={},
     )
 
     return default_app_spec._replace(**kwargs)
@@ -485,6 +488,10 @@ TEST_DATA = (
 
 class TestIngressDeployer(object):
     @pytest.fixture
+    def extension_hook(self):
+        return mock.create_autospec(ExtensionHookCaller, spec_set=True, instance=True)
+
+    @pytest.fixture
     def ingress_tls(self, config):
         return mock.create_autospec(IngressTls(config), spec_set=True, instance=True)
 
@@ -503,13 +510,13 @@ class TestIngressDeployer(object):
         return config
 
     @pytest.fixture
-    def deployer(self, config, ingress_tls, owner_references, default_app_spec):
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec)
+    def deployer(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
 
     @pytest.fixture
-    def deployer_no_suffix(self, config, ingress_tls, owner_references, default_app_spec):
+    def deployer_no_suffix(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
         config.ingress_suffixes = []
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec)
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
 
     @pytest.fixture
     def default_app_spec(self):
@@ -525,7 +532,7 @@ class TestIngressDeployer(object):
                 metafunc.addcall(params, test_id)
 
     @pytest.mark.usefixtures("get")
-    def test_ingress_deploy(self, post, delete, deployer, app_spec, expected_ingress, owner_references):
+    def test_ingress_deploy(self, post, delete, deployer, app_spec, expected_ingress, owner_references, extension_hook):
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_ingress
         post.return_value = mock_response
@@ -534,6 +541,7 @@ class TestIngressDeployer(object):
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
         owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
         delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
     @pytest.fixture
@@ -642,13 +650,13 @@ class TestIngressDeployer(object):
             ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
 
     @pytest.fixture
-    def deployer_issuer_overrides(self, config, ingress_tls, owner_references, default_app_spec):
+    def deployer_issuer_overrides(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
         config.tls_certificate_issuer_type_overrides = {
             "foo.example.com": "certmanager.k8s.io/issuer",
             "bar.example.com": "certmanager.k8s.io/cluster-issuer",
             "foo.bar.example.com": "certmanager.k8s.io/issuer"
         }
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec)
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
 
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls, app_spec):

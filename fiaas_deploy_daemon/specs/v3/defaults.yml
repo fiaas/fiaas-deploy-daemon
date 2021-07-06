@@ -80,12 +80,14 @@ ports: # A list of ports the application listens on. For no exposed ports, speci
 annotations: # Annotations to be set on generated objects
   deployment: {}
   horizontal_pod_autoscaler: {}
+  service_account: {}
   ingress: {}
   service: {}
   pod: {}
 labels: # Labels to be set on generated objects
   deployment: {}
   horizontal_pod_autoscaler: {}
+  service_account: {}
   ingress: {}
   service: {}
   pod: {}

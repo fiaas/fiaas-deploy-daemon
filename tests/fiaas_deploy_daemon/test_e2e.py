@@ -127,7 +127,11 @@ class TestE2E(object):
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version, use_docker_for_e2e, service_type)
         try:
-            daemon = self.start_fdd(args)
+            daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+            time.sleep(1)
+            if daemon.poll() is not None:
+                pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+            self.wait_until_fdd_ready(k8s_version, kubernetes, ready)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(daemon)
@@ -137,23 +141,22 @@ class TestE2E(object):
         args, port, ready = self.prepare_fdd(request, kubernetes_per_app_service_account, k8s_version,
                                              use_docker_for_e2e, "ClusterIP", service_account=True)
         try:
-            daemon = self.start_fdd(args, k8s_version, kubernetes_per_app_service_account, ready)
+            daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+            time.sleep(1)
+            if daemon.poll() is not None:
+                pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+            self.wait_until_fdd_ready(k8s_version, kubernetes_per_app_service_account, ready)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(daemon)
 
-    def start_fdd(self, k8s_version, kubernetes, args, ready):
-        fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
-        time.sleep(1)
-        if fdd.poll() is not None:
-            pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+    def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
         if crd_supported(k8s_version):
             wait_until(
                 crd_available(kubernetes, timeout=TIMEOUT),
                 "CRD available", RuntimeError, patience=PATIENCE
             )
-        return fdd
 
     def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
         port = get_unbound_port()

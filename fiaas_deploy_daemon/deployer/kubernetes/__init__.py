@@ -23,6 +23,7 @@ from .autoscaler import AutoscalerDeployer
 from .deployment import DeploymentBindings
 from .ingress import IngressDeployer, IngressTls
 from .service import ServiceDeployer
+from .service_account import ServiceAccountDeployer
 from .owner_references import OwnerReferences
 
 
@@ -30,6 +31,7 @@ class K8sAdapterBindings(pinject.BindingSpec):
     def configure(self, bind):
         bind("adapter", to_class=K8s)
         bind("service_deployer", to_class=ServiceDeployer)
+        bind("service_account_deployer", to_class=ServiceAccountDeployer)
         bind("ingress_deployer", to_class=IngressDeployer)
         bind("autoscaler", to_class=AutoscalerDeployer)
         bind("ingress_tls", to_class=IngressTls)

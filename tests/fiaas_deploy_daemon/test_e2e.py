@@ -127,20 +127,20 @@ class TestE2E(object):
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version, use_docker_for_e2e, service_type)
         try:
-            fdd = self.start_fdd(args)
+            daemon = self.start_fdd(args)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
-            self._end_popen(fdd)
+            self._end_popen(daemon)
 
     @pytest.fixture(scope="module")
     def fdd_service_account(self, request, kubernetes_per_app_service_account, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes_per_app_service_account, k8s_version,
                                              use_docker_for_e2e, "ClusterIP", service_account=True)
         try:
-            fdd = self.start_fdd(args, k8s_version, kubernetes_per_app_service_account, ready)
+            daemon = self.start_fdd(args, k8s_version, kubernetes_per_app_service_account, ready)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
-            self._end_popen(fdd)
+            self._end_popen(daemon)
 
     def start_fdd(self, k8s_version, kubernetes, args, ready):
         fdd = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))

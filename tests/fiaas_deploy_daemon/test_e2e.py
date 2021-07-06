@@ -383,7 +383,7 @@ class TestE2E(object):
     @staticmethod
     def _select_kinds(expected):
         if len(expected.keys()) > 0:
-            return expected.keys()
+            return [key for key in expected.keys() if expected[key] != SHOULD_NOT_EXIST]
         else:
             return [Service, Deployment, Ingress]
 

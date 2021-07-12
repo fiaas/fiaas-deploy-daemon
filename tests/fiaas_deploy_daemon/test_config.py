@@ -65,7 +65,6 @@ class TestConfig(object):
         ("--environment", "environment"),
         ("--proxy", "proxy"),
         ("--strongbox-init-container-image", "strongbox_init_container_image"),
-
     ])
     def test_parameters(self, arg, key):
         config = Configuration([arg, "value"])
@@ -95,6 +94,7 @@ class TestConfig(object):
         ("proxy", "proxy", "http://proxy.example.com"),
         ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
         ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
+        ("hook-service", "hook_service", "hook-service-url"),
     ])
     def test_config_from_file(self, key, attr, value, tmpdir):
         config_file = tmpdir.join("config.yaml")

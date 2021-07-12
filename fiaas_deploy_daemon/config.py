@@ -121,6 +121,11 @@ Using 'default' as the 'type' will mean the container will be attached automatic
 if the application doesn't specify any.
 """
 
+HOOK_SERVICE_HELP = """
+You can add a url that will be called at various hook points
+during the deploy 'lifecycle'.
+"""
+
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -197,6 +202,7 @@ class Configuration(Namespace):
                                  "number of seconds  (default: %(default)s)", default=10)
         parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
                             action="store_true", default=False)
+        parser.add_argument("--hook-service", help=HOOK_SERVICE_HELP, default=None)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

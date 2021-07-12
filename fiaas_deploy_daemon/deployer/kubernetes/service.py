@@ -30,9 +30,10 @@ LOG = logging.getLogger(__name__)
 
 
 class ServiceDeployer(object):
-    def __init__(self, config, owner_references):
+    def __init__(self, config, owner_references, extension_hook):
         self._service_type = config.service_type
         self._owner_references = owner_references
+        self._extension_hook = extension_hook
 
     def deploy(self, app_spec, selector, labels):
         if self._should_have_service(app_spec):
@@ -63,6 +64,7 @@ class ServiceDeployer(object):
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         self._owner_references.apply(svc, app_spec)
+        self._extension_hook.apply(svc, app_spec)
         svc.save()
 
     @staticmethod

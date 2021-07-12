@@ -31,6 +31,7 @@ from ..deployer.kubernetes import K8sAdapterBindings
 from ..lifecycle import Lifecycle
 from ..logsetup import init_logging
 from ..specs import SpecBindings
+from ..extension_hook_caller import ExtensionHookCaller
 
 
 class MainBindings(pinject.BindingSpec):
@@ -43,6 +44,7 @@ class MainBindings(pinject.BindingSpec):
         bind("deploy_queue", to_instance=self._deploy_queue)
         bind("bootstrapper", to_class=Bootstrapper)
         bind("lifecycle", to_class=Lifecycle)
+        bind("extension_hook", to_class=ExtensionHookCaller)
 
     def provide_session(self, config):
         session = requests.Session()

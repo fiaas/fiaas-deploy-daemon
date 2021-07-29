@@ -160,7 +160,7 @@ See the Kubernetes documentation about [emptyDir](https://kubernetes.io/docs/con
 
 Used to configure [Usage Reporting](#usage-reporting).
 
-### hook-service
+### extension-hook-url
 
 Used to configure the extension service url.
 
@@ -170,7 +170,15 @@ The url should be a root that will be completed with `/fiaas/deploy/{objectName}
 
 If the url returns 404, the object will not be modified. In case of 200, the object will be modified with the object returned. In other case, the deployment will fail.
 
-As we decided to treat the 404 as a valid response, we have no way to differenciate between an object name not supported by the extension service or a wrong path on the extension.
+The payload sent will be:
+```
+{
+  "object": Deployment/HorizontalPodAutoscaler/Ingress/Service object
+  "application": app_config
+```
+The response will be the same object type that you sent modified.
+
+As we decided to treat the 404 as a valid response, we have no way to differentiate between an object name not supported by the extension service or a wrong path.
 
 Deploying an application
 ------------------------

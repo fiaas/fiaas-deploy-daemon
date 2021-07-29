@@ -121,7 +121,7 @@ class TestDeploymentDeployer(object):
         config.deployment_max_surge = u"25%"
         config.deployment_max_unavailable = 0
         config.disable_deprecated_managed_env_vars = disable_deprecated_managed_env_vars
-        config.hook_service = None
+        config.extension_hook_url = None
         yield config
 
     @pytest.fixture(params=(

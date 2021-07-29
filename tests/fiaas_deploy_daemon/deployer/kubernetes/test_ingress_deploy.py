@@ -71,8 +71,7 @@ def app_spec(**kwargs):
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
         secrets=[],
-        hooks={},
-        app={},
+        app_config={},
     )
 
     return default_app_spec._replace(**kwargs)

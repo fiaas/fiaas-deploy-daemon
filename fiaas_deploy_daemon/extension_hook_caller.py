@@ -25,7 +25,7 @@ LOG = logging.getLogger(__name__)
 class ExtensionHookCaller(object):
 
     def __init__(self, config, session):
-        self._url = config.hook_service
+        self._url = config.extension_hook_url
         self._session = session
 
     def apply(self, obj, app_spec):
@@ -33,7 +33,7 @@ class ExtensionHookCaller(object):
             return obj
         url = urlparse.urljoin(self._url, "fiaas/deploy/")
         url = posixpath.join(url, type(obj).__name__)
-        dump = json.dumps({"object": obj.as_dict(), "application": app_spec.app})
+        dump = json.dumps({"object": obj.as_dict(), "application": app_spec.app_config})
         response = self._session.post(
             url,
             data=dump,

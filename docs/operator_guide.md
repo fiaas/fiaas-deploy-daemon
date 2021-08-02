@@ -162,7 +162,7 @@ Used to configure [Usage Reporting](#usage-reporting).
 
 ### extension-hook-url
 
-Used to configure the extension service url.
+Used to configure the extension hook url.
 
 The idea is to be able to modify the kubernetes objects with an external service before arriving to the cluster.
 

@@ -193,7 +193,7 @@ def _open():
     "v1.9.11",
     "v1.12.10",
     "v1.14.10",
-    "v1.16.13",
+    "v1.16.15",
     "v1.18.6",
     pytest.param("v1.19.4", marks=pytest.mark.e2e_latest)
 ))

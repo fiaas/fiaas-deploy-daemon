@@ -65,7 +65,8 @@ def app_spec():
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
-        secrets=[]
+        secrets=[],
+        app_config={}
     )
 
 
@@ -192,7 +193,7 @@ def _open():
     "v1.9.11",
     "v1.12.10",
     "v1.14.10",
-    "v1.16.13",
+    "v1.16.15",
     "v1.18.6",
     pytest.param("v1.19.4", marks=pytest.mark.e2e_latest)
 ))

@@ -383,7 +383,7 @@ class TestE2E(object):
     @staticmethod
     def _select_kinds(expected):
         if len(expected.keys()) > 0:
-            return [key for key in expected.keys() if expected[key] != SHOULD_NOT_EXIST]
+            return expected.keys()
         else:
             return [Service, Deployment, Ingress]
 
@@ -417,7 +417,7 @@ class TestE2E(object):
             assert label_difference == set()
 
         # Check deploy success
-        wait_until(_deploy_success(name, kinds, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE)
+        wait_until(_deploy_success(name, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE)
 
         if not service_account:
             # Redeploy, new image, possibly new init-container
@@ -430,7 +430,7 @@ class TestE2E(object):
             fiaas_application.save()
             app_uid = fiaas_application.metadata.uid
             # Check success
-            wait_until(_deploy_success(name, kinds, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups, app_uid=app_uid),
+            wait_until(_deploy_success(name, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups, app_uid=app_uid),
                        patience=PATIENCE)
 
         # Cleanup
@@ -444,8 +444,10 @@ class TestE2E(object):
         wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd", "k8s_client")
-    def test_custom_resource_definition_deploy(self, custom_resource_definition,
-                                               service_type, kind_logger):
+    def test_custom_resource_definition_deploy_without_service_account(self,
+                                                                       custom_resource_definition,
+                                                                       service_type,
+                                                                       kind_logger):
         with kind_logger():
             self.run_crd_deploy(custom_resource_definition, service_type)
 
@@ -533,15 +535,8 @@ class TestE2E(object):
             wait_until(cleanup_complete, patience=PATIENCE)
 
 
-def _deploy_success(name, kinds, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
+def _deploy_success(name, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():
-        for kind in kinds:
-            assert kind.get(name)
-        dep = Deployment.get(name)
-        assert dep.spec.template.spec.containers[0].image == image
-        svc = Service.get(name)
-        assert svc.spec.type == service_type
-
         for kind, expected_dict in expected.items():
             if expected_dict == SHOULD_NOT_EXIST:
                 with pytest.raises(NotFound):

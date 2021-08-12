@@ -253,6 +253,10 @@ class KindWrapper(object):
     DOCKER_IMAGES["v1.9.11"] = "fiaas/kind"
     # See https://github.com/fiaas/fiaas-deploy-daemon/issues/115
     DOCKER_IMAGES["v1.12.10"] = "fiaas/kind"
+    # Created the docker image in fiaas/kind because the certificate expired
+    DOCKER_IMAGES["v1.14.10"] = "fiaas/kind"
+    # Created the docker image in fiaas/kind because the tests are not passing with v1.16.15 in semaphore-ci
+    DOCKER_IMAGES["v1.16.13"] = "fiaas/kind"
 
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version

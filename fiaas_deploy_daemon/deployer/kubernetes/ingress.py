@@ -36,12 +36,13 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls, owner_references, default_app_spec):
+    def __init__(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references
+        self._extension_hook = extension_hook
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
@@ -174,6 +175,7 @@ class IngressDeployer(object):
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
         self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
         self._owner_references.apply(ingress, app_spec)
+        self._extension_hook.apply(ingress, app_spec)
         ingress.save()
 
     def _delete_unused(self, app_spec, labels):

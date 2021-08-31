@@ -18,6 +18,7 @@ import itertools
 import os
 import re
 import subprocess
+import uuid
 
 import pytest
 from xdist.scheduler import LoadScopeScheduling
@@ -156,7 +157,7 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def use_docker_for_e2e(request):
     def dockerize(test_request, cert_path, service_type, k8s_version, port, apiserver_ip):
-        container_name = "fdd_{}_{}".format(service_type, k8s_version)
+        container_name = "fdd_{}_{}_{}".format(service_type, k8s_version, str(uuid.uuid4()))
         test_request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
         args = [
             "docker", "run",

@@ -28,6 +28,7 @@ class AdditionalLabelsOrAnnotations(Model):
     horizontal_pod_autoscaler = Field(dict)
     ingress = Field(dict)
     service = Field(dict)
+    service_account = Field(dict)
     pod = Field(dict)
     status = Field(dict)
 

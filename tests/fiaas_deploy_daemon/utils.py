@@ -265,6 +265,7 @@ class KindWrapper(object):
     DOCKER_IMAGES["v1.12.10"] = "fiaas/kind"
     # Created the docker image in the fiaas/kind because the certificate from bsycorp expired
     DOCKER_IMAGES["v1.14.10"] = "fiaas/kind"
+    DOCKER_IMAGES["v1.16.13"] = "fiaas/kind"
 
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version

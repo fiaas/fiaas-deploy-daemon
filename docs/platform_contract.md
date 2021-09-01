@@ -15,11 +15,11 @@ limitations under the License.
 -->
 # FIAAS platform contract
 
-FIAAS provides a platform for applications, which makes it easier to focus on business logic instead of integrating with the underlying infrastructure. In order to do this, FIAAS has a set of contracts that must be fulfilled so that the platform looks the same in all installations. Some details will not abstracted away in the current implementation, but the platform contracts will continually evolve to include more and more of these details. 
+FIAAS provides a platform for applications, which makes it easier to focus on business logic instead of integrating with the underlying infrastructure. In order to do this, FIAAS has a set of contracts that must be fulfilled so that the platform looks the same in all installations. Some details will not abstracted away in the current implementation, but the platform contracts will continually evolve to include more and more of these details.
 
 Since FIAAS sits in the middle between the cluster and the application, there are contracts on both sides. There are expectations between FIAAS and the cluster, and between FIAAS and the applications. Many of the things FIAAS promises to applications depend on the cluster to provide systems that solve that need.
 
-The [Operators guide](operator_guide.md) documents what cluster operators need to do in order to make their cluster work with FIAAS, this document will focus on the interactions between FIAAS and the applications. 
+The [Operators guide](operator_guide.md) documents what cluster operators need to do in order to make their cluster work with FIAAS, this document will focus on the interactions between FIAAS and the applications.
 
 ## Supported kubernetes versions
 
@@ -51,23 +51,23 @@ Configuration in the form of [ConfigMaps](https://kubernetes.io/docs/tasks/confi
 
 FIAAS will set the following environment variables for your application:
 
-* `ARTIFACT_NAME`: The name of your application. 
+* `ARTIFACT_NAME`: The name of your application.
 * `IMAGE`: The currently running container image.
-* `VERSION`: The version (the part after `:` in the `IMAGE`). 
+* `VERSION`: The version (the part after `:` in the `IMAGE`).
 * `FIAAS_ENVIRONMENT`: If FIAAS is configured with a name for the environment, this is reflected here.
-* `FIAAS_REQUESTS_CPU`: The requested CPU. 
-* `FIAAS_REQUESTS_MEMORY`: The requested memory. 
-* `FIAAS_LIMITS_CPU`: The CPU limit. 
-* `FIAAS_LIMITS_MEMORY`: The memory limit. 
-* `FIAAS_NAMESPACE`: The namespace you are in. 
-* `FIAAS_POD_NAME`: The name of this pod. 
+* `FIAAS_REQUESTS_CPU`: The requested CPU.
+* `FIAAS_REQUESTS_MEMORY`: The requested memory.
+* `FIAAS_LIMITS_CPU`: The CPU limit.
+* `FIAAS_LIMITS_MEMORY`: The memory limit.
+* `FIAAS_NAMESPACE`: The namespace you are in.
+* `FIAAS_POD_NAME`: The name of this pod.
 * `LOG_STDOUT`: Always `true`. Use this to allow applications to switch between file on legacy and stdout on FIAAS, by setting it to `false` in legacy deployments.
-* `LOG_FORMAT`: The recommended logging format. Valid values are `json` or `plain`. Should be synced with the rest of the logging infrastructure. The value is copied from the configuration of fiaas-deploy-daemon itself.  
+* `LOG_FORMAT`: The recommended logging format. Valid values are `json` or `plain`. Should be synced with the rest of the logging infrastructure. The value is copied from the configuration of fiaas-deploy-daemon itself.
 
 In addition, these environment variables are also set, but they are deprecated and should not be used. Some of them only make sense in the FINN cluster.
 
-* `FIAAS_INFRASTRUCTURE`: The underlying infrastructure, either diy for on-premise, or gke for GKE clusters. 
-* `CONSTRETTO_TAGS`: A comma separated string listing possible configuration sections to apply. If no environment is configured, will be set to `kubernetes`. If environment is configured, will be set to: `kubernetes-${FIAAS_ENVIRONMENT},kubernetes,${FIAAS_ENVIRONMENT}`. 
+* `FIAAS_INFRASTRUCTURE`: The underlying infrastructure, either diy for on-premise, or gke for GKE clusters.
+* `CONSTRETTO_TAGS`: A comma separated string listing possible configuration sections to apply. If no environment is configured, will be set to `kubernetes`. If environment is configured, will be set to: `kubernetes-${FIAAS_ENVIRONMENT},kubernetes,${FIAAS_ENVIRONMENT}`.
 * `FINN_ENV`: A copy of `FIAAS_ENVIRONMENT`.
 
 Finally, the cluster operator may set a number of global environment variables, which will be directly exposed to your application.

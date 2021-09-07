@@ -16,6 +16,7 @@
 # limitations under the License.
 from collections import defaultdict
 
+import enum
 import mock
 import pytest
 from k8s.models.deployment import Deployment
@@ -73,6 +74,12 @@ def test_make_probe_should_fail_when_no_healthcheck_is_defined():
         _make_probe(check_spec)
 
 
+class Feature(enum.Enum):
+    USE_IN_MEMORY_EMPTYDIRS = 1
+    DISABLE_DEPRECATED_MANAGED_ENV_VARS = 2
+    ENABLE_SERVICE_ACCOUNT_PER_APP = 3
+
+
 class TestDeploymentDeployer(object):
     @pytest.fixture(params=(
             None,
@@ -82,12 +89,14 @@ class TestDeploymentDeployer(object):
         yield request.param
 
     @pytest.fixture(params=(
-        # key: (infrastructure, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars)
-        ("gke", {}, True, True),
+        # key: (infrastructure, global_env, set[Feature]
+        ("gke", {}, {Feature.USE_IN_MEMORY_EMPTYDIRS, Feature.DISABLE_DEPRECATED_MANAGED_ENV_VARS}),
+        ("gke-w/service-per-acct", {}, {Feature.USE_IN_MEMORY_EMPTYDIRS, Feature.DISABLE_DEPRECATED_MANAGED_ENV_VARS,
+         Feature.ENABLE_SERVICE_ACCOUNT_PER_APP}),
         ("diy", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
-        }, True, True),
+        }, {Feature.USE_IN_MEMORY_EMPTYDIRS, Feature.DISABLE_DEPRECATED_MANAGED_ENV_VARS}),
         ("gke", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
@@ -98,7 +107,7 @@ class TestDeploymentDeployer(object):
             'LOG_STDOUT': 'false',
             'FIAAS_ENVIRONMENT': 'override_environment',
             'FIAAS_INFRASTRUCTURE': 'override_infrastructure',
-        }, False, False),
+        }, set()),
         ("diy", {
             'A_GLOBAL_DIGIT': '0.01',
             'A_GLOBAL_STRING': 'test',
@@ -107,21 +116,22 @@ class TestDeploymentDeployer(object):
             # derived FIAAS_INFRASTRUCTURE and FIAAS_ENVIRONMENT
             'ENVIRONMENT': 'override_fiaas_environment',
             'INFRASTRUCTURE': 'override_fiaas_infrastructure',
-        }, True, False)
+        }, {Feature.USE_IN_MEMORY_EMPTYDIRS})
     ))
     def config(self, request, environment):
-        infra, global_env, use_in_memory_emptydirs, disable_deprecated_managed_env_vars = request.param
+        infra, global_env, features = request.param
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.infrastructure = infra
         config.environment = environment
         config.global_env = global_env
         config.pre_stop_delay = 1
         config.log_format = "json"
-        config.use_in_memory_emptydirs = use_in_memory_emptydirs
+        config.use_in_memory_emptydirs = Feature.USE_IN_MEMORY_EMPTYDIRS in features
         config.deployment_max_surge = u"25%"
         config.deployment_max_unavailable = 0
-        config.disable_deprecated_managed_env_vars = disable_deprecated_managed_env_vars
         config.extension_hook_url = None
+        config.disable_deprecated_managed_env_vars = Feature.DISABLE_DEPRECATED_MANAGED_ENV_VARS in features
+        config.enable_service_account_per_app = Feature.ENABLE_SERVICE_ACCOUNT_PER_APP in features
         yield config
 
     @pytest.fixture(params=(
@@ -135,9 +145,9 @@ class TestDeploymentDeployer(object):
         generic_toggle, deploy_labels, deploy_annotations, pod_labels, pod_annotations, singleton = request.param
 
         labels = LabelAndAnnotationSpec(deployment=deploy_labels, horizontal_pod_autoscaler={}, ingress={},
-                                        service={}, pod=pod_labels, status={})
+                                        service={}, service_account={}, pod=pod_labels, status={})
         annotations = LabelAndAnnotationSpec(deployment=deploy_annotations, horizontal_pod_autoscaler={}, ingress={},
-                                             service={}, pod=pod_annotations, status={})
+                                             service={}, service_account={}, pod=pod_annotations, status={})
 
         if generic_toggle:
             ports = app_spec.ports
@@ -353,6 +363,7 @@ def create_expected_deployment(config,
                                add_init_container_annotations=False):
     expected_volumes = _get_expected_volumes(app_spec, config.use_in_memory_emptydirs)
     expected_volume_mounts = _get_expected_volume_mounts(app_spec)
+    service_account = app_spec.name if config.enable_service_account_per_app else "default"
 
     base_expected_health_check = {
         'initialDelaySeconds': 10,
@@ -449,7 +460,7 @@ def create_expected_deployment(config,
                 'spec': {
                     'dnsPolicy': 'ClusterFirst',
                     'automountServiceAccountToken': app_spec.admin_access,
-                    'serviceAccountName': "default",
+                    'serviceAccountName': service_account,
                     'terminationGracePeriodSeconds': 31,
                     'restartPolicy': 'Always',
                     'volumes': expected_volumes,

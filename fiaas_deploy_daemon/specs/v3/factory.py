@@ -189,6 +189,7 @@ class Factory(BaseFactory):
             'horizontal_pod_autoscaler': dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
             'ingress': dict(labels_annotations_lookup["ingress"]),
             'service': dict(labels_annotations_lookup["service"]),
+            'service_account': dict(labels_annotations_lookup["service_account"]),
             'pod': dict(labels_annotations_lookup["pod"]),
             'status': {}
         }

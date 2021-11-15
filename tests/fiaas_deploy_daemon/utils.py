@@ -110,6 +110,16 @@ def sanitize_resource_name(yml_path):
     return re.sub("[^-a-z0-9]", "-", yml_path.replace(".yml", ""))
 
 
+def _fix_service(expected_dict, service_type):
+    if expected_dict["kind"] == "Service":
+        _set_service_type(expected_dict, service_type)
+
+
+def _fix_service_account(expected_dict, actual_dict):
+    if expected_dict["kind"] == "ServiceAccount":
+        _ensure_key_missing(actual_dict, "secrets")
+
+
 def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid=None):
     actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
@@ -124,8 +134,8 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
         if strongbox_groups:
             _set_strongbox_groups(expected_dict, strongbox_groups)
 
-    if expected_dict["kind"] == "Service":
-        _set_service_type(expected_dict, service_type)
+    _fix_service(expected_dict, service_type)
+    _fix_service_account(expected_dict, actual_dict)
 
     if app_uid:
         for ref in expected_dict["metadata"]["ownerReferences"]:
@@ -255,7 +265,6 @@ class KindWrapper(object):
     DOCKER_IMAGES["v1.12.10"] = "fiaas/kind"
     # Created the docker image in fiaas/kind because the certificate expired
     DOCKER_IMAGES["v1.14.10"] = "fiaas/kind"
-    # Created the docker image in fiaas/kind because the tests are not passing with v1.16.15 in semaphore-ci
     DOCKER_IMAGES["v1.16.13"] = "fiaas/kind"
 
     def __init__(self, k8s_version, name):

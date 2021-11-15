@@ -29,12 +29,13 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
     """
 
-    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler):
+    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, pod_disruption_budget_deployer):
         self._version = config.version
         self._service_deployer = service_deployer
         self._deployment_deployer = deployment_deployer
         self._ingress_deployer = ingress_deployer
         self._autoscaler_deployer = autoscaler
+        self._pod_disruption_budget_deployer = pod_disruption_budget_deployer
 
     def deploy(self, app_spec):
         if _besteffort_qos_is_required(app_spec):
@@ -46,6 +47,7 @@ class K8s(object):
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
         self._autoscaler_deployer.deploy(app_spec, labels)
+        self._pod_disruption_budget_deployer.deploy(app_spec, labels)
 
     def delete(self, app_spec):
         self._ingress_deployer.delete(app_spec)

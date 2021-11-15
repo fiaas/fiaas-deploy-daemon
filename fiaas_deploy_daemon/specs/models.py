@@ -115,6 +115,7 @@ LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
     "service",
     "pod",
     "status",
+    "pod_disruption_budget",
 ])
 
 IngressItemSpec = namedtuple("IngressItemSpec", [

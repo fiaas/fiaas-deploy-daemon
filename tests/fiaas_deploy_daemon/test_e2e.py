@@ -48,7 +48,7 @@ IMAGE1 = u"finntech/application-name:123"
 IMAGE2 = u"finntech/application-name:321"
 DEPLOYMENT_ID1 = u"deployment_id_1"
 DEPLOYMENT_ID2 = u"deployment_id_2"
-PATIENCE = 40
+PATIENCE = 60
 TIMEOUT = 5
 SHOULD_NOT_EXIST = object()  # Mapped to Kinds that should not exist in a test case
 

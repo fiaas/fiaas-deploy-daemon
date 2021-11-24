@@ -164,16 +164,12 @@ def use_docker_for_e2e(request):
             "-i", "--rm",
             "-e", "NAMESPACE",
             "--name", container_name,
+            "--network=kind",
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
             # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert
             "--add-host", "kubernetes:{}".format(apiserver_ip),
         ]
-        if not _is_macos():
-            # Linux needs host networking to make the fiaas-deploy-daemon port available on localhost when running it
-            # in a container. To do the same thing on Docker for mac it is enough to use --publish, and enabling host
-            # networking will make it impossible to connect to the port.
-            args += ["--network", "host"]
         return args + ["fiaas/fiaas-deploy-daemon:latest"]
 
     if request.config.getoption(DOCKER_FOR_E2E_OPTION):

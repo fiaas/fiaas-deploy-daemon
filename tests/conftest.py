@@ -164,6 +164,7 @@ def use_docker_for_e2e(request):
             "-i", "--rm",
             "-e", "NAMESPACE",
             "--name", container_name,
+            "--network=kind",
             "--publish", "{port}:{port}".format(port=port),
             "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
             # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert

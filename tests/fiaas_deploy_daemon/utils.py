@@ -24,6 +24,7 @@ import sys
 import tempfile
 import time
 import traceback
+import uuid as uuidlib
 from copy import deepcopy
 from datetime import datetime
 from urlparse import urljoin
@@ -39,6 +40,10 @@ from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
+
+
+def uuid():
+    return str(uuidlib.uuid4())[:8]
 
 
 def plog(message, **kwargs):

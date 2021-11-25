@@ -21,7 +21,6 @@ import os
 import subprocess
 import sys
 import time
-import uuid
 
 import pytest
 import requests
@@ -35,7 +34,7 @@ from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper
+    KindWrapper, uuid
 
 from fiaas_deploy_daemon.crd.status import create_name
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
@@ -64,7 +63,20 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, service_type, k8s_version):
         try:
-            name = str(uuid.uuid4())
+            name = 'kind-{}-{}-{}'.format(k8s_version, service_type.lower(), uuid())
+            kind = KindWrapper(k8s_version, name)
+            try:
+                yield kind.start()
+            finally:
+                kind.delete()
+        except Exception as e:
+            msg = "Unable to run kind: %s"
+            pytest.fail(msg % str(e))
+
+    @pytest.fixture(scope="module")
+    def kubernetes_service_account(self, k8s_version):
+        try:
+            name = 'kind-{}-{}-{}'.format(k8s_version, "serviceaccount", uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()
@@ -82,6 +94,14 @@ class TestE2E(object):
         config.verify_ssl = False
         config.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
+    @pytest.fixture()
+    def k8s_client_service_account(self, kubernetes_service_account):
+        Client.clear_session()
+        config.api_server = kubernetes_service_account["host-to-container-server"]
+        config.debug = True
+        config.verify_ssl = False
+        config.cert = (kubernetes_service_account["client-cert"], kubernetes_service_account["client-key"])
+
     @pytest.fixture(scope="module")
     def fdd(self, request, kubernetes, service_type, k8s_version, use_docker_for_e2e):
         args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version, use_docker_for_e2e, service_type)
@@ -96,15 +116,15 @@ class TestE2E(object):
             self._end_popen(daemon)
 
     @pytest.fixture(scope="module")
-    def fdd_service_account(self, request, kubernetes, k8s_version, use_docker_for_e2e):
-        args, port, ready = self.prepare_fdd(request, kubernetes, k8s_version,
+    def fdd_service_account(self, request, kubernetes_service_account, k8s_version, use_docker_for_e2e):
+        args, port, ready = self.prepare_fdd(request, kubernetes_service_account, k8s_version,
                                              use_docker_for_e2e, "ClusterIP", service_account=True)
         try:
             daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
             time.sleep(1)
             if daemon.poll() is not None:
                 pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
-            self.wait_until_fdd_ready(k8s_version, kubernetes, ready)
+            self.wait_until_fdd_ready(k8s_version, kubernetes_service_account, ready)
             yield "http://localhost:{}/fiaas".format(port)
         finally:
             self._end_popen(daemon)
@@ -407,7 +427,7 @@ class TestE2E(object):
     def test_custom_resource_definition_deploy_without_service_account(self, custom_resource_definition, service_type):
         self.run_crd_deploy(custom_resource_definition, service_type)
 
-    @pytest.mark.usefixtures("fdd_service_account", "k8s_client")
+    @pytest.mark.usefixtures("fdd_service_account", "k8s_client_service_account")
     def test_custom_resource_definition_deploy_with_service_account(self, custom_resource_definition_service_account):
         service_type = "ClusterIP"
         self.run_crd_deploy(custom_resource_definition_service_account, service_type, service_account=True)

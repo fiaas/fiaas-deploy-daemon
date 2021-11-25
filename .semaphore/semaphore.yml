@@ -34,6 +34,7 @@ blocks:
           - docker run --rm --privileged multiarch/qemu-user-static:4.2.0-7 --reset -p yes
           - export PATH="$PATH:$HOME/.local/bin"
           - pip install --user .[ci]
+          - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
           - tox -e codestyle,test
           # Build docker image
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"

@@ -19,16 +19,17 @@ import contextlib
 import os
 import re
 import socket
+import subprocess
 import sys
 import tempfile
 import time
 import traceback
+import uuid as uuidlib
 from copy import deepcopy
-from collections import defaultdict
 from datetime import datetime
 from urlparse import urljoin
 
-import docker
+import json
 import pytest
 import requests
 import yaml
@@ -39,6 +40,10 @@ from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
+
+
+def uuid():
+    return str(uuidlib.uuid4())[:8]
 
 
 def plog(message, **kwargs):
@@ -65,8 +70,7 @@ def wait_until(action, description=None, exception_class=AssertionError, patienc
     if cause:
         message.append("\nThe last exception was:\n")
         message.extend(cause)
-    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience,
-                                                                    datetime.now().isoformat(" "))
+    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
     message.insert(0, header)
     raise exception_class("".join(message))
 
@@ -80,11 +84,14 @@ def crd_available(kubernetes, timeout=5):
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     def _crd_available():
-        plog("Checking if CRDs are available")
         for url in (app_url, status_url):
-            plog("Checking %s" % url)
+            plog("Checking if CRDs are available at %s" % url)
             resp = session.get(url, timeout=timeout)
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except Exception as e:
+                plog(e)
+                raise
             plog("!!!!! %s is available !!!!" % url)
 
     return _crd_available
@@ -257,95 +264,71 @@ def get_unbound_port():
 
 
 class KindWrapper(object):
-    DOCKER_IMAGES = defaultdict(lambda: "bsycorp/kind")
-    # old bsycorp/kind versions isn't being updated, and the latest version has an expired cert
-    # See https://github.com/fiaas/fiaas-deploy-daemon/pull/45
-    DOCKER_IMAGES["v1.15.12"] = "fiaas/kind"
-    # Created the docker image in fiaas/kind because the tests are not passing with v1.16.15 in semaphore-ci
-    DOCKER_IMAGES["v1.16.13"] = "fiaas/kind"
-
     def __init__(self, k8s_version, name):
         self.k8s_version = k8s_version
         self.name = name
         # on Docker for mac, directories under $TMPDIR can't be mounted by default. use /tmp, which works
         tmp_dir = '/tmp' if _is_macos() else None
         self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name), dir=tmp_dir)
-        self._client = docker.from_env()
-        self._container = None
+        self._kubeconfig = os.path.join(self._workdir, "kubeconfig")
 
     def start(self):
+        plog("creating kubeconfig at " + self._kubeconfig)
+        image_name = "kindest/node:" + self.k8s_version
+        args = ["kind", "create", "cluster", "--name="+self.name, "--kubeconfig="+self._kubeconfig, "--image="+image_name, "--wait=40s"]
+        output = None
         try:
-            self._start()
-            in_container_server_ip, api_port, config_port = self._get_ports()
-            wait_until(self._endpoint_ready(config_port, "config"), "config available")
-            resp = requests.get("http://localhost:{}/config".format(config_port))
-            resp.raise_for_status()
-            config = yaml.safe_load(resp.content)
+            output, code = self._run_cmd(args)
+            if code != 0:
+                raise Exception("kind returned status code {}".format(code))
+
+            with open(self._kubeconfig, 'r') as f:
+                config = yaml.safe_load(f.read())
             api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
             client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
             client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
+            apiserver_url = config["clusters"][-1]["cluster"]["server"]
+
+            container_name = self.name + "-control-plane"
+            inspect_output, code = self._run_cmd(["docker", "inspect", container_name])
+            if code != 0:
+                output = inspect_output
+                raise Exception("docker inspect returned status code {}".format(code))
+            inspect = json.loads(inspect_output)
+            in_container_server_ip = inspect[0]["NetworkSettings"]["Networks"]["kind"]["IPAddress"]
+
             result = {
                 # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
                 # the TLS cert of the apiserver
                 "container-to-container-server-ip": in_container_server_ip,
                 # apiserver endpoint when running fdd as a container
-                "container-to-container-server": "https://kubernetes:8443",
+                "container-to-container-server": "https://{}:6443".format(container_name),
                 # apiserver endpoint for k8s client in tests, or when running fdd locally
-                "host-to-container-server": "https://localhost:{}".format(api_port),
+                "host-to-container-server": apiserver_url,
                 "client-cert": client_cert,
                 "client-key": client_key,
                 "api-cert": api_cert,
-                "log_dumper": self.dump_logs,
             }
-            plog("Waiting for container {} with name {} to become ready".format(self._container.id, self.name))
-            wait_until(self._endpoint_ready(config_port, "kubernetes-ready"), "kubernetes ready", patience=180)
+            plog("started kind cluster at {}".format(apiserver_url))
             return result
-        except Exception:
-            self.dump_logs()
+        except Exception as e:
+            if output:
+                self.dump_output(output)
             self.delete()
-            raise
+            raise e
 
-    def dump_logs(self, since=None, until=None):
-        if self._container:
-            logs = self._container.logs(since=since)
-            plog("vvvvvvvvvvvvvvvv Output from kind container vvvvvvvvvvvvvvvv")
-            if logs:
-                plog(logs, end="")
-            plog("^^^^^^^^^^^^^^^^ Output from kind container ^^^^^^^^^^^^^^^^")
+    def dump_output(self, output):
+        plog("vvvvvvvvvvvvvvvv Output from kind vvvvvvvvvvvvvvvv")
+        plog(output)
+        plog("^^^^^^^^^^^^^^^^ Output from kind ^^^^^^^^^^^^^^^^")
 
     def delete(self):
-        if self._container:
-            try:
-                self._container.stop()
-            except docker.errors.NotFound:
-                pass  # container has already stopped
-
-    def _endpoint_ready(self, port, endpoint):
-        url = "http://localhost:{}/{}".format(port, endpoint)
-
-        def ready():
-            resp = requests.get(url)
-            resp.raise_for_status()
-
-        return ready
-
-    def _start(self):
-        image_name = self.DOCKER_IMAGES[self.k8s_version]
-
-        self._container = self._client.containers.run("{}:{}".format(image_name, self.k8s_version),
-                                                      detach=True, stdout=True, stderr=True,
-                                                      remove=True, auto_remove=True, privileged=True,
-                                                      name=self.name, hostname=self.name,
-                                                      ports={"10080/tcp": None, "8443/tcp": None})
-        plog("Launched container {} with name {}".format(self._container.id, self.name))
-
-    def _get_ports(self):
-        self._container.reload()
-        ip = self._container.attrs["NetworkSettings"]["IPAddress"]
-        ports = self._container.attrs["NetworkSettings"]["Ports"]
-        config_port = ports["10080/tcp"][-1]["HostPort"]
-        api_port = ports["8443/tcp"][-1]["HostPort"]
-        return ip, api_port, config_port
+        output, code = self._run_cmd(["kind", "delete", "cluster", "--name", self.name])
+        if code != 0:
+            self.dump_output(output)
+            raise "deleting kind cluster: kind returned status code {}".format(code)
+        else:
+            plog("cluster deleted")
 
     def _save_to_file(self, name, data):
         raw_data = base64.b64decode(data)
@@ -353,6 +336,11 @@ class KindWrapper(object):
         with open(path, "wb") as fobj:
             fobj.write(raw_data)
         return path
+
+    def _run_cmd(self, args):
+        cmd = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        output = cmd.communicate()[0].strip()
+        return output, cmd.returncode
 
 
 def _is_macos():

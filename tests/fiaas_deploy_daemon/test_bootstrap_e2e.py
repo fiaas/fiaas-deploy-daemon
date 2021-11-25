@@ -18,7 +18,6 @@ import os
 import os.path
 import subprocess
 import sys
-import uuid
 
 import pytest
 from k8s import config
@@ -34,7 +33,7 @@ from fiaas_deploy_daemon.crd.watcher import CrdWatcher
 from fiaas_deploy_daemon.tools import merge_dicts
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper
+    KindWrapper, uuid
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -85,7 +84,7 @@ class TestBootstrapE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, k8s_version):
         try:
-            name = str(uuid.uuid4())
+            name = 'kind-bootstrap-{}-{}'.format(k8s_version, uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()

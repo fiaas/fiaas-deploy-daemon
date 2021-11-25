@@ -24,6 +24,7 @@ import sys
 import tempfile
 import time
 import traceback
+import uuid as uuidlib
 from copy import deepcopy
 from datetime import datetime
 from urlparse import urljoin
@@ -39,6 +40,10 @@ from k8s.models.service import Service
 from monotonic import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
+
+
+def uuid():
+    return str(uuidlib.uuid4())[:8]
 
 
 def plog(message, **kwargs):
@@ -80,7 +85,7 @@ def crd_available(kubernetes, timeout=5):
 
     def _crd_available():
         for url in (app_url, status_url):
-            plog("Check if CRDs are available at %s" % url)
+            plog("Checking if CRDs are available at %s" % url)
             resp = session.get(url, timeout=timeout)
             try:
                 resp.raise_for_status()

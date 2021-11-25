@@ -191,11 +191,11 @@ def _open():
 
 @pytest.fixture(scope="session", params=(
     "v1.15.12",
-    "v1.16.13",
-    "v1.18.6",
-    "v1.19.4",
-    "v1.20.7",
-    pytest.param("v1.21.1", marks=pytest.mark.e2e_latest)
+    # "v1.16.15",
+    # "v1.18.19",
+    # "v1.19.11",
+    # "v1.20.7",
+    # pytest.param("v1.21.2", marks=pytest.mark.e2e_latest)
 ))
 def k8s_version(request):
     yield request.param

@@ -34,12 +34,13 @@ blocks:
           - docker run --rm --privileged multiarch/qemu-user-static:4.2.0-7 --reset -p yes
           - export PATH="$PATH:$HOME/.local/bin"
           - pip install --user .[ci]
+          - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
           - tox -e codestyle,test
           # Build docker image
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
           - ./bin/docker_build
           # Run end-to-end/integration tests
-          - tox -e integration_test -- -n 2 --use-docker-for-e2e
+          - tox -e integration_test -- -n 6 --use-docker-for-e2e
           # Store metadata for promotion jobs
           - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id
           - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha

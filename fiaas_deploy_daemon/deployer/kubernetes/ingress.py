@@ -22,13 +22,15 @@ import logging
 from itertools import chain
 
 from k8s.client import NotFound
-from k8s.models.ingress import IngressTLS
+from k8s.models.ingress import IngressTLS as BetaIngressTLS
+from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
 
 from .ingress_beta import BetaIngressAdapter
+from .ingress_stable import StableIngressAdapter
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +43,10 @@ class IngressDeployer(object):
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
-        self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
+        if config.use_stable_ingress:
+            self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
+        else:
+            self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -193,7 +198,10 @@ class IngressTls(object):
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
-        self.ingress_tls = IngressTLS
+        if config.use_stable_ingress:
+            self.ingress_tls = StableIngressTLS
+        else:
+            self.ingress_tls = BetaIngressTLS
 
     def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):

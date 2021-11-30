@@ -345,7 +345,6 @@ class TestE2E(object):
         return fiaas_path, expected, additional_labels
 
     def _ensure_clean(self, name, expected):
-        pass
         kinds = self._select_kinds(expected)
         for kind in kinds:
             try:

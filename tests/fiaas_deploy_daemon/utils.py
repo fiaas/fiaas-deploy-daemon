@@ -87,11 +87,7 @@ def crd_available(kubernetes, timeout=5):
         for url in (app_url, status_url):
             plog("Checking if CRDs are available at %s" % url)
             resp = session.get(url, timeout=timeout)
-            try:
-                resp.raise_for_status()
-            except Exception as e:
-                plog(e)
-                raise
+            resp.raise_for_status()
             plog("!!!!! %s is available !!!!" % url)
 
     return _crd_available
@@ -276,59 +272,46 @@ class KindWrapper(object):
         plog("creating kubeconfig at " + self._kubeconfig)
         image_name = "kindest/node:" + self.k8s_version
         args = ["kind", "create", "cluster", "--name="+self.name, "--kubeconfig="+self._kubeconfig, "--image="+image_name, "--wait=40s"]
-        output = None
-        try:
-            output, code = self._run_cmd(args)
-            if code != 0:
-                raise Exception("kind returned status code {}".format(code))
 
-            with open(self._kubeconfig, 'r') as f:
-                config = yaml.safe_load(f.read())
-            api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
-            client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
-            client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
-            apiserver_url = config["clusters"][-1]["cluster"]["server"]
+        self._run_cmd(args)
 
-            container_name = self.name + "-control-plane"
-            inspect_output, code = self._run_cmd(["docker", "inspect", container_name])
-            if code != 0:
-                output = inspect_output
-                raise Exception("docker inspect returned status code {}".format(code))
-            inspect = json.loads(inspect_output)
-            in_container_server_ip = inspect[0]["NetworkSettings"]["Networks"]["kind"]["IPAddress"]
+        api_cert, client_cert, client_key, apiserver_url = self._kubeconfig_connection_params()
 
-            result = {
-                # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
-                # the TLS cert of the apiserver
-                "container-to-container-server-ip": in_container_server_ip,
-                # apiserver endpoint when running fdd as a container
-                "container-to-container-server": "https://{}:6443".format(container_name),
-                # apiserver endpoint for k8s client in tests, or when running fdd locally
-                "host-to-container-server": apiserver_url,
-                "client-cert": client_cert,
-                "client-key": client_key,
-                "api-cert": api_cert,
-            }
-            plog("started kind cluster at {}".format(apiserver_url))
-            return result
-        except Exception as e:
-            if output:
-                self.dump_output(output)
-            self.delete()
-            raise e
+        container_name = self.name + "-control-plane"
+        in_container_server_ip = self._in_container_server_ip(container_name)
 
-    def dump_output(self, output):
-        plog("vvvvvvvvvvvvvvvv Output from kind vvvvvvvvvvvvvvvv")
-        plog(output)
-        plog("^^^^^^^^^^^^^^^^ Output from kind ^^^^^^^^^^^^^^^^")
+        result = {
+            # the apiserver's IP. We need to map this to `kubernetes` in the fdd container to be able to validate
+            # the TLS cert of the apiserver
+            "container-to-container-server-ip": in_container_server_ip,
+            # apiserver endpoint when running fdd as a container
+            "container-to-container-server": "https://{}:6443".format(container_name),
+            # apiserver endpoint for k8s client in tests, or when running fdd locally
+            "host-to-container-server": apiserver_url,
+            "client-cert": client_cert,
+            "client-key": client_key,
+            "api-cert": api_cert,
+        }
+        plog("started kind cluster at {}".format(apiserver_url))
+        return result
+
+    def _kubeconfig_connection_params(self):
+        with open(self._kubeconfig, 'r') as f:
+            config = yaml.safe_load(f.read())
+        api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
+        client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
+        client_key = self._save_to_file("client_key", config["users"][-1]["user"]["client-key-data"])
+        apiserver_url = config["clusters"][-1]["cluster"]["server"]
+        return api_cert, client_cert, client_key, apiserver_url
+
+    def _in_container_server_ip(self, container_name):
+        output = self._run_cmd(["docker", "inspect", container_name])
+        inspect = json.loads(output)
+        return inspect[0]["NetworkSettings"]["Networks"]["kind"]["IPAddress"]
 
     def delete(self):
-        output, code = self._run_cmd(["kind", "delete", "cluster", "--name", self.name])
-        if code != 0:
-            self.dump_output(output)
-            raise "deleting kind cluster: kind returned status code {}".format(code)
-        else:
-            plog("cluster deleted")
+        self._run_cmd(["kind", "delete", "cluster", "--name", self.name])
+        plog("cluster {} deleted".format(self.name))
 
     def _save_to_file(self, name, data):
         raw_data = base64.b64decode(data)
@@ -338,9 +321,14 @@ class KindWrapper(object):
         return path
 
     def _run_cmd(self, args):
-        cmd = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        output = cmd.communicate()[0].strip()
-        return output, cmd.returncode
+        try:
+            output = subprocess.check_output(args, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as e:
+            plog("vvvvvvvvvvvvvvvv Output from {} vvvvvvvvvvvvvvvv".format(args[0]))
+            plog(e.output)
+            plog("^^^^^^^^^^^^^^^^ Output from {} ^^^^^^^^^^^^^^^^".format(args[0]))
+            raise e
+        return output.strip()
 
 
 def _is_macos():

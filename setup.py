@@ -68,7 +68,6 @@ TESTS_REQ = [
     'pytest == 3.10.1',
     'requests-file == 1.4.3',
     'callee == 0.3',
-    'docker == 4.0.2'
 ]
 
 DEV_TOOLS = [

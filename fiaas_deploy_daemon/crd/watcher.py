@@ -31,6 +31,7 @@ from .types import FiaasApplication, FiaasApplicationStatus
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
+from ..retry import retry_on_upsert_conflict
 from ..specs.factory import InvalidConfiguration
 
 LOG = logging.getLogger(__name__)
@@ -68,6 +69,7 @@ class CrdWatcher(DaemonThread):
         cls._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
 
     @staticmethod
+    @retry_on_upsert_conflict
     def _create(kind, plural, short_names, group):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)

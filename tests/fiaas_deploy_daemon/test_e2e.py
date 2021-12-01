@@ -478,14 +478,14 @@ class TestE2E(object):
         ("tls_disable_tls_for_one_default_host",
         {
             "v3-data-examples-tls-disable-tls-for-one-default-host": "e2e_expected/tls_disable_tls_for_one_default_host1.yml",
-            "v3-data-examples-tls-disable-tls--one-default-host-1": "e2e_expected/tls_disable_tls_for_one_default_host2.yml"
-        },{"disable_tls": True,"extra_args": ["--ingress-suffix", "svc.notls.example.com","--ingress-suffix", "svc.test.example.com", "--tls-certificate-issuer-disable-for-domain-suffixes","notls.example.com"]}
+            "v3-data-examples-tls-disable-tls-for-one-default-host-1": "e2e_expected/tls_disable_tls_for_one_default_host2.yml"
+        },{"disable_tls": True,"extra_args": ["--tls-certificate-issuer-disable-for-domain-suffixes","notls.example.com","--ingress-suffix", "svc.notls.example.com"]}
         ),
         ("tls_disable_tls_for_one_host",
         {
             "v3-data-examples-tls-disable-tls-for-one-host": "e2e_expected/tls_disable_tls_for_one_host1.yml",
-            "v3-data-examples-tls-disable-tls--one-host-1": "e2e_expected/tls_disable_tls_for_one_host2.yml"
-        },{"disable_tls": True,"extra_args": ["--ingress-suffix", "svc.tls.example.com","--ingress-suffix", "svc.test.example.com", "--tls-certificate-issuer-disable-for-domain-suffixes","internal.example.com"]}
+            "v3-data-examples-tls-disable-tls-for-one-host-1": "e2e_expected/tls_disable_tls_for_one_host2.yml"
+        },{"disable_tls": True,"extra_args": ["--tls-certificate-issuer-disable-for-domain-suffixes","internal.example.com", "--ingress-suffix", "svc.tls.example.com","--ingress-suffix", "svc.test.example.com"]}
         ),
         ("multiple_ingress", {
             "v3-data-examples-multiple-ingress": "e2e_expected/multiple_ingress1.yml",

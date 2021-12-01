@@ -108,8 +108,8 @@ class IngressDeployer(object):
         return self._tls_issuer_type_default
 
     def _group_ingresses(self, app_spec):
-        ''' Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
-        are separated
+        ''' Group the ingresses so that those with annotations are individual, those that don't need tls are grouped together, and those using non-default TLS-issuers
+        are separated by TLS-issuer type
         '''
         explicit_host = _has_explicitly_set_host(app_spec.ingresses)
         ingress_items = [item._replace(host=self._apply_host_rewrite_rules(item.host)) for item in app_spec.ingresses if item.host]
@@ -117,24 +117,23 @@ class IngressDeployer(object):
 
         AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host",
                                       "issuer_type", "default"])
-        default_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={},
-                                           explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default,
-                                           default=True)
-        ingresses = [default_ingress]
-        override_issuer_ingresses = {}
+        ingresses = []
+        default_ingresses = {}
         notls_ingresses = {}
+        override_issuer_ingresses = {}
+        current_name = app_spec.name
         for ingress_item in ingress_items:
             issuer_type = self._get_issuer_type(ingress_item.host)
-            next_name = "{}-{}".format(app_spec.name, len(ingresses))
+            next_name = "{}-{}".format(app_spec.name, len(ingresses)+len(default_ingresses)+len(notls_ingresses)+len(override_issuer_ingresses)+1)
             if ingress_item.annotations:
-                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item],
+                annotated_ingresses = AnnotatedIngress(name=current_name, ingress_items=[ingress_item],
                                                         annotations=ingress_item.annotations,
                                                         explicit_host=True, issuer_type=issuer_type,
                                                         default=False)
                 ingresses.append(annotated_ingresses)
             elif self._ingress_tls._should_disable_ingress_tls([ingress_item.host]) is True:
                 notls_ingress = notls_ingresses.setdefault("no_tls",
-                                                                            AnnotatedIngress(name=next_name,
+                                                                            AnnotatedIngress(name=current_name,
                                                                                             ingress_items=[],
                                                                                             annotations={},
                                                                                             explicit_host=explicit_host,
@@ -143,7 +142,7 @@ class IngressDeployer(object):
                 notls_ingress.ingress_items.append(ingress_item)
             elif issuer_type != self._tls_issuer_type_default:
                 annotated_ingress = override_issuer_ingresses.setdefault(issuer_type,
-                                                                            AnnotatedIngress(name=next_name,
+                                                                            AnnotatedIngress(name=current_name,
                                                                                             ingress_items=[],
                                                                                             annotations={},
                                                                                             explicit_host=explicit_host,
@@ -151,8 +150,17 @@ class IngressDeployer(object):
                                                                                             default=False))
                 annotated_ingress.ingress_items.append(ingress_item)
             else:
+                #This change to fix the issue: when we dont have any default ingress item the ingress is added to the ingresses list anyway. Now it will be added only if we have atleast one default ingress item (host)
+                #This fix will impact the ingress name: e.g if we an annotated ingress it will have app_spec.name as name
+                default_ingress = default_ingresses.setdefault("default",
+                                         AnnotatedIngress(name=current_name, ingress_items=[], annotations={},
+                                            explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default,
+                                           default=True))
                 default_ingress.ingress_items.append(ingress_item)
 
+            current_name = next_name
+
+        ingresses.extend(i for i in default_ingresses.values())
         ingresses.extend(i for i in override_issuer_ingresses.values())
         ingresses.extend(i for i in notls_ingresses.values())
         return ingresses

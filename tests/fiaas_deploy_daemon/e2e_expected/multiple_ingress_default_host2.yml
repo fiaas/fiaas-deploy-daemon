@@ -16,8 +16,7 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   annotations:
-    fiaas/expose: "true"
-    foo/ingress-class: "internal"
+    fiaas/expose: "false"
   labels:
     app: v3-data-examples-multiple-ingress-default-host
     fiaas/deployed_by: ""
@@ -35,7 +34,7 @@ metadata:
 spec:
   tls: []
   rules:
-  - host: internal.example.com
+  - host: v3-data-examples-multiple-ingress-default-host.svc.test.example.com
     http:
       paths:
       - backend:

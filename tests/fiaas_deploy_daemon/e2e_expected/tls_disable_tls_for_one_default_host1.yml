@@ -34,21 +34,7 @@ metadata:
 spec:
   tls: []
   rules:
-  - host: internal.example.com
-    http:
-      paths:
-      - backend:
-          serviceName: v3-data-examples-tls-disable-tls-for-one-default-host
-          servicePort: '80'
-        path: /
-  - host: www.example.com
-    http:
-      paths:
-      - backend:
-          serviceName: v3-data-examples-tls-disable-tls-for-one-default-host
-          servicePort: '80'
-        path: /
-  - host: v3-data-examples-tls-disable-tls-for-one-default-host.svc.test.example.com
+  - host: tls.example.com
     http:
       paths:
       - backend:

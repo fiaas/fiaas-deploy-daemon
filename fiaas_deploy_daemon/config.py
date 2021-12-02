@@ -151,7 +151,6 @@ class Configuration(Namespace):
         self.image = ""
         self.version = ""
         self._parse_args(args)
-        self._resolve_api_config()
         self._resolve_env()
         self.namespace = self._resolve_namespace()
 
@@ -274,13 +273,6 @@ class Configuration(Namespace):
         self.secret_init_containers = {provider.key: provider.value for provider in self.secret_init_containers}
         self.tls_certificate_issuer_type_overrides = {issuer_type.key: issuer_type.value
                                                       for issuer_type in self.tls_certificate_issuer_type_overrides}
-
-    def _resolve_api_config(self):
-        token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-        if os.path.exists(token_file):
-            with open(token_file) as fobj:
-                self.api_token = fobj.read().strip()
-            self.api_cert = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
 
     def _resolve_env(self):
         image = os.getenv("IMAGE")

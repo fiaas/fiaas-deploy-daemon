@@ -288,14 +288,6 @@ class Configuration(Namespace):
             self.version = version
 
     @staticmethod
-    def _resolve_required_variable(key, service_name):
-        value = os.getenv(key)
-        if not value:
-            raise InvalidConfigurationException(
-                "{} is not set in environment, unable to resolve service {}".format(key, service_name))
-        return value
-
-    @staticmethod
     def _resolve_namespace():
         namespace_file_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
         namespace_env_variable = "NAMESPACE"

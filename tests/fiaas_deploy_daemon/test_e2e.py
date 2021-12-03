@@ -189,7 +189,7 @@ class TestE2E(object):
             "--strongbox-init-container-image", "STRONGBOX_IMAGE",
             "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
             "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
-            "--use-ingress-tls", "default_off"
+            "--use-ingress-tls", "default_off",
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
@@ -503,7 +503,7 @@ class TestE2E(object):
         },{"disable_tls": False,"extra_args": [] }
         )
     ],indirect=['fdd_disable_tls_for_doamin_suffixes'])
-    def test_multiple_ingresses(self, request, kind_logger, input, expected,fdd_disable_tls_for_doamin_suffixes,capsys):
+    def test_multiple_ingresses(self, request, kind_logger, input, expected,fdd_disable_tls_for_doamin_suffixes):
         with kind_logger():
             fiaas_path = "v3/data/examples/%s.yml" % input
             fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
@@ -526,8 +526,6 @@ class TestE2E(object):
                 assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
             wait_until(_assert_status, patience=PATIENCE)
-            with capsys.disabled():
-                print("check two ingress")
             def _check_two_ingresses():
                 assert Ingress.get(name)
                 assert Ingress.get("{}-1".format(name))
@@ -537,8 +535,6 @@ class TestE2E(object):
                     assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
 
             wait_until(_check_two_ingresses, patience=PATIENCE)       
-            with capsys.disabled():
-                print("Remove 2nd ingress to make sure cleanup works")
             # Remove 2nd ingress to make sure cleanup works
             fiaas_application.spec.config["ingress"].pop()
             if not fiaas_application.spec.config["ingress"]:
@@ -554,8 +550,6 @@ class TestE2E(object):
                     Ingress.get("{}-1".format(name))
 
             wait_until(_check_one_ingress, patience=PATIENCE)
-            with capsys.disabled():
-                print("Cleaning up")
             # Cleanup
             FiaasApplication.delete(name)
 
@@ -565,8 +559,6 @@ class TestE2E(object):
                         Ingress.get(name)
 
             wait_until(cleanup_complete, patience=PATIENCE)
-            with capsys.disabled():
-                print("Done!")
 
 def _deploy_success(name, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():

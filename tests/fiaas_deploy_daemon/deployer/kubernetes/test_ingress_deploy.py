@@ -657,10 +657,6 @@ class TestIngressDeployer(object):
         }
         return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
     
-    @pytest.fixture
-    def ingress_tls(self, config):
-        return mock.create_autospec(IngressTls(config), spec_set=True, instance=True)
-        
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls, app_spec):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
@@ -692,7 +688,7 @@ class TestIngressDeployer(object):
             assert expected_host_groups == sorted(host_groups)
 
     @pytest.fixture
-    def ingress_tls_disable_tls_for_domain_suffixes(self, config, capsys):
+    def ingress_tls_disable_tls_for_domain_suffixes(self, config):
         config.tls_certificate_issuer_disable_for_domain_suffixes = ["foo.example.com","xip.io"] 
         ingress_tls = IngressTls(config)
         return ingress_tls

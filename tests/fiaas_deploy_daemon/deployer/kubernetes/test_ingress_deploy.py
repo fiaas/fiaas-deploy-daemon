@@ -560,11 +560,13 @@ class TestIngressDeployer(object):
                                                   pathmappings=[IngressPathMappingSpec(path="/_/ipblocked", port=8000)],
                                                   annotations={"some/allowlist": "10.0.0.1/12"}))
 
-        expected_ingress = ingress()
+        expected_metadata = pytest.helpers.create_metadata('testapp-2', labels=LABELS,
+                                                            annotations={"some/annotation": "val"}, external=False)
+        expected_ingress = ingress(metadata=expected_metadata)
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_ingress
 
-        expected_metadata2 = pytest.helpers.create_metadata('testapp-1', labels=LABELS,
+        expected_metadata2 = pytest.helpers.create_metadata('testapp', labels=LABELS,
                                                             annotations={"some/annotation": "some-value"}, external=True)
         expected_ingress2 = ingress(rules=[
             {
@@ -583,9 +585,9 @@ class TestIngressDeployer(object):
             }
         ], metadata=expected_metadata2)
         mock_response2 = create_autospec(Response)
-        mock_response.json.return_value = expected_ingress2
+        mock_response2.json.return_value = expected_ingress2
 
-        expected_metadata3 = pytest.helpers.create_metadata('testapp-2', labels=LABELS,
+        expected_metadata3 = pytest.helpers.create_metadata('testapp-1', labels=LABELS,
                                                             annotations={"some/annotation": "val",
                                                                          "some/allowlist": "10.0.0.1/12"}, external=True)
         expected_ingress3 = ingress(rules=[
@@ -611,8 +613,7 @@ class TestIngressDeployer(object):
 
         deployer.deploy(app_spec, LABELS)
 
-        post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress), mock.call(INGRESSES_URI, expected_ingress2),
-                               mock.call(INGRESSES_URI, expected_ingress3)])
+        post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress2),mock.call(INGRESSES_URI, expected_ingress3),mock.call(INGRESSES_URI, expected_ingress)])
         delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
     @pytest.mark.parametrize("spec_name", (
@@ -689,7 +690,10 @@ class TestIngressDeployer(object):
 
     @pytest.fixture
     def ingress_tls_disable_tls_for_domain_suffixes(self, config):
-        config.tls_certificate_issuer_disable_for_domain_suffixes = ["foo.example.com","xip.io"] 
+        config.tls_certificate_issuer_disable_for_domain_suffixes = ["foo.example.com","xip.io"]
+        config.tls_certificate_issuer_type_overrides = {
+            "other.cloud.com": "certmanager.k8s.io/issuer"
+        }
         ingress_tls = IngressTls(config)
         return ingress_tls
 
@@ -707,6 +711,7 @@ class TestIngressDeployer(object):
                 # tls enabled
                 IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
                 IngressItemSpec(host="foo.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+                # has tls issuer override
                 IngressItemSpec(host="other.cloud.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
                 # tls disabled for suffix foo.example.com
                 IngressItemSpec(host="sub.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
@@ -723,10 +728,11 @@ class TestIngressDeployer(object):
                 expected_host_groups = [
                     ["ann.foo.example.com"], #annotation disable tls
                     ["ann.sub.example.com"], #annotation enable tls
-                    ["bar.example.com", "foo.bar.example.com","other.cloud.com","testapp.svc.test.example.com"],  #tls enabled
-                    ["foo.example.com","sub.foo.example.com","testapp.127.0.0.1.xip.io"] #tls disabled
+                    ["bar.example.com", "foo.bar.example.com","testapp.svc.test.example.com"],  #tls enabled
+                    ["foo.example.com","sub.foo.example.com","testapp.127.0.0.1.xip.io"], #tls disabled
+                    ["other.cloud.com"]  #has tls issuer override
                 ]
-                assert ingress_tls_disable_tls_for_domain_suffixes.apply.call_count == 4
+                assert ingress_tls_disable_tls_for_domain_suffixes.apply.call_count == 5
                 assert expected_host_groups == sorted(host_groups)
 
 class TestIngressTls(object):

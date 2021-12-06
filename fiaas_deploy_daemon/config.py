@@ -151,7 +151,6 @@ class Configuration(Namespace):
         self.image = ""
         self.version = ""
         self._parse_args(args)
-        self._resolve_api_config()
         self._resolve_env()
         self.namespace = self._resolve_namespace()
 
@@ -275,13 +274,6 @@ class Configuration(Namespace):
         self.tls_certificate_issuer_type_overrides = {issuer_type.key: issuer_type.value
                                                       for issuer_type in self.tls_certificate_issuer_type_overrides}
 
-    def _resolve_api_config(self):
-        token_file = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-        if os.path.exists(token_file):
-            with open(token_file) as fobj:
-                self.api_token = fobj.read().strip()
-            self.api_cert = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-
     def _resolve_env(self):
         image = os.getenv("IMAGE")
         if not image:
@@ -294,14 +286,6 @@ class Configuration(Namespace):
             version = os.getenv("FIAAS_VERSION")
         if version:
             self.version = version
-
-    @staticmethod
-    def _resolve_required_variable(key, service_name):
-        value = os.getenv(key)
-        if not value:
-            raise InvalidConfigurationException(
-                "{} is not set in environment, unable to resolve service {}".format(key, service_name))
-        return value
 
     @staticmethod
     def _resolve_namespace():

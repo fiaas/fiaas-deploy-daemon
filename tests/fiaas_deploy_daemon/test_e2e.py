@@ -475,10 +475,9 @@ class TestE2E(object):
         },{"disable_tls": False,"extra_args": [] }
         )
     ],indirect=['fdd_disable_tls_for_doamin_suffixes'])
-    def test_multiple_ingresses(self, request, kind_logger, input, expected,fdd_disable_tls_for_doamin_suffixes):
-        with kind_logger():
-            fiaas_path = "v3/data/examples/%s.yml" % input
-            fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+    def test_multiple_ingresses(self, request, input, expected,fdd_disable_tls_for_doamin_suffixes):
+        fiaas_path = "v3/data/examples/%s.yml" % input
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
 
         name = sanitize_resource_name(fiaas_path)
 

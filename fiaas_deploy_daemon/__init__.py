@@ -98,15 +98,28 @@ class Main(object):
         self._webapp.run("0.0.0.0", self._config.port)
 
 
-def init_k8s_client(config):
-    k8s_config.api_server = config.api_server
-    k8s_config.api_token = config.api_token
-    if config.api_cert:
-        k8s_config.verify_ssl = config.api_cert
-    else:
-        k8s_config.verify_ssl = not config.debug
+def init_k8s_client(config, log):
     if config.client_cert:
         k8s_config.cert = (config.client_cert, config.client_key)
+
+    if config.api_token:
+        k8s_config.api_token = config.api_token
+    else:
+        # use default in-cluster config if api_token is not explicitly set
+        try:
+            # sets api_token_source and verify_ssl
+            k8s_config.use_in_cluster_config()
+        except IOError as e:
+            if not config.client_cert:
+                log.warn("No apiserver auth config was specified, and in-cluster config could not be set up: " + str(e))
+
+    # if api_cert or debug is explicitly set, override in-cluster config setting (if used)
+    if config.api_cert:
+        k8s_config.verify_ssl = config.api_cert
+    elif config.debug:
+        k8s_config.verify_ssl = not config.debug
+
+    k8s_config.api_server = config.api_server
     k8s_config.debug = config.debug
 
 
@@ -182,8 +195,8 @@ def expose_fdd_version(config):
 def main():
     cfg = Configuration()
     init_logging(cfg)
-    init_k8s_client(cfg)
     log = logging.getLogger(__name__)
+    init_k8s_client(cfg, log)
     warn_if_env_variable_config(cfg, log)
     expose_fdd_version(cfg)
     signal.signal(signal.SIGUSR2, thread_dump_logger(log))

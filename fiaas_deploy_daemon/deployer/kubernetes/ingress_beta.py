@@ -23,13 +23,14 @@ from k8s.base import Equality, Inequality, Exists
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
+from .ingress import deduplicate_in_order
+
 
 class BetaIngressAdapter(object):
-    def __init__(self, ingress_tls, owner_references, extension_hook, deduplicate_in_order):
+    def __init__(self, ingress_tls, owner_references, extension_hook):
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references
         self._extension_hook = extension_hook
-        self._deduplicate_in_order = deduplicate_in_order
 
     @retry_on_upsert_conflict
     def _create_ingress(self, app_spec, annotated_ingress, labels):
@@ -74,6 +75,6 @@ class BetaIngressAdapter(object):
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):
         http_ingress_paths = [
             HTTPIngressPath(path=pm.path, backend=IngressBackend(serviceName=app_spec.name, servicePort=pm.port))
-            for pm in self._deduplicate_in_order(pathmappings)]
+            for pm in deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)

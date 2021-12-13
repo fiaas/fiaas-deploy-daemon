@@ -71,8 +71,8 @@ class Main(object):
 def main():
     cfg = Configuration()
     init_logging(cfg)
-    init_k8s_client(cfg)
     log = logging.getLogger(__name__)
+    init_k8s_client(cfg, log)
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
         binding_specs = [

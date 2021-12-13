@@ -27,7 +27,7 @@ from fiaas_deploy_daemon.tools import merge_dicts
 from .ingress import deduplicate_in_order
 
 
-class BetaIngressAdapter(object):
+class StableIngressAdapter(object):
     def __init__(self, ingress_tls, owner_references, extension_hook):
         self._ingress_tls = ingress_tls
         self._owner_references = owner_references

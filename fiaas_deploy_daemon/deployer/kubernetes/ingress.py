@@ -43,7 +43,7 @@ class IngressDeployer(object):
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
-        if config.use_stable_ingress:
+        if config.use_networkingv1_ingress:
             self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
         else:
             self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
@@ -198,7 +198,7 @@ class IngressTls(object):
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
-        if config.use_stable_ingress:
+        if config.use_networkingv1_ingress:
             self.ingress_tls = StableIngressTLS
         else:
             self.ingress_tls = BetaIngressTLS

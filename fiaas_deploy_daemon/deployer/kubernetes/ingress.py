@@ -21,16 +21,15 @@ import hashlib
 import logging
 from itertools import chain
 
-from k8s.client import NotFound
-from k8s.base import Equality, Inequality, Exists
-from k8s.models.common import ObjectMeta
-from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
-    IngressTLS
+from k8s.models.ingress import IngressTLS as BetaIngressTLS
+from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
-from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
+
+from .ingress_beta import BetaIngressAdapter
+from .ingress_stable import StableIngressAdapter
 
 LOG = logging.getLogger(__name__)
 
@@ -40,25 +39,23 @@ class IngressDeployer(object):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
-        self._ingress_tls = ingress_tls
-        self._owner_references = owner_references
-        self._extension_hook = extension_hook
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
+        if config.use_networkingv1_ingress:
+            self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook)
+        else:
+            self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
             self._create(app_spec, labels)
         else:
-            self._delete_unused(app_spec, labels)
+            self._ingress_adapter.delete_unused(app_spec, labels)
 
     def delete(self, app_spec):
         LOG.info("Deleting ingresses for %s", app_spec.name)
-        try:
-            Ingress.delete_list(namespace=app_spec.namespace, labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
-        except NotFound:
-            pass
+        self._ingress_adapter.delete_list(app_spec)
 
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
@@ -72,13 +69,15 @@ class IngressDeployer(object):
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
 
-            self._create_ingress(app_spec, annotated_ingress, custom_labels)
+            self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
 
-        self._delete_unused(app_spec, custom_labels)
+        self._ingress_adapter.delete_unused(app_spec, custom_labels)
 
     def _expand_default_hosts(self, app_spec):
-        all_pathmappings = list(_deduplicate_in_order(chain.from_iterable(ingress_item.pathmappings
-                                                      for ingress_item in app_spec.ingresses if not ingress_item.annotations)))
+        all_pathmappings = list(
+            deduplicate_in_order(chain.from_iterable(
+                ingress_item.pathmappings for ingress_item in app_spec.ingresses if not ingress_item.annotations))
+        )
 
         if not all_pathmappings:
             # no pathmappings were found, build the default ingress
@@ -147,45 +146,6 @@ class IngressDeployer(object):
 
         return ingresses
 
-    @retry_on_upsert_conflict
-    def _create_ingress(self, app_spec, annotated_ingress, labels):
-        default_annotations = {
-            u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
-        }
-        annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
-
-        metadata = ObjectMeta(name=annotated_ingress.name, namespace=app_spec.namespace, labels=labels,
-                              annotations=annotations)
-
-        per_host_ingress_rules = [
-            IngressRule(host=ingress_item.host,
-                        http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
-            for ingress_item in annotated_ingress.ingress_items
-            if ingress_item.host is not None
-        ]
-        if annotated_ingress.default:
-            use_suffixes = True
-        else:
-            use_suffixes = False
-
-        ingress_spec = IngressSpec(rules=per_host_ingress_rules)
-
-        ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
-
-        hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
-        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
-        self._owner_references.apply(ingress, app_spec)
-        self._extension_hook.apply(ingress, app_spec)
-        ingress.save()
-
-    def _delete_unused(self, app_spec, labels):
-        filter_labels = [
-            ("app", Equality(labels["app"])),
-            ("fiaas/deployment_id", Exists()),
-            ("fiaas/deployment_id", Inequality(labels["fiaas/deployment_id"]))
-        ]
-        Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
-
     def _generate_default_hosts(self, name):
         for suffix in self._ingress_suffixes:
             yield u"{}.{}".format(name, suffix)
@@ -201,14 +161,6 @@ class IngressDeployer(object):
 
     def _can_generate_host(self, app_spec):
         return len(self._ingress_suffixes) > 0 or _has_explicitly_set_host(app_spec.ingresses)
-
-    @staticmethod
-    def _make_http_ingress_rule_value(app_spec, pathmappings):
-        http_ingress_paths = [
-            HTTPIngressPath(path=pm.path, backend=IngressBackend(serviceName=app_spec.name, servicePort=pm.port))
-            for pm in _deduplicate_in_order(pathmappings)]
-
-        return HTTPIngressRuleValue(paths=http_ingress_paths)
 
     def _get_hosts(self, app_spec):
         return list(self._generate_default_hosts(app_spec.name)) + \
@@ -228,7 +180,7 @@ def _has_ingress(app_spec):
     return len(app_spec.ingresses) > 0
 
 
-def _deduplicate_in_order(iterator):
+def deduplicate_in_order(iterator):
     seen = set()
     for item in iterator:
         if item not in seen:
@@ -242,6 +194,10 @@ class IngressTls(object):
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
+        if config.use_networkingv1_ingress:
+            self.ingress_tls = StableIngressTLS
+        else:
+            self.ingress_tls = BetaIngressTLS
 
     def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):
@@ -259,7 +215,7 @@ class IngressTls(object):
             if self.enable_deprecated_tls_entry_per_host:
                 # TODO: DOCD-1846 - Once new certificates has been provisioned, remove the single host entries and
                 # associated configuration flag
-                ingress.spec.tls = [IngressTLS(hosts=[host], secretName=host) for host in hosts if len(host) < 64]
+                ingress.spec.tls = [self.ingress_tls(hosts=[host], secretName=host) for host in hosts if len(host) < 64]
             else:
                 ingress.spec.tls = []
 
@@ -268,7 +224,7 @@ class IngressTls(object):
                 # as the user doesn't control it we should generate a host we know will fit
                 hosts = self._collapse_hosts(app_spec, hosts)
 
-            ingress.spec.tls.append(IngressTLS(hosts=hosts, secretName="{}-ingress-tls".format(ingress.metadata.name)))
+            ingress.spec.tls.append(self.ingress_tls(hosts=hosts, secretName="{}-ingress-tls".format(ingress.metadata.name)))
 
     def _collapse_hosts(self, app_spec, hosts):
         """The first hostname in the list will be used as Common Name in the certificate"""

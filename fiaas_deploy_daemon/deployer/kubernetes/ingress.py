@@ -21,7 +21,6 @@ import hashlib
 import logging
 from itertools import chain
 
-from k8s.client import NotFound
 from k8s.models.ingress import IngressTLS as BetaIngressTLS
 from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
@@ -56,10 +55,7 @@ class IngressDeployer(object):
 
     def delete(self, app_spec):
         LOG.info("Deleting ingresses for %s", app_spec.name)
-        try:
-            self._ingress_adapter.delete_list(app_spec)
-        except NotFound:
-            pass
+        self._ingress_adapter.delete_list(app_spec)
 
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)

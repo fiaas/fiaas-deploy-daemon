@@ -16,6 +16,7 @@
 # limitations under the License.
 from __future__ import absolute_import
 
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
 from k8s.base import Equality, Inequality, Exists
@@ -70,7 +71,11 @@ class BetaIngressAdapter(object):
         Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
 
     def delete_list(self, app_spec):
-        Ingress.delete_list(namespace=app_spec.namespace, labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
+        try:
+            Ingress.delete_list(namespace=app_spec.namespace,
+                                labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
+        except NotFound:
+            pass
 
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):
         http_ingress_paths = [

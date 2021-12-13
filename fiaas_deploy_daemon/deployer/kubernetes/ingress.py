@@ -44,9 +44,9 @@ class IngressDeployer(object):
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
         if config.use_networkingv1_ingress:
-            self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
+            self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook)
         else:
-            self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook, _deduplicate_in_order)
+            self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -79,7 +79,7 @@ class IngressDeployer(object):
 
     def _expand_default_hosts(self, app_spec):
         all_pathmappings = list(
-            _deduplicate_in_order(chain.from_iterable(
+            deduplicate_in_order(chain.from_iterable(
                 ingress_item.pathmappings for ingress_item in app_spec.ingresses if not ingress_item.annotations))
         )
 
@@ -184,7 +184,7 @@ def _has_ingress(app_spec):
     return len(app_spec.ingresses) > 0
 
 
-def _deduplicate_in_order(iterator):
+def deduplicate_in_order(iterator):
     seen = set()
     for item in iterator:
         if item not in seen:

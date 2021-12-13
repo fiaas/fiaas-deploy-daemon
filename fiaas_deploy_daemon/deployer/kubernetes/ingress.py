@@ -52,12 +52,12 @@ class IngressDeployer(object):
         if self._should_have_ingress(app_spec):
             self._create(app_spec, labels)
         else:
-            self._ingress_adapter._delete_unused(app_spec, labels)
+            self._ingress_adapter.delete_unused(app_spec, labels)
 
     def delete(self, app_spec):
         LOG.info("Deleting ingresses for %s", app_spec.name)
         try:
-            self._ingress_adapter._delete_list(app_spec)
+            self._ingress_adapter.delete_list(app_spec)
         except NotFound:
             pass
 
@@ -73,9 +73,9 @@ class IngressDeployer(object):
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
 
-            self._ingress_adapter._create_ingress(app_spec, annotated_ingress, custom_labels)
+            self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
 
-        self._ingress_adapter._delete_unused(app_spec, custom_labels)
+        self._ingress_adapter.delete_unused(app_spec, custom_labels)
 
     def _expand_default_hosts(self, app_spec):
         all_pathmappings = list(

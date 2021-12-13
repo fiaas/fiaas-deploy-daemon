@@ -34,7 +34,7 @@ class BetaIngressAdapter(object):
         self._extension_hook = extension_hook
 
     @retry_on_upsert_conflict
-    def _create_ingress(self, app_spec, annotated_ingress, labels):
+    def create_ingress(self, app_spec, annotated_ingress, labels):
         default_annotations = {
             u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
         }
@@ -62,7 +62,7 @@ class BetaIngressAdapter(object):
         self._extension_hook.apply(ingress, app_spec)
         ingress.save()
 
-    def _delete_unused(self, app_spec, labels):
+    def delete_unused(self, app_spec, labels):
         filter_labels = [
             ("app", Equality(labels["app"])),
             ("fiaas/deployment_id", Exists()),
@@ -70,7 +70,7 @@ class BetaIngressAdapter(object):
         ]
         Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
 
-    def _delete_list(self, app_spec):
+    def delete_list(self, app_spec):
         Ingress.delete_list(namespace=app_spec.namespace, labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
 
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):

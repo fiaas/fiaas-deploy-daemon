@@ -656,7 +656,7 @@ class TestIngressDeployer(object):
             "foo.bar.example.com": "certmanager.k8s.io/issuer"
         }
         return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
-
+    
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls, app_spec):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
@@ -687,6 +687,111 @@ class TestIngressDeployer(object):
             assert ingress_tls.apply.call_count == 3
             assert expected_host_groups == sorted(host_groups)
 
+    @pytest.fixture
+    def ingress_tls_disable_tls_for_domain_suffixes(self, config,request):
+        config.tls_certificate_issuer_disable_for_domain_suffixes = request.param["tls_certificate_issuer_disable_for_domain_suffixes"]
+        config.tls_certificate_issuer_type_overrides = {
+            "other.cloud.com": "certmanager.k8s.io/issuer"
+        }
+        ingress_tls = IngressTls(config)
+        return ingress_tls
+
+    @pytest.fixture
+    def deployer_disable_tls_for_domain_suffixes(self, config, ingress_tls_disable_tls_for_domain_suffixes, owner_references, default_app_spec, extension_hook):
+        return IngressDeployer(config, ingress_tls_disable_tls_for_domain_suffixes, owner_references, default_app_spec, extension_hook)
+    
+    #Ingress Deployer
+    #list of ingresses
+    # config
+    @pytest.mark.parametrize("ingress_tls_disable_tls_for_domain_suffixes, ingresses_spec, expected_host_groups, hosts,use_suffixes", [
+        #Disable tls for one default host
+        ({"tls_certificate_issuer_disable_for_domain_suffixes": ["xip.io"]},
+         [],
+         [
+            ["testapp.127.0.0.1.xip.io"], #disable tls
+            ["testapp.svc.test.example.com"], #enable tls
+         ],
+        ["testapp.127.0.0.1.xip.io"],
+        True),
+        #Disable tls for a host with annotations
+        ({"tls_certificate_issuer_disable_for_domain_suffixes": ["foo.example.com"]},
+         [
+            # has annotations and tls disabled
+            IngressItemSpec(host="ann.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                            annotations={"some": "annotation"}),
+            # has annotations and tls enabled
+            IngressItemSpec(host="ann.sub.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                            annotations={"some": "annotation"})
+         ],
+         [
+            ["ann.foo.example.com"], #annotation disable tls
+            ["ann.sub.example.com"], #annotation enable tls
+            ["testapp.127.0.0.1.xip.io","testapp.svc.test.example.com"], #enable tls
+         ],
+         ["ann.sub.example.com"],
+         False),
+        #Disable tls for a host with tls issue override
+        ({"tls_certificate_issuer_disable_for_domain_suffixes": ["bar.other.cloud.com"]},
+         [
+            # disable tls with issuer override
+            IngressItemSpec(host="bar.other.cloud.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # enable tls with issuer override
+            IngressItemSpec(host="foo.other.cloud.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+         ],
+         [
+            ["bar.other.cloud.com"], #disable tls with issuer override
+            ["foo.other.cloud.com"], #enable tls with issuer override
+            ["testapp.127.0.0.1.xip.io","testapp.svc.test.example.com"], #enable tls
+         ],
+         ["bar.other.cloud.com"],
+         False),
+         #All use cases
+        ({"tls_certificate_issuer_disable_for_domain_suffixes": ["foo.example.com","xip.io"]},
+         [
+            # tls disabled for foo.example.com
+            IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # tls enabled
+            IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            IngressItemSpec(host="foo.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # has tls issuer override
+            IngressItemSpec(host="other.cloud.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # tls disabled for suffix foo.example.com
+            IngressItemSpec(host="sub.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # has annotations and tls disabled
+            IngressItemSpec(host="ann.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                            annotations={"some": "annotation"}),
+            # has annotations and tls enabled
+            IngressItemSpec(host="ann.sub.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                            annotations={"some": "annotation"})
+         ],
+         [
+            ["ann.foo.example.com"], #annotation disable tls
+            ["ann.sub.example.com"], #annotation enable tls
+            ["bar.example.com", "foo.bar.example.com","testapp.svc.test.example.com"],  #tls enabled
+            ["foo.example.com","sub.foo.example.com","testapp.127.0.0.1.xip.io"], #tls disabled
+            ["other.cloud.com"]  #has tls issuer override
+        ],
+        ["foo.example.com","sub.foo.example.com","testapp.127.0.0.1.xip.io"],
+        True)
+        ],indirect=['ingress_tls_disable_tls_for_domain_suffixes']
+    )
+
+    @pytest.mark.usefixtures("delete")
+    def test_applies_tls_certificate_issuer_disable_for_domain_suffixes(self, deployer_disable_tls_for_domain_suffixes, ingress_tls_disable_tls_for_domain_suffixes, app_spec,ingresses_spec,expected_host_groups,hosts,use_suffixes):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            if len(ingresses_spec):
+                app_spec.ingresses[:] = ingresses_spec
+
+            with mock.patch.object(ingress_tls_disable_tls_for_domain_suffixes, "apply",spec_set=True):
+                deployer_disable_tls_for_domain_suffixes.deploy(app_spec, LABELS)
+                host_groups = [sorted(call.args[2]) for call in ingress_tls_disable_tls_for_domain_suffixes.apply.call_args_list]
+                tls_issuer=DEFAULT_TLS_ISSUER
+                if hosts[0] == "bar.other.cloud.com":
+                    tls_issuer = "certmanager.k8s.io/issuer"
+                ingress_tls_disable_tls_for_domain_suffixes.apply.assert_called_with(TypeMatcher(Ingress), app_spec, hosts,tls_issuer, use_suffixes=use_suffixes)
+                assert ingress_tls_disable_tls_for_domain_suffixes.apply.call_count == len(expected_host_groups)
+                assert expected_host_groups == sorted(host_groups)
 
 class TestIngressTls(object):
     HOSTS = ["host1", "host2", "host3", "this.host.is.so.long.that.it.is.impossible.to.use.as.the.common.name"]
@@ -712,56 +817,66 @@ class TestIngressTls(object):
         config.tls_certificate_issuer = request.param["cert_issuer"]
         config.ingress_suffixes = ["short.suffix", "really.quite.long.suffix"]
         config.enable_deprecated_tls_entry_per_host = request.param["enable_deprecated_tls_entry_per_host"]
+        config.tls_certificate_issuer_disable_for_domain_suffixes = request.param["tls_certificate_issuer_disable_for_domain_suffixes"]
         return IngressTls(config)
 
     @pytest.mark.parametrize("tls, app_spec, spec_tls, issuer_type, tls_annotations", [
-        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": ["common.name"]},
+          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)),
+        [], DEFAULT_TLS_ISSUER, None), 
+        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": ["common.name"]},
+          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
+        [], DEFAULT_TLS_ISSUER, None),    
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": ["common.name"]},
+          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
+        INGRESS_SPEC_TLS, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),    
+        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
-        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
-        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS,
          "overwrite-issuer",
          {"overwrite-issuer": "letsencrypt"}),
-        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS,
          DEFAULT_TLS_ISSUER,
          DEFAULT_TLS_ANNOTATIONS),
-        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_off", "cert_issuer": "letsencrypt", "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
          INGRESS_SPEC_TLS,
          DEFAULT_TLS_ISSUER,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
-        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
+        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer="myoverwrite")),
          INGRESS_SPEC_TLS,
          DEFAULT_TLS_ISSUER,
          {"certmanager.k8s.io/cluster-issuer": "myoverwrite"}),
-        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS_COLLAPSED_ONLY, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
-        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)),
          INGRESS_SPEC_TLS_COLLAPSED_ONLY, DEFAULT_TLS_ISSUER, {"kubernetes.io/tls-acme": "true"}),
-        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "default_on", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=True, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
-        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False},
+        ({"use_ingress_tls": "disabled", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": False, "tls_certificate_issuer_disable_for_domain_suffixes": []},
          app_spec(ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None)), [], DEFAULT_TLS_ISSUER, None),
     ], indirect=['tls'])
     def test_apply_tls(self, tls, app_spec, spec_tls, issuer_type, tls_annotations):

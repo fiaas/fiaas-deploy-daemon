@@ -1,0 +1,4 @@
+version: 3
+ingress:
+  - host: www.example.com
+  - host: internal.example.com

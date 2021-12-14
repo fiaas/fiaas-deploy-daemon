@@ -107,33 +107,68 @@ class IngressDeployer(object):
 
         return self._tls_issuer_type_default
 
+    def _set_ingresses_names(self, ingresses, name):
+        new_ingresses = []
+        current_name = name
+        for item in ingresses:
+            new_item = item._replace(name=current_name)
+            new_ingresses.append(new_item)
+            current_name = "{}-{}".format(name, ingresses.index(item)+1)
+        return new_ingresses
+
+    def _set_default_ingresses(self, ingresses, default_ingress_items):
+        new_ingresses = []
+              #Search in which ingress group we have default hosts
+        def _has_default_ingress_item(ingress):
+            for i in ingress.ingress_items:
+                if i in default_ingress_items:
+                    return True
+            return False
+
+        for item in ingresses:
+            new_item = item._replace(default=_has_default_ingress_item(item))
+            new_ingresses.append(new_item)
+        return new_ingresses
+
     def _group_ingresses(self, app_spec):
-        ''' Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
-        are separated
+        ''' Group the ingresses so that those with annotations are individual, those that don't need tls are grouped together, and those using non-default TLS-issuers
+        are separated by TLS-issuer type
         '''
         explicit_host = _has_explicitly_set_host(app_spec.ingresses)
         ingress_items = [item._replace(host=self._apply_host_rewrite_rules(item.host)) for item in app_spec.ingresses if item.host]
-        ingress_items += self._expand_default_hosts(app_spec)
+        default_ingress_items = self._expand_default_hosts(app_spec)
+        ingress_items += default_ingress_items
 
         AnnotatedIngress = namedtuple("AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host",
                                       "issuer_type", "default"])
-        default_ingress = AnnotatedIngress(name=app_spec.name, ingress_items=[], annotations={},
-                                           explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default,
-                                           default=True)
-        ingresses = [default_ingress]
+        ingresses = []
+        default_ingresses = {}
+        notls_ingresses = {}
         override_issuer_ingresses = {}
+        annotated_ingresses = []
+
         for ingress_item in ingress_items:
             issuer_type = self._get_issuer_type(ingress_item.host)
-            next_name = "{}-{}".format(app_spec.name, len(ingresses))
             if ingress_item.annotations:
-                annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item],
-                                                       annotations=ingress_item.annotations,
-                                                       explicit_host=True, issuer_type=issuer_type,
-                                                       default=False)
-                ingresses.append(annotated_ingresses)
+                annotated_ingress = AnnotatedIngress(name="", ingress_items=[ingress_item],
+                                                     annotations=ingress_item.annotations,
+                                                     explicit_host=True, issuer_type=issuer_type,
+                                                     default=False)
+                annotated_ingresses.append(annotated_ingress)
+            elif self._ingress_tls._should_disable_ingress_tls([ingress_item.host]) is True:
+                # Group no tls hosts together
+                notls_ingress = notls_ingresses.setdefault("no_tls",
+                                                           AnnotatedIngress(name="",
+                                                                            ingress_items=[],
+                                                                            annotations={},
+                                                                            explicit_host=explicit_host,
+                                                                            issuer_type=issuer_type,
+                                                                            default=False))
+                notls_ingress.ingress_items.append(ingress_item)
             elif issuer_type != self._tls_issuer_type_default:
+                # Group by issuer type
                 annotated_ingress = override_issuer_ingresses.setdefault(issuer_type,
-                                                                         AnnotatedIngress(name=next_name,
+                                                                         AnnotatedIngress(name="",
                                                                                           ingress_items=[],
                                                                                           annotations={},
                                                                                           explicit_host=explicit_host,
@@ -141,10 +176,20 @@ class IngressDeployer(object):
                                                                                           default=False))
                 annotated_ingress.ingress_items.append(ingress_item)
             else:
+                # This change to fix the issue: when we dont have any default ingress item the ingress is added to the ingresses list anyway. Now it will be added only if we have atleast one default ingress item (host)
+                default_ingress = default_ingresses.setdefault("default",
+                                                               AnnotatedIngress(name="", ingress_items=[], annotations={},
+                                                                                explicit_host=explicit_host, issuer_type=self._tls_issuer_type_default,
+                                                                                default=True))
                 default_ingress.ingress_items.append(ingress_item)
 
+        ingresses.extend(i for i in default_ingresses.values())
+        ingresses.extend(annotated_ingresses)
         ingresses.extend(i for i in override_issuer_ingresses.values())
-
+        ingresses.extend(i for i in notls_ingresses.values())
+        #Set the correct name for each group and set default=True for the groups that have atleast one default host
+        ingresses = self._set_ingresses_names(ingresses, app_spec.name)
+        ingresses = self._set_default_ingresses(ingresses, default_ingress_items)
         return ingresses
 
     @retry_on_upsert_conflict
@@ -240,11 +285,12 @@ class IngressTls(object):
     def __init__(self, config):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer
+        self._tls_certificate_issuer_disable_for_domain_suffixes = config.tls_certificate_issuer_disable_for_domain_suffixes
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
 
     def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
-        if self._should_have_ingress_tls(app_spec):
+        if self._should_have_ingress_tls(app_spec, hosts):
             tls_annotations = {}
             if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
                 issuer = app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._cert_issuer
@@ -279,11 +325,23 @@ class IngressTls(object):
                 LOG.error("Failed to generate a short name to use as Common Name")
         return hosts
 
-    def _should_have_ingress_tls(self, app_spec):
+    def _should_have_ingress_tls(self, app_spec, hosts):
         if self._use_ingress_tls == 'disabled' or app_spec.ingress_tls.enabled is False:
             return False
+        elif app_spec.ingress_tls.enabled is True:
+            return True
+        elif self._should_disable_ingress_tls(hosts) is True:
+            return False
         else:
-            return self._use_ingress_tls == 'default_on' or app_spec.ingress_tls.enabled is True
+            return self._use_ingress_tls == 'default_on'
+
+    def _should_disable_ingress_tls(self, hosts):
+        # Check if any ingress host is part of atleast one domain suffix that shoudln't have tls
+        for suffix in self._tls_certificate_issuer_disable_for_domain_suffixes:
+            for host in hosts:
+                if host == suffix or host.endswith("." + suffix):
+                    return True
+        return False
 
     def _generate_short_host(self, app_spec):
         h = hashlib.sha1()

@@ -28,24 +28,18 @@ from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMapping
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
 
-from .ingress_beta import BetaIngressAdapter
-from .ingress_stable import StableIngressAdapter
-
 LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
+    def __init__(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
+        self._ingress_adapter = ingress_adapter
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
         self._tls_issuer_type_overrides = sorted(config.tls_certificate_issuer_type_overrides.iteritems(),
                                                  key=lambda (k, v): len(k), reverse=True)
-        if config.use_networkingv1_ingress:
-            self._ingress_adapter = StableIngressAdapter(ingress_tls, owner_references, extension_hook)
-        else:
-            self._ingress_adapter = BetaIngressAdapter(ingress_tls, owner_references, extension_hook)
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):

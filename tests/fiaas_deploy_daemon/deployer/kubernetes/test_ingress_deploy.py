@@ -24,6 +24,7 @@ from requests import Response
 from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer, IngressTls
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_beta import BetaIngressAdapter
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
     ResourcesSpec, PrometheusSpec, DatadogSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
@@ -509,13 +510,17 @@ class TestIngressDeployer(object):
         return config
 
     @pytest.fixture
-    def deployer(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
+    def ingress_adapter(self, ingress_tls, owner_references, extension_hook):
+        return BetaIngressAdapter(ingress_tls, owner_references, extension_hook)
 
     @pytest.fixture
-    def deployer_no_suffix(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
+    def deployer(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter)
+
+    @pytest.fixture
+    def deployer_no_suffix(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
         config.ingress_suffixes = []
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter)
 
     @pytest.fixture
     def default_app_spec(self):
@@ -649,13 +654,13 @@ class TestIngressDeployer(object):
             ingress_tls.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
 
     @pytest.fixture
-    def deployer_issuer_overrides(self, config, ingress_tls, owner_references, default_app_spec, extension_hook):
+    def deployer_issuer_overrides(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
         config.tls_certificate_issuer_type_overrides = {
             "foo.example.com": "certmanager.k8s.io/issuer",
             "bar.example.com": "certmanager.k8s.io/cluster-issuer",
             "foo.bar.example.com": "certmanager.k8s.io/issuer"
         }
-        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook)
+        return IngressDeployer(config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter)
 
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls, app_spec):

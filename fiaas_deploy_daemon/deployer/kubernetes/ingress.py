@@ -21,9 +21,6 @@ import hashlib
 import logging
 from itertools import chain
 
-from k8s.models.ingress import IngressTLS as BetaIngressTLS
-from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
-
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
@@ -32,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
+    def __init__(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
@@ -182,16 +179,13 @@ def deduplicate_in_order(iterator):
             seen.add(item)
 
 
-class IngressTls(object):
-    def __init__(self, config):
+class IngressTLSDeployer(object):
+    def __init__(self, config, ingress_tls):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
-        if config.use_networkingv1_ingress:
-            self.ingress_tls = StableIngressTLS
-        else:
-            self.ingress_tls = BetaIngressTLS
+        self.ingress_tls = ingress_tls
 
     def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):

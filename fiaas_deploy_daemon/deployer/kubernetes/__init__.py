@@ -27,6 +27,8 @@ from .ingress_stable import StableIngressAdapter
 from .service import ServiceDeployer
 from .service_account import ServiceAccountDeployer
 from .owner_references import OwnerReferences
+from k8s.models.ingress import IngressTLS as BetaIngressTLS
+from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
 
 class K8sAdapterBindings(pinject.BindingSpec):
@@ -44,8 +46,10 @@ class K8sAdapterBindings(pinject.BindingSpec):
 
         if self.use_networkingv1_ingress:
             bind("ingress_adapter", to_class=StableIngressAdapter)
+            bind("ingress_tls", to_class=StableIngressTLS)
         else:
             bind("ingress_adapter", to_class=BetaIngressAdapter)
+            bind("ingress_tls", to_class=BetaIngressTLS)
 
     def dependencies(self):
         return [DeploymentBindings()]

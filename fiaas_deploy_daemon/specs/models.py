@@ -142,7 +142,7 @@ SecretsSpec = namedtuple("SecretsSpec", [
     "annotations"
 ])
 
-IngressTLSDeployerSpec = namedtuple("IngressTLSDeployerSpec", [
+IngressTLSSpec = namedtuple("IngressTLSSpec", [
     "enabled",
     "certificate_issuer",
 ])

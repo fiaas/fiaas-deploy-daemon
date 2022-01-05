@@ -49,7 +49,7 @@ class K8sAdapterBindings(pinject.BindingSpec):
             bind("ingress_tls", to_class=StableIngressTLS)
         else:
             bind("ingress_adapter", to_class=BetaIngressAdapter)
-            bind("ingress_tls", to_class=BetaIngressTLS)
+            bind("ingress_tls", to_instance=BetaIngressTLS)
 
     def dependencies(self):
         return [DeploymentBindings()]

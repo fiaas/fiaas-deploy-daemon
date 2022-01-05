@@ -493,7 +493,7 @@ class TestIngressDeployer(object):
 
     @pytest.fixture
     def ingress_tls_deployer(self, config):
-        return mock.create_autospec(IngressTLSDeployer(config), spec_set=True, instance=True)
+        return mock.create_autospec(IngressTLSDeployer(config, IngressTLS), spec_set=True, instance=True)
 
     @pytest.fixture
     def config(self):
@@ -717,7 +717,7 @@ class TestIngressTLSDeployer(object):
         config.tls_certificate_issuer = request.param["cert_issuer"]
         config.ingress_suffixes = ["short.suffix", "really.quite.long.suffix"]
         config.enable_deprecated_tls_entry_per_host = request.param["enable_deprecated_tls_entry_per_host"]
-        return IngressTLSDeployer(config)
+        return IngressTLSDeployer(config, IngressTLS)
 
     @pytest.mark.parametrize("tls, app_spec, spec_tls, issuer_type, tls_annotations", [
         ({"use_ingress_tls": "default_off", "cert_issuer": None, "enable_deprecated_tls_entry_per_host": True},
@@ -785,7 +785,7 @@ class TestIngressTLSDeployer(object):
     def test_shorten_name(self, config, suffix, expected):
         config.use_ingress_tls = "default_on"
         config.ingress_suffixes = [suffix]
-        tls = IngressTLSDeployer(config)
+        tls = IngressTLSDeployer(config, IngressTLS)
         actual = tls._generate_short_host(app_spec())
         assert len(actual) < 64
         assert expected == actual
@@ -793,13 +793,13 @@ class TestIngressTLSDeployer(object):
     def test_raise_when_suffix_too_long(self, config):
         config.use_ingress_tls = "default_on"
         config.ingress_suffixes = ["this.suffix.is.so.long.that.it.is.impossible.to.generate.a.short.enough.name"]
-        tls = IngressTLSDeployer(config)
+        tls = IngressTLSDeployer(config, IngressTLS)
         with pytest.raises(ValueError):
             tls._generate_short_host(app_spec())
 
     def test_raise_when_name_starts_with_dot(self, config):
         config.use_ingress_tls = "default_on"
         config.ingress_suffixes = ["really.long.suffix.which.goes.to.the.very.edge.of.the.boundary"]
-        tls = IngressTLSDeployer(config)
+        tls = IngressTLSDeployer(config, IngressTLS)
         with pytest.raises(ValueError):
             tls._generate_short_host(app_spec())

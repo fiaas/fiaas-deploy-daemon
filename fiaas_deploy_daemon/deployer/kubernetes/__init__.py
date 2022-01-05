@@ -21,7 +21,7 @@ import pinject
 from .adapter import K8s
 from .autoscaler import AutoscalerDeployer
 from .deployment import DeploymentBindings
-from .ingress import IngressDeployer, IngressTls
+from .ingress import IngressDeployer, IngressTLSDeployer
 from .ingress_beta import BetaIngressAdapter
 from .ingress_stable import StableIngressAdapter
 from .service import ServiceDeployer
@@ -39,7 +39,7 @@ class K8sAdapterBindings(pinject.BindingSpec):
         bind("service_account_deployer", to_class=ServiceAccountDeployer)
         bind("ingress_deployer", to_class=IngressDeployer)
         bind("autoscaler", to_class=AutoscalerDeployer)
-        bind("ingress_tls", to_class=IngressTls)
+        bind("ingress_tls_deployer", to_class=IngressTLSDeployer)
         bind("owner_references", to_class=OwnerReferences)
 
         if self.use_networkingv1_ingress:

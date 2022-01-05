@@ -32,7 +32,7 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, ingress_tls, owner_references, default_app_spec, extension_hook, ingress_adapter):
+    def __init__(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
@@ -182,7 +182,7 @@ def deduplicate_in_order(iterator):
             seen.add(item)
 
 
-class IngressTls(object):
+class IngressTLSDeployer(object):
     def __init__(self, config):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer

@@ -28,8 +28,8 @@ from .ingress import deduplicate_in_order
 
 
 class BetaIngressAdapter(object):
-    def __init__(self, ingress_tls, owner_references, extension_hook):
-        self._ingress_tls = ingress_tls
+    def __init__(self, ingress_tls_deployer, owner_references, extension_hook):
+        self._ingress_tls_deployer = ingress_tls_deployer
         self._owner_references = owner_references
         self._extension_hook = extension_hook
 
@@ -57,7 +57,7 @@ class BetaIngressAdapter(object):
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
-        self._ingress_tls.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
+        self._ingress_tls_deployer.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)
         ingress.save()

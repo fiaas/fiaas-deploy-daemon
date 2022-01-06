@@ -28,10 +28,11 @@ from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.service import Service
 
+from fiaas_deploy_daemon.crd.apiextensionsv1_crd_watcher import ApiextensionsV1CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
 from fiaas_deploy_daemon.crd.watcher import CrdWatcher
 from fiaas_deploy_daemon.tools import merge_dicts
-from utils import wait_until, crd_available, crd_supported, \
+from utils import wait_until, crd_available, apiextensions_v1_crd_supported, apiextensions_v1beta1_crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
     KindWrapper, uuid
 
@@ -115,8 +116,11 @@ class TestBootstrapE2E(object):
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
         ]
-        if crd_supported(k8s_version):
+        if apiextensions_v1beta1_crd_supported(k8s_version):
             args.append("--enable-crd-support")
+        elif apiextensions_v1_crd_supported(k8s_version):
+            args.append("--enable-crd-support")
+            args.append("--use-apiextensionsv1-crd")
 
         args = docker_args + args
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
@@ -136,7 +140,10 @@ class TestBootstrapE2E(object):
     def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         skip_if_crd_not_supported(k8s_version)
 
-        CrdWatcher.create_custom_resource_definitions()
+        if apiextensions_v1beta1_crd_supported(k8s_version):
+            CrdWatcher.create_custom_resource_definitions()
+        elif apiextensions_v1_crd_supported(k8s_version):
+            ApiextensionsV1CrdWatcher.create_custom_resource_definitions()
         wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
 
         def prepare_test_case(test_case):

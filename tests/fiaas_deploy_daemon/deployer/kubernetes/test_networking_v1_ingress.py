@@ -340,7 +340,7 @@ class TestIngressDeployer(object):
         expected_metadata2 = pytest.helpers.create_metadata('testapp-1', labels=LABELS,
                                                             annotations={"some/annotation": "some-value"}, external=True)
         expected_ingress2 = ingress(rules=[
-            _create_rule('extra.example.com', paths=[_create_path('/', app_spec.name, 8080)])
+            _create_rule('extra.example.com', paths=[_create_path('/', app_spec.name, 8000)])
         ], metadata=expected_metadata2)
         mock_response2 = create_autospec(Response)
         mock_response.json.return_value = expected_ingress2
@@ -349,7 +349,7 @@ class TestIngressDeployer(object):
                                                             annotations={"some/annotation": "val",
                                                                          "some/allowlist": "10.0.0.1/12"}, external=True)
         expected_ingress3 = ingress(rules=[
-            _create_rule('extra.example.com', paths=[_create_path('/_/ipblocked', app_spec.name, 8080)])
+            _create_rule('extra.example.com', paths=[_create_path('/_/ipblocked', app_spec.name, 8000)])
         ], metadata=expected_metadata3)
         mock_response3 = create_autospec(Response)
         mock_response3.json.return_value = expected_ingress3
@@ -390,7 +390,7 @@ class TestIngressDeployer(object):
     ))
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_deployer(self, deployer, ingress_tls_deployer, app_spec, hosts):
-        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+        with mock.patch("k8s.models.networking_v1_ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
             ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
@@ -405,8 +405,8 @@ class TestIngressDeployer(object):
         return IngressDeployer(config, owner_references, default_app_spec, extension_hook, ingress_adapter)
 
     @pytest.mark.usefixtures("delete")
-    def test_applies_ingress_tls_deployer_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):
-        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+    def test_applies_ingress_tls_deployer_issuer_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):
+        with mock.patch("k8s.models.networking_v1_ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             app_spec.ingresses[:] = [
                 # has issuer-override

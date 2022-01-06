@@ -663,7 +663,7 @@ class TestIngressDeployer(object):
         return IngressDeployer(config, owner_references, default_app_spec, extension_hook, ingress_adapter)
 
     @pytest.mark.usefixtures("delete")
-    def test_applies_ingress_tls_deployer_issuser_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):
+    def test_applies_ingress_tls_deployer_issuer_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             app_spec.ingresses[:] = [

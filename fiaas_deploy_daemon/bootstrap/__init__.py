@@ -78,7 +78,7 @@ def main():
         binding_specs = [
             MainBindings(cfg),
             DeployerBindings(),
-            K8sAdapterBindings(),
+            K8sAdapterBindings(cfg.use_networkingv1_ingress),
             SpecBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)

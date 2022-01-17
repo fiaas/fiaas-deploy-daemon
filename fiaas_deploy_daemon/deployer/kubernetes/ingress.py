@@ -29,7 +29,7 @@ LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
+    def __init__(self, config, default_app_spec, ingress_adapter):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules

@@ -27,7 +27,7 @@ from fiaas_deploy_daemon.deployer.kubernetes.ingress_stable import StableIngress
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
     ResourcesSpec, PrometheusSpec, DatadogSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSDeployerSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSSpec
 
 from utils import TypeMatcher
 
@@ -69,7 +69,7 @@ def app_spec(**kwargs):
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
-        ingress_tls=IngressTLSDeployerSpec(enabled=False, certificate_issuer=None),
+        ingress_tls=IngressTLSSpec(enabled=False, certificate_issuer=None),
         secrets=[],
         app_config={},
     )

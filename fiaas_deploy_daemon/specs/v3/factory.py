@@ -24,7 +24,7 @@ from ..factory import BaseFactory, InvalidConfiguration
 from ..lookup import LookupMapping
 from ..models import AppSpec, PrometheusSpec, DatadogSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, \
     HealthCheckSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSDeployerSpec, SecretsSpec
+    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSSpec, SecretsSpec
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 from ...tools import merge_dicts
 
@@ -64,7 +64,7 @@ class Factory(BaseFactory):
             ingresses=self._ingress_items(lookup["ingress"], lookup["ports"]),
             strongbox=self._strongbox(lookup["extensions"]["strongbox"]),
             singleton=lookup["replicas"]["singleton"],
-            ingress_tls=IngressTLSDeployerSpec(enabled=lookup["extensions"]["tls"]["enabled"],
+            ingress_tls=IngressTLSSpec(enabled=lookup["extensions"]["tls"]["enabled"],
                                                certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"]),
             secrets=self._secrets_specs(lookup["extensions"]["secrets"]),
             app_config=app_config

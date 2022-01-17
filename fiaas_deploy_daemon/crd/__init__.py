@@ -20,14 +20,21 @@ import pinject
 
 from .status import connect_signals
 from .watcher import CrdWatcher
+from .apiextensionsv1_crd_watcher import ApiextensionsV1CrdWatcher
 
 
 class CustomResourceDefinitionBindings(pinject.BindingSpec):
+    def __init__(self, use_apiextensionsv1_crd):
+        self.use_apiextensionsv1_crd = use_apiextensionsv1_crd
+
     def configure(self, bind, require):
         require("config")
         require("deploy_queue")
 
-        bind("crd_watcher", to_class=CrdWatcher)
+        if self.use_apiextensionsv1_crd:
+            bind("crd_watcher", to_class=ApiextensionsV1CrdWatcher)
+        else:
+            bind("crd_watcher", to_class=CrdWatcher)
         connect_signals()
 
 

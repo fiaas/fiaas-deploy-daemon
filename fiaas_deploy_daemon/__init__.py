@@ -209,7 +209,7 @@ def main():
             K8sAdapterBindings(),
             WebBindings(),
             SpecBindings(),
-            CustomResourceDefinitionBindings() if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
+            CustomResourceDefinitionBindings(cfg.use_apiextensionsv1_crd) if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
             UsageReportingBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)

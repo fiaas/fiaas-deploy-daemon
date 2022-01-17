@@ -29,6 +29,7 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
+from fiaas_deploy_daemon.crd.apiextensionsv1_crd_watcher import ApiextensionsV1CrdWatcher
 from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations, FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
@@ -89,6 +90,12 @@ class TestWatcher(object):
         return mock.create_autospec(spec=Lifecycle, spec_set=True, instance=True)
 
     @pytest.fixture
+    def apiextensions_v1_crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
+        crd_watcher = ApiextensionsV1CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
+        crd_watcher._watcher = watcher
+        return crd_watcher
+
+    @pytest.fixture
     def crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
         crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
         crd_watcher._watcher = watcher
@@ -100,7 +107,150 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
+    def test_creates_apiextensions_v1_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher, watcher):
+        get.side_effect = NotFound("Something")
+        watcher.watch.side_effect = NotFound("Something")
+
+        object_with_unknown_fields = {"type":"object", "x-kubernetes-preserve-unknown-fields": True}
+        expected_application = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'applications.fiaas.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'spec': {
+                'group': 'fiaas.schibsted.io',
+                'names': {
+                    'shortNames': ['app', 'fa'],
+                    'kind': 'Application',
+                    'plural': 'applications',
+                    'categories': []
+                },
+                'preserveUnknownFields': False,
+                'scope': 'Namespaced',
+                'conversion': {
+                    'strategy': 'None'
+                },
+                'versions': [{
+                    'additionalPrinterColumns': [],
+                    'name': 'v1',
+                    'served': True,
+                    'storage': True,
+                    'schema': {
+                        'openAPIV3Schema': {
+                            'type': 'object',
+                            'properties': {
+                                "application": {
+                                    "type": "string",
+                                },
+                                "image": {
+                                    "type": "string",
+                                },
+                                "config": object_with_unknown_fields,
+                                "additional_labels": {
+                                    "type": "object",
+                                    "properties": {
+                                        "global": object_with_unknown_fields,
+                                        "deployment": object_with_unknown_fields,
+                                        "horizontal_pod_autoscaler": object_with_unknown_fields,
+                                        "ingress": object_with_unknown_fields,
+                                        "service": object_with_unknown_fields,
+                                        "service_account": object_with_unknown_fields,
+                                        "pod": object_with_unknown_fields,
+                                        "status": object_with_unknown_fields,
+                                    }
+                                },
+                                "additional_annotations": {
+                                    "type": "object",
+                                    "properties": {
+                                        "global": object_with_unknown_fields,
+                                        "deployment": object_with_unknown_fields,
+                                        "horizontal_pod_autoscaler": object_with_unknown_fields,
+                                        "ingress": object_with_unknown_fields,
+                                        "service": object_with_unknown_fields,
+                                        "service_account": object_with_unknown_fields,
+                                        "pod": object_with_unknown_fields,
+                                        "status": object_with_unknown_fields,
+                                    }
+                                }
+                            },
+                            'oneOf': [],
+                            'allOf': [],
+                            'required': [],
+                            'x-kubernetes-list-map-keys': [],
+                            'anyOf': []
+                        }
+                    }
+                }]
+            }
+        }
+        expected_status = {
+            'metadata': {
+                'namespace': 'default',
+                'name': 'application-statuses.fiaas.schibsted.io',
+                'ownerReferences': [],
+                'finalizers': [],
+            },
+            'spec': {
+                'group': 'fiaas.schibsted.io',
+                'names': {
+                    'shortNames': ['status', 'appstatus', 'fs'],
+                    'kind': 'ApplicationStatus',
+                    'plural': 'application-statuses',
+                    'categories': []
+                },
+                'preserveUnknownFields': False,
+                'scope': 'Namespaced',
+                'conversion': {
+                    'strategy': 'None'
+                },
+                'versions': [{
+                    'additionalPrinterColumns': [],
+                    'name': 'v1',
+                    'served': True,
+                    'storage': True,
+                    'schema': {
+                        'openAPIV3Schema': {
+                            'type': 'object',
+                            'properties': {
+                                "result": {
+                                    "type": "string"
+                                },
+                                "logs": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            'oneOf': [],
+                            'allOf': [],
+                            'required': [],
+                            'x-kubernetes-list-map-keys': [],
+                            'anyOf': []
+                        }
+                    }
+                }]
+            }
+        }
+
+        def make_response(data):
+            mock_response = mock.create_autospec(Response)
+            mock_response.json.return_value = data
+            return mock_response
+
+        post.side_effect = [make_response(expected_application), make_response(expected_status)]
+
+        apiextensions_v1_crd_watcher._watch(None)
+
+        calls = [
+            mock.call("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/", expected_application),
+            mock.call("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/", expected_status)
+        ]
+        assert post.call_args_list == calls
+
+    def test_creates_apiextensions_v1beta1_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 

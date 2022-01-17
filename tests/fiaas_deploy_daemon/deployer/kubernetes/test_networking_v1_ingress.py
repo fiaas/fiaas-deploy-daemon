@@ -23,7 +23,7 @@ from requests import Response
 from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.config import Configuration, HostRewriteRule
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer, IngressTLSDeployer
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_stable import StableIngressAdapter
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
 from fiaas_deploy_daemon.specs.models import AppSpec, ResourceRequirementSpec, \
     ResourcesSpec, PrometheusSpec, DatadogSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, AutoscalerSpec, \
@@ -279,7 +279,7 @@ class TestIngressDeployer(object):
 
     @pytest.fixture
     def ingress_adapter(self, ingress_tls_deployer, owner_references, extension_hook):
-        return StableIngressAdapter(ingress_tls_deployer, owner_references, extension_hook)
+        return NetworkingV1IngressAdapter(ingress_tls_deployer, owner_references, extension_hook)
 
     @pytest.fixture
     def deployer(self, config, default_app_spec, ingress_adapter):

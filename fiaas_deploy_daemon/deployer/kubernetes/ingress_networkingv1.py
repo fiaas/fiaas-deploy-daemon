@@ -18,7 +18,8 @@ from __future__ import absolute_import
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
-from k8s.models.ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend
+from k8s.models.networking_v1_ingress import Ingress, IngressSpec, IngressRule, HTTPIngressRuleValue, HTTPIngressPath, IngressBackend, \
+    IngressServiceBackend, ServiceBackendPort
 from k8s.base import Equality, Inequality, Exists
 
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
@@ -27,7 +28,7 @@ from fiaas_deploy_daemon.tools import merge_dicts
 from .ingress import deduplicate_in_order
 
 
-class BetaIngressAdapter(object):
+class NetworkingV1IngressAdapter(object):
     def __init__(self, ingress_tls_deployer, owner_references, extension_hook):
         self._ingress_tls_deployer = ingress_tls_deployer
         self._owner_references = owner_references
@@ -79,7 +80,11 @@ class BetaIngressAdapter(object):
 
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):
         http_ingress_paths = [
-            HTTPIngressPath(path=pm.path, backend=IngressBackend(serviceName=app_spec.name, servicePort=pm.port))
+            HTTPIngressPath(
+                path=pm.path,
+                pathType="ImplementationSpecific",
+                backend=IngressBackend(service=IngressServiceBackend(name=app_spec.name, port=ServiceBackendPort(number=pm.port))),
+            )
             for pm in deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)

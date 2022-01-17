@@ -282,13 +282,13 @@ class TestIngressDeployer(object):
         return StableIngressAdapter(ingress_tls_deployer, owner_references, extension_hook)
 
     @pytest.fixture
-    def deployer(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
-        return IngressDeployer(config, owner_references, default_app_spec, extension_hook, ingress_adapter)
+    def deployer(self, config, default_app_spec, ingress_adapter):
+        return IngressDeployer(config, default_app_spec, ingress_adapter)
 
     @pytest.fixture
-    def deployer_no_suffix(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
+    def deployer_no_suffix(self, config, default_app_spec, ingress_adapter):
         config.ingress_suffixes = []
-        return IngressDeployer(config, owner_references, default_app_spec, extension_hook, ingress_adapter)
+        return IngressDeployer(config, default_app_spec, ingress_adapter)
 
     @pytest.fixture
     def default_app_spec(self):
@@ -396,13 +396,13 @@ class TestIngressDeployer(object):
             ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
 
     @pytest.fixture
-    def deployer_issuer_overrides(self, config, owner_references, default_app_spec, extension_hook, ingress_adapter):
+    def deployer_issuer_overrides(self, config, default_app_spec, ingress_adapter):
         config.tls_certificate_issuer_type_overrides = {
             "foo.example.com": "certmanager.k8s.io/issuer",
             "bar.example.com": "certmanager.k8s.io/cluster-issuer",
             "foo.bar.example.com": "certmanager.k8s.io/issuer"
         }
-        return IngressDeployer(config, owner_references, default_app_spec, extension_hook, ingress_adapter)
+        return IngressDeployer(config, default_app_spec, ingress_adapter)
 
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_deployer_issuer_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):

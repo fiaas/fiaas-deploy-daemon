@@ -66,7 +66,7 @@ class ApiextensionsV1CrdWatcher(DaemonThread):
 
     @classmethod
     def create_custom_resource_definitions(cls):
-        object_with_unknown_fields = {"type":"object", "x-kubernetes-preserve-unknown-fields": True}
+        object_with_unknown_fields = {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
         application_schema_properties = {
             "application": {
                 "type": "string",
@@ -114,7 +114,8 @@ class ApiextensionsV1CrdWatcher(DaemonThread):
             }
         }
         cls._create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io", application_schema_properties)
-        cls._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io", application_status_schema_properties)
+        cls._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io",
+                    application_status_schema_properties)
 
     @staticmethod
     @retry_on_upsert_conflict

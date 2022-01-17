@@ -131,7 +131,7 @@ class TestE2E(object):
 
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-        if crd_supported(k8s_version):
+        if apiextensions_v1beta1_crd_supported(k8s_version) or apiextensions_v1_crd_supported(k8s_version):
             wait_until(
                 crd_available(kubernetes, timeout=TIMEOUT),
                 "CRD available", RuntimeError, patience=PATIENCE

@@ -203,13 +203,17 @@ def main():
 
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
+        if cfg.enable_crd_support:
+            crd_binding = CustomResourceDefinitionBindings(cfg.use_apiextensionsv1_crd)
+        else:
+            crd_binding = DisabledCustomResourceDefinitionBindings()
         binding_specs = [
             MainBindings(cfg),
             DeployerBindings(),
             K8sAdapterBindings(),
             WebBindings(),
             SpecBindings(),
-            CustomResourceDefinitionBindings(cfg.use_apiextensionsv1_crd) if cfg.enable_crd_support else DisabledCustomResourceDefinitionBindings(),
+            crd_binding,
             UsageReportingBindings(),
         ]
         obj_graph = pinject.new_object_graph(modules=None, binding_specs=binding_specs)

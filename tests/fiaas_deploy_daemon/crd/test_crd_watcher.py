@@ -107,11 +107,11 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_creates_apiextensions_v1_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher, watcher):
+    def test_creates_apiextensions_v1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher, watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
-        object_with_unknown_fields = {"type":"object", "x-kubernetes-preserve-unknown-fields": True}
+        object_with_unknown_fields = {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
         expected_application = {
             'metadata': {
                 'namespace': 'default',
@@ -250,7 +250,7 @@ class TestWatcher(object):
         ]
         assert post.call_args_list == calls
 
-    def test_creates_apiextensions_v1beta1_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
+    def test_creates_apiextensions_v1beta1_crd_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 

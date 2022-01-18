@@ -30,11 +30,12 @@ from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
+from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
 from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid
+    KindWrapper, uuid, skip_if_networkingv1_ingress_not_supported
 
 from fiaas_deploy_daemon.crd.status import create_name
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
@@ -129,6 +130,20 @@ class TestE2E(object):
         finally:
             self._end_popen(daemon)
 
+    @pytest.fixture(scope="module")
+    def fdd_networkingv1_ingress(self, request, kubernetes_service_account, k8s_version, use_docker_for_e2e):
+        args, port, ready = self.prepare_fdd(request, kubernetes_service_account, k8s_version,
+                                             use_docker_for_e2e, "ClusterIP", service_account=True, networkingv1_ingress=True)
+        try:
+            daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
+            time.sleep(1)
+            if daemon.poll() is not None:
+                pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
+            self.wait_until_fdd_ready(k8s_version, kubernetes_service_account, ready)
+            yield "http://localhost:{}/fiaas".format(port)
+        finally:
+            self._end_popen(daemon)
+
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
         if crd_supported(k8s_version):
@@ -137,7 +152,8 @@ class TestE2E(object):
                 "CRD available", RuntimeError, patience=PATIENCE
             )
 
-    def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
+    def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False,
+                    networkingv1_ingress=False):
         port = get_unbound_port()
         cert_path = os.path.dirname(kubernetes["api-cert"])
         docker_args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port,
@@ -164,6 +180,8 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         args = docker_args + args
+        if networkingv1_ingress:
+            args.append("--use-networkingv1-ingress")
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
@@ -430,6 +448,50 @@ class TestE2E(object):
     def test_custom_resource_definition_deploy_with_service_account(self, custom_resource_definition_service_account):
         service_type = "ClusterIP"
         self.run_crd_deploy(custom_resource_definition_service_account, service_type, service_account=True)
+
+    @pytest.mark.usefixtures("fdd_networkingv1_ingress", "k8s_client_service_account")
+    def test_networkingv1_ingress(self, request, k8s_version):
+        skip_if_networkingv1_ingress_not_supported(k8s_version)
+
+        ingress_name = "v3-data-examples-v3minimal"
+        fiaas_path = "v3/data/examples/v3minimal.yml"
+        expected_file = "v3minimal-networkingv1-ingress.yml"
+
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+        expected = read_yml(request.fspath.dirpath().join("e2e_expected").join(expected_file).strpath)
+
+        metadata = ObjectMeta(name=ingress_name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        spec = FiaasApplicationSpec(application=ingress_name, image=IMAGE1, config=fiaas_yml)
+        fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
+
+        fiaas_application.save()
+        app_uid = fiaas_application.metadata.uid
+
+        # Check that deployment status is RUNNING
+        def _assert_status():
+            status = FiaasApplicationStatus.get(create_name(ingress_name, DEPLOYMENT_ID1))
+            assert status.result == u"RUNNING"
+            assert len(status.logs) > 0
+            assert any("Saving result RUNNING for default/{}".format(ingress_name) in line for line in status.logs)
+
+        wait_until(_assert_status, patience=PATIENCE)
+
+        def _check_ingress():
+            assert NetworkingV1Ingress.get(ingress_name)
+            actual = NetworkingV1Ingress.get(ingress_name)
+            assert_k8s_resource_matches(actual, expected, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
+
+        wait_until(_check_ingress, patience=PATIENCE)
+
+        # Cleanup
+        FiaasApplication.delete(ingress_name)
+
+        def cleanup_complete():
+            for ingress_name, _ in expected.items():
+                with pytest.raises(NotFound):
+                    NetworkingV1Ingress.get(ingress_name)
+
+        wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd", "k8s_client")
     @pytest.mark.parametrize("input, expected", [

@@ -46,7 +46,7 @@ class K8sAdapterBindings(pinject.BindingSpec):
 
         if self.use_networkingv1_ingress:
             bind("ingress_adapter", to_class=NetworkingV1IngressAdapter)
-            bind("ingress_tls", to_class=StableIngressTLS)
+            bind("ingress_tls", to_instance=StableIngressTLS)
         else:
             bind("ingress_adapter", to_class=V1Beta1IngressAdapter)
             bind("ingress_tls", to_instance=V1Beta1IngressTLS)

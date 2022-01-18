@@ -102,6 +102,10 @@ def skip_if_crd_not_supported(k8s_version):
         pytest.skip("CRD not supported in version %s of kubernetes, skipping this test" % k8s_version)
 
 
+def use_networkingv1_ingress(k8s_version):
+    return StrictVersion(k8s_version[1:]) >= StrictVersion("1.21.0")
+
+
 def read_yml(yml_path):
     with open(yml_path, 'r') as fobj:
         yml = yaml.safe_load(fobj)

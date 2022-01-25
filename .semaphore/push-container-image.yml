@@ -1,0 +1,24 @@
+version: v1.0
+name: Push container image
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Push development container image
+    task:
+      secrets:
+      - name: docker
+      prologue:
+        commands:
+          - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
+      jobs:
+        - name: 'docker push'
+          commands:
+            - VERSION="$(head -n1 build/version)"
+            - docker image load --input build/fiaas-deploy-daemon.tar
+            - docker image tag "fiaas/fiaas-deploy-daemon:$VERSION" fiaas/fiaas-deploy-daemon:latest
+            - docker push "fiaas/fiaas-deploy-daemon:$VERSION"
+            - docker push fiaas/fiaas-deploy-daemon:latest
+

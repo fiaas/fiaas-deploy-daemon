@@ -13,47 +13,71 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 version: v1.0
-name: Fiaas-deploy-daemon docker build
+name: fiaas-deploy-daemon CI build
 agent:
   machine:
     type: e1-standard-8
     os_image: ubuntu1804
-
 blocks:
-  - name: "Test, build docker image and run e2e test"
+  - name: "Run unit tests, build container image"
     task:
       secrets:
       - name: docker
-      jobs:
-      - name: Docker build
+      prologue:
         commands:
-          # Check codestyle + run unit tests
           - checkout
+          - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          # qemu-user-static registers binfmt_misc handlers to be able to build multiarch images
+          # details: https://github.com/multiarch/qemu-user-static/blob/master/docs/developers_guide.md#technology-overview
+          # TODO: Can this be replaced with `apt-get install -y qemu-user-static` ?
           - sudo apt-get update
           - sudo apt-get install -y qemu-user
           - docker run --rm --privileged multiarch/qemu-user-static:4.2.0-7 --reset -p yes
-          - export PATH="$PATH:$HOME/.local/bin"
           - pip install --user .[ci]
-          - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
+      jobs:
+      - name: "Unit tests + docker build"
+        commands:
           - tox -e codestyle,test
-          # Build docker image
-          - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
           - ./bin/docker_build
-          # Run end-to-end/integration tests
-          - tox -e integration_test -- -n 2 --use-docker-for-e2e
-          # Store metadata for promotion jobs
-          - echo "$SEMAPHORE_JOB_ID" > semaphore_job_id
-          - echo "$SEMAPHORE_GIT_SHA" > semaphore_git_sha
-          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id semaphore_job_id
-          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha semaphore_git_sha
-          - cache store $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version version
-          - echo "done"
-promotions:
-  - name: Promote latest
-    pipeline_file: latest.yml
-    auto_promote_on:
-      - result: passed
-        branch:
-          - master
-  - name: Promote stable
-    pipeline_file: stable.yml
+          # docker_build creates the following in ./build/ which is reused in later stages:
+          # - `fiaas-deploy-daemon.tar`: the fiaas-deploy-daemon container image
+          # - `version`: the version of the container image in the format `YYYYMMDDHHMMSS-$git_commit_ref`
+          - cache store "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build" build
+  - name: "Run end-to-end tests"
+    dependencies: ["Run unit tests, build container image"]
+    task:
+    prologue:
+      commands:
+        - checkout
+        - pip install --user .[ci]
+        - export PATH="$PATH:$HOME/.local/bin"
+        - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
+        - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
+    jobs:
+      - name: "e2e test"
+        commands:
+          # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:latest as the e2e test expects
+          - docker image load build/fiaas-deploy-daemon.tar
+          - docker tag fiaas/fiaas-deploy-daemon:"$(< build/version)" fiaas/fiaas-deploy-daemon:latest
+          - tox -e integration_test -- -n 2 --use-docker-for-e2e --e2e-k8s-version "$K8S_VERSION"
+        matrix:
+          # e2e tests are run vs. these Kubernetes version
+          - env_var: K8S_VERSION
+            values:
+              - v1.15.12
+              - v1.16.15
+              - v1.18.19
+              - v1.19.11
+              - v1.20.7
+              - v1.21.2
+              - v1.22.4
+# TODO: Keep these commented while testing out to avoid accidental promotion
+# promotions:
+#   - name: Push container image
+#     pipeline_file: push-container-image.yml
+#     auto_promote:
+#       when: "result = 'passed' and branch = 'master'"
+#   - name: Release fiaas-deploy-daemon
+#     pipeline_file: make-release.yml
+#     auto_promote:
+#       when: "result = 'passed' and tag =~ '^v\d+\.\d+\.\d+'"

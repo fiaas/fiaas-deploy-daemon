@@ -167,6 +167,14 @@ class TestConfig(object):
             "foo.bar.com": "issuer",
             "woo.foo.bar.com": "other"
         }
+    def test_tls_certificate_issuer_disable_for_domain_suffixes(self):
+        tls_certificate_issuer_disable_for_domain_suffixes = ["foo.example.com", "bar.foo.example.org"]
+        args = ["--tls-certificate-issuer-disable-for-domain-suffixes=%s" % suffix for suffix in tls_certificate_issuer_disable_for_domain_suffixes]
+        config = Configuration(args)
+        assert config.tls_certificate_issuer_disable_for_domain_suffixes == [
+            "foo.example.com",
+            "bar.foo.example.org"
+        ]
 
 
 class TestHostRewriteRule(object):

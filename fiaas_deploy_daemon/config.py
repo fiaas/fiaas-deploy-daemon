@@ -74,7 +74,7 @@ TLS_HELP = """
 Enable fiaas-deploy-daemon to extend ingress objects to support https.
 
 Option `default_on` will, when creating ingress objects for an application, enable https unless explicitly set to
-disabled in the configuration for an application.
+disabled in the configuration for an application. You can also disable https for specific domains by setting --tls-certificate-issuer-disable-for-domain-suffixes.
 
 Option `default_off` will, when creating ingress objects for an application, not enable https unless explicitly set
 to enabled in the configuration for an application.
@@ -266,6 +266,9 @@ class Configuration(Namespace):
         tls_parser.add_argument("--tls-certificate-issuer-type-overrides", help="Issuers to use for specified domain suffixes",
                                 default=[],
                                 action="append", type=KeyValue, dest="tls_certificate_issuer_type_overrides")
+        tls_parser.add_argument("--tls-certificate-issuer-disable-for-domain-suffixes", help="Disable tls for specified domain suffixes when --use-ingress-tls is set to default_on",
+                                default=[],
+                                action="append", dest="tls_certificate_issuer_disable_for_domain_suffixes")
 
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}

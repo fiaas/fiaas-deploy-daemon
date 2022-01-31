@@ -326,9 +326,9 @@ class TestE2E(object):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
         skip_if_crd_not_supported(k8s_version)
-        if use_networkingv1_ingress(k8s_version):
+        if use_networkingv1_ingress(k8s_version) and expected.get(Ingress):
             del expected[Ingress]
-        else:
+        elif expected.get(NetworkingV1Ingress):
             del expected[NetworkingV1Ingress]
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = self._construct_expected(expected, request)
@@ -458,25 +458,50 @@ class TestE2E(object):
     @pytest.mark.usefixtures("fdd", "k8s_client")
     @pytest.mark.parametrize("input, expected", [
         ("multiple_ingress", {
-            "v3-data-examples-multiple-ingress": "e2e_expected/multiple_ingress1.yml",
-            "v3-data-examples-multiple-ingress-1": "e2e_expected/multiple_ingress2.yml"
+            "v3-data-examples-multiple-ingress": {
+                Ingress: "e2e_expected/multiple_ingress1.yml",
+                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress.yml",
+            },
+            "v3-data-examples-multiple-ingress-1": {
+                Ingress: "e2e_expected/multiple_ingress2.yml",
+                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress2.yml",
+            },
         }),
         ("multiple_ingress_default_host", {
-            "v3-data-examples-multiple-ingress-default-host": "e2e_expected/multiple_ingress_default_host1.yml",
-            "v3-data-examples-multiple-ingress-default-host-1": "e2e_expected/multiple_ingress_default_host2.yml"
+            "v3-data-examples-multiple-ingress-default-host": {
+                Ingress: "e2e_expected/multiple_ingress_default_host1.yml",
+                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host1.yml",
+            },
+            "v3-data-examples-multiple-ingress-default-host-1": {
+                Ingress: "e2e_expected/multiple_ingress_default_host2.yml",
+                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host2.yml",
+            },
         }),
         ("tls_issuer_override", {
-            "v3-data-examples-tls-issuer-override": "e2e_expected/tls_issuer_override1.yml",
-            "v3-data-examples-tls-issuer-override-1": "e2e_expected/tls_issuer_override2.yml"
+            "v3-data-examples-tls-issuer-override": {
+                Ingress: "e2e_expected/tls_issuer_override1.yml",
+                NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override1.yml",
+            },
+            "v3-data-examples-tls-issuer-override-1": {
+                Ingress: "e2e_expected/tls_issuer_override2.yml",
+                NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override2.yml",
+            },
         })
     ])
-    def test_multiple_ingresses(self, request, input, expected):
+    def test_multiple_ingresses(self, request, input, expected, k8s_version):
         fiaas_path = "v3/data/examples/%s.yml" % input
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
 
         name = sanitize_resource_name(fiaas_path)
 
-        expected = {k: read_yml(request.fspath.dirpath().join(v).strpath) for (k, v) in expected.items()}
+        new_expected = {}
+        for k, v in expected.items():
+            if use_networkingv1_ingress(k8s_version):
+                new_expected[k] = read_yml(request.fspath.dirpath().join(v[NetworkingV1Ingress]).strpath)
+            else:
+                new_expected[k] = read_yml(request.fspath.dirpath().join(v[Ingress]).strpath)
+        expected = new_expected
+
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
         fiaas_application = FiaasApplication(metadata=metadata, spec=spec)

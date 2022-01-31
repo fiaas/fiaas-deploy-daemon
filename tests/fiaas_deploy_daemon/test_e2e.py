@@ -35,7 +35,7 @@ from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
 from utils import wait_until, crd_available, crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid, skip_if_networkingv1_ingress_not_supported
+    KindWrapper, uuid, use_networkingv1_ingress
 
 from fiaas_deploy_daemon.crd.status import create_name
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
@@ -130,20 +130,6 @@ class TestE2E(object):
         finally:
             self._end_popen(daemon)
 
-    @pytest.fixture(scope="module")
-    def fdd_networkingv1_ingress(self, request, kubernetes_service_account, k8s_version, use_docker_for_e2e):
-        args, port, ready = self.prepare_fdd(request, kubernetes_service_account, k8s_version,
-                                             use_docker_for_e2e, "ClusterIP", service_account=True, networkingv1_ingress=True)
-        try:
-            daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
-            time.sleep(1)
-            if daemon.poll() is not None:
-                pytest.fail("fiaas-deploy-daemon has crashed after startup, inspect logs")
-            self.wait_until_fdd_ready(k8s_version, kubernetes_service_account, ready)
-            yield "http://localhost:{}/fiaas".format(port)
-        finally:
-            self._end_popen(daemon)
-
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
         if crd_supported(k8s_version):
@@ -152,8 +138,7 @@ class TestE2E(object):
                 "CRD available", RuntimeError, patience=PATIENCE
             )
 
-    def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False,
-                    networkingv1_ingress=False):
+    def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
         port = get_unbound_port()
         cert_path = os.path.dirname(kubernetes["api-cert"])
         docker_args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port,
@@ -180,7 +165,7 @@ class TestE2E(object):
         if crd_supported(k8s_version):
             args.append("--enable-crd-support")
         args = docker_args + args
-        if networkingv1_ingress:
+        if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")
 
         def ready():
@@ -194,17 +179,20 @@ class TestE2E(object):
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
                 Ingress: "e2e_expected/v2minimal-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
                 ServiceAccount: SHOULD_NOT_EXIST,
             }),
             ("v2/data/examples/host.yml", {
                 Service: "e2e_expected/host-service.yml",
                 Deployment: "e2e_expected/host-deployment.yml",
                 Ingress: "e2e_expected/host-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/host-networkingv1-ingress.yml",
             }),
             ("v2/data/examples/exec_config.yml", {
                 Service: "e2e_expected/exec-service.yml",
                 Deployment: "e2e_expected/exec-deployment.yml",
                 Ingress: "e2e_expected/exec-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/exec-networkingv1-ingress.yml",
             }),
             ("v2/data/examples/tcp_ports.yml", {
                 Service: "e2e_expected/tcp_ports-service.yml",
@@ -218,12 +206,14 @@ class TestE2E(object):
                 Service: "e2e_expected/partial_override-service.yml",
                 Deployment: "e2e_expected/partial_override-deployment.yml",
                 Ingress: "e2e_expected/partial_override-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/partial_override-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
             }),
             ("v3/data/examples/v3minimal.yml", {
                 Service: "e2e_expected/v3minimal-service.yml",
                 Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
                 ServiceAccount: SHOULD_NOT_EXIST,
             }, AdditionalLabelsOrAnnotations(
@@ -239,6 +229,7 @@ class TestE2E(object):
                 Service: "e2e_expected/v3full-service.yml",
                 Deployment: "e2e_expected/v3full-deployment.yml",
                 Ingress: "e2e_expected/v3full-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/v3full-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
             }, AdditionalLabelsOrAnnotations(
                 _global={"global/label": "true"},
@@ -253,12 +244,14 @@ class TestE2E(object):
                 Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
                 Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
                 Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/multiple_hosts_multiple_paths-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
             }),
             ("v3/data/examples/strongbox.yml", {
                 Service: "e2e_expected/strongbox-service.yml",
                 Deployment: "e2e_expected/strongbox-deployment.yml",
                 Ingress: "e2e_expected/strongbox-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/strongbox-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
             }),
             ("v3/data/examples/secrets.yml", {
@@ -274,22 +267,29 @@ class TestE2E(object):
                 Service: "e2e_expected/tls-service.yml",
                 Deployment: "e2e_expected/tls-deployment.yml",
                 Ingress: "e2e_expected/tls-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
             }),
             ("v3/data/examples/tls_enabled_cert_issuer.yml", {
                 Service: "e2e_expected/tls-service-cert-issuer.yml",
                 Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
                 Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
+                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-cert-issuer.yml",
                 HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
             }),
             ("v3/data/examples/tls_enabled_multiple.yml", {
                 Ingress: "e2e_expected/tls-ingress-multiple.yml",
+                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-multiple.yml",
             }),
     ))
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
         skip_if_crd_not_supported(k8s_version)
+        if use_networkingv1_ingress(k8s_version) and expected.get(Ingress):
+            del expected[Ingress]
+        elif expected.get(NetworkingV1Ingress):
+            del expected[NetworkingV1Ingress]
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = self._construct_expected(expected, request)
 
@@ -302,12 +302,14 @@ class TestE2E(object):
                 Service: "e2e_expected/v2minimal-service.yml",
                 Deployment: "e2e_expected/v2minimal-deployment.yml",
                 Ingress: "e2e_expected/v2minimal-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
                 ServiceAccount: "e2e_expected/v2minimal-service-account.yml",
             }),
             ("v3/data/examples/v3minimal.yml", {
                 Service: "e2e_expected/v3minimal-service.yml",
                 Deployment: "e2e_expected/v3minimal-deployment.yml",
                 Ingress: "e2e_expected/v3minimal-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
                 HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
                 ServiceAccount: "e2e_expected/v3minimal-service-account.yml",
             }, AdditionalLabelsOrAnnotations(
@@ -324,6 +326,10 @@ class TestE2E(object):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
         skip_if_crd_not_supported(k8s_version)
+        if use_networkingv1_ingress(k8s_version):
+            del expected[Ingress]
+        else:
+            del expected[NetworkingV1Ingress]
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
         expected = self._construct_expected(expected, request)
 
@@ -448,50 +454,6 @@ class TestE2E(object):
     def test_custom_resource_definition_deploy_with_service_account(self, custom_resource_definition_service_account):
         service_type = "ClusterIP"
         self.run_crd_deploy(custom_resource_definition_service_account, service_type, service_account=True)
-
-    @pytest.mark.usefixtures("fdd_networkingv1_ingress", "k8s_client_service_account")
-    def test_networkingv1_ingress(self, request, k8s_version):
-        skip_if_networkingv1_ingress_not_supported(k8s_version)
-
-        ingress_name = "v3-data-examples-v3minimal"
-        fiaas_path = "v3/data/examples/v3minimal.yml"
-        expected_file = "v3minimal-networkingv1-ingress.yml"
-
-        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
-        expected = read_yml(request.fspath.dirpath().join("e2e_expected").join(expected_file).strpath)
-
-        metadata = ObjectMeta(name=ingress_name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = FiaasApplicationSpec(application=ingress_name, image=IMAGE1, config=fiaas_yml)
-        fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
-
-        fiaas_application.save()
-        app_uid = fiaas_application.metadata.uid
-
-        # Check that deployment status is RUNNING
-        def _assert_status():
-            status = FiaasApplicationStatus.get(create_name(ingress_name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
-            assert len(status.logs) > 0
-            assert any("Saving result RUNNING for default/{}".format(ingress_name) in line for line in status.logs)
-
-        wait_until(_assert_status, patience=PATIENCE)
-
-        def _check_ingress():
-            assert NetworkingV1Ingress.get(ingress_name)
-            actual = NetworkingV1Ingress.get(ingress_name)
-            assert_k8s_resource_matches(actual, expected, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
-
-        wait_until(_check_ingress, patience=PATIENCE)
-
-        # Cleanup
-        FiaasApplication.delete(ingress_name)
-
-        def cleanup_complete():
-            for ingress_name, _ in expected.items():
-                with pytest.raises(NotFound):
-                    NetworkingV1Ingress.get(ingress_name)
-
-        wait_until(cleanup_complete, patience=PATIENCE)
 
     @pytest.mark.usefixtures("fdd", "k8s_client")
     @pytest.mark.parametrize("input, expected", [

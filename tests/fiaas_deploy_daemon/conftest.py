@@ -189,14 +189,6 @@ def _open():
         yield mock_open
 
 
-@pytest.fixture(scope="session", params=(
-    "v1.15.12",
-    "v1.16.15",
-    "v1.18.19",
-    "v1.19.11",
-    "v1.20.7",
-    "v1.21.2",
-    pytest.param("v1.22.4", marks=pytest.mark.e2e_latest)
-))
-def k8s_version(request):
-    yield request.param
+@pytest.fixture(scope="session")
+def k8s_version():
+    yield "v1.22.4"

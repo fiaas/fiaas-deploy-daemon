@@ -29,7 +29,7 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.apiextensionsv1_crd_watcher import ApiextensionsV1CrdWatcher
+from fiaas_deploy_daemon.crd.apiextensionsv1_crd_bootstrap import ApiextensionsV1CrdBootstrapper
 from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations, FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
@@ -91,7 +91,7 @@ class TestWatcher(object):
 
     @pytest.fixture
     def apiextensions_v1_crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
-        crd_watcher = ApiextensionsV1CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle)
         crd_watcher._watcher = watcher
         return crd_watcher
 
@@ -141,37 +141,42 @@ class TestWatcher(object):
                         'openAPIV3Schema': {
                             'type': 'object',
                             'properties': {
-                                "application": {
-                                    "type": "string",
-                                },
-                                "image": {
-                                    "type": "string",
-                                },
-                                "config": object_with_unknown_fields,
-                                "additional_labels": {
-                                    "type": "object",
-                                    "properties": {
-                                        "global": object_with_unknown_fields,
-                                        "deployment": object_with_unknown_fields,
-                                        "horizontal_pod_autoscaler": object_with_unknown_fields,
-                                        "ingress": object_with_unknown_fields,
-                                        "service": object_with_unknown_fields,
-                                        "service_account": object_with_unknown_fields,
-                                        "pod": object_with_unknown_fields,
-                                        "status": object_with_unknown_fields,
-                                    }
-                                },
-                                "additional_annotations": {
-                                    "type": "object",
-                                    "properties": {
-                                        "global": object_with_unknown_fields,
-                                        "deployment": object_with_unknown_fields,
-                                        "horizontal_pod_autoscaler": object_with_unknown_fields,
-                                        "ingress": object_with_unknown_fields,
-                                        "service": object_with_unknown_fields,
-                                        "service_account": object_with_unknown_fields,
-                                        "pod": object_with_unknown_fields,
-                                        "status": object_with_unknown_fields,
+                                'spec': {
+                                    'type': 'object',
+                                    'properties': {
+                                        "application": {
+                                            "type": "string",
+                                        },
+                                        "image": {
+                                            "type": "string",
+                                        },
+                                        "config": object_with_unknown_fields,
+                                        "additional_labels": {
+                                            "type": "object",
+                                            "properties": {
+                                                "global": object_with_unknown_fields,
+                                                "deployment": object_with_unknown_fields,
+                                                "horizontal_pod_autoscaler": object_with_unknown_fields,
+                                                "ingress": object_with_unknown_fields,
+                                                "service": object_with_unknown_fields,
+                                                "service_account": object_with_unknown_fields,
+                                                "pod": object_with_unknown_fields,
+                                                "status": object_with_unknown_fields,
+                                            }
+                                        },
+                                        "additional_annotations": {
+                                            "type": "object",
+                                            "properties": {
+                                                "global": object_with_unknown_fields,
+                                                "deployment": object_with_unknown_fields,
+                                                "horizontal_pod_autoscaler": object_with_unknown_fields,
+                                                "ingress": object_with_unknown_fields,
+                                                "service": object_with_unknown_fields,
+                                                "service_account": object_with_unknown_fields,
+                                                "pod": object_with_unknown_fields,
+                                                "status": object_with_unknown_fields,
+                                            }
+                                        }
                                     }
                                 }
                             },

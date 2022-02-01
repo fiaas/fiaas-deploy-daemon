@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
@@ -37,6 +37,9 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: data-v2minimal
-          servicePort: "80"
+          service:
+            name: data-v2minimal
+            port:
+              number: 80
         path: /
+        pathType: ImplementationSpecific

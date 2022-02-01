@@ -34,7 +34,7 @@ GENERIC_REQ = [
     "six == 1.12.0",
     "dnspython == 1.16.0",
     "k8s == 0.21.0",
-    "monotonic == 1.5",
+    "monotonic == 1.6",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.9.1",
     "backoff == 1.8.0",

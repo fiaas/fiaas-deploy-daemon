@@ -494,13 +494,11 @@ class TestE2E(object):
 
         name = sanitize_resource_name(fiaas_path)
 
-        new_expected = {}
-        for k, v in expected.items():
-            if use_networkingv1_ingress(k8s_version):
-                new_expected[k] = read_yml(request.fspath.dirpath().join(v[NetworkingV1Ingress]).strpath)
-            else:
-                new_expected[k] = read_yml(request.fspath.dirpath().join(v[Ingress]).strpath)
-        expected = new_expected
+        if use_networkingv1_ingress(k8s_version):
+            k8s_ingress = NetworkingV1Ingress
+        else:
+            k8s_ingress = Ingress
+        expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in expected.items()}
 
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
@@ -519,11 +517,11 @@ class TestE2E(object):
         wait_until(_assert_status, patience=PATIENCE)
 
         def _check_two_ingresses():
-            assert Ingress.get(name)
-            assert Ingress.get("{}-1".format(name))
+            assert k8s_ingress.get(name)
+            assert k8s_ingress.get("{}-1".format(name))
 
             for ingress_name, expected_dict in expected.items():
-                actual = Ingress.get(ingress_name)
+                actual = k8s_ingress.get(ingress_name)
                 assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
 
         wait_until(_check_two_ingresses, patience=PATIENCE)
@@ -538,9 +536,9 @@ class TestE2E(object):
         fiaas_application.save()
 
         def _check_one_ingress():
-            assert Ingress.get(name)
+            assert k8s_ingress.get(name)
             with pytest.raises(NotFound):
-                Ingress.get("{}-1".format(name))
+                k8s_ingress.get("{}-1".format(name))
 
         wait_until(_check_one_ingress, patience=PATIENCE)
 
@@ -550,7 +548,7 @@ class TestE2E(object):
         def cleanup_complete():
             for name, _ in expected.items():
                 with pytest.raises(NotFound):
-                    Ingress.get(name)
+                    k8s_ingress.get(name)
 
         wait_until(cleanup_complete, patience=PATIENCE)
 

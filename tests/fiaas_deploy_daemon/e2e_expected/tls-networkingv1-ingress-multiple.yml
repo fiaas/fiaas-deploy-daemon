@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    fiaas/expose: "true"
+    kubernetes.io/tls-acme: "true"
+  labels:
+    app: v3-data-examples-tls-enabled-multiple
+    fiaas/deployed_by: ""
+    fiaas/deployment_id: DEPLOYMENT_ID
+    fiaas/version: VERSION
+  name: v3-data-examples-tls-enabled-multiple
+  namespace: default
+  ownerReferences:
+    - apiVersion: fiaas.schibsted.io/v1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Application
+      name: v3-data-examples-tls-enabled-multiple
+  finalizers: []
+spec:
+  tls:
+  - hosts:
+    - qp4ouhml4krhfiltuenvy6ilm5pze3n3.svc.test.example.com
+    - example.com
+    - example.org
+    - v3-data-examples-tls-enabled-multiple.svc.test.example.com
+    secretName: v3-data-examples-tls-enabled-multiple-ingress-tls
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: v3-data-examples-tls-enabled-multiple
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  - host: example.org
+    http:
+      paths:
+      - backend:
+          service:
+            name: v3-data-examples-tls-enabled-multiple
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific
+  - host: v3-data-examples-tls-enabled-multiple.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: v3-data-examples-tls-enabled-multiple
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific

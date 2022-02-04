@@ -70,6 +70,11 @@ DELETED_EVENT = {
     "type": WatchEvent.DELETED,
 }
 
+class FakeCrdResourcesSyncer(object):
+    @classmethod
+    def update_crd_resources(cls):
+        pass
+
 
 class TestWatcher(object):
 
@@ -93,12 +98,25 @@ class TestWatcher(object):
     @pytest.fixture
     def apiextensions_v1_crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
         crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle,
-                                 CrdResourcesSyncerApiextensionsV1)
+                                 FakeCrdResourcesSyncer)
         crd_watcher._watcher = watcher
         return crd_watcher
 
     @pytest.fixture
     def crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle, FakeCrdResourcesSyncer)
+        crd_watcher._watcher = watcher
+        return crd_watcher
+
+    @pytest.fixture
+    def apiextensions_v1_crd_watcher_with_syncer(self, spec_factory, deploy_queue, watcher, lifecycle):
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle,
+                                 CrdResourcesSyncerApiextensionsV1)
+        crd_watcher._watcher = watcher
+        return crd_watcher
+
+    @pytest.fixture
+    def apiextensions_v1beta1_crd_watcher_with_syncer(self, spec_factory, deploy_queue, watcher, lifecycle):
         crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle, CrdResourcesSyncerApiextensionsV1Beta1)
         crd_watcher._watcher = watcher
         return crd_watcher
@@ -109,7 +127,7 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_creates_apiextensions_v1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher, watcher):
+    def test_creates_apiextensions_v1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher_with_syncer, watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
@@ -249,7 +267,7 @@ class TestWatcher(object):
 
         post.side_effect = [make_response(expected_application), make_response(expected_status)]
 
-        apiextensions_v1_crd_watcher._watch(None)
+        apiextensions_v1_crd_watcher_with_syncer._watch(None)
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/", expected_application),
@@ -257,7 +275,7 @@ class TestWatcher(object):
         ]
         assert post.call_args_list == calls
 
-    def test_creates_apiextensions_v1beta1_crd_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
+    def test_creates_apiextensions_v1beta1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1beta1_crd_watcher_with_syncer, watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
@@ -303,7 +321,7 @@ class TestWatcher(object):
 
         post.side_effect = [make_response(expected_application), make_response(expected_status)]
 
-        crd_watcher._watch(None)
+        apiextensions_v1beta1_crd_watcher_with_syncer._watch(None)
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", expected_application),

@@ -33,7 +33,7 @@ from k8s.models.ingress import Ingress
 from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
 from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
-from utils import wait_until, crd_available, crd_supported, \
+from utils import wait_until, crd_available, apiextensions_v1_crd_supported, apiextensions_v1beta1_crd_supported, \
     skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
     KindWrapper, uuid, use_networkingv1_ingress
 
@@ -132,7 +132,7 @@ class TestE2E(object):
 
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-        if crd_supported(k8s_version):
+        if apiextensions_v1beta1_crd_supported(k8s_version) or apiextensions_v1_crd_supported(k8s_version):
             wait_until(
                 crd_available(kubernetes, timeout=TIMEOUT),
                 "CRD available", RuntimeError, patience=PATIENCE
@@ -162,8 +162,11 @@ class TestE2E(object):
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
-        if crd_supported(k8s_version):
+        if apiextensions_v1beta1_crd_supported(k8s_version):
             args.append("--enable-crd-support")
+        elif apiextensions_v1_crd_supported(k8s_version):
+            args.append("--enable-crd-support")
+            args.append("--use-apiextensionsv1-crd")
         args = docker_args + args
         if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")

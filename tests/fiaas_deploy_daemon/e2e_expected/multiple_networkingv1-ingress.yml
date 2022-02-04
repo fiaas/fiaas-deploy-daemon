@@ -1,3 +1,4 @@
+
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,32 +12,45 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
-    fiaas/expose: "false"
+    fiaas/expose: "true"
   labels:
-    app: data-v2minimal
+    app: v3-data-examples-multiple-ingress
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
-  name: data-v2minimal
+  name: v3-data-examples-multiple-ingress
   namespace: default
   ownerReferences:
     - apiVersion: fiaas.schibsted.io/v1
       blockOwnerDeletion: true
       controller: true
       kind: Application
-      name: data-v2minimal
+      name: v3-data-examples-multiple-ingress
   finalizers: []
 spec:
   tls: []
   rules:
-  - host: data-v2minimal.svc.test.example.com
+  - host: www.example.com
     http:
       paths:
       - backend:
-          serviceName: data-v2minimal
-          servicePort: "80"
+          service:
+            name: v3-data-examples-multiple-ingress
+            port:
+              number: 80
         path: /
+        pathType: ImplementationSpecific
+  - host: v3-data-examples-multiple-ingress.svc.test.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: v3-data-examples-multiple-ingress
+            port:
+              number: 80
+        path: /
+        pathType: ImplementationSpecific

@@ -23,7 +23,7 @@ from fiaas_deploy_daemon.specs.models import AppSpec, \
     ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, DatadogSpec, \
     PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, \
     AutoscalerSpec, ExecCheckSpec, LabelAndAnnotationSpec, \
-    IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTlsSpec
+    IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSSpec
 
 PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
 DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
@@ -64,7 +64,7 @@ def app_spec():
         ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
-        ingress_tls=IngressTlsSpec(enabled=False, certificate_issuer=None),
+        ingress_tls=IngressTLSSpec(enabled=False, certificate_issuer=None),
         secrets=[],
         app_config={}
     )

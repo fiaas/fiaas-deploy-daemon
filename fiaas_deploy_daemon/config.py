@@ -219,6 +219,9 @@ class Configuration(Namespace):
         parser.add_argument("--extension-hook-url", help=EXTENSION_HOOK_URL_HELP, default=None)
         parser.add_argument("--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP,
                             action="store_true", default=False)
+        parser.add_argument("--use-networkingv1-ingress",
+                            help="use ingress from apiversion networking.k8s.io instead of extensions/v1beta1",
+                            action="store_true", default=False)
         parser.add_argument("--use-apiextensionsv1-crd",
                             help="Use apiextensions/v1 CustomResourceDefinition instead of apiextensions/v1beta1",
                             action="store_true", default=False)

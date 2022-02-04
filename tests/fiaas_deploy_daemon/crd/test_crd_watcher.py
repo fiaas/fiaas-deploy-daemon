@@ -70,6 +70,7 @@ DELETED_EVENT = {
     "type": WatchEvent.DELETED,
 }
 
+
 class FakeCrdResourcesSyncer(object):
     @classmethod
     def update_crd_resources(cls):
@@ -127,7 +128,8 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_creates_apiextensions_v1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher_with_syncer, watcher):
+    def test_creates_apiextensions_v1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1_crd_watcher_with_syncer,
+                                                                         watcher):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 
@@ -275,7 +277,8 @@ class TestWatcher(object):
         ]
         assert post.call_args_list == calls
 
-    def test_creates_apiextensions_v1beta1_crd_if_not_exists_when_watching_it(self, get, post, apiextensions_v1beta1_crd_watcher_with_syncer, watcher):
+    def test_creates_apiextensions_v1beta1_crd_if_not_exists_when_watching_it(self, get, post, watcher,
+                                                                              apiextensions_v1beta1_crd_watcher_with_syncer):
         get.side_effect = NotFound("Something")
         watcher.watch.side_effect = NotFound("Something")
 

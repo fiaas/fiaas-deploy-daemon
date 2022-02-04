@@ -102,4 +102,4 @@ class CrdResourcesSyncerApiextensionsV1(object):
         }
         cls._create_or_update("Application", "applications", ("app", "fa"), "fiaas.schibsted.io", application_schema_properties)
         cls._create_or_update("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io",
-                    application_status_schema_properties)
+                              application_status_schema_properties)

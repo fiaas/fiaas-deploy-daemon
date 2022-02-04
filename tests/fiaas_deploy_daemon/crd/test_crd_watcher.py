@@ -92,7 +92,8 @@ class TestWatcher(object):
 
     @pytest.fixture
     def apiextensions_v1_crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle, CrdResourcesSyncerApiextensionsV1)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle,
+                                 CrdResourcesSyncerApiextensionsV1)
         crd_watcher._watcher = watcher
         return crd_watcher
 

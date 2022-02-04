@@ -25,20 +25,18 @@ from k8s.models.custom_resource_definition import CustomResourceDefinitionNames,
 LOG = logging.getLogger(__name__)
 
 
-class ApiextensionsV1Beta1CrdBootstrapper(object):
-    def __init__(self):
-        def _create(kind, plural, short_names, group):
-            name = "%s.%s" % (plural, group)
-            metadata = ObjectMeta(name=name)
-            names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-            spec = CustomResourceDefinitionSpec(group=group, names=names, version="v1")
-            definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
-            definition.save()
-            LOG.info("Created CustomResourceDefinition with name %s", name)
+class CrdResourcesSyncerApiextensionsV1Beta1(object):
+    @staticmethod
+    def _create_or_update(kind, plural, short_names, group):
+        name = "%s.%s" % (plural, group)
+        metadata = ObjectMeta(name=name)
+        names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
+        spec = CustomResourceDefinitionSpec(group=group, names=names, version="v1")
+        definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
+        definition.save()
+        LOG.info("Created CustomResourceDefinition with name %s", name)
 
-        def bootstrap():
-
-            _create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
-            _create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
-
-        bootstrap()
+    @classmethod
+    def update_crd_resources(cls):
+        cls._create_or_update("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
+        cls._create_or_update("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")

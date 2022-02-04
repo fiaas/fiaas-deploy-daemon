@@ -95,11 +95,11 @@ def crd_available(kubernetes, timeout=5):
 
 def apiextensions_v1beta1_crd_supported(k8s_version):
     return (StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
-            and StrictVersion("1.22.0") > StrictVersion(k8s_version[1:]))
+            and StrictVersion("1.21.0") > StrictVersion(k8s_version[1:]))
 
 
 def apiextensions_v1_crd_supported(k8s_version):
-    return StrictVersion("1.22.0") <= StrictVersion(k8s_version[1:])
+    return StrictVersion("1.21.0") <= StrictVersion(k8s_version[1:])
 
 
 def skip_if_crd_not_supported(k8s_version):

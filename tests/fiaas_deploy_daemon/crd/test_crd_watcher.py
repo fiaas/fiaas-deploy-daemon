@@ -29,7 +29,8 @@ from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.apiextensionsv1_crd_bootstrap import ApiextensionsV1CrdBootstrapper
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations, FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
@@ -91,13 +92,13 @@ class TestWatcher(object):
 
     @pytest.fixture
     def apiextensions_v1_crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration(["--use-apiextensionsv1-crd"]), lifecycle, CrdResourcesSyncerApiextensionsV1)
         crd_watcher._watcher = watcher
         return crd_watcher
 
     @pytest.fixture
     def crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle, CrdResourcesSyncerApiextensionsV1Beta1)
         crd_watcher._watcher = watcher
         return crd_watcher
 

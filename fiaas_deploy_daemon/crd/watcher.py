@@ -20,14 +20,11 @@ import logging
 
 from k8s.base import WatchEvent
 from k8s.client import NotFound
-from k8s.models.common import ObjectMeta
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
 from .status import create_name
 from .types import FiaasApplication, FiaasApplicationStatus
-from .apiextensionsv1_crd_bootstrap import ApiextensionsV1CrdBootstrapper
-from .apiextensionsv1beta1_crd_bootstrap import ApiextensionsV1Beta1CrdBootstrapper
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
@@ -37,7 +34,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CrdWatcher(DaemonThread):
-    def __init__(self, spec_factory, deploy_queue, config, lifecycle):
+    def __init__(self, spec_factory, deploy_queue, config, lifecycle, crd_resources_syncer):
         super(CrdWatcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
@@ -45,28 +42,20 @@ class CrdWatcher(DaemonThread):
         self._lifecycle = lifecycle
         self.namespace = config.namespace
         self.enable_deprecated_multi_namespace_support = config.enable_deprecated_multi_namespace_support
-        if config.use_apiextensionsv1_crd:
-            self.crd_bootstrapper = ApiextensionsV1CrdBootstrapper
-        else:
-            self.crd_bootstrapper = ApiextensionsV1Beta1CrdBootstrapper
+        self.crd_resources_syncer = crd_resources_syncer
 
     def __call__(self):
-        self._bootstrap_custom_resource_definitions()
         while True:
             if self.enable_deprecated_multi_namespace_support:
                 self._watch(namespace=None)
             else:
                 self._watch(namespace=self.namespace)
 
-    def _bootstrap_custom_resource_definitions(self):
-        self.crd_bootstrapper()
-
     def _watch(self, namespace):
+        self.crd_resources_syncer.update_crd_resources()
         try:
             for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)
-        except NotFound:
-            self._bootstrap_custom_resource_definitions()
         except Exception:
             LOG.exception("Error while watching for changes on FiaasApplications")
 

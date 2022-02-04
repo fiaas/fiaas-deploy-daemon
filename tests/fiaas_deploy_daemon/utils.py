@@ -93,12 +93,17 @@ def crd_available(kubernetes, timeout=5):
     return _crd_available
 
 
-def crd_supported(k8s_version):
-    return StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
+def apiextensions_v1beta1_crd_supported(k8s_version):
+    return (StrictVersion("1.7.0") <= StrictVersion(k8s_version[1:])
+            and StrictVersion("1.21.0") > StrictVersion(k8s_version[1:]))
+
+
+def apiextensions_v1_crd_supported(k8s_version):
+    return StrictVersion("1.21.0") <= StrictVersion(k8s_version[1:])
 
 
 def skip_if_crd_not_supported(k8s_version):
-    if not crd_supported(k8s_version):
+    if not apiextensions_v1beta1_crd_supported(k8s_version) and not apiextensions_v1_crd_supported(k8s_version):
         pytest.skip("CRD not supported in version %s of kubernetes, skipping this test" % k8s_version)
 
 

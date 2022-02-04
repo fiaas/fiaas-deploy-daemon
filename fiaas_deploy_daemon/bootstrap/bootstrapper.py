@@ -26,6 +26,7 @@ from yaml import YAMLError
 
 from ..config import InvalidConfigurationException
 from ..crd.types import FiaasApplication
+from ..crd.watcher import CrdWatcher
 from ..deployer import DeployerEvent
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_SUCCESS
 from ..log_extras import set_extras

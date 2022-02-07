@@ -23,11 +23,14 @@ from k8s.models.apiextensions_v1_custom_resource_definition import CustomResourc
     CustomResourceDefinitionNames, CustomResourceDefinitionSpec, CustomResourceDefinition,\
     CustomResourceDefinitionVersion, CustomResourceValidation, JSONSchemaProps
 
+from ..retry import retry_on_upsert_conflict
+
 LOG = logging.getLogger(__name__)
 
 
 class CrdResourcesSyncerApiextensionsV1(object):
     @staticmethod
+    @retry_on_upsert_conflict
     def _create_or_update(kind, plural, short_names, group, schema_properties):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)

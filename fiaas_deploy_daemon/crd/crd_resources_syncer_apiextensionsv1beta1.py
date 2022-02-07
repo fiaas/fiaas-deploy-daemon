@@ -22,11 +22,14 @@ from k8s.models.common import ObjectMeta
 from k8s.models.custom_resource_definition import CustomResourceDefinitionNames, CustomResourceDefinitionSpec, \
     CustomResourceDefinition
 
+from ..retry import retry_on_upsert_conflict
+
 LOG = logging.getLogger(__name__)
 
 
 class CrdResourcesSyncerApiextensionsV1Beta1(object):
     @staticmethod
+    @retry_on_upsert_conflict
     def _create_or_update(kind, plural, short_names, group):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)

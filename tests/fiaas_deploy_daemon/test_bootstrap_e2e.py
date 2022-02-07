@@ -26,14 +26,15 @@ from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
+from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
 from k8s.models.service import Service
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
-from fiaas_deploy_daemon.crd.watcher import CrdWatcher
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.tools import merge_dicts
-from utils import wait_until, crd_available, crd_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid
+from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper, uuid, use_apiextensionsv1_crd, use_networkingv1_ingress
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -46,30 +47,35 @@ TEST_CASES = (
         Service: "bootstrap_e2e_expected/v2bootstrap-service.yml",
         Deployment: "bootstrap_e2e_expected/v2bootstrap-deployment.yml",
         Ingress: "bootstrap_e2e_expected/v2bootstrap-ingress.yml",
+        NetworkingV1Ingress: "bootstrap_e2e_expected/v2bootstrap-networkingv1-ingress.yml",
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
     ("specs/v2/data/examples/v2bootstrap.yml", "kube-system", {"fiaas/bootstrap": "false"}, {
         Service: SHOULD_NOT_EXIST,
         Deployment: SHOULD_NOT_EXIST,
         Ingress: SHOULD_NOT_EXIST,
+        NetworkingV1Ingress: SHOULD_NOT_EXIST,
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
     ("specs/v3/data/examples/v3bootstrap.yml", "default", {"fiaas/bootstrap": "true"}, {
         Service: "bootstrap_e2e_expected/v3bootstrap-service.yml",
         Deployment: "bootstrap_e2e_expected/v3bootstrap-deployment.yml",
         Ingress: "bootstrap_e2e_expected/v3bootstrap-ingress.yml",
+        NetworkingV1Ingress: "bootstrap_e2e_expected/v3bootstrap-networkingv1-ingress.yml",
         HorizontalPodAutoscaler: "bootstrap_e2e_expected/v3bootstrap-hpa.yml",
     }),
     ("specs/v3/data/examples/full.yml", "default", {}, {
         Service: SHOULD_NOT_EXIST,
         Deployment: SHOULD_NOT_EXIST,
         Ingress: SHOULD_NOT_EXIST,
+        NetworkingV1Ingress: SHOULD_NOT_EXIST,
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
     ("specs/v3/data/examples/v3minimal.yml", "kube-system", {"fiaas/bootstrap": "true"}, {
         Service: SHOULD_NOT_EXIST,
         Deployment: SHOULD_NOT_EXIST,
         Ingress: SHOULD_NOT_EXIST,
+        NetworkingV1Ingress: SHOULD_NOT_EXIST,
         HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
     }),
 )
@@ -114,16 +120,24 @@ class TestBootstrapE2E(object):
             "--api-cert", kubernetes["api-cert"],
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
+            "--enable-crd-support",
         ]
-        if crd_supported(k8s_version):
-            args.append("--enable-crd-support")
+        if use_apiextensionsv1_crd(k8s_version):
+            args.append("--use-apiextensionsv1-crd")
+        if use_networkingv1_ingress(k8s_version):
+            args.append("--use-networkingv1-ingress")
 
         args = docker_args + args
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
         return bootstrap.wait()
 
-    def custom_resource_definition_test_case(self, fiaas_path, namespace, labels, expected):
+    def custom_resource_definition_test_case(self, fiaas_path, namespace, labels, expected, k8s_version=None):
         fiaas_yml = read_yml(file_relative_path(fiaas_path))
+
+        if use_networkingv1_ingress(k8s_version):
+            del expected[Ingress]
+        else:
+            del expected[NetworkingV1Ingress]
         expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
 
         name = sanitize_resource_name(fiaas_path)
@@ -134,13 +148,14 @@ class TestBootstrapE2E(object):
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
     def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
-        skip_if_crd_not_supported(k8s_version)
-
-        CrdWatcher.create_custom_resource_definitions()
-        wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
+        if use_apiextensionsv1_crd(k8s_version):
+            CrdResourcesSyncerApiextensionsV1.update_crd_resources()
+        else:
+            CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
+        wait_until(crd_available(kubernetes), "CRD resources was created", patience=PATIENCE)
 
         def prepare_test_case(test_case):
-            name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case)
+            name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case, k8s_version=k8s_version)
 
             ensure_resources_not_exists(name, expected, fiaas_application.metadata.namespace)
 

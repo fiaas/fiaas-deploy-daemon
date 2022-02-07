@@ -32,9 +32,8 @@ from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
 from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
 from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.tools import merge_dicts
-from utils import wait_until, crd_available, apiextensions_v1_crd_supported, apiextensions_v1beta1_crd_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid
+from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
+    KindWrapper, uuid, use_apiextensionsv1_crd
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -115,11 +114,9 @@ class TestBootstrapE2E(object):
             "--api-cert", kubernetes["api-cert"],
             "--client-cert", kubernetes["client-cert"],
             "--client-key", kubernetes["client-key"],
+            "--enable-crd-support",
         ]
-        if apiextensions_v1beta1_crd_supported(k8s_version) or apiextensions_v1_crd_supported(k8s_version):
-            args.append("--enable-crd-support")
-        elif apiextensions_v1_crd_supported(k8s_version):
-            args.append("--enable-crd-support")
+        if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
 
         args = docker_args + args
@@ -138,11 +135,10 @@ class TestBootstrapE2E(object):
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
     def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
-        skip_if_crd_not_supported(k8s_version)
-        if apiextensions_v1beta1_crd_supported(k8s_version):
-            CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
-        elif apiextensions_v1_crd_supported(k8s_version):
+        if use_apiextensionsv1_crd(k8s_version):
             CrdResourcesSyncerApiextensionsV1.update_crd_resources()
+        else:
+            CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
         wait_until(crd_available(kubernetes), "CRD resources was created", patience=PATIENCE)
 
         def prepare_test_case(test_case):

@@ -33,9 +33,8 @@ from k8s.models.ingress import Ingress
 from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
 from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
-from utils import wait_until, crd_available, apiextensions_v1_crd_supported, apiextensions_v1beta1_crd_supported, \
-    skip_if_crd_not_supported, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid, use_networkingv1_ingress
+from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, \
+    get_unbound_port, KindWrapper, uuid, use_networkingv1_ingress, use_apiextensionsv1_crd
 
 from fiaas_deploy_daemon.crd.status import create_name
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
@@ -132,11 +131,10 @@ class TestE2E(object):
 
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-        if apiextensions_v1beta1_crd_supported(k8s_version) or apiextensions_v1_crd_supported(k8s_version):
-            wait_until(
-                crd_available(kubernetes, timeout=TIMEOUT),
-                "CRD available", RuntimeError, patience=PATIENCE
-            )
+        wait_until(
+            crd_available(kubernetes, timeout=TIMEOUT),
+            "CRD available", RuntimeError, patience=PATIENCE
+        )
 
     def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
         port = get_unbound_port()
@@ -159,17 +157,15 @@ class TestE2E(object):
             "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
             "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls", "default_off",
+            "--enable-crd-support"
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
-        if apiextensions_v1beta1_crd_supported(k8s_version):
-            args.append("--enable-crd-support")
-        elif apiextensions_v1_crd_supported(k8s_version):
-            args.append("--enable-crd-support")
+        if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
-        args = docker_args + args
         if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")
+        args = docker_args + args
 
         def ready():
             resp = requests.get("http://localhost:{}/healthz".format(port), timeout=TIMEOUT)
@@ -288,7 +284,6 @@ class TestE2E(object):
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
-        skip_if_crd_not_supported(k8s_version)
         if use_networkingv1_ingress(k8s_version) and expected.get(Ingress):
             del expected[Ingress]
         elif expected.get(NetworkingV1Ingress):
@@ -328,7 +323,6 @@ class TestE2E(object):
     def custom_resource_definition_service_account(self, request, k8s_version):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
-        skip_if_crd_not_supported(k8s_version)
         if use_networkingv1_ingress(k8s_version) and expected.get(Ingress):
             del expected[Ingress]
         elif expected.get(NetworkingV1Ingress):

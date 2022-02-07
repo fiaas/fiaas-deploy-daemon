@@ -134,9 +134,9 @@ class TestBootstrapE2E(object):
     def custom_resource_definition_test_case(self, fiaas_path, namespace, labels, expected, k8s_version=None):
         fiaas_yml = read_yml(file_relative_path(fiaas_path))
 
-        if use_networkingv1_ingress(k8s_version):
+        if use_networkingv1_ingress(k8s_version) and expected.get(Ingress):
             del expected[Ingress]
-        else:
+        elif expected.get(NetworkingV1Ingress):
             del expected[NetworkingV1Ingress]
         expected = {kind: read_yml_if_exists(path) for kind, path in expected.items()}
 

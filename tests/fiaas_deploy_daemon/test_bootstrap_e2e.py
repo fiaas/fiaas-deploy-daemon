@@ -33,7 +33,7 @@ from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdReso
 from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.tools import merge_dicts
 from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid, use_apiextensionsv1_crd
+    KindWrapper, uuid, use_apiextensionsv1_crd, use_networkingv1_ingress
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -118,6 +118,8 @@ class TestBootstrapE2E(object):
         ]
         if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
+        if use_networkingv1_ingress(k8s_version):
+            args.append("--use-networkingv1-ingress")
 
         args = docker_args + args
         bootstrap = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))

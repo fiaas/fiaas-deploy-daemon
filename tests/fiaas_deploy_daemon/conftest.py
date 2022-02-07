@@ -195,7 +195,8 @@ def _open():
     "v1.18.19",
     "v1.19.11",
     "v1.20.7",
-    pytest.param("v1.21.2", marks=pytest.mark.e2e_latest)
+    "v1.21.2",
+    pytest.param("v1.22.4", marks=pytest.mark.e2e_latest)
 ))
 def k8s_version(request):
     yield request.param

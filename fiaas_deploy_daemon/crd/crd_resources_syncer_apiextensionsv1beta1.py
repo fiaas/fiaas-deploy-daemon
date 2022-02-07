@@ -37,7 +37,7 @@ class CrdResourcesSyncerApiextensionsV1Beta1(object):
         spec = CustomResourceDefinitionSpec(group=group, names=names, version="v1")
         definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
         definition.save()
-        LOG.info("Created CustomResourceDefinition with name %s", name)
+        LOG.info("Created or updated CustomResourceDefinition with name %s", name)
 
     @classmethod
     def update_crd_resources(cls):

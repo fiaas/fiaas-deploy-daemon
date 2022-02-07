@@ -24,13 +24,10 @@ import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
-from requests import Response
 from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.crd import CrdWatcher
-from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
-from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.crd.types import FiaasApplication, AdditionalLabelsOrAnnotations, FiaasApplicationStatus
 from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject

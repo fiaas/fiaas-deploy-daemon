@@ -95,6 +95,7 @@ class TestCrdResourcesSyncerV1beta1(object):
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/applications.fiaas.schibsted.io", EXPECTED_APPLICATION),
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/application-statuses.fiaas.schibsted.io", EXPECTED_STATUS)
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/application-statuses.fiaas.schibsted.io",
+                      EXPECTED_STATUS)
         ]
         assert put.call_args_list == calls

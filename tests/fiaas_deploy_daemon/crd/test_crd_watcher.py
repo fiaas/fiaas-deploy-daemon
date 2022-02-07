@@ -24,7 +24,6 @@ import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
-from requests import Response
 from yaml import YAMLError
 
 from fiaas_deploy_daemon.config import Configuration
@@ -69,6 +68,12 @@ DELETED_EVENT = {
 }
 
 
+class FakeCrdResourcesSyncer(object):
+    @classmethod
+    def update_crd_resources(cls):
+        pass
+
+
 class TestWatcher(object):
 
     @pytest.fixture
@@ -90,7 +95,7 @@ class TestWatcher(object):
 
     @pytest.fixture
     def crd_watcher(self, spec_factory, deploy_queue, watcher, lifecycle):
-        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle)
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, Configuration([]), lifecycle, FakeCrdResourcesSyncer)
         crd_watcher._watcher = watcher
         return crd_watcher
 
@@ -100,59 +105,10 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_creates_custom_resource_definition_if_not_exists_when_watching_it(self, get, post, crd_watcher, watcher):
-        get.side_effect = NotFound("Something")
-        watcher.watch.side_effect = NotFound("Something")
-
-        expected_application = {
-            'metadata': {
-                'namespace': 'default',
-                'name': 'applications.fiaas.schibsted.io',
-                'ownerReferences': [],
-                'finalizers': [],
-            },
-            'spec': {
-                'version': 'v1',
-                'group': 'fiaas.schibsted.io',
-                'names': {
-                    'shortNames': ['app', 'fa'],
-                    'kind': 'Application',
-                    'plural': 'applications'
-                }
-            }
-        }
-        expected_status = {
-            'metadata': {
-                'namespace': 'default',
-                'name': 'application-statuses.fiaas.schibsted.io',
-                'ownerReferences': [],
-                'finalizers': [],
-            },
-            'spec': {
-                'version': 'v1',
-                'group': 'fiaas.schibsted.io',
-                'names': {
-                    'shortNames': ['status', 'appstatus', 'fs'],
-                    'kind': 'ApplicationStatus',
-                    'plural': 'application-statuses'
-                }
-            }
-        }
-
-        def make_response(data):
-            mock_response = mock.create_autospec(Response)
-            mock_response.json.return_value = data
-            return mock_response
-
-        post.side_effect = [make_response(expected_application), make_response(expected_status)]
-
-        crd_watcher._watch(None)
-
-        calls = [
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", expected_application),
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", expected_status)
-        ]
-        assert post.call_args_list == calls
+    def test_updates_crd_resources_when_watching_it(self, crd_watcher):
+        with mock.patch.object(FakeCrdResourcesSyncer, "update_crd_resources", return_value=None) as m:
+            crd_watcher._watch(None)
+            m.assert_called_once()
 
     def test_is_able_to_watch_custom_resource_definition(self, crd_watcher, deploy_queue, watcher):
         watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]

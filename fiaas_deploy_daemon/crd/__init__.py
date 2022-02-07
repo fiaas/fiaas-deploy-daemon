@@ -18,16 +18,26 @@ from __future__ import absolute_import
 
 import pinject
 
+from .crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
+from .crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
+
 from .status import connect_signals
 from .watcher import CrdWatcher
 
 
 class CustomResourceDefinitionBindings(pinject.BindingSpec):
+    def __init__(self, use_apiextensionsv1_crd):
+        self.use_apiextensionsv1_crd = use_apiextensionsv1_crd
+
     def configure(self, bind, require):
         require("config")
         require("deploy_queue")
 
         bind("crd_watcher", to_class=CrdWatcher)
+        if self.use_apiextensionsv1_crd:
+            bind("crd_resources_syncer", to_class=CrdResourcesSyncerApiextensionsV1)
+        else:
+            bind("crd_resources_syncer", to_class=CrdResourcesSyncerApiextensionsV1Beta1)
         connect_signals()
 
 

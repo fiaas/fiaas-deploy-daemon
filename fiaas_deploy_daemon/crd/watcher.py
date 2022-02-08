@@ -20,9 +20,6 @@ import logging
 
 from k8s.base import WatchEvent
 from k8s.client import NotFound
-from k8s.models.common import ObjectMeta
-from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionSpec, \
-    CustomResourceDefinitionNames
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
@@ -31,14 +28,13 @@ from .types import FiaasApplication, FiaasApplicationStatus
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
-from ..retry import retry_on_upsert_conflict
 from ..specs.factory import InvalidConfiguration
 
 LOG = logging.getLogger(__name__)
 
 
 class CrdWatcher(DaemonThread):
-    def __init__(self, spec_factory, deploy_queue, config, lifecycle):
+    def __init__(self, spec_factory, deploy_queue, config, lifecycle, crd_resources_syncer):
         super(CrdWatcher, self).__init__()
         self._spec_factory = spec_factory
         self._deploy_queue = deploy_queue
@@ -46,6 +42,7 @@ class CrdWatcher(DaemonThread):
         self._lifecycle = lifecycle
         self.namespace = config.namespace
         self.enable_deprecated_multi_namespace_support = config.enable_deprecated_multi_namespace_support
+        self.crd_resources_syncer = crd_resources_syncer
 
     def __call__(self):
         while True:
@@ -55,29 +52,12 @@ class CrdWatcher(DaemonThread):
                 self._watch(namespace=self.namespace)
 
     def _watch(self, namespace):
+        self.crd_resources_syncer.update_crd_resources()
         try:
             for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)
-        except NotFound:
-            self.create_custom_resource_definitions()
         except Exception:
             LOG.exception("Error while watching for changes on FiaasApplications")
-
-    @classmethod
-    def create_custom_resource_definitions(cls):
-        cls._create("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
-        cls._create("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
-
-    @staticmethod
-    @retry_on_upsert_conflict
-    def _create(kind, plural, short_names, group):
-        name = "%s.%s" % (plural, group)
-        metadata = ObjectMeta(name=name)
-        names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-        spec = CustomResourceDefinitionSpec(group=group, names=names, version="v1")
-        definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
-        definition.save()
-        LOG.info("Created CustomResourceDefinition with name %s", name)
 
     def _handle_watch_event(self, event):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):

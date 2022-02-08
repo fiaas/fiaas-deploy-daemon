@@ -222,6 +222,9 @@ class Configuration(Namespace):
         parser.add_argument("--use-networkingv1-ingress",
                             help="use ingress from apiversion networking.k8s.io instead of extensions/v1beta1",
                             action="store_true", default=False)
+        parser.add_argument("--use-apiextensionsv1-crd",
+                            help="Use apiextensions/v1 CustomResourceDefinition instead of apiextensions/v1beta1",
+                            action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
                                             help="Name of the cluster where the fiaas-deploy-daemon instance resides")

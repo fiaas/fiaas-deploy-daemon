@@ -35,6 +35,7 @@ LOG = logging.getLogger(__name__)
 
 class DeploymentDeployer(object):
     MINIMUM_GRACE_PERIOD = 30
+    DATADOG_PRE_STOP_DELAY = 5
 
     def __init__(self, config, datadog, prometheus, deployment_secrets, owner_references, extension_hook):
         self._datadog = datadog
@@ -122,7 +123,7 @@ class DeploymentDeployer(object):
                               strategy=deployment_strategy)
 
         deployment = Deployment.get_or_create(metadata=metadata, spec=spec)
-        self._datadog.apply(deployment, app_spec, besteffort_qos_is_required, self._pre_stop_delay + 5)
+        self._datadog.apply(deployment, app_spec, besteffort_qos_is_required, self._pre_stop_delay + self.DATADOG_PRE_STOP_DELAY)
         self._prometheus.apply(deployment, app_spec)
         self._secrets.apply(deployment, app_spec)
         self._owner_references.apply(deployment, app_spec)

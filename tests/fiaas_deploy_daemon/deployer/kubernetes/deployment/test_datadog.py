@@ -35,6 +35,7 @@ class TestDataDog(object):
         config.datadog_container_image = CONTAINER_IMAGE
         config.datadog_container_memory = "2Gi"
         config.datadog_global_tags = {"tag": "test"}
+        config.datadog_activate_sleep = False
         return config
 
     @pytest.fixture(scope="module")
@@ -136,8 +137,9 @@ class TestDataDog(object):
         assert actual['image'] == CONTAINER_IMAGE_LATEST
         assert actual['imagePullPolicy'] == "Always"
 
-    def test_adds_lifecycle_when_pre_stop_delay_is_set(self, config, app_spec, deployment):
+    def test_adds_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_active(self, config, app_spec, deployment):
         config.datadog_container_image = CONTAINER_IMAGE_LATEST
+        config.datadog_activate_sleep = True
         datadog = DataDog(config)
 
         datadog_spec = app_spec.datadog._replace(
@@ -156,3 +158,16 @@ class TestDataDog(object):
         }
 
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]["lifecycle"]
+
+    def test_does_not_add_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_not_active(self, config, app_spec, deployment):
+        config.datadog_container_image = CONTAINER_IMAGE_LATEST
+        datadog = DataDog(config)
+
+        datadog_spec = app_spec.datadog._replace(
+            enabled=True
+        )
+        app_spec = app_spec._replace(datadog=datadog_spec)
+
+        datadog.apply(deployment, app_spec, False, 5)
+
+        assert False == ("lifecycle" in deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1])

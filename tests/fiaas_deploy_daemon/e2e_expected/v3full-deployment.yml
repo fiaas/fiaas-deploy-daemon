@@ -211,10 +211,6 @@ spec:
         image: DATADOG_IMAGE:tag
         volumeMounts: []
         imagePullPolicy: IfNotPresent
-        lifecycle:
-          preStop:
-            exec:
-              command: [sleep, '5']
         name: fiaas-datadog-container
         ports: []
         resources:

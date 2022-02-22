@@ -25,6 +25,7 @@ class DataDog(object):
         self._datadog_container_image = config.datadog_container_image
         self._datadog_container_memory = config.datadog_container_memory
         self._datadog_global_tags = config.datadog_global_tags
+        self._datadog_activate_sleep = config.datadog_activate_sleep
 
     def apply(self, deployment, app_spec, besteffort_qos_is_required, pre_stop_delay):
         if app_spec.datadog.enabled:
@@ -60,7 +61,7 @@ class DataDog(object):
             image_pull_policy = "Always"
 
         lifecycle = None
-        if pre_stop_delay > 0:
+        if pre_stop_delay > 0 and self._datadog_activate_sleep:
             lifecycle = Lifecycle(preStop=Handler(_exec=ExecAction(command=["sleep", str(pre_stop_delay)])))
 
         return Container(

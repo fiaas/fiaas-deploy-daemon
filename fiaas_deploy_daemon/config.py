@@ -194,6 +194,9 @@ class Configuration(Namespace):
         datadog_global_tags_parser.add_argument("--datadog-global-tags", default=[],
                                                 help="Various non-essential global tags to send to datadog for all applications",
                                                 action="append", type=KeyValue, dest="datadog_global_tags")
+        parser.add_argument("--datadog-activate-sleep",
+                            help="Flag to activate the sleep in datadog when a pre-stop-delay is in the main container",
+                            action="store_true", default=False)
         parser.add_argument("--pre-stop-delay", type=int,
                             help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
                             default=0)

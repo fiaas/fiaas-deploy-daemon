@@ -87,6 +87,9 @@ Used to implement an init-container that will get secrets from some backend and 
 
 Used when collecting metrics to DataDog. See [Metrics](#metrics).
 
+### datadog-activate-sleep
+
+Flag to set a Lifecycle in the datadog container with a preStop that will execute a sleep of the pre-stop-delay of the main container plus 5 seconds.  
 
 ### pre-stop-delay
 

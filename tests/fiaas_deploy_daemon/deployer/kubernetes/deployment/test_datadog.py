@@ -55,14 +55,14 @@ class TestDataDog(object):
 
     def test_noop_when_not_enabled(self, datadog, app_spec, deployment):
         expected = deepcopy(deployment)
-        datadog.apply(deployment, app_spec, False)
+        datadog.apply(deployment, app_spec, False, 0)
         assert expected == deployment
 
     @pytest.mark.parametrize("best_effort_required", (False, True))
     def test_adds_env_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         app_spec = app_spec._replace(datadog=datadog_spec)
-        datadog.apply(deployment, app_spec, best_effort_required)
+        datadog.apply(deployment, app_spec, best_effort_required, 0)
         expected = [
             {"name": "DUMMY", "value": "CANARY"},
             {"name": "STATSD_HOST", "value": "localhost"},
@@ -73,7 +73,7 @@ class TestDataDog(object):
     def test_adds_global_tags_when_enabled(self, datadog, app_spec, deployment, best_effort_required):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         app_spec = app_spec._replace(datadog=datadog_spec)
-        datadog.apply(deployment, app_spec, best_effort_required)
+        datadog.apply(deployment, app_spec, best_effort_required, 0)
         expected = {
                     'name': 'DD_TAGS',
                     'value': "app:{},k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
@@ -92,7 +92,7 @@ class TestDataDog(object):
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(name=name, namespace=namespace)
-        datadog.apply(deployment, app_spec, best_effort_required)
+        datadog.apply(deployment, app_spec, best_effort_required, 0)
         expected = {
             'name': DataDog.DATADOG_CONTAINER_NAME,
             'image': CONTAINER_IMAGE,
@@ -130,8 +130,44 @@ class TestDataDog(object):
         )
         app_spec = app_spec._replace(datadog=datadog_spec)
 
-        datadog.apply(deployment, app_spec, False)
+        datadog.apply(deployment, app_spec, False, 0)
 
         actual = deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
         assert actual['image'] == CONTAINER_IMAGE_LATEST
         assert actual['imagePullPolicy'] == "Always"
+
+    def test_adds_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_active(self, config, app_spec, deployment):
+        config.datadog_container_image = CONTAINER_IMAGE_LATEST
+        config.datadog_activate_sleep = True
+        datadog = DataDog(config)
+
+        datadog_spec = app_spec.datadog._replace(
+            enabled=True
+        )
+        app_spec = app_spec._replace(datadog=datadog_spec)
+
+        datadog.apply(deployment, app_spec, False, 5)
+
+        expected = {
+            'preStop': {
+                'exec': {
+                    'command': ['sleep', '5']
+                }
+            }
+        }
+
+        assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]["lifecycle"]
+
+    def test_does_not_add_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_not_active(self, config, app_spec, deployment):
+        config.datadog_container_image = CONTAINER_IMAGE_LATEST
+        config.datadog_activate_sleep = False
+        datadog = DataDog(config)
+
+        datadog_spec = app_spec.datadog._replace(
+            enabled=True
+        )
+        app_spec = app_spec._replace(datadog=datadog_spec)
+
+        datadog.apply(deployment, app_spec, False, 5)
+
+        assert False == ("lifecycle" in deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1])

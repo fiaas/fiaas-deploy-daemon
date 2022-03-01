@@ -67,10 +67,7 @@ class ServiceAccountDeployer(object):
             service_account.metadata = metadata
             service_account.imagePullSecrets = image_pull_secrets
         except NotFound:
-            service_account = ServiceAccount.get_or_create(
-                    metadata=metadata,
-                    imagePullSecrets=image_pull_secrets
-            )
+            service_account = ServiceAccount(metadata=metadata, imagePullSecrets=image_pull_secrets)
 
         self._owner_references.apply(service_account, app_spec)
         service_account.save()

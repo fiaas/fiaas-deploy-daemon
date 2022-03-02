@@ -43,15 +43,6 @@ class ServiceAccountDeployer(object):
         service_account_name = app_spec.name
         namespace = app_spec.namespace
         try:
-            service_account = ServiceAccount.get(service_account_name, namespace)
-            if not self._owned_by_fiaas(service_account):
-                LOG.info("Found serviceAccount %s not managed by us.", service_account_name)
-                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", service_account_name, labels)
-                return
-        except NotFound:
-            pass
-
-        try:
             default_service_account = ServiceAccount.get("default", namespace)
             image_pull_secrets = default_service_account.imagePullSecrets
         except NotFound:
@@ -64,12 +55,16 @@ class ServiceAccountDeployer(object):
         metadata = ObjectMeta(name=service_account_name, namespace=namespace, labels=custom_labels, annotations=custom_annotations)
         try:
             service_account = ServiceAccount.get(service_account_name, namespace)
-            service_account.metadata = metadata
-            service_account.imagePullSecrets = image_pull_secrets
+            if not self._owned_by_fiaas(service_account):
+                LOG.info("Found serviceAccount %s not managed by us.", service_account_name)
+                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", service_account_name, labels)
+                return
         except NotFound:
-            service_account = ServiceAccount(metadata=metadata, imagePullSecrets=image_pull_secrets)
+            service_account = ServiceAccount()
 
         self._owner_references.apply(service_account, app_spec)
+        service_account.metadata = metadata
+        service_account.imagePullSecrets = image_pull_secrets
         service_account.save()
 
     def _owned_by_fiaas(self, service_account):

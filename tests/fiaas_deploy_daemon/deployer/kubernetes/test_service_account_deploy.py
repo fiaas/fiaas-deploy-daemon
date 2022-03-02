@@ -29,7 +29,7 @@ from utils import TypeMatcher
 
 from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
 
-SERVICES_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
+SERVICE_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
 LABELS = {"service": "pass through"}
 
 
@@ -54,7 +54,7 @@ class TestServiceAccountDeployer(object):
 
         deployer.deploy(app_spec, LABELS)
 
-        pytest.helpers.assert_any_call(post, SERVICES_ACCOUNT_URI, expected_service_account)
+        pytest.helpers.assert_any_call(post, SERVICE_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)
 
     @pytest.mark.parametrize('owner_references', (
@@ -114,7 +114,7 @@ class TestServiceAccountDeployer(object):
         def get_existing_or_not(uri):
             mock_response = create_autospec(Response)
             mock_response.json.return_value = existing_service_account
-            if uri == SERVICES_ACCOUNT_URI + app_spec.name:
+            if uri == SERVICE_ACCOUNT_URI + app_spec.name:
                 return mock_response
             else:
                 raise NotFound
@@ -130,17 +130,12 @@ class TestServiceAccountDeployer(object):
 
         deployer.deploy(app_spec, LABELS)
         post.assert_not_called()
-        pytest.helpers.assert_any_call(put, SERVICES_ACCOUNT_URI + app_spec.name, existing_service_account)
+        pytest.helpers.assert_any_call(put, SERVICE_ACCOUNT_URI + app_spec.name, existing_service_account)
 
     @pytest.fixture
     def service_account_get(self):
         with mock.patch('k8s.models.service_account.ServiceAccount.get') as get:
             yield get
-
-    @pytest.fixture
-    def service_account_get_or_create(self):
-        with mock.patch('k8s.models.service_account.ServiceAccount.get_or_create') as get_or_create:
-            yield get_or_create
 
     @pytest.mark.parametrize('default_sa_exists,image_pull_secrets', (
         (False, []),
@@ -148,8 +143,7 @@ class TestServiceAccountDeployer(object):
         (True, ['one']),
         (True, ['one', 'two', 'three']),
     ))
-    def test_service_account_should_propagate_image_pull_secrets_from_default(self, service_account_get,
-                                                                              service_account_get_or_create,
+    def test_service_account_should_propagate_image_pull_secrets_from_default(self, service_account_get, post,
                                                                               app_spec, owner_references, deployer,
                                                                               default_sa_exists, image_pull_secrets):
         default_sa_name = 'default'
@@ -166,13 +160,16 @@ class TestServiceAccountDeployer(object):
 
         service_account_get.side_effect = get_default_or_notfound
 
-        app_service_account = create_autospec(ServiceAccount)
-        service_account_get_or_create.return_value = app_service_account
+        expected_service_account = {
+            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
+            'secrets': [],
+            'imagePullSecrets': image_pull_secrets,
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_service_account
+        post.return_value = mock_response
 
         deployer.deploy(app_spec, LABELS)
 
-        service_account_get_or_create.assert_called_once_with(
-            metadata=ObjectMeta(name=app_spec.name, labels=LABELS),
-            imagePullSecrets=image_pull_secrets)
-        app_service_account.save.assert_called_once()
+        pytest.helpers.assert_any_call(post, SERVICE_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)

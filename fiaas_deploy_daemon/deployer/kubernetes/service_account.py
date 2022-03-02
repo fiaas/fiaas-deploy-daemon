@@ -40,31 +40,31 @@ class ServiceAccountDeployer(object):
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)
         image_pull_secrets = []
+        service_account_name = app_spec.name
+        namespace = app_spec.namespace
         try:
-            service_account = ServiceAccount.get(app_spec.name, app_spec.namespace)
-            if not self._owned_by_fiaas(service_account):
-                LOG.info("Found serviceAccount %s not managed by us.", app_spec.name)
-                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", app_spec.name, labels)
-                return
-        except NotFound:
-            pass
-
-        try:
-            default_service_account = ServiceAccount.get("default", app_spec.namespace)
+            default_service_account = ServiceAccount.get("default", namespace)
             image_pull_secrets = default_service_account.imagePullSecrets
         except NotFound:
-            LOG.info("No default service account found in namespace: %s", app_spec.namespace)
-        service_account_name = app_spec.name
-        custom_labels = labels
+            LOG.info("No default service account found in namespace: %s", namespace)
+
         custom_annotations = {}
+        custom_labels = labels
         custom_labels = merge_dicts(app_spec.labels.service_account, custom_labels)
         custom_annotations = merge_dicts(app_spec.annotations.service_account, custom_annotations)
-        metadata = ObjectMeta(name=service_account_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations)
-        service_account = ServiceAccount.get_or_create(
-                metadata=metadata,
-                imagePullSecrets=image_pull_secrets
-        )
+        metadata = ObjectMeta(name=service_account_name, namespace=namespace, labels=custom_labels, annotations=custom_annotations)
+        try:
+            service_account = ServiceAccount.get(service_account_name, namespace)
+            if not self._owned_by_fiaas(service_account):
+                LOG.info("Found serviceAccount %s not managed by us.", service_account_name)
+                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", service_account_name, labels)
+                return
+        except NotFound:
+            service_account = ServiceAccount()
+
         self._owner_references.apply(service_account, app_spec)
+        service_account.metadata = metadata
+        service_account.imagePullSecrets = image_pull_secrets
         service_account.save()
 
     def _owned_by_fiaas(self, service_account):

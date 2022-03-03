@@ -39,14 +39,8 @@ class ServiceAccountDeployer(object):
     @retry_on_upsert_conflict
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)
-        image_pull_secrets = []
         service_account_name = app_spec.name
         namespace = app_spec.namespace
-        try:
-            default_service_account = ServiceAccount.get("default", namespace)
-            image_pull_secrets = default_service_account.imagePullSecrets
-        except NotFound:
-            LOG.info("No default service account found in namespace: %s", namespace)
 
         custom_annotations = {}
         custom_labels = labels
@@ -61,6 +55,13 @@ class ServiceAccountDeployer(object):
                 return
         except NotFound:
             service_account = ServiceAccount()
+
+        image_pull_secrets = []
+        try:
+            default_service_account = ServiceAccount.get("default", namespace)
+            image_pull_secrets = default_service_account.imagePullSecrets
+        except NotFound:
+            LOG.info("No default service account found in namespace: %s", namespace)
 
         self._owner_references.apply(service_account, app_spec)
         service_account.metadata = metadata

@@ -95,20 +95,20 @@ class TestServiceAccountDeployer(object):
 
     def test_deploy_existing_fiaas_owned_service_account(self, get, post, put, app_spec):
         existing_service_account = {
-                'metadata': pytest.helpers.create_metadata(
-                    app_spec.name,
-                    labels=LABELS,
-                    owner_references=[{
-                        "apiVersion": "fiaas.schibsted.io/v1",
-                        "blockOwnerDeletion": True,
-                        "controller": True,
-                        "kind": "Application",
-                        "name": app_spec.name,
-                        "uid": app_spec.uid,
-                    }],
-                ),
-                'secrets': [],
-                'imagePullSecrets': []
+            'metadata': pytest.helpers.create_metadata(
+                app_spec.name,
+                labels=LABELS,
+                owner_references=[{
+                    "apiVersion": "fiaas.schibsted.io/v1",
+                    "blockOwnerDeletion": True,
+                    "controller": True,
+                    "kind": "Application",
+                    "name": app_spec.name,
+                    "uid": app_spec.uid,
+                }],
+            ),
+            'secrets': [{'name': app_spec.name + "-token-6f7fp"}],
+            'imagePullSecrets': []
         }
 
         def get_existing_or_not(uri):

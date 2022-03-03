@@ -63,9 +63,9 @@ class ServiceAccountDeployer(object):
         except NotFound:
             LOG.info("No default service account found in namespace: %s", namespace)
 
-        self._owner_references.apply(service_account, app_spec)
         service_account.metadata = metadata
         service_account.imagePullSecrets = image_pull_secrets
+        self._owner_references.apply(service_account, app_spec)
         service_account.save()
 
     def _owned_by_fiaas(self, service_account):

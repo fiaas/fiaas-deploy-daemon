@@ -43,6 +43,7 @@ class CrdWatcher(DaemonThread):
         self.namespace = config.namespace
         self.enable_deprecated_multi_namespace_support = config.enable_deprecated_multi_namespace_support
         self.crd_resources_syncer = crd_resources_syncer
+        self.deactivate_crd_creation = config.deactivate_crd_creation
 
     def __call__(self):
         while True:
@@ -52,7 +53,8 @@ class CrdWatcher(DaemonThread):
                 self._watch(namespace=self.namespace)
 
     def _watch(self, namespace):
-        self.crd_resources_syncer.update_crd_resources()
+        if not self.deactivate_crd_creation:
+            self.crd_resources_syncer.update_crd_resources()
         try:
             for event in self._watcher.watch(namespace=namespace):
                 self._handle_watch_event(event)

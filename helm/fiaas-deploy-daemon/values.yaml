@@ -1,3 +1,5 @@
+name: fiaas-deploy-daemon
+
 image:
   repository: fiaas/fiaas-deploy-daemon
   tag: latest
@@ -33,9 +35,10 @@ ingress:
   #      - chart-example.local
 
 resources: {}
-  limits:
-    cpu: 400m
-    memory: 512Mi
-  requests:
-    cpu: 200m
-    memory: 128Mi
+  # limits:
+  #   cpu: 400m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 200m
+  #   memory: 128Mi
+

@@ -9,7 +9,7 @@ Create chart name and version as used by the chart label.
 Common labels
 */}}
 {{- define "fiaas-deploy-daemon.labels" -}}
-app: fiaas-deploy-daemon
+app: {{ .Values.name }}
 app.kubernetes.io/name: fiaas-deploy-daemon
 helm.sh/chart: {{ include "fiaas-deploy-daemon.chart" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}

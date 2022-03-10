@@ -99,11 +99,28 @@ class TestWatcher(object):
         crd_watcher._watcher = watcher
         return crd_watcher
 
+    @pytest.fixture
+    def crd_resources_syncer(self):
+        return FakeCrdResourcesSyncer()
+
+    @pytest.fixture
+    def crd_watcher_creation_disabled(self, spec_factory, deploy_queue, lifecycle, crd_resources_syncer, watcher):
+        config = Configuration([])
+        config.disable_crd_creation = True
+        crd_watcher = CrdWatcher(spec_factory, deploy_queue, config, lifecycle, crd_resources_syncer)
+        crd_watcher._watcher = watcher
+        return crd_watcher
+
     @pytest.fixture(autouse=True)
     def status_get(self):
         with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.get", spec_set=True) as m:
             m.side_effect = NotFound
             yield m
+
+    def test_does_not_update_crd_when_disabled(self, crd_watcher_creation_disabled, crd_resources_syncer):
+        with mock.patch.object(crd_resources_syncer, "update_crd_resources") as m:
+            crd_watcher_creation_disabled._watch(None)
+            assert not m.called
 
     def test_updates_crd_resources_when_watching_it(self, crd_watcher):
         with mock.patch.object(FakeCrdResourcesSyncer, "update_crd_resources", return_value=None) as m:

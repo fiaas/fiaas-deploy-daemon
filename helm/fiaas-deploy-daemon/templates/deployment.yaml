@@ -17,13 +17,7 @@ spec:
         {{ include "fiaas-deploy-daemon.labels" . | nindent 8 }}
     spec:
       automountServiceAccountToken: true
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       serviceAccountName: {{ .Values.name }}
-      securityContext:
-        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: {{ .Values.name }}
           env:
@@ -31,8 +25,6 @@ spec:
               value: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
             - name: FIAAS_VERSION
               value: "{{ .Values.image.tag }}"
-          securityContext:
-            {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:

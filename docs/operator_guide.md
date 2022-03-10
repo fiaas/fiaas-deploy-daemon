@@ -187,6 +187,11 @@ As we decided to treat the 404 as a valid response, we have no way to differenti
 
 Used to create a serviceaccount for each deployed application, using the application name. If there are imagePullSecrets set on the 'default' service account, these are propagated the per-application service accounts. If a service account with the same name as the application already exists, the application will run under that service account but FIAAS will not overwrite/manage the service account.
 
+### disable-crd-creation
+
+By default fiaas-deploy-daemon updates the Application and ApplicationStatus CRDs on startup. CRDs are cluster scoped, so it is only necessary for one fiaas-deploy-daemon instance in a cluster to manage the CRDs. This flag can be used to disable updating of the CRDs per fiaas-deploy-daemon instance when not needed.
+It is a good idea to keep the flag enabled on at least one fiaas-deploy-daemon instance in a cluster, otherwise you have to manually ensure that the Application and ApplicationStatus CRDs are present and up to date in the cluster.
+
 Deploying an application
 ------------------------
 

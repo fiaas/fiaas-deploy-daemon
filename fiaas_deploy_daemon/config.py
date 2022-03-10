@@ -228,7 +228,7 @@ class Configuration(Namespace):
         parser.add_argument("--use-apiextensionsv1-crd",
                             help="Use apiextensions/v1 CustomResourceDefinition instead of apiextensions/v1beta1",
                             action="store_true", default=False)
-        parser.add_argument("--deactivate-crd-creation",
+        parser.add_argument("--disable-crd-creation",
                             help="Crd Watcher will skip the crd creation and it will go directly to watch the events",
                             action="store_true", default=False)
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)

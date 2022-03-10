@@ -104,9 +104,9 @@ class TestWatcher(object):
         return FakeCrdResourcesSyncer()
 
     @pytest.fixture
-    def crd_watcher_creation_deactivated(self, spec_factory, deploy_queue, lifecycle, crd_resources_syncer, watcher):
+    def crd_watcher_creation_disabled(self, spec_factory, deploy_queue, lifecycle, crd_resources_syncer, watcher):
         config = Configuration([])
-        config.deactivate_crd_creation = True
+        config.disable_crd_creation = True
         crd_watcher = CrdWatcher(spec_factory, deploy_queue, config, lifecycle, crd_resources_syncer)
         crd_watcher._watcher = watcher
         return crd_watcher
@@ -117,9 +117,9 @@ class TestWatcher(object):
             m.side_effect = NotFound
             yield m
 
-    def test_does_not_update_crd_when_deactivated(self, crd_watcher_creation_deactivated, crd_resources_syncer):
+    def test_does_not_update_crd_when_disabled(self, crd_watcher_creation_disabled, crd_resources_syncer):
         with mock.patch.object(crd_resources_syncer, "update_crd_resources") as m:
-            crd_watcher_creation_deactivated._watch(None)
+            crd_watcher_creation_disabled._watch(None)
             assert not m.called
 
     def test_updates_crd_resources_when_watching_it(self, crd_watcher):

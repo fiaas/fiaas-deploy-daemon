@@ -81,7 +81,7 @@ class TestConfig(object):
         "enable_crd_support",
         "enable_deprecated_multi_namespace_support",
         "enable_deprecated_tls_entry_per_host",
-        "deactivate_crd_creation",
+        "disable_crd_creation",
         "datadog_activate_sleep"
     ))
     def test_flags(self, key):

@@ -21,3 +21,9 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{ $key }}: {{ $value }}
 {{- end }}
 {{- end -}}
+
+{{- define "fiaas-deploy-daemon.labelsOrAnnotations" -}}
+{{- range $key, $value := . }}
+{{ $key }}: {{ $value }}
+{{- end -}}
+{{- end -}}

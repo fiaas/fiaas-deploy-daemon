@@ -1,41 +1,41 @@
 {{- if .Values.ingress.enabled -}}
-{{- $fullName := include "fiaas-deploy-daemon.fullname" . -}}
-{{- $svcPort := .Values.service.port -}}
-{{- if semverCompare ">=1.14-0" .Capabilities.KubeVersion.GitVersion -}}
-apiVersion: networking.k8s.io/v1beta1
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
 {{- else -}}
 apiVersion: extensions/v1beta1
 {{- end }}
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ .Values.name }}
   labels:
 {{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
-  {{- with .Values.ingress.annotations }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.ingress.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.ingress.annotations }}
   annotations:
-    {{- toYaml . | nindent 4 }}
-  {{- end }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.ingress.annotations | indent 4 }}
+{{- end }}
 spec:
-{{- if .Values.ingress.tls }}
+{{- if .Values.ingress.tls.enabled }}
   tls:
-  {{- range .Values.ingress.tls }}
-    - hosts:
-      {{- range .hosts }}
-        - {{ . | quote }}
-      {{- end }}
-      secretName: {{ .secretName }}
-  {{- end }}
+    - hosts: {{ .Values.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
 {{- end }}
   rules:
-  {{- range .Values.ingress.hosts }}
-    - host: {{ .host | quote }}
+    - host: {{ .Values.host | quote }}
       http:
         paths:
-        {{- range .paths }}
-          - path: {{ . }}
+          - path: /
+            {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}                    
+            pathType: {{ .Values.ingress.pathType }}
             backend:
-              serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
-        {{- end }}
-  {{- end }}
+              service:
+                name: {{ .Values.name }}
+                port:
+                  name: http
+            {{- else }}
+            backend:
+              serviceName: {{ .Values.name }}
+              servicePort: http              
+            {{- end }}
 {{- end }}

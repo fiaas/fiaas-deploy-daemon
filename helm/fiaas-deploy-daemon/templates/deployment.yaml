@@ -4,6 +4,12 @@ metadata:
   name: {{ .Values.name }}
   labels:
     {{ include "fiaas-deploy-daemon.labels" . | nindent 4 }}
+    {{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.deployment.annotations }}
+  annotations:
+    {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+    {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.annotations | indent 4 }}
+{{- end }}
 spec:
   replicas: 1
   strategy:
@@ -15,6 +21,12 @@ spec:
     metadata:
       labels:
         {{ include "fiaas-deploy-daemon.labels" . | nindent 8 }}
+        {{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.labels | indent 8 }}
+{{- if or .Values.annotations.global .Values.deployment.pod.annotations }}
+      annotations:
+        {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 8 }}
+        {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.annotations | indent 8 }}
+{{- end }}
     spec:
       automountServiceAccountToken: true
       serviceAccountName: {{ .Values.name }}
@@ -39,7 +51,7 @@ spec:
             initialDelaySeconds: 10
             periodSeconds: 10
             successThreshold: 1
-            timeoutSeconds: 1              
+            timeoutSeconds: 1
           readinessProbe:
             httpGet:
               path: /healthz

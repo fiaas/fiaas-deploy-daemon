@@ -5,18 +5,36 @@ image:
   tag: latest
   pullPolicy: IfNotPresent
 
+resources: {}
+  # limits:
+  #   cpu: 400m
+  #   memory: 512Mi
+  # requests:
+  #   cpu: 200m
+  #   memory: 128Mi
+
 rbac:
   serviceAccount:
     create: true
+    labels: {}
+    annotations: {}
   role:
     create: true
+    labels: {}
+    annotations: {}
   roleBinding:
     create: true
+    labels: {}
+    annotations: {}
 
 labels:
   global: {}
-        
+annotations:
+  global: {}
+
 service:
+  labels: {}
+  annotations: {}
   type: ClusterIP
   port: 5000
   targetPort: 5000
@@ -32,3 +50,9 @@ ingress:
     enabled: false
     secretName: chart-example.local
 
+deployment:
+  labels: {}
+  annotations: {}
+  pod:
+    labels: {}
+    annotations: {}

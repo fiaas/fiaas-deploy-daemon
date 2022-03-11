@@ -55,4 +55,7 @@ deployment:
   annotations: {}
   pod:
     labels: {}
-    annotations: {}
+    annotations:
+      prometheus.io/path: /internal-backstage/prometheus
+      prometheus.io/port: "5000"
+      prometheus.io/scrape: "true"

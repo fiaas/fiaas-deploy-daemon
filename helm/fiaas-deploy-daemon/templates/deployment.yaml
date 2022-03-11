@@ -30,6 +30,15 @@ spec:
     spec:
       automountServiceAccountToken: true
       serviceAccountName: {{ .Values.name }}
+      volumes:
+      - name: fiaas-deploy-daemon-config
+        configMap:
+          optional: true
+          name: {{ .Values.name }}
+      - name: fiaas-deploy-daemon-secret
+        secret:
+          optional: true
+          secretName: {{ .Values.name }}
       containers:
         - name: {{ .Values.name }}
           env:
@@ -63,3 +72,10 @@ spec:
             timeoutSeconds: 1
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - mountPath: /var/run/secrets/fiaas/
+            name: fiaas-deploy-daemon-secret
+            readOnly: true
+          - mountPath: /var/run/config/fiaas/
+            name: fiaas-deploy-daemon-config
+            readOnly: true

@@ -40,7 +40,7 @@ service:
   targetPort: 5000
 
 ingress:
-  enabled: true
+  enabled: false
   labels: {}
   annotations: {}
   host: chart-example.local

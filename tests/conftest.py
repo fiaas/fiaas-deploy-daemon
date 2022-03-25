@@ -24,6 +24,7 @@ import pytest
 from xdist.scheduler import LoadScopeScheduling
 
 DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
+E2E_K8S_VERSION_OPTION = "--e2e-k8s-version"
 
 pytest_plugins = ['helpers_namespace']
 
@@ -156,6 +157,14 @@ def pytest_xdist_make_scheduler(config, log):
 def pytest_addoption(parser):
     parser.addoption(DOCKER_FOR_E2E_OPTION, action="store_true",
                      help="Run FDD using the latest docker container when executing E2E tests")
+    parser.addoption(E2E_K8S_VERSION_OPTION, action="store",
+                     default="v1.22.4",
+                     help="Run e2e tests against a kind cluster using this Kubernetes version")
+
+
+@pytest.fixture(scope="session")
+def k8s_version(request):
+    return request.config.getoption(E2E_K8S_VERSION_OPTION)
 
 
 @pytest.fixture(scope="session")

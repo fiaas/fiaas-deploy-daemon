@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  labels:
+    {{ include "fiaas-deploy-daemon.labels" . | nindent 4 }}
+    {{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.deployment.annotations }}
+  annotations:
+    {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+    {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.annotations | indent 4 }}
+{{- end }}
+spec:
+  replicas: 1
+  strategy:
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        {{ include "fiaas-deploy-daemon.labels" . | nindent 8 }}
+        {{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.labels | indent 8 }}
+{{- if or .Values.annotations.global .Values.deployment.pod.annotations }}
+      annotations:
+        {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 8 }}
+        {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.annotations | indent 8 }}
+{{- end }}
+    spec:
+      automountServiceAccountToken: true
+      serviceAccountName: {{ .Values.name }}
+      volumes:
+      - name: fiaas-deploy-daemon-config
+        configMap:
+          optional: true
+          name: {{ .Values.name }}
+      - name: fiaas-deploy-daemon-secret
+        secret:
+          optional: true
+          secretName: {{ .Values.name }}
+      containers:
+        - name: {{ .Values.name }}
+          env:
+            - name: FIAAS_IMAGE
+              value: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+            - name: FIAAS_VERSION
+              value: "{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 5000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+          - mountPath: /var/run/secrets/fiaas/
+            name: fiaas-deploy-daemon-secret
+            readOnly: true
+          - mountPath: /var/run/config/fiaas/
+            name: fiaas-deploy-daemon-config
+            readOnly: true

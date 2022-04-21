@@ -13,7 +13,10 @@ metadata:
 spec:
   replicas: 1
   strategy:
-    type: Recreate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+    type: RollingUpdate
   selector:
     matchLabels:
       app: {{ .Values.name }}

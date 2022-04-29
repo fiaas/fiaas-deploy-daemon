@@ -11,7 +11,7 @@ IMAGE=fiaas/fiaas-deploy-daemon
 # the container image tarball
 IMAGE_TARBALL=build/fiaas-deploy-daemon.tar
 # contains the container image version as a single line
-IMAGE_VERSION="$(< build/version)"
+IMAGE_VERSION="$(head -n1 build/version)"
 
 function update_chart_release_version() {
     local release="$1"

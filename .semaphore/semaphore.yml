@@ -27,12 +27,6 @@ blocks:
         commands:
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
-          # qemu-user-static registers binfmt_misc handlers to be able to build multiarch images
-          # details: https://github.com/multiarch/qemu-user-static/blob/master/docs/developers_guide.md#technology-overview
-          # TODO: Can this be replaced with `apt-get install -y qemu-user-static` ?
-          - sudo apt-get update
-          - sudo apt-get install -y qemu-user
-          - docker run --rm --privileged multiarch/qemu-user-static:4.2.0-7 --reset -p yes
           - pip install --user .[ci]
       jobs:
       - name: "Unit tests + docker build"

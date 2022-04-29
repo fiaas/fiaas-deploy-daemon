@@ -16,9 +16,21 @@ IMAGE_VERSION="$(< build/version)"
 # the chart tarball should also be under build/
 HELM_CHART_TARBALL="$(< build/chart-tarball)"
 
+function update_chart_release_version() {
+    local release="$1"
+
+    for file in Chart.yaml.tpl values.yaml.tpl; do
+        local template_path="helm/fiaas-deploy-daemon/$file"
+        local result_path="helm/fiaas-deploy-daemon/${file%%.tpl}" # remove .tpl suffix
+        RELEASE_VERSION="$release" envsubst '$RELEASE_VERSION' < "$template_path" > "$result_path"
+    done
+}
+
 function publish_helm_chart() {
     local release="$1"
-    local chart_tarball="$2"
+
+    update_chart_release_version "$RELEASE"
+    helm package helm/fiaas-deploy-daemon
 
     local helm_repo_dir
     helm_repo_dir="$(mktemp -d)"

@@ -2,7 +2,7 @@ name: fiaas-deploy-daemon
 
 image:
   repository: fiaas/fiaas-deploy-daemon
-  tag: latest
+  tag: ${RELEASE_VERSION}
   pullPolicy: IfNotPresent
 
 resources: {}

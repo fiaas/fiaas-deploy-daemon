@@ -20,6 +20,7 @@ agent:
     os_image: ubuntu1804
 blocks:
   - name: "Run unit tests, build container image"
+    dependencies: []
     task:
       secrets:
       - name: docker

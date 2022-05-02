@@ -65,8 +65,8 @@ blocks:
               # - v1.16.15
               # - v1.18.19
               # - v1.19.11
-              # - v1.20.7
-              # - v1.21.2
+              - v1.20.7
+              - v1.21.2
               - v1.22.4
 # TODO: Keep these commented while testing out to avoid accidental promotion
 # promotions:

@@ -38,36 +38,35 @@ blocks:
           # - `fiaas-deploy-daemon.tar`: the fiaas-deploy-daemon container image
           # - `version`: the version of the container image in the format `YYYYMMDDHHMMSS-$git_commit_ref`
           - cache store "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build" build
-# TODO: Remove comment when ready to test e2e tests task
-# - name: "Run end-to-end tests"
-#    dependencies: ["Run unit tests, build container image"]
-#    task:
-#    prologue:
-#      commands:
-#        - checkout
-#        - pip install --user .[ci]
-#        - export PATH="$PATH:$HOME/.local/bin"
-#        - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
-#        - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
-#    jobs:
-#      - name: "e2e test"
-#        commands:
-#          # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:latest as the e2e test expects
-#          - VERSION="$(head -n1 build/version)"
-#          - docker image load build/fiaas-deploy-daemon.tar
-#          - docker tag fiaas/fiaas-deploy-daemon:"$VERSION" fiaas/fiaas-deploy-daemon:latest
-#          - tox -e integration_test -- -n 2 --use-docker-for-e2e --e2e-k8s-version "$K8S_VERSION"
-#        matrix:
-#          # e2e tests are run vs. these Kubernetes version
-#          - env_var: K8S_VERSION
-#            values:
-#              - v1.15.12
-#              - v1.16.15
-#              - v1.18.19
-#              - v1.19.11
-#              - v1.20.7
-#              - v1.21.2
-#              - v1.22.4
+  - name: "Run end-to-end tests"
+    dependencies: ["Run unit tests, build container image"]
+    task:
+    prologue:
+      commands:
+        - checkout
+        - pip install --user .[ci]
+        - export PATH="$PATH:$HOME/.local/bin"
+        - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
+        - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
+    jobs:
+      - name: "e2e test"
+        commands:
+          # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:latest as the e2e test expects
+          - VERSION="$(head -n1 build/version)"
+          - docker image load build/fiaas-deploy-daemon.tar
+          - docker tag fiaas/fiaas-deploy-daemon:"$VERSION" fiaas/fiaas-deploy-daemon:latest
+          - tox -e integration_test -- -n 2 --use-docker-for-e2e --e2e-k8s-version "$K8S_VERSION"
+        matrix:
+          # e2e tests are run vs. these Kubernetes version
+          - env_var: K8S_VERSION
+            values:
+              - v1.15.12
+              - v1.16.15
+              - v1.18.19
+              - v1.19.11
+              - v1.20.7
+              - v1.21.2
+              - v1.22.4
 # TODO: Keep these commented while testing out to avoid accidental promotion
 # promotions:
 #   - name: Push container image

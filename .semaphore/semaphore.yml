@@ -27,6 +27,7 @@ blocks:
         commands:
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          - export PATH="$PATH:$HOME/.local/bin"
           - pip install --user .[ci]
       jobs:
       - name: "Unit tests + docker build"

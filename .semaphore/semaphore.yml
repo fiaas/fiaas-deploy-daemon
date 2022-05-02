@@ -44,8 +44,8 @@ blocks:
     prologue:
       commands:
         - checkout
-        - pip install --user .[ci]
         - export PATH="$PATH:$HOME/.local/bin"
+        - pip install --user .[ci]
         - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
         - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
     jobs:
@@ -60,12 +60,12 @@ blocks:
           # e2e tests are run vs. these Kubernetes version
           - env_var: K8S_VERSION
             values:
-              - v1.15.12
-              - v1.16.15
-              - v1.18.19
-              - v1.19.11
-              - v1.20.7
-              - v1.21.2
+              # - v1.15.12
+              # - v1.16.15
+              # - v1.18.19
+              # - v1.19.11
+              # - v1.20.7
+              # - v1.21.2
               - v1.22.4
 # TODO: Keep these commented while testing out to avoid accidental promotion
 # promotions:

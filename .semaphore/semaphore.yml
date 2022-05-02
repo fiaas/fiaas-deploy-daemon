@@ -41,14 +41,14 @@ blocks:
   - name: "Run end-to-end tests"
     dependencies: ["Run unit tests, build container image"]
     task:
-    prologue:
-      commands:
-        - checkout
-        - export PATH="$PATH:$HOME/.local/bin"
-        - pip install --user .[ci]
-        - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
-        - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
-    jobs:
+      prologue:
+        commands:
+          - checkout
+          - export PATH="$PATH:$HOME/.local/bin"
+          - pip install --user .[ci]
+          - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
+          - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
+      jobs:
       - name: "e2e test"
         commands:
           # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:latest as the e2e test expects

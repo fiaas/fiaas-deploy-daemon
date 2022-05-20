@@ -1,0 +1,32 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.name }}-crd-manager
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.clusterRole.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.rbac.clusterRole.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.clusterRole.annotations | indent 4 }}
+{{- end }}
+rules:
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  resourceNames:
+  - applications.fiaas.schibsted.io
+  - application-statuses.fiaas.schibsted.io
+  verbs:
+  - get
+  - update
+- apiGroups:
+  - apiextensions.k8s.io
+  resources:
+  - customresourcedefinitions
+  verbs:
+  # create can't be restricted with resourceNames
+  - create
+  - list
+  - watch

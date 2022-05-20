@@ -13,8 +13,8 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: fiaas-deploy-daemon
+  name: {{ .Values.name }}
 subjects:
 - kind: ServiceAccount
-  name: fiaas-deploy-daemon
+  name: {{ .Values.name }}
   namespace: {{ .Release.Namespace }}

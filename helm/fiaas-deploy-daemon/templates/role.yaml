@@ -34,13 +34,10 @@ rules:
   - ""
   - apps
   - autoscaling
-  - apiextensions
-  - apiextensions.k8s.io
   - extensions
   - networking.k8s.io
   resources:
   - configmaps
-  - customresourcedefinitions
   - deployments
   - horizontalpodautoscalers
   - ingresses

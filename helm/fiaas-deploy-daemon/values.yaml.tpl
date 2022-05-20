@@ -33,6 +33,14 @@ rbac:
     create: true
     labels: {}
     annotations: {}
+  clusterRole:
+    create: true
+    labels: {}
+    annotations: {}
+  clusterRoleBinding:
+    create: true
+    labels: {}
+    annotations: {}
 
 labels:
   global: {}

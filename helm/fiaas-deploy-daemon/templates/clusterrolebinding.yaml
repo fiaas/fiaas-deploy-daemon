@@ -1,0 +1,20 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Values.name }}-crd-manager
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.clusterRoleBinding.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.rbac.clusterRoleBinding.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.clusterRoleBinding.annotations | indent 4 }}
+{{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{.Values.name}}-crd-manager
+subjects:
+- kind: ServiceAccount
+  name: {{.Values.name}}
+  namespace: {{ .Release.Namespace }}

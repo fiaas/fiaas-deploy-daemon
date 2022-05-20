@@ -25,10 +25,13 @@ spec:
       labels:
         {{ include "fiaas-deploy-daemon.labels" . | nindent 8 }}
         {{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.labels | indent 8 }}
-{{- if or .Values.annotations.global .Values.deployment.pod.annotations }}
+{{- if or .Values.annotations.global .Values.deployment.pod.annotations .Values.deployment.redeployOnConfigMapChange }}
       annotations:
         {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 8 }}
         {{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.deployment.pod.annotations | indent 8 }}
+        {{- if .Values.deployment.redeployOnConfigMapChange }}
+        checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- end }}
 {{- end }}
     spec:
       automountServiceAccountToken: true

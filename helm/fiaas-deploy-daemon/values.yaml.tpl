@@ -68,6 +68,7 @@ ingress:
 deployment:
   labels: {}
   annotations: {}
+  redeployOnConfigMapChange: true
   pod:
     labels: {}
     annotations:

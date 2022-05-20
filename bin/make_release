@@ -28,7 +28,7 @@ function update_chart_release_version() {
 function publish_helm_chart() {
     local release="$1"
 
-    update_chart_release_version "$RELEASE"
+    update_chart_release_version "$release"
     # helm package outputs 'Successfully packaged chart and saved it to: path/to/chart.tgz',
     # remove 'Successfully packaged ...' prefix to get path to chart tarball
     local helm_package_output

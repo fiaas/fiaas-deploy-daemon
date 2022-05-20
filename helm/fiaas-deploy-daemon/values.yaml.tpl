@@ -14,11 +14,11 @@ resources: {}
   #   memory: 128Mi
 
 configMap:
-     clusterConfig: |-
-       enable-crd-support: true
-       enable-service-account-per-app: true
-       use-networkingv1-ingress: true
-       use-apiextensionsv1-crd: true
+  clusterConfig: |-
+    enable-crd-support: true
+    enable-service-account-per-app: true
+    use-networkingv1-ingress: true
+    use-apiextensionsv1-crd: true
 
 rbac:
   serviceAccount:

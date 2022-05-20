@@ -84,4 +84,9 @@ tag_push_docker_image "$IMAGE_TARBALL" "${IMAGE}:$IMAGE_VERSION" "${IMAGE}:$RELE
 publish_helm_chart "$RELEASE"
 
 # create the github release
-gh release create --title "fiaas-deploy-daemon release $RELEASE" --notes-file build/release-notes
+gh release create \
+   --title "fiaas-deploy-daemon $RELEASE" \
+   --notes-file build/release-notes \
+   --generate-notes \
+   --prerelease \
+   "$RELEASE"

@@ -156,7 +156,7 @@ def pytest_xdist_make_scheduler(config, log):
 
 def pytest_addoption(parser):
     parser.addoption(DOCKER_FOR_E2E_OPTION, action="store_true",
-                     help="Run FDD using the latest docker container when executing E2E tests")
+                     help="Run FDD using the development container image when executing E2E tests")
     parser.addoption(E2E_K8S_VERSION_OPTION, action="store",
                      default="v1.22.4",
                      help="Run e2e tests against a kind cluster using this Kubernetes version")
@@ -183,7 +183,7 @@ def use_docker_for_e2e(request):
             # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert
             "--add-host", "kubernetes:{}".format(apiserver_ip),
         ]
-        return args + ["fiaas/fiaas-deploy-daemon:latest"]
+        return args + ["fiaas/fiaas-deploy-daemon:development"]
 
     if request.config.getoption(DOCKER_FOR_E2E_OPTION):
         return dockerize

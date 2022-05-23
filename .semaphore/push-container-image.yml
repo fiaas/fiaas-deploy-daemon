@@ -18,7 +18,7 @@ blocks:
           commands:
             - VERSION="$(head -n1 build/version)"
             - docker image load --input build/fiaas-deploy-daemon.tar
-            - docker image tag "fiaas/fiaas-deploy-daemon:$VERSION" fiaas/fiaas-deploy-daemon:latest
+            - docker image tag "fiaas/fiaas-deploy-daemon:$VERSION" fiaas/fiaas-deploy-daemon:development
             - docker push "fiaas/fiaas-deploy-daemon:$VERSION"
-            - docker push fiaas/fiaas-deploy-daemon:latest
+            - docker push fiaas/fiaas-deploy-daemon:development
 

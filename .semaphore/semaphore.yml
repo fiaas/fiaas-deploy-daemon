@@ -52,10 +52,10 @@ blocks:
       jobs:
       - name: "e2e test"
         commands:
-          # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:latest as the e2e test expects
+          # import the image from 'Docker build' as fiaas/fiaas-deploy-daemon:development as the e2e test expects
           - VERSION="$(head -n1 build/version)"
           - docker image load --input build/fiaas-deploy-daemon.tar
-          - docker tag fiaas/fiaas-deploy-daemon:"$VERSION" fiaas/fiaas-deploy-daemon:latest
+          - docker tag fiaas/fiaas-deploy-daemon:"$VERSION" fiaas/fiaas-deploy-daemon:development
           - tox -e integration_test -- -n 2 --use-docker-for-e2e --e2e-k8s-version "$K8S_VERSION"
         matrix:
           # e2e tests are run vs. these Kubernetes version

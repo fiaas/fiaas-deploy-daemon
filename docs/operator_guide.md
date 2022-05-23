@@ -318,21 +318,16 @@ Except where noted, FIAAS passes these values on to the collector without proces
 Role Based Access Control (rbac)
 --------------------------------
 
-When deploying FIAAS into an environment with RBAC enabled some additional steps are required for it to work.
-FIAAS Deploy Daemon needs to be authorized to provision and manage various resource types in order to be able to create and manage resources for applications that will be deployed.
+fiaas-deploy-daemon needs RBAC privileges to provision and manage various resource types in order to be able to create
+and manage resources for applications that will be deployed. The RBAC privileges required to deploy applications in a
+namespace can be seen in the [role.yaml](helm/fiaas-deploy-daemon/templates/role.yaml) helm template. By default
+fiaas-deploy-daemon also requires privileges to manage (create and update) the Application and ApplicationStatus
+CRDs. These privileges are defined in the
+[`clusterrole_crd_manager.yaml`](helm/fiaas-deploy-daemon/templates/clusterrole_crd_manager.yaml) helm template.
 
-By default FIAAS Deploy Daemon will be run using the default ServiceAccount in the namespace it is deployed to. That ServiceAccount needs to be bound to roles that provide the necessary permissions. Generally this would be defined as a ClusterRole and ClusterRoleBinding.
-
-Permissions:
-* `fiaas.schibsted.io`, `schibsted.io`
-  * `applications`, `application-statuses`: get, list, watch, create, delete, update
-* `apiextensions`, `apiextensions.k8s.io`
-  * `customresourcedefinitions`: get, list, watch, create, delete, update
-* `""` (core api)
-  * `services`, `configmaps`, `pods`, `resourcequotas`: get, list, watch, create, delete, update
-* `extensions`
-  * `ingresses`: get, list, watch, create, delete, update
-* `apps`
-  * `deployments`: get, list, watch, create, delete, update
-* `autoscaling`
-  * `horizontalpodautoscalers`: get, list, watch, create, delete, update
+When running many fiaas-deploy-daemon instances in different namespaces, you may want to consider having a single
+fiaas-deploy-daemon instance manage the Application and ApplicationStatus CRDs. This can can be done by setting the
+[`disable-crd-creation` flag](#disable-crd-creation) on all but the one fiaas-deploy-daemon instance that should
+manage the CRDs. If you use the helm chart to manage RBAC resources for fiaas-deploy-daemon you can then also disable
+creation of the clusterrole and associated clusterrolebinding for the instances with the `disable-crd-creation` flag
+set by setting the `rbac.clusterRole.create` and `rbac.clusterRole.create` flags to false.

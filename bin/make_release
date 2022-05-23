@@ -15,13 +15,17 @@ IMAGE_VERSION="$(head -n1 build/version)"
 
 function update_chart_release_version() {
     local release="$1"
+    # strip the `v` prefix of the tag name: the `version` key in Chart.yaml must be valid semver 2.0.0
+    local chart_version="${release##v}"
 
     for file in Chart.yaml.tpl values.yaml.tpl; do
         local template_path="helm/fiaas-deploy-daemon/$file"
         local result_path="helm/fiaas-deploy-daemon/${file%%.tpl}" # remove .tpl suffix
-        # '$RELEASE_VERSION' not supposed to be expanded below; it tells envsubst to substitute that variable only
+        # '$RELEASE_VERSION' and '$CHART_VERSION' not supposed to be expanded below; it tells envsubst to substitute
+        # those variables only
         # shellcheck disable=SC2016
-        RELEASE_VERSION="$release" envsubst '$RELEASE_VERSION' < "$template_path" > "$result_path"
+        RELEASE_VERSION="$release" CHART_VERSION="$chart_version" \
+                       envsubst '$RELEASE_VERSION $CHART_VERSION' < "$template_path" > "$result_path"
     done
 }
 

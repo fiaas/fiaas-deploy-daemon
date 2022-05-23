@@ -331,3 +331,51 @@ fiaas-deploy-daemon instance manage the Application and ApplicationStatus CRDs. 
 manage the CRDs. If you use the helm chart to manage RBAC resources for fiaas-deploy-daemon you can then also disable
 creation of the clusterrole and associated clusterrolebinding for the instances with the `disable-crd-creation` flag
 set by setting the `rbac.clusterRole.create` and `rbac.clusterRole.create` flags to false.
+
+Migrating from using skipper to using the helm chart to deploy fiaas-deploy-daemon
+----------------------------------------------------------------------------------
+
+### Skipper is deprecated
+
+Deploying fiaas-deploy-daemon via [skipper](https://github.com/fiaas/skipper) is deprecated. See issue #163 for some
+background and discussion on this topic. If you are using skipper, you should consider switching to using the
+fiaas-deploy-daemon helm chart to deploy fiaas-deploy-daemon directly.
+
+You can install the latest release of fiaas-deploy-daemon with the default configuration by with helm.
+
+```shell
+helm repo add fiaas https://fiaas.github.io/helm
+helm install fiaas/fiaas-deploy-daemon
+```
+Most likely you'll want to modify some of the default configuration. Take a look at the default values for the release
+you're using.
+
+### Migrating to deploying fiaas-deploy-daemon with helm
+
+The steps required for migrating from skipper to the fiaas-deploy-daemon helm chart will vary depending on your
+setup. The description below is kept at a high level and should only be considered rough guidance and not a complete
+description of the required steps; use at your own risk.
+
+Preparation:
+For each namespace fiaas-deploy-daemon is currently deployed in via skipper:
+- Ensure you have a set of helm values that will result in configuration for fiaas-deploy-daemon which is the same as
+  your currently live configuration.
+
+Migration process:
+- Stop and uninstall skipper. If the `rbac.enableFIAASController` helm value is enabled in skipper (the default),
+  uninstalling the skipper helm chart will remove the privileges needed for fiaas-deploy-daemon to deploy applications
+  and manage its CRDs. It won't be possible to deploy applications until fiaas-deploy-daemon is uninstalled and then
+  installed again via the helm chart in each namespace.
+
+For each namespace fiaas-deploy-daemon is currently deployed in via skipper:
+- Delete the Application resource named fiaas-deploy-daemon. This should uninstall fiaas-deploy-daemon in the namespace.
+  It won't be possible to deploy applications until fiaas-deploy-daemon is installed again via the helm chart.
+- If there is a fiaas-deploy-daemon serviceaccount, role and rolebinding in the namespace, and these are managed by
+  skipper, and you want to use the fiaas-deploy-daemon helm chart to manage RBAC for fiaas-deploy-daemon, these
+  resources can be deleted. The helm chart will re-create the serviceaccount, role and rolebinding. The role and
+  rolebinding is created by skipper when it deploys fiaas-deploy-daemon and `enable-service-account-per-app` is enabled
+  in the fiaas-deploy-daemon configmap in that namespace.
+- Install fiaas-deploy-daemon via the helm chart.
+- Delete the fiaas-deploy-daemon-bootstrap pod (if any). Skipper uses this pod to bootstrap fiaas-deploy-daemon into a
+  namespace it isn't currently running in. Usually there is just a one-off pod in the `Completed` state, which can be
+  deleted.

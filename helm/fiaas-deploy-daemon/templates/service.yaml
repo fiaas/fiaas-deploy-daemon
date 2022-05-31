@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.name }}
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.service.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.service.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.service.annotations | indent 4 }}
+{{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .Values.name }}

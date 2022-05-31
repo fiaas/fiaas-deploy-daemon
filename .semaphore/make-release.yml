@@ -29,7 +29,6 @@ blocks:
         commands:
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
-          - gh auth login --with-token <<< "${GITHUB_TOKEN}"
           - gh auth setup-git
           - git config --global user.email "semaphore@example.org"
           - git config --global user.name "Semaphore CI"

@@ -78,9 +78,14 @@ if [[ "${CI:-false}" != "true" ]]; then
     exit 1
 fi
 
+if ! git rev-parse --quiet --tags "refs/tags/${RELEASE}" &> /dev/null; then
+    echo "git tag ${RELEASE} does not exist, can't create release";
+    exit 2
+fi
+
 if gh release view "$RELEASE" &> /dev/null; then
     echo "The github release $RELEASE already exists, can't overwrite a existing release"
-    exit 2
+    exit 3
 fi
 
 # get release notes from the content of the annotated release tag

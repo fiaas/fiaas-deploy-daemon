@@ -46,14 +46,16 @@ function publish_helm_chart() {
     git clone https://github.com/fiaas/helm "$helm_repo_dir"
     mv "$chart_tarball" "$helm_repo_dir"/
 
+    local chart_tarball_filename
+    chart_tarball_filename="$(basename "$chart_tarball")"
     pushd "$helm_repo_dir"
     helm repo index . --url https://fiaas.github.io/helm/
-    git add .
-    git commit -a -m "Release fiaas-deploy-daemon ${release}"
-    git push "https://${GITHUBKEY}@github.com/fiaas/helm"
+    git add index.yaml "$chart_tarball_filename"
+    git commit -m "Release fiaas-deploy-daemon ${release}"
+    git push origin master
     popd
 
-    echo "Published helm chart $chart_tarball"
+    echo "Published helm chart $chart_tarball_filename"
 }
 
 function tag_push_docker_image() {

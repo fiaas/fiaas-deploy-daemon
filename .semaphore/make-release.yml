@@ -23,12 +23,16 @@ blocks:
   - name: Make release for fiaas-deploy-daemon
     task:
       secrets:
-        # TODO: gh release needs a github token
+        - name: github-fiaas-deploy-daemon-release
         - name: docker
       prologue:
         commands:
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          - gh auth login --with-token <<< "${GITHUB_TOKEN}"
+          - gh auth setup-git
+          - git config --global user.email "semaphore@example.org"
+          - git config --global user.name "Semaphore CI"
           - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
       jobs:
         - name: Make a new release for a git tag

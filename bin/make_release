@@ -24,6 +24,7 @@ function update_chart_release_version() {
         # '$RELEASE_VERSION' and '$CHART_VERSION' not supposed to be expanded below; it tells envsubst to substitute
         # those variables only
         # shellcheck disable=SC2016
+        echo "Setting RELEASE_VERSION=${release} CHART_VERSION=${chart_version} in $result_path"
         RELEASE_VERSION="$release" CHART_VERSION="$chart_version" \
                        envsubst '$RELEASE_VERSION $CHART_VERSION' < "$template_path" > "$result_path"
     done

@@ -68,13 +68,12 @@ blocks:
               - v1.20.7
               - v1.21.2
               - v1.22.4
-# TODO: Keep these commented while testing out to avoid accidental promotion
-# promotions:
-#   - name: Push container image
-#     pipeline_file: push-container-image.yml
-#     auto_promote:
-#       when: "result = 'passed' and branch = 'master'"
-#   - name: Release fiaas-deploy-daemon
-#     pipeline_file: make-release.yml
-#     auto_promote:
-#       when: "result = 'passed' and tag =~ '^v\d+\.\d+\.\d+'"
+promotions:
+  - name: Push container image
+    pipeline_file: push-container-image.yml
+    auto_promote:
+      when: result = 'passed' and branch = 'master'
+  - name: Release fiaas-deploy-daemon
+    pipeline_file: make-release.yml
+    auto_promote:
+      when: result = 'passed' and tag =~ '^v\d+\.\d+\.\d+'

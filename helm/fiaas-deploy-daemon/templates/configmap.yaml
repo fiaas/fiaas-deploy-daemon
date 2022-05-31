@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.name }}
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.configMap.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.configMap.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.configMap.annotations | indent 4 }}
+{{- end }}
+data:
+  cluster_config.yaml: {{ .Values.configMap.clusterConfig | quote }}

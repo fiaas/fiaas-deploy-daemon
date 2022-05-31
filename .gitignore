@@ -130,3 +130,5 @@ Temporary Items
 *.swp
 
 .wheel_cache
+/helm/fiaas-deploy-daemon/values.yaml
+/helm/fiaas-deploy-daemon/Chart.yaml

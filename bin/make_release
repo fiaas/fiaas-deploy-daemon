@@ -1,0 +1,98 @@
+#!/usr/bin/env bash
+set -euo pipefail
+# `make_release TAG` creates a Github release for git tag TAG
+
+cd "$(git rev-parse --show-toplevel)"
+
+# the first parameter should be the name of an annotated tag in the git repo
+RELEASE="$1"
+IMAGE=fiaas/fiaas-deploy-daemon
+# the following files under build/ are artifacts expected to be created by the initial build stage
+# the container image tarball
+IMAGE_TARBALL=build/fiaas-deploy-daemon.tar
+# contains the container image version as a single line
+IMAGE_VERSION="$(head -n1 build/version)"
+
+function update_chart_release_version() {
+    local release="$1"
+    # strip the `v` prefix of the tag name: the `version` key in Chart.yaml must be valid semver 2.0.0
+    local chart_version="${release##v}"
+
+    for file in Chart.yaml.tpl values.yaml.tpl; do
+        local template_path="helm/fiaas-deploy-daemon/$file"
+        local result_path="helm/fiaas-deploy-daemon/${file%%.tpl}" # remove .tpl suffix
+        # '$RELEASE_VERSION' and '$CHART_VERSION' not supposed to be expanded below; it tells envsubst to substitute
+        # those variables only
+        # shellcheck disable=SC2016
+        RELEASE_VERSION="$release" CHART_VERSION="$chart_version" \
+                       envsubst '$RELEASE_VERSION $CHART_VERSION' < "$template_path" > "$result_path"
+    done
+}
+
+function publish_helm_chart() {
+    local release="$1"
+
+    update_chart_release_version "$release"
+    # helm package outputs 'Successfully packaged chart and saved it to: path/to/chart.tgz',
+    # remove 'Successfully packaged ...' prefix to get path to chart tarball
+    local helm_package_output
+    helm_package_output="$(helm package helm/fiaas-deploy-daemon)"
+    local chart_tarball="${helm_package_output##Successfully packaged chart and saved it to: }"
+
+    local helm_repo_dir
+    helm_repo_dir="$(mktemp -d)"
+    trap 'rm -rf $helm_repo_dir' RETURN
+
+    git clone https://github.com/fiaas/helm "$helm_repo_dir"
+    mv "$chart_tarball" "$helm_repo_dir"/
+
+    local chart_tarball_filename
+    chart_tarball_filename="$(basename "$chart_tarball")"
+    pushd "$helm_repo_dir"
+    helm repo index . --url https://fiaas.github.io/helm/
+    git add index.yaml "$chart_tarball_filename"
+    git commit -m "Release fiaas-deploy-daemon ${release}"
+    git push origin master
+    popd
+
+    echo "Published helm chart $chart_tarball_filename"
+}
+
+function tag_push_docker_image() {
+    local tarball="$1"
+    local version_tag="$2"
+    local release_tag="$3"
+
+    docker image load --input "$tarball"
+    docker tag fiaas/fiaas-deploy-daemon:"${version_tag}" "$release_tag"
+
+    docker push "$version_tag"
+    echo "Pushed image $version_tag"
+    docker push "$release_tag"
+    echo "Pushed image $release_tag"
+}
+
+if [[ "${CI:-false}" != "true" ]]; then
+    echo "$0 is intended to run only in CI, run CI=true $0 to override"
+    exit 1
+fi
+
+if gh release view "$RELEASE" &> /dev/null; then
+    echo "The github release $RELEASE already exists, can't overwrite a existing release"
+    exit 2
+fi
+
+# get release notes from the content of the annotated release tag
+git tag --list --format='%(contents)' "$RELEASE" > build/release-notes
+
+# publish artifacts
+tag_push_docker_image "$IMAGE_TARBALL" "${IMAGE}:$IMAGE_VERSION" "${IMAGE}:$RELEASE"
+publish_helm_chart "$RELEASE"
+
+# create the github release
+gh release create \
+   --title "fiaas-deploy-daemon $RELEASE" \
+   --notes-file build/release-notes \
+   --generate-notes \
+   --prerelease \
+   "$RELEASE"

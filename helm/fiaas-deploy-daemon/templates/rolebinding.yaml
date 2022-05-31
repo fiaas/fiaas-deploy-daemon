@@ -1,0 +1,22 @@
+{{- if .Values.rbac.roleBinding.create -}}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.name }}
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.roleBinding.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.rbac.roleBinding.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.rbac.roleBinding.annotations | indent 4 }}
+{{- end }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Values.name }}
+subjects:
+- kind: ServiceAccount
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+{{- end }}

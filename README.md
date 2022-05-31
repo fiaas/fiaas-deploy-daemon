@@ -151,15 +151,9 @@ The default values, and explanation of their meaning are available at `/defaults
 running instance.
 
 
-Release process
+Release Process
 ---------------
 
-When changes are merged to master the master branch is built using [Semaphore CI](https://semaphoreci.com). The build generates a docker image that is published to the [fiaas/fiaas-deploy-daemon](https://hub.docker.com/r/fiaas/fiaas-deploy-daemon) repository on Docker Hub and is publicly available.
+Successful CI builds of the `master` branch will push a container image to `fiaas/fiaas-deploy-daemon:$timestamp-$commit_ref` and `fiaas/fiaas-deploy-daemon:development`. As the `development` tag's name suggests, it is primarily intended for testing. Do not use this container image tag in production. Refer to the [releases section](releases) section in Github to find the most recent stable release.
 
-Additionally as part of the master build process jobs for updating release channels for fiaas-deploy-daemon are executed. Release channels are used by [Skipper](https://github.com/fiaas/skipper) to manage FIAAS in a given cluster and it uses metadata from the release channels to determine which version of fiaas-deploy-daemon to install and when to upgrade as new versions become available.
-
-Release channels are available via [Github pages](https://fiaas.github.io/releases) and metadata is source controlled in a [Github repository](https://github.com/fiaas/releases).
-
-When the master branch is built successfully the `latest` release channel is updated with references to the docker image, build and commit for tracability.  The job for updating the `latest` release channel will persist the release metadata to the releases repository.
-
-Similarly a job for updating the `stable` release channel is now pending but requires manual judgement and execution by a maintainer of the FIAAS organization for the release to be promoted to stable and the `stable` release channel to be updated.
+Refer to [Creating a Release](docs/developing.md#Creating-a-Release) for how to create a new release version.

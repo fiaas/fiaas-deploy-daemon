@@ -96,4 +96,5 @@ gh release create \
    --notes-file build/release-notes \
    --generate-notes \
    --prerelease \
+   --draft \
    "$RELEASE"

@@ -64,7 +64,7 @@ function tag_push_docker_image() {
     local release_tag="$3"
 
     docker image load --input "$tarball"
-    docker tag fiaas/fiaas-deploy-daemon:"${version_tag}" "$release_tag"
+    docker tag "${version_tag}" "$release_tag"
 
     docker push "$version_tag"
     echo "Pushed image $version_tag"

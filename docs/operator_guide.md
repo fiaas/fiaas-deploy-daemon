@@ -365,7 +365,10 @@ Migration process:
 - Stop and uninstall skipper. If the `rbac.enableFIAASController` helm value is enabled in skipper (the default),
   uninstalling the skipper helm chart will remove the privileges needed for fiaas-deploy-daemon to deploy applications
   and manage its CRDs. It won't be possible to deploy applications until fiaas-deploy-daemon is uninstalled and then
-  installed again via the helm chart in each namespace.
+  installed again via the helm chart in each namespace. The clusterrole created when `rbac.enableFIAASController` is
+  enabled is quite permissive and is bound to `system:serviceaccounts` by default, so if that flag is enabled in your
+  setup it can be a good idea to verify that no other workloads rely on privileges granted by that RBAC configuration
+  before uninstalling skipper completely.
 
 For each namespace fiaas-deploy-daemon is currently deployed in via skipper:
 - Delete the Application resource named fiaas-deploy-daemon. This should uninstall fiaas-deploy-daemon in the namespace.
@@ -379,3 +382,51 @@ For each namespace fiaas-deploy-daemon is currently deployed in via skipper:
 - Delete the fiaas-deploy-daemon-bootstrap pod (if any). Skipper uses this pod to bootstrap fiaas-deploy-daemon into a
   namespace it isn't currently running in. Usually there is just a one-off pod in the `Completed` state, which can be
   deleted.
+
+### Update fiaas-deploy-daemon version with skipper in "no-channel" mode
+
+*The process described below is deprecated along with skipper, but should work until the fiaas-deploy-daemon-bootstrap
+entrypoint in fiaas-deploy-daemon is removed. It is documented here mainly as a potential temporary workaround; do not
+rely on this configuration as a long-term solution.*
+
+It is possible to configure skipper in a "no-channel" mode to be able to update fiaas-deploy-daemon if you are unable to
+complete the above migration first. In this mode the container image reference and fiaas.yml used to deploy any
+fiaas-deploy-daemon in configured namespaces is explicitly configured at the skipper level. Skipper will not read the
+`latest` and `stable` tags from the release repo, and will ignore the `tag` key set on fiaas-deploy-daemon
+configmaps. Skipper will use the configured container image reference for all fiaas-deploy-daemon instances in the
+cluster; it is not possible to specify different images for different fiaas-deploy-daemon instances.
+
+To set up this configuration, specify the helm configuration values [`releaseChannelMetadata` and
+`releaseChannelMetadataSpecContentAsYAML`](https://github.com/fiaas/skipper/blob/master/helm/fiaas-skipper/values.yaml#L64-L76)
+when configuring skipper.
+
+This example shows the mentioned values configured with the version the stable tag points to at the time of writing:
+```yaml
+releaseChannelMetadata:
+  # This is the container image that will be used to run fiaas-deploy-daemon
+  image: "fiaas/fiaas-deploy-daemon:20220307131421-31f12b3"
+  # This file will contain the content of `releaseChannelMetadataSpecContentAsYAML`
+  spec: "/var/run/config/fiaas/release_channel_metadata_spec_fiaas.yaml"
+# The following is the fiaas.yml used by fiaas-deploy-daemon to deploy itself, copied from the `.spec` key of
+# https://github.com/fiaas/releases/blob/master/fiaas-deploy-daemon/stable.json. Change it to suit your requirements
+# if necessary.
+releaseChannelMetadataSpecContentAsYAML: |-
+  version: 3
+  admin_access: true
+  replicas:
+    maximum: 1
+    minimum: 1
+  resources:
+    requests:
+      memory: 128Mi
+  ports:
+    - target_port: 5000
+  healthchecks:
+    liveness:
+      http:
+        path: /healthz
+  metrics:
+    prometheus:
+      path: /internal-backstage/prometheus
+
+```

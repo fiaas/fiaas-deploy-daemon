@@ -187,16 +187,3 @@ def _open():
     with mock.patch("__builtin__.open") as mock_open:
         mock_open.side_effect = _mock_namespace_file_open
         yield mock_open
-
-
-@pytest.fixture(scope="session", params=(
-    "v1.15.12",
-    "v1.16.15",
-    "v1.18.19",
-    "v1.19.11",
-    "v1.20.7",
-    "v1.21.2",
-    pytest.param("v1.22.4", marks=pytest.mark.e2e_latest)
-))
-def k8s_version(request):
-    yield request.param

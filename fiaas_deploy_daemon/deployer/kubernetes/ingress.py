@@ -24,6 +24,9 @@ from itertools import chain
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
+from k8s.models.secret import Secret
+from k8s.models.common import ObjectMeta
+from k8s.client import NotFound
 
 LOG = logging.getLogger(__name__)
 
@@ -54,11 +57,63 @@ class IngressDeployer(object):
 
         ingresses = self._group_ingresses(app_spec)
 
-        LOG.info("Will create %s ingresses", len(ingresses))
+        # Read K8s Ingress
+        # k get ing -n <app_spec.namespace> -l app=<app_spec.name>
+        k8s_ingresses = self._ingress_adapter.find(app_spec.name, app_spec.namespace)
+
+        LOG.info("Found ingresses: %d", len(k8s_ingresses))
+
+        #get actual secret names
+        hosts_map = {}
+        for k8s_ingress in k8s_ingresses:
+            for tls_obj in k8s_ingress.spec.tls:
+                if tls_obj.secretName:
+                    LOG.info("hosts list: %s", tls_obj.hosts)
+                    for host_item in tls_obj.hosts:
+                        hostname = host_item.strip()
+                        LOG.info("A host: %s", hostname)
+                        hosts_map[hostname] = tls_obj.secretName
+                        LOG.info("Creating entry for secret %s, host %s", tls_obj.secretName, hostname)
+        LOG.info("Hosts map size: %d", len(hosts_map))
+
+        LOG.info("Will create %d ingresses", len(ingresses))
         for annotated_ingress in ingresses:
+            LOG.info("Ingress to create: %s", annotated_ingress.name)
+
             if len(annotated_ingress.ingress_items) == 0:
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
+
+            # Check if secret exists: Secret.find(name, namespace, labels)
+            try:
+                found_secret = Secret.get("{}-ingress-tls".format(annotated_ingress.name), app_spec.namespace)
+            except NotFound:
+                found_secret = None
+            
+            LOG.info("Found secrets %s", found_secret)
+
+            # if not exists, add Secret
+            if len(hosts_map) > 0 and not found_secret:
+                for ingress_item in annotated_ingress.ingress_items:
+                    secretName = hosts_map[ingress_item.host]
+                    LOG.info("Checking secret %s for host %s", secretName, ingress_item.host)
+                    if secretName:
+                        try:
+                            old_secret = Secret.get(secretName, app_spec.namespace)
+                        except NotFound:
+                            old_secret = None
+                        LOG.info("found secret %s = %s", secretName, old_secret)
+                        if old_secret:
+                            LOG.info("Creating secret for %s", annotated_ingress.name)
+                            new_metadata = ObjectMeta(
+                                annotations=old_secret.metadata.annotations,
+                                labels=old_secret.metadata.labels, 
+                                name="{}-ingress-tls".format(annotated_ingress.name),
+                                namespace=old_secret.metadata.namespace
+                            )
+                            new_secret = Secret(metadata=new_metadata, data=old_secret.data, type=old_secret.type)
+                            LOG.info("Created secret %s", new_secret)
+                            new_secret.save()
 
             self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
 

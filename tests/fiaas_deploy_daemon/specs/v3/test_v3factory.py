@@ -381,15 +381,6 @@ class TestFactory(object):
         assert app_spec.image == IMAGE
 
     @pytest.mark.parametrize("filename", (
-            "autoscaling_max_less_than_min",
-    ))
-    def test_autoscaling_max_less_than_min(self, load_app_config_testdata, factory, filename):
-        app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
-                           None, None)
-        assert app_spec.autoscaler.min_replicas == TEST_DATA[filename]["autoscaler.min_replicas"]
-        assert app_spec.autoscaler.max_replicas == TEST_DATA[filename]["autoscaler.max_replicas"]
-
-    @pytest.mark.parametrize("filename", (
             "invalid_no_health_check_defined_http",
             "invalid_no_health_check_defined_tcp",
             "invalid_ingress_port_number",

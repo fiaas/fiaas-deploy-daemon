@@ -84,7 +84,7 @@ class IngressDeployer(object):
 
         ingresses = self._group_ingresses(app_spec)
 
-        hosts_map = self._list_secrets(app_spec)
+        hosts_map = self._map_hostnames_to_certificate_secrets(app_spec)
 
         LOG.info("Will create %d ingresses", len(ingresses))
         for annotated_ingress in ingresses:
@@ -103,7 +103,7 @@ class IngressDeployer(object):
                     for ingress_item in annotated_ingress.ingress_items:
                         secret_name = hosts_map[ingress_item.host]
                         if secret_name:
-                            self._create_secret(secret_name, new_name, app_spec)
+                            self._copy_secret(secret_name, new_name, app_spec)
                             break
 
             self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
@@ -224,8 +224,10 @@ def deduplicate_in_order(iterator):
             yield item
             seen.add(item)
 
+
 def tls_ingress_secret_name(ingress_name):
     return "{}-ingress-tls".format(ingress_name)
+
 
 class IngressTLSDeployer(object):
     def __init__(self, config, ingress_tls):

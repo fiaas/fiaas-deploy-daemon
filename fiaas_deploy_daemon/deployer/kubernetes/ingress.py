@@ -51,7 +51,7 @@ class IngressDeployer(object):
         LOG.info("Deleting ingresses for %s", app_spec.name)
         self._ingress_adapter.delete_list(app_spec)
 
-    def _list_secrets(self, app_spec):
+    def _map_hostnames_to_certificate_secrets(self, app_spec):
         k8s_ingresses = self._ingress_adapter.find(app_spec)
 
         hosts_map = {}
@@ -63,7 +63,7 @@ class IngressDeployer(object):
                         hosts_map[hostname] = tls_obj.secretName
         return hosts_map
 
-    def _create_secret(self, secret_name, new_name, app_spec):
+    def _copy_secret(self, secret_name, new_name, app_spec):
         try:
             old_secret = Secret.get(secret_name, app_spec.namespace)
         except NotFound:
@@ -93,7 +93,7 @@ class IngressDeployer(object):
                 continue
 
             if len(hosts_map) > 0:
-                new_name = "{}-ingress-tls".format(annotated_ingress.name)
+                new_name = tls_ingress_secret_name(annotated_ingress.name)
                 try:
                     found_secret = Secret.get(new_name, app_spec.namespace)
                 except NotFound:
@@ -224,6 +224,8 @@ def deduplicate_in_order(iterator):
             yield item
             seen.add(item)
 
+def tls_ingress_secret_name(ingress_name):
+    return "{}-ingress-tls".format(ingress_name)
 
 class IngressTLSDeployer(object):
     def __init__(self, config, ingress_tls):
@@ -258,7 +260,7 @@ class IngressTLSDeployer(object):
                 # as the user doesn't control it we should generate a host we know will fit
                 hosts = self._collapse_hosts(app_spec, hosts)
 
-            ingress.spec.tls.append(self.ingress_tls(hosts=hosts, secretName="{}-ingress-tls".format(ingress.metadata.name)))
+            ingress.spec.tls.append(self.ingress_tls(hosts=hosts, secretName=tls_ingress_secret_name(ingress.metadata.name)))
 
     def _collapse_hosts(self, app_spec, hosts):
         """The first hostname in the list will be used as Common Name in the certificate"""

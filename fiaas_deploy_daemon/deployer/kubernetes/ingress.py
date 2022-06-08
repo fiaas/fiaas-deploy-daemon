@@ -52,7 +52,7 @@ class IngressDeployer(object):
         self._ingress_adapter.delete_list(app_spec)
 
     def _list_secrets(self, app_spec):
-        k8s_ingresses = self._ingress_adapter.find(app_spec.name, app_spec.namespace)
+        k8s_ingresses = self._ingress_adapter.find(app_spec)
 
         hosts_map = {}
         for k8s_ingress in k8s_ingresses:

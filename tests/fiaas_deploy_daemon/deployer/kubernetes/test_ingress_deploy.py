@@ -16,8 +16,10 @@
 # limitations under the License.
 import mock
 import pytest
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressTLS
+from k8s.models.secret import Secret
 from mock import create_autospec, Mock
 from requests import Response
 
@@ -699,6 +701,57 @@ class TestIngressDeployer(object):
                 host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
                 assert ingress_tls_deployer.apply.call_count == 3
                 assert expected_host_groups == sorted(host_groups)
+
+    def test_copy_secrets_on_create(self, config, delete, deployer, app_spec):
+        host1 = "extra1.example.com"
+        host2 = "extra2.example.com"
+        config.use_ingress_tls = "default_on"
+        app_spec.ingresses[:] = [
+            IngressItemSpec(host=host1, pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
+                            annotations={"some/annotation": "some-value"}),
+            IngressItemSpec(host=host2, pathmappings=[IngressPathMappingSpec(path="/_/ipblocked", port=8000)],
+                            annotations={})
+        ]
+
+        old_name = "test-app"
+        old_metadata =  pytest.helpers.create_metadata(old_name, labels=LABELS, annotations=ANNOTATIONS)
+        old_ingress = Ingress(metadata=(old_metadata))
+        old_ingress.spec.tls = [IngressTLS(hosts=[host1, host2], secretName="{}-ingress-tls".format(old_name))]
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            find.return_value = [old_ingress]
+            with mock.patch("k8s.models.secret.Secret.get") as get:
+                # mock.Secret.get => if params == old => 200 ,else 404
+                def response_200(data):
+                    mock_response = mock.create_autospec(Response)
+                    mock_response.status_code = 200
+                    mock_response.json.return_value = data
+                    return mock_response
+
+                def _create_secret():
+                    mock_secret = mock.create_autospec(Secret)
+                    new_metadata = ObjectMeta(
+                        annotations={},
+                        labels={},
+                        name="first-ingress-tls",
+                        namespace="default"
+                    )
+                    new_data = {
+                        'username': 'YWRtaW4='
+                    }
+                    new_secret = Secret(metadata=new_metadata, data=new_data, type="Opaque")
+
+                    data = new_secret.as_dict()
+                    mock_secret.get.return_value = response_200(data)
+                    return mock_secret
+
+                get.side_effect = iter([NotFound(), _create_secret(),NotFound(), _create_secret()])
+                with mock.patch("k8s.models.secret.Secret.save") as save:
+                    save.return_value = response_200({})
+                    with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+                        get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+                        deployer.deploy(app_spec, LABELS)
+                    assert save.call_count == 2
+                delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
 
 class TestIngressTLSDeployer(object):

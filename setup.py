@@ -47,7 +47,7 @@ WEB_REQ = [
 ]
 
 DEPLOY_REQ = [
-    "requests == 2.22.0",
+    "requests == 2.27.1",
     "ipaddress == 1.0.22"  # Required by requests for resolving IP address in SSL cert
 ]
 

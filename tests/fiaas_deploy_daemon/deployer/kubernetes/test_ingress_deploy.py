@@ -714,7 +714,7 @@ class TestIngressDeployer(object):
         ]
 
         old_name = "test-app"
-        old_metadata =  pytest.helpers.create_metadata(old_name, labels=LABELS, annotations=ANNOTATIONS)
+        old_metadata = pytest.helpers.create_metadata(old_name, labels=LABELS, annotations=ANNOTATIONS)
         old_ingress = Ingress(metadata=(old_metadata))
         old_ingress.spec.tls = [IngressTLS(hosts=[host1, host2], secretName="{}-ingress-tls".format(old_name))]
         with mock.patch("k8s.models.ingress.Ingress.find") as find:
@@ -744,7 +744,7 @@ class TestIngressDeployer(object):
                     mock_secret.get.return_value = response_200(data)
                     return mock_secret
 
-                get.side_effect = iter([NotFound(), _create_secret(),NotFound(), _create_secret()])
+                get.side_effect = iter([NotFound(), _create_secret(), NotFound(), _create_secret()])
                 with mock.patch("k8s.models.secret.Secret.save") as save:
                     save.return_value = response_200({})
                     with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:

@@ -24,6 +24,9 @@ from itertools import chain
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 from collections import namedtuple
+from k8s.models.secret import Secret
+from k8s.models.common import ObjectMeta
+from k8s.client import NotFound
 
 LOG = logging.getLogger(__name__)
 
@@ -48,17 +51,60 @@ class IngressDeployer(object):
         LOG.info("Deleting ingresses for %s", app_spec.name)
         self._ingress_adapter.delete_list(app_spec)
 
+    def _list_secrets(self, app_spec):
+        k8s_ingresses = self._ingress_adapter.find(app_spec)
+
+        hosts_map = {}
+        for k8s_ingress in k8s_ingresses:
+            for tls_obj in k8s_ingress.spec.tls:
+                if tls_obj.secretName:
+                    for host_item in tls_obj.hosts:
+                        hostname = host_item.strip()
+                        hosts_map[hostname] = tls_obj.secretName
+        return hosts_map
+
+    def _create_secret(self, secret_name, new_name, app_spec):
+        try:
+            old_secret = Secret.get(secret_name, app_spec.namespace)
+        except NotFound:
+            old_secret = None
+        if old_secret:
+            new_metadata = ObjectMeta(
+                annotations=old_secret.metadata.annotations,
+                labels=old_secret.metadata.labels,
+                name=new_name,
+                namespace=old_secret.metadata.namespace
+            )
+            new_secret = Secret(metadata=new_metadata, data=old_secret.data, type=old_secret.type)
+            new_secret.save()
+
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
 
         ingresses = self._group_ingresses(app_spec)
 
-        LOG.info("Will create %s ingresses", len(ingresses))
+        hosts_map = self._list_secrets(app_spec)
+
+        LOG.info("Will create %d ingresses", len(ingresses))
         for annotated_ingress in ingresses:
             if len(annotated_ingress.ingress_items) == 0:
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
+
+            if len(hosts_map) > 0:
+                new_name = "{}-ingress-tls".format(annotated_ingress.name)
+                try:
+                    found_secret = Secret.get(new_name, app_spec.namespace)
+                except NotFound:
+                    found_secret = None
+
+                if not found_secret:
+                    for ingress_item in annotated_ingress.ingress_items:
+                        secret_name = hosts_map[ingress_item.host]
+                        if secret_name:
+                            self._create_secret(secret_name, new_name, app_spec)
+                            break
 
             self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
 

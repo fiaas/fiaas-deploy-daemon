@@ -88,3 +88,6 @@ class NetworkingV1IngressAdapter(object):
             for pm in deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
+
+    def find(self, name, namespace, labels=None):
+        return Ingress.find(name, namespace, labels)

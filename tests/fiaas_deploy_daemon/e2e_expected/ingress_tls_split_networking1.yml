@@ -12,19 +12,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   annotations:
     fiaas/expose: "true"
     certmanager.k8s.io/cluster-issuer: "myissuer"
-    foo: "bar"
   labels:
     app: v3-data-examples-tls-ingress-split-with-secrets
     fiaas/deployed_by: ""
     fiaas/deployment_id: DEPLOYMENT_ID
     fiaas/version: VERSION
-  name: v3-data-examples-tls-ingress-split-with-secrets-1
+  name: v3-data-examples-tls-ingress-split-with-secrets
   namespace: default
   ownerReferences:
     - apiVersion: fiaas.schibsted.io/v1
@@ -36,13 +35,28 @@ metadata:
 spec:
   tls:
   - hosts:
-      - internal.example.com
-    secretName: v3-data-examples-tls-ingress-split-with-secrets-1-ingress-tls
+      - ueewhl7hozm2tydsnnsuajcr2qdverpa.svc.test.example.com
+      - www.example.com
+      - v3-data-examples-tls-ingress-split-with-secrets.svc.test.example.com
+    secretName: v3-data-examples-tls-ingress-split-with-secrets-ingress-tls
   rules:
-  - host: internal.example.com
+  - host: www.example.com
     http:
       paths:
-      - backend:
-          serviceName: v3-data-examples-tls-ingress-split-with-secrets
-          servicePort: '80'
-        path: /
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: v3-data-examples-tls-ingress-split-with-secrets
+            port: 
+              number: 80
+  - host: v3-data-examples-tls-ingress-split-with-secrets.svc.test.example.com
+    http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: v3-data-examples-tls-ingress-split-with-secrets
+            port: 
+              number: 80

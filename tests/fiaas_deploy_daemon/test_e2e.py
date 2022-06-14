@@ -555,12 +555,12 @@ class TestE2E(object):
         ("tls_ingress_split_with_secrets", {
             "v3-data-examples-tls-ingress-split-with-secrets": {
                 Ingress: "e2e_expected/ingress_tls_split1.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress.yml",
+                NetworkingV1Ingress: "e2e_expected/ingress_tls_split_networking1.yml",
                 Secret: "e2e_expected/ingress_split_new_secret.yml"
             },
             "v3-data-examples-tls-ingress-split-with-secrets-1": {
                 Ingress: "e2e_expected/ingress_tls_split2.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress2.yml",
+                NetworkingV1Ingress: "e2e_expected/ingress_tls_split_networking2.yml",
                 Secret: "e2e_expected/ingress_split_new_secret1.yml"
             },
         })
@@ -576,8 +576,8 @@ class TestE2E(object):
         else:
             k8s_ingress = Ingress
         k8s_secret = Secret
+        expected_secret = {"{}-ingress-tls".format(k): read_yml(request.fspath.dirpath().join(v[k8s_secret]).strpath) for (k, v) in expected.items()}
         expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in expected.items()}
-        expected_secret = {k: read_yml(request.fspath.dirpath().join(v[k8s_secret]).strpath) for (k, v) in expected.items()}
 
         new_metadata = ObjectMeta(
                             annotations={},
@@ -605,7 +605,13 @@ class TestE2E(object):
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
+        def _check_one_secret():
+            assert Secret.get("{}-ingress-tls".format(name))
+            with pytest.raises(NotFound):
+                Secret.get("{}-1-ingress-tls".format(name))
+
         wait_until(_assert_status, patience=PATIENCE)
+        wait_until(_check_one_secret, patience=PATIENCE)
 
         # Update ingress with a host annotation to force splitting and secrets copy
         fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
@@ -619,9 +625,10 @@ class TestE2E(object):
             for ingress_name, expected_dict in expected.items():
                 actual = k8s_ingress.get(ingress_name)
                 assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID2, None, app_uid)
-            for secret_name, expected_dict in expected_secret.items():
-                actual_secret = Secret.get(secret_name)
-                assert_k8s_resource_matches(actual_secret, expected_dict, IMAGE1, None, DEPLOYMENT_ID2, None, app_uid)
+
+        def _check_two_secrets():
+            assert Secret.get("{}-ingress-tls".format(name))
+            assert Secret.get("{}-1-ingress-tls".format(name))
 
         def _assert_status2():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID2))
@@ -631,6 +638,7 @@ class TestE2E(object):
 
         wait_until(_assert_status2, patience=PATIENCE)
         wait_until(_check_two_ingresses, patience=PATIENCE)
+        wait_until(_check_two_secrets, patience=PATIENCE)
 
         # Cleanup
         FiaasApplication.delete(name)

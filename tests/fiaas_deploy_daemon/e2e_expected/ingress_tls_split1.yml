@@ -17,6 +17,7 @@ kind: Ingress
 metadata:
   annotations:
     fiaas/expose: "true"
+    certmanager.k8s.io/cluster-issuer: "myissuer"
   labels:
     app: v3-data-examples-tls-ingress-split-with-secrets
     fiaas/deployed_by: ""
@@ -32,7 +33,12 @@ metadata:
       name: v3-data-examples-tls-ingress-split-with-secrets
   finalizers: []
 spec:
-  tls: []
+  tls:
+  - hosts:
+      - ueewhl7hozm2tydsnnsuajcr2qdverpa.svc.test.example.com
+      - www.example.com
+      - v3-data-examples-tls-ingress-split-with-secrets.svc.test.example.com
+    secretName: v3-data-examples-tls-ingress-split-with-secrets-ingress-tls
   rules:
   - host: www.example.com
     http:

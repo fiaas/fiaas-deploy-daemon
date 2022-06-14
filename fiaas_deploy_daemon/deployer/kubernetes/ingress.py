@@ -103,6 +103,7 @@ class IngressDeployer(object):
                     for ingress_item in annotated_ingress.ingress_items:
                         secret_name = hosts_map[ingress_item.host]
                         if secret_name:
+                            LOG.info("Copying secrets")
                             self._copy_secret(secret_name, new_name, app_spec)
                             break
 

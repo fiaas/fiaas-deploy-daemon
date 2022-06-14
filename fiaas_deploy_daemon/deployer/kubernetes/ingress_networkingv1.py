@@ -88,3 +88,7 @@ class NetworkingV1IngressAdapter(object):
             for pm in deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
+
+    def find(self, app_spec):
+        return Ingress.find(namespace=app_spec.namespace,
+                            labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})

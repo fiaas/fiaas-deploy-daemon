@@ -31,6 +31,7 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
+from k8s.models.secret import Secret
 from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
 from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, \
@@ -538,6 +539,106 @@ class TestE2E(object):
                 k8s_ingress.get("{}-1".format(name))
 
         wait_until(_check_one_ingress, patience=PATIENCE)
+
+        # Cleanup
+        FiaasApplication.delete(name)
+
+        def cleanup_complete():
+            for name, _ in expected.items():
+                with pytest.raises(NotFound):
+                    k8s_ingress.get(name)
+
+        wait_until(cleanup_complete, patience=PATIENCE)
+
+    @pytest.mark.usefixtures("fdd", "k8s_client")
+    @pytest.mark.parametrize("input, expected", [
+        ("tls_ingress_split_with_secrets", {
+            "v3-data-examples-tls-ingress-split-with-secrets": {
+                Ingress: "e2e_expected/ingress_tls_split1.yml",
+                NetworkingV1Ingress: "e2e_expected/ingress_tls_split_networking1.yml",
+                Secret: "e2e_expected/ingress_split_new_secret.yml"
+            },
+            "v3-data-examples-tls-ingress-split-with-secrets-1": {
+                Ingress: "e2e_expected/ingress_tls_split2.yml",
+                NetworkingV1Ingress: "e2e_expected/ingress_tls_split_networking2.yml",
+                Secret: "e2e_expected/ingress_split_new_secret1.yml"
+            },
+        })
+    ])
+    def test_split_ingress_with_secrets(self, request, input, expected, k8s_version):
+        fiaas_path = "v3/data/examples/%s.yml" % input
+        fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
+
+        name = sanitize_resource_name(fiaas_path)
+
+        if use_networkingv1_ingress(k8s_version):
+            k8s_ingress = NetworkingV1Ingress
+        else:
+            k8s_ingress = Ingress
+        k8s_secret = Secret
+        expected_secret = {"{}-ingress-tls".format(k): read_yml(request.fspath.dirpath().join(v[k8s_secret]).strpath) for (k, v) in expected.items()}
+        expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in expected.items()}
+
+        new_metadata = ObjectMeta(
+                            annotations={},
+                            labels={},
+                            name="{}-ingress-tls".format(name),
+                            namespace="default"
+                        )
+        new_data = {
+            'username': 'YWRtaW4='
+        }
+        new_secret = Secret(metadata=new_metadata, data=new_data, type="Opaque")
+        new_secret.save()
+
+        metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
+        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
+        fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
+
+        fiaas_application.save()
+        app_uid = fiaas_application.metadata.uid
+
+        # Check that deployment status is RUNNING
+        def _assert_status():
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            assert status.result == u"RUNNING"
+            assert len(status.logs) > 0
+            assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
+
+        def _check_one_secret():
+            assert Secret.get("{}-ingress-tls".format(name))
+            with pytest.raises(NotFound):
+                Secret.get("{}-1-ingress-tls".format(name))
+
+        wait_until(_assert_status, patience=PATIENCE)
+        wait_until(_check_one_secret, patience=PATIENCE)
+
+        # Update ingress with a host annotation to force splitting and secrets copy
+        fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
+        fiaas_application.spec.config["ingress"][1]["annotations"] = {"foo": "bar"}
+        fiaas_application.save()
+
+        def _check_two_ingresses():
+            assert k8s_ingress.get(name)
+            assert k8s_ingress.get("{}-1".format(name))
+
+            for ingress_name, expected_dict in expected.items():
+                actual = k8s_ingress.get(ingress_name)
+                assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID2, None, app_uid)
+
+        def _check_two_secrets():
+            assert Secret.get("{}-ingress-tls".format(name))
+            assert Secret.get("{}-1-ingress-tls".format(name))
+
+        def _assert_status2():
+            status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID2))
+            assert status.result == u"RUNNING"
+            assert len(status.logs) > 0
+            assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
+
+        wait_until(_assert_status2, patience=PATIENCE)
+        wait_until(_check_two_ingresses, patience=PATIENCE)
+        wait_until(_check_two_secrets, patience=PATIENCE)
 
         # Cleanup
         FiaasApplication.delete(name)

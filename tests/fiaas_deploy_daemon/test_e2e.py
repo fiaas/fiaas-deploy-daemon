@@ -561,7 +561,7 @@ class TestE2E(object):
             "v3-data-examples-tls-ingress-split-with-secrets-1": {
                 Ingress: "e2e_expected/ingress_tls_split2.yml",
                 NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress2.yml",
-                Secret: "e2e_expected/ingress_split_new_secret_1.yml"
+                Secret: "e2e_expected/ingress_split_new_secret1.yml"
             },
         })
     ])
@@ -641,6 +641,7 @@ class TestE2E(object):
                     k8s_ingress.get(name)
 
         wait_until(cleanup_complete, patience=PATIENCE)
+
 
 def _deploy_success(name, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():

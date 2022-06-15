@@ -16,8 +16,10 @@
 # limitations under the License.
 import mock
 import pytest
+from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressTLS
+from k8s.models.secret import Secret
 from mock import create_autospec, Mock
 from requests import Response
 
@@ -541,7 +543,9 @@ class TestIngressDeployer(object):
         mock_response.json.return_value = expected_ingress
         post.return_value = mock_response
 
-        deployer.deploy(app_spec, LABELS)
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            find.return_value = []
+            deployer.deploy(app_spec, LABELS)
 
         pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
         owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
@@ -614,7 +618,9 @@ class TestIngressDeployer(object):
 
         post.side_effect = iter([mock_response, mock_response2, mock_response3])
 
-        deployer.deploy(app_spec, LABELS)
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            find.return_value = []
+            deployer.deploy(app_spec, LABELS)
 
         post.assert_has_calls([mock.call(INGRESSES_URI, expected_ingress), mock.call(INGRESSES_URI, expected_ingress2),
                                mock.call(INGRESSES_URI, expected_ingress3)])
@@ -649,9 +655,11 @@ class TestIngressDeployer(object):
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_deployer(self, deployer, ingress_tls_deployer, app_spec, hosts):
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
-            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
-            deployer.deploy(app_spec, LABELS)
-            ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
+            with mock.patch("k8s.models.ingress.Ingress.find") as find:
+                find.return_value = []
+                get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+                deployer.deploy(app_spec, LABELS)
+        ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, True, {})
 
     @pytest.fixture
     def deployer_issuer_overrides(self, config, default_app_spec, ingress_adapter):
@@ -664,33 +672,35 @@ class TestIngressDeployer(object):
 
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_deployer_issuer_overrides(self, post, deployer_issuer_overrides, ingress_tls_deployer, app_spec):
+        app_spec.ingresses[:] = [
+            # has issuer-override
+            IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # no issuer-override
+            IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            IngressItemSpec(host="foo.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            IngressItemSpec(host="other.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # suffix has issuer-override
+            IngressItemSpec(host="sub.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # more specific suffix has issuer-override
+            IngressItemSpec(host="sub.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
+            # has annotations
+            IngressItemSpec(host="ann.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                            annotations={"some": "annotation"})
+        ]
+        expected_host_groups = [
+            ["ann.foo.example.com"],
+            ["bar.example.com", "other.example.com", "sub.bar.example.com", "testapp.127.0.0.1.xip.io", "testapp.svc.test.example.com"],
+            ["foo.bar.example.com", "foo.example.com", "sub.foo.example.com"]
+        ]
         with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
-            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
-            app_spec.ingresses[:] = [
-                # has issuer-override
-                IngressItemSpec(host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                # no issuer-override
-                IngressItemSpec(host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                IngressItemSpec(host="foo.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                IngressItemSpec(host="other.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                # suffix has issuer-override
-                IngressItemSpec(host="sub.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                # more specific suffix has issuer-override
-                IngressItemSpec(host="sub.bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}),
-                # has annotations
-                IngressItemSpec(host="ann.foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)],
-                                annotations={"some": "annotation"})
-            ]
+            with mock.patch("k8s.models.ingress.Ingress.find") as find:
+                find.return_value = []
+                get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
 
-            deployer_issuer_overrides.deploy(app_spec, LABELS)
-            host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
-            expected_host_groups = [
-                ["ann.foo.example.com"],
-                ["bar.example.com", "other.example.com", "sub.bar.example.com", "testapp.127.0.0.1.xip.io", "testapp.svc.test.example.com"],
-                ["foo.bar.example.com", "foo.example.com", "sub.foo.example.com"]
-            ]
-            assert ingress_tls_deployer.apply.call_count == 3
-            assert expected_host_groups == sorted(host_groups)
+                deployer_issuer_overrides.deploy(app_spec, LABELS)
+                host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
+                assert ingress_tls_deployer.apply.call_count == 3
+                assert expected_host_groups == sorted(host_groups)
 
 
 class TestIngressTLSDeployer(object):
@@ -803,3 +813,55 @@ class TestIngressTLSDeployer(object):
         tls = IngressTLSDeployer(config, IngressTLS)
         with pytest.raises(ValueError):
             tls._generate_short_host(app_spec())
+
+    def test_copy_secrets_on_create(self, config):
+        host1 = "extra1.example.com"
+        host2 = "extra2.example.com"
+        _app_spec = app_spec(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=DEFAULT_TLS_ISSUER))
+        old_name = "test-app"
+        secret_name = "{}-ingress-tls".format(old_name)
+        hosts_map = {host1: secret_name, host2: secret_name}
+        config.use_ingress_tls = "default_on"
+
+        new_ingress1 = Ingress()
+        new_ingress1.metadata = ObjectMeta(name=old_name)
+        new_ingress1.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName=secret_name)]
+
+        new_name = "{}-1".format(old_name)
+        new_ingress2 = Ingress()
+        new_ingress2.metadata = ObjectMeta(name=new_name)
+        new_ingress2.spec.tls = [IngressTLS(hosts=[host2], secretName="{}-ingress-tls".format(new_name))]
+        with mock.patch("k8s.models.secret.Secret.get") as get:
+            def response_200(data):
+                mock_response = mock.create_autospec(Response)
+                mock_response.status_code = 200
+                mock_response.json.return_value = data
+                return mock_response
+
+            def _create_secret():
+                mock_secret = mock.create_autospec(Secret)
+                new_metadata = ObjectMeta(
+                    annotations={},
+                    labels={},
+                    name="first-ingress-tls",
+                    namespace="default"
+                )
+                new_data = {
+                    'username': 'YWRtaW4='
+                }
+                new_secret = Secret(metadata=new_metadata, data=new_data, type="Opaque")
+
+                data = new_secret.as_dict()
+                mock_secret.get.return_value = response_200(data)
+                return mock_secret
+
+            get.side_effect = iter([NotFound(), _create_secret(), NotFound(), _create_secret()])
+            with mock.patch("k8s.models.secret.Secret.save") as save:
+                save.return_value = response_200({})
+
+                tls = IngressTLSDeployer(config, IngressTLS)
+                issuer_type = DEFAULT_TLS_ISSUER
+                tls.apply(new_ingress1, _app_spec, [host1], issuer_type, False, hosts_map=hosts_map)
+                tls.apply(new_ingress2, _app_spec, [host2], issuer_type, False, hosts_map=hosts_map)
+
+                assert save.call_count == 1

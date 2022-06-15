@@ -287,10 +287,9 @@ class IngressTLSDeployer(object):
             found_secret = None
 
         if not found_secret:
-            for ingress_item in ingress.spec.rules:
-                secret_name = hosts_map[ingress_item.host]
-                if secret_name:
-                    LOG.info("Existing TLS certificate identified for host %s. Copying the certificate from secret %s to %s",
-                             ingress_item.host, secret_name, new_name)
-                    self._copy_secret(secret_name, new_name, app_spec)
-                    break
+            for tls_item in ingress.spec.tls:
+                for host in tls_item.hosts:
+                    secret_name = hosts_map[host]
+                    if secret_name:
+                        self._copy_secret(secret_name, new_name, app_spec)
+                        break

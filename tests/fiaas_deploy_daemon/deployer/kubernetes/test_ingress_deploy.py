@@ -814,31 +814,24 @@ class TestIngressTLSDeployer(object):
         with pytest.raises(ValueError):
             tls._generate_short_host(app_spec())
 
-    def test_copy_secrets_on_create(self, config, delete, app_spec):
+    def test_copy_secrets_on_create(self, config):
         host1 = "extra1.example.com"
         host2 = "extra2.example.com"
-        config.use_ingress_tls = "default_on"
-        app_spec.ingresses[:] = [
-            IngressItemSpec(host=host1, pathmappings=[IngressPathMappingSpec(path="/", port=8000)],
-                            annotations={"some/annotation": "some-value"}),
-            IngressItemSpec(host=host2, pathmappings=[IngressPathMappingSpec(path="/_/ipblocked", port=8000)],
-                            annotations={})
-        ]
-
+        _app_spec = app_spec(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=DEFAULT_TLS_ISSUER))
         old_name = "test-app"
-        old_metadata = pytest.helpers.create_metadata(old_name, labels=LABELS, annotations=ANNOTATIONS)
-        old_ingress = Ingress(metadata=(old_metadata))
-        old_ingress.spec.tls = [IngressTLS(hosts=[host1, host2], secretName="{}-ingress-tls".format(old_name))]
+        secret_name = "{}-ingress-tls".format(old_name)
+        hosts_map = {host1: secret_name, host2: secret_name}
+        config.use_ingress_tls = "default_on"
 
-        new_ingress1 = Ingress(metadata=(old_metadata))
-        new_ingress1.spec.tls = [IngressTLS(hosts=[host1], secretName="{}-ingress-tls".format(old_name))]
+        new_ingress1 = Ingress()
+        new_ingress1.metadata = ObjectMeta(name=old_name)
+        new_ingress1.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName=secret_name)]
 
         new_name = "{}-1".format(old_name)
-        new_ingress2_metadata = pytest.helpers.create_metadata(new_name, labels=LABELS, annotations=ANNOTATIONS)
-        new_ingress2 = Ingress(metadata=(new_ingress2_metadata))
+        new_ingress2 = Ingress()
+        new_ingress2.metadata = ObjectMeta(name=new_name)
         new_ingress2.spec.tls = [IngressTLS(hosts=[host2], secretName="{}-ingress-tls".format(new_name))]
         with mock.patch("k8s.models.secret.Secret.get") as get:
-            # mock.Secret.get => if params == old => 200 ,else 404
             def response_200(data):
                 mock_response = mock.create_autospec(Response)
                 mock_response.status_code = 200
@@ -865,15 +858,10 @@ class TestIngressTLSDeployer(object):
             get.side_effect = iter([NotFound(), _create_secret(), NotFound(), _create_secret()])
             with mock.patch("k8s.models.secret.Secret.save") as save:
                 save.return_value = response_200({})
-                with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
-                    get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
 
-                    tls = IngressTLSDeployer(config, IngressTLS)
-                    issuer_type = DEFAULT_TLS_ISSUER
-                    secret_name = "{}-ingress-tls".format(old_name)
-                    hosts_map = {host1: secret_name, host2: secret_name}
-                    tls.apply(new_ingress1, app_spec, self.HOSTS, issuer_type, hosts_map)
-                    tls.apply(new_ingress2, app_spec, self.HOSTS, issuer_type, hosts_map)
+                tls = IngressTLSDeployer(config, IngressTLS)
+                issuer_type = DEFAULT_TLS_ISSUER
+                tls.apply(new_ingress1, _app_spec, [host1], issuer_type, False, hosts_map=hosts_map)
+                tls.apply(new_ingress2, _app_spec, [host2], issuer_type, False, hosts_map=hosts_map)
 
-                assert save.call_count == 2
-            delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
+                assert save.call_count == 1

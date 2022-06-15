@@ -16,7 +16,10 @@
 # limitations under the License.
 import mock
 import pytest
+from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
 from k8s.models.networking_v1_ingress import Ingress, IngressTLS
+from k8s.models.secret import Secret
 from mock import create_autospec, Mock
 from requests import Response
 
@@ -442,3 +445,55 @@ class TestIngressDeployer(object):
                 host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
         assert ingress_tls_deployer.apply.call_count == 3
         assert expected_host_groups == sorted(host_groups)
+
+    def test_copy_secrets_on_create(self, config):
+        host1 = "extra1.example.com"
+        host2 = "extra2.example.com"
+        _app_spec = app_spec(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=DEFAULT_TLS_ISSUER))
+        old_name = "test-app"
+        secret_name = "{}-ingress-tls".format(old_name)
+        hosts_map = {host1: secret_name, host2: secret_name}
+        config.use_ingress_tls = "default_on"
+
+        new_ingress1 = Ingress()
+        new_ingress1.metadata = ObjectMeta(name=old_name)
+        new_ingress1.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName=secret_name)]
+
+        new_name = "{}-1".format(old_name)
+        new_ingress2 = Ingress()
+        new_ingress2.metadata = ObjectMeta(name=new_name)
+        new_ingress2.spec.tls = [IngressTLS(hosts=[host2], secretName="{}-ingress-tls".format(new_name))]
+        with mock.patch("k8s.models.secret.Secret.get") as get:
+            def response_200(data):
+                mock_response = mock.create_autospec(Response)
+                mock_response.status_code = 200
+                mock_response.json.return_value = data
+                return mock_response
+
+            def _create_secret():
+                mock_secret = mock.create_autospec(Secret)
+                new_metadata = ObjectMeta(
+                    annotations={},
+                    labels={},
+                    name="first-ingress-tls",
+                    namespace="default"
+                )
+                new_data = {
+                    'username': 'YWRtaW4='
+                }
+                new_secret = Secret(metadata=new_metadata, data=new_data, type="Opaque")
+
+                data = new_secret.as_dict()
+                mock_secret.get.return_value = response_200(data)
+                return mock_secret
+
+            get.side_effect = iter([NotFound(), _create_secret(), NotFound(), _create_secret()])
+            with mock.patch("k8s.models.secret.Secret.save") as save:
+                save.return_value = response_200({})
+
+                tls = IngressTLSDeployer(config, IngressTLS)
+                issuer_type = DEFAULT_TLS_ISSUER
+                tls.apply(new_ingress1, _app_spec, [host1], issuer_type, False, hosts_map=hosts_map)
+                tls.apply(new_ingress2, _app_spec, [host2], issuer_type, False, hosts_map=hosts_map)
+
+                assert save.call_count == 1

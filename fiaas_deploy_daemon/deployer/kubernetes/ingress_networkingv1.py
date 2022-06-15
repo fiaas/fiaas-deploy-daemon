@@ -35,7 +35,7 @@ class NetworkingV1IngressAdapter(object):
         self._extension_hook = extension_hook
 
     @retry_on_upsert_conflict
-    def create_ingress(self, app_spec, annotated_ingress, labels):
+    def create_ingress(self, app_spec, annotated_ingress, labels, hosts_map):
         default_annotations = {
             u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
         }
@@ -58,7 +58,7 @@ class NetworkingV1IngressAdapter(object):
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
-        self._ingress_tls_deployer.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
+        self._ingress_tls_deployer.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes, hosts_map)
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)
         ingress.save()
@@ -88,3 +88,7 @@ class NetworkingV1IngressAdapter(object):
             for pm in deduplicate_in_order(pathmappings)]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)
+
+    def find(self, app_spec):
+        return Ingress.find(namespace=app_spec.namespace,
+                            labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})

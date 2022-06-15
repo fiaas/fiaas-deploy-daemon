@@ -63,21 +63,6 @@ class IngressDeployer(object):
                         hosts_map[hostname] = tls_obj.secretName
         return hosts_map
 
-    def _copy_secret(self, secret_name, new_name, app_spec):
-        try:
-            old_secret = Secret.get(secret_name, app_spec.namespace)
-        except NotFound:
-            old_secret = None
-        if old_secret:
-            new_metadata = ObjectMeta(
-                annotations=old_secret.metadata.annotations,
-                labels=old_secret.metadata.labels,
-                name=new_name,
-                namespace=old_secret.metadata.namespace
-            )
-            new_secret = Secret(metadata=new_metadata, data=old_secret.data, type=old_secret.type)
-            new_secret.save()
-
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)
@@ -92,22 +77,7 @@ class IngressDeployer(object):
                 LOG.info("No items, skipping: %s", annotated_ingress)
                 continue
 
-            if len(hosts_map) > 0:
-                new_name = tls_ingress_secret_name(annotated_ingress.name)
-                try:
-                    found_secret = Secret.get(new_name, app_spec.namespace)
-                except NotFound:
-                    found_secret = None
-
-                if not found_secret:
-                    for ingress_item in annotated_ingress.ingress_items:
-                        secret_name = hosts_map[ingress_item.host]
-                        if secret_name:
-                            LOG.info("Copying secrets")
-                            self._copy_secret(secret_name, new_name, app_spec)
-                            break
-
-            self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels)
+            self._ingress_adapter.create_ingress(app_spec, annotated_ingress, custom_labels, hosts_map)
 
         self._ingress_adapter.delete_unused(app_spec, custom_labels)
 
@@ -238,7 +208,7 @@ class IngressTLSDeployer(object):
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
         self.ingress_tls = ingress_tls
 
-    def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True):
+    def apply(self, ingress, app_spec, hosts, issuer_type, use_suffixes=True, hosts_map={}):
         if self._should_have_ingress_tls(app_spec):
             tls_annotations = {}
             if self._cert_issuer or app_spec.ingress_tls.certificate_issuer:
@@ -265,6 +235,9 @@ class IngressTLSDeployer(object):
 
             ingress.spec.tls.append(self.ingress_tls(hosts=hosts, secretName=tls_ingress_secret_name(ingress.metadata.name)))
 
+            if len(hosts_map) > 0:
+                self._copy_secrets_between_ingress(ingress, app_spec, hosts_map)
+
     def _collapse_hosts(self, app_spec, hosts):
         """The first hostname in the list will be used as Common Name in the certificate"""
         if self._shortest_suffix:
@@ -290,3 +263,34 @@ class IngressTLSDeployer(object):
         if len(short_name) > 63 or short_name[0] == ".":
             raise ValueError("Unable to generate a name short enough to be Common Name in certificate")
         return short_name
+
+    def _copy_secret(self, secret_name, new_name, app_spec):
+        try:
+            old_secret = Secret.get(secret_name, app_spec.namespace)
+        except NotFound:
+            old_secret = None
+        if old_secret:
+            new_metadata = ObjectMeta(
+                annotations=old_secret.metadata.annotations,
+                labels=old_secret.metadata.labels,
+                name=new_name,
+                namespace=old_secret.metadata.namespace
+            )
+            new_secret = Secret(metadata=new_metadata, data=old_secret.data, type=old_secret.type)
+            new_secret.save()
+
+    def _copy_secrets_between_ingress(self, ingress, app_spec, hosts_map):
+        new_name = tls_ingress_secret_name(ingress.metadata.name)
+        try:
+            found_secret = Secret.get(new_name, app_spec.namespace)
+        except NotFound:
+            found_secret = None
+
+        if not found_secret:
+            for ingress_item in ingress.spec.rules:
+                secret_name = hosts_map[ingress_item.host]
+                if secret_name:
+                    LOG.info("Existing TLS certificate identified for host %s. Copying the certificate from secret %s to %s",
+                             ingress_item.host, secret_name, new_name)
+                    self._copy_secret(secret_name, new_name, app_spec)
+                    break

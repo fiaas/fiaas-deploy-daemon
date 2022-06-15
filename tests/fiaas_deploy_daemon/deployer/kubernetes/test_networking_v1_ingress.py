@@ -399,7 +399,7 @@ class TestIngressDeployer(object):
                 find.return_value = []
                 get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
                 deployer.deploy(app_spec, LABELS)
-        ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True)
+        ingress_tls_deployer.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, True, {})
 
     @pytest.fixture
     def deployer_issuer_overrides(self, config, default_app_spec, ingress_adapter):

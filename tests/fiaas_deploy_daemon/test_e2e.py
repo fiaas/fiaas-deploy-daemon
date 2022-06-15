@@ -628,13 +628,13 @@ class TestE2E(object):
             assert Secret.get("{}-ingress-tls".format(name))
             assert Secret.get("{}-1-ingress-tls".format(name))
 
-        def _assert_status2():
+        def _assert_status_after_splitting_ingress():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID2))
             assert status.result == u"RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
-        wait_until(_assert_status2, patience=PATIENCE)
+        wait_until(_assert_status_after_splitting_ingress, patience=PATIENCE)
         wait_until(_check_two_ingresses, patience=PATIENCE)
         wait_until(_check_two_secrets, patience=PATIENCE)
 

@@ -575,8 +575,6 @@ class TestE2E(object):
             k8s_ingress = NetworkingV1Ingress
         else:
             k8s_ingress = Ingress
-        k8s_secret = Secret
-        expected_secret = {"{}-ingress-tls".format(k): read_yml(request.fspath.dirpath().join(v[k8s_secret]).strpath) for (k, v) in expected.items()}
         expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in expected.items()}
 
         new_metadata = ObjectMeta(

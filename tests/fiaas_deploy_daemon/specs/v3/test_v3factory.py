@@ -97,6 +97,12 @@ TEST_DATA = {
         "autoscaler.max_replicas": 3,
         "autoscaler.cpu_threshold_percentage": 50,
     },
+    "autoscaling_max_less_than_min": {
+        "autoscaler.enabled": False,
+        "autoscaler.min_replicas": 1,
+        "autoscaler.max_replicas": 1,
+        "autoscaler.cpu_threshold_percentage": 50,
+    },
     "multiple_hosts_multiple_paths": {
         "ingresses[0].host": None,
         "ingresses[0].pathmappings[0].path": "/0noport",

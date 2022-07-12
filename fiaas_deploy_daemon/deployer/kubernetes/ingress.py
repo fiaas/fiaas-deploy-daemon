@@ -114,7 +114,7 @@ class IngressDeployer(object):
         override_issuer_ingresses = {}
         for ingress_item in ingress_items:
             issuer_type = self._get_issuer_type(ingress_item.host)
-            next_name = "{}-{}".format(app_spec.name, len(ingresses))
+            next_name = "{}-{}".format(app_spec.name, len(ingresses) + len(override_issuer_ingresses))
             if ingress_item.annotations:
                 annotated_ingresses = AnnotatedIngress(name=next_name, ingress_items=[ingress_item],
                                                        annotations=ingress_item.annotations,

@@ -684,13 +684,20 @@ class TestIngressDeployer(object):
 
             deployer_issuer_overrides.deploy(app_spec, LABELS)
             host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
+            ingress_names = [call.kwargs['metadata'].name for call in get_or_create.call_args_list]
             expected_host_groups = [
                 ["ann.foo.example.com"],
                 ["bar.example.com", "other.example.com", "sub.bar.example.com", "testapp.127.0.0.1.xip.io", "testapp.svc.test.example.com"],
                 ["foo.bar.example.com", "foo.example.com", "sub.foo.example.com"]
             ]
+            expected_ingress_names = [
+                "testapp",
+                "testapp-1",
+                "testapp-2"
+            ]
             assert ingress_tls_deployer.apply.call_count == 3
             assert expected_host_groups == sorted(host_groups)
+            assert expected_ingress_names == sorted(ingress_names)
 
 
 class TestIngressTLSDeployer(object):

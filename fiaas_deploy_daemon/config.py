@@ -278,6 +278,7 @@ class Configuration(Namespace):
         tls_parser.add_argument("--tls-certificate-issuer-type-overrides", help="Issuers to use for specified domain suffixes",
                                 default=[],
                                 action="append", type=KeyValue, dest="tls_certificate_issuer_type_overrides")
+        tls_parser.add_argument("--tls-certificate-ready", help="Check whether certificates are ready", default=False)
 
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}

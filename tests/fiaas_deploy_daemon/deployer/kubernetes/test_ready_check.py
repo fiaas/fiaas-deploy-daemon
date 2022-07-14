@@ -24,6 +24,8 @@ from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
+from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionCondition
+from k8s.models.ingress import Ingress
 
 REPLICAS = 2
 
@@ -113,6 +115,39 @@ class TestReadyCheck(object):
         bookkeeper.failed.assert_not_called()
         lifecycle.success.assert_called_with(lifecycle_subject)
         lifecycle.failed.assert_not_called()
+
+    def test_ingress_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            ingress = mock.create_autospec(Ingress)
+            ingress.spec.tls.secretName = "secret1"
+            find.return_value = [ingress]
+
+            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get:
+                cert = mock.create_autospec(CustomResourceDefinition)
+                condition = mock.create_autospec(CustomResourceDefinitionCondition)
+                condition.type = "Ready"
+                condition.status = "True"
+                cert.status.conditions = [condition]
+
+            self._create_response(get, replicas, replicas, replicas, replicas)
+            ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+            assert ready() is True
+
+    def test_ingress_not_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            find.return_value = []
+
+            self._create_response(get, replicas, replicas, replicas, replicas)
+            ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+            assert ready() is False
 
     @staticmethod
     def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS,

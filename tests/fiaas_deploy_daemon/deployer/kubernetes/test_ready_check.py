@@ -199,7 +199,7 @@ class TestReadyCheck(object):
                 lifecycle.success.assert_not_called()
 
     def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle,
-                                 lifecycle_subject, config):
+                                                    lifecycle_subject, config):
         config.tls_certificate_ready = True
         self._create_response(get)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)

@@ -23,7 +23,9 @@ from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
-from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
+from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec, IngressTLSSpec
+from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionCondition
+from k8s.models.ingress import Ingress, IngressTLS
 
 REPLICAS = 2
 
@@ -106,6 +108,100 @@ class TestReadyCheck(object):
     def test_deployment_complete_deactivated(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
 
         self._create_response_zero_replicas(get)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+        assert ready() is False
+        bookkeeper.success.assert_called_with(app_spec)
+        bookkeeper.failed.assert_not_called()
+        lifecycle.success.assert_called_with(lifecycle_subject)
+        lifecycle.failed.assert_not_called()
+
+    def test_tls_ingress_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            ingress = mock.create_autospec(Ingress, spec_set=True)
+            ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
+            find.return_value = [ingress]
+
+            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
+                cert = CustomResourceDefinition()
+                condition = CustomResourceDefinitionCondition()
+                condition.type = "Ready"
+                condition.status = "True"
+                cert.status.conditions = [condition]
+                get_crd.return_value = cert
+
+                self._create_response(get, replicas, replicas, replicas, replicas)
+                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+                assert ready() is False
+                bookkeeper.success.assert_called_with(app_spec)
+                bookkeeper.failed.assert_not_called()
+                lifecycle.success.assert_called_with(lifecycle_subject)
+                lifecycle.failed.assert_not_called()
+
+    def test_tls_ingress_not_ready_timeout(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            ingress = mock.create_autospec(Ingress)
+            ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
+            find.return_value = [ingress]
+
+            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
+                cert = mock.create_autospec(CustomResourceDefinition)
+                condition = mock.create_autospec(CustomResourceDefinitionCondition)
+                condition.type = "Ready"
+                condition.status = "False"
+                cert.status.conditions = [condition]
+                get_crd.return_value = cert
+
+                self._create_response(get, replicas, replicas, replicas, replicas)
+                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+                ready._fail_after = time_monotonic()
+
+                assert ready() is False
+                bookkeeper.failed.assert_called_with(app_spec)
+                bookkeeper.success.assert_not_called()
+                lifecycle.failed.assert_called_with(lifecycle_subject)
+                lifecycle.success.assert_not_called()
+
+    def test_tls_ingress_not_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            ingress = mock.create_autospec(Ingress)
+            ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
+            find.return_value = [ingress]
+
+            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
+                cert = mock.create_autospec(CustomResourceDefinition)
+                condition = mock.create_autospec(CustomResourceDefinitionCondition)
+                condition.type = "Ready"
+                condition.status = "False"
+                cert.status.conditions = [condition]
+                get_crd.return_value = cert
+
+                self._create_response(get, replicas, replicas, replicas, replicas)
+                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+                assert ready() is True
+                bookkeeper.failed.assert_not_called()
+                bookkeeper.success.assert_not_called()
+                lifecycle.failed.assert_not_called()
+                lifecycle.success.assert_not_called()
+
+    def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle,
+                                                    lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        self._create_response(get)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
 
         assert ready() is False

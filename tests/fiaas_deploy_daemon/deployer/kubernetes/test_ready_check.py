@@ -198,6 +198,18 @@ class TestReadyCheck(object):
                 lifecycle.failed.assert_not_called()
                 lifecycle.success.assert_not_called()
 
+    def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle,
+                                 lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        self._create_response(get)
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+
+        assert ready() is False
+        bookkeeper.success.assert_called_with(app_spec)
+        bookkeeper.failed.assert_not_called()
+        lifecycle.success.assert_called_with(lifecycle_subject)
+        lifecycle.failed.assert_not_called()
+
     @staticmethod
     def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS,
                          generation=0, observed_generation=0):

@@ -66,8 +66,7 @@ class ReadyCheck(object):
                 dep.status.observedGeneration >= dep.metadata.generation)
 
     def _is_certificate_ready(self, cert):
-        conditions = cert.status.conditions
-        for condition in conditions:
+        for condition in cert.status.conditions:
             if condition.type == "Ready":
                 return condition.status == "True"
         return False
@@ -79,17 +78,19 @@ class ReadyCheck(object):
             return False
 
         for ingress in ing_list:
-            try:
-                cert = CustomResourceDefinition.get(ingress.spec.tls.secretName, ingress.metadata.namespace)
-            except NotFound:
-                return False
-            if not self._is_certificate_ready(cert):
-                return False
+            if ingress.spec.tls:
+                for tls_item in ingress.spec.tls:
+                    try:
+                        cert = CustomResourceDefinition.get(tls_item.secretName, ingress.metadata.namespace)
+                    except NotFound:
+                        return False
+                    if not self._is_certificate_ready(cert):
+                        return False
 
         return True
 
     def _ready(self):
-        if not self._should_check_ingress:
+        if not self._should_check_ingress or not self._app_spec.ingress_tls.enabled:
             return self._deployment_ready()
 
         return self._deployment_ready() and self._ingress_ready()

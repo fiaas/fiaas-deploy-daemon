@@ -24,7 +24,7 @@ from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec, IngressTLSSpec
-from k8s.models.custom_resource_definition import CustomResourceDefinition, CustomResourceDefinitionCondition
+from k8s.models.certificate import Certificate, CertificateCondition
 from k8s.models.ingress import Ingress, IngressTLS
 
 REPLICAS = 2
@@ -126,13 +126,8 @@ class TestReadyCheck(object):
             ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
             find.return_value = [ingress]
 
-            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
-                cert = CustomResourceDefinition()
-                condition = CustomResourceDefinitionCondition()
-                condition.type = "Ready"
-                condition.status = "True"
-                cert.status.conditions = [condition]
-                get_crd.return_value = cert
+            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
+                get_crd.return_value = self._mock_certificate(True)
 
                 self._create_response(get, replicas, replicas, replicas, replicas)
                 ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
@@ -153,13 +148,8 @@ class TestReadyCheck(object):
             ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
             find.return_value = [ingress]
 
-            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
-                cert = mock.create_autospec(CustomResourceDefinition)
-                condition = mock.create_autospec(CustomResourceDefinitionCondition)
-                condition.type = "Ready"
-                condition.status = "False"
-                cert.status.conditions = [condition]
-                get_crd.return_value = cert
+            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
+                get_crd.return_value = self._mock_certificate(False)
 
                 self._create_response(get, replicas, replicas, replicas, replicas)
                 ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
@@ -181,13 +171,8 @@ class TestReadyCheck(object):
             ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
             find.return_value = [ingress]
 
-            with mock.patch("k8s.models.custom_resource_definition.CustomResourceDefinition.get") as get_crd:
-                cert = mock.create_autospec(CustomResourceDefinition)
-                condition = mock.create_autospec(CustomResourceDefinitionCondition)
-                condition.type = "Ready"
-                condition.status = "False"
-                cert.status.conditions = [condition]
-                get_crd.return_value = cert
+            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
+                get_crd.return_value = self._mock_certificate(False)
 
                 self._create_response(get, replicas, replicas, replicas, replicas)
                 ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
@@ -209,6 +194,15 @@ class TestReadyCheck(object):
         bookkeeper.failed.assert_not_called()
         lifecycle.success.assert_called_with(lifecycle_subject)
         lifecycle.failed.assert_not_called()
+
+    @staticmethod
+    def _mock_certificate(desired_status=True):
+        cert = mock.create_autospec(Certificate, spec_set=True)
+        condition = mock.create_autospec(CertificateCondition)
+        condition.type = "Ready"
+        condition.status = str(desired_status)
+        cert.status.conditions = [condition]
+        return cert
 
     @staticmethod
     def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS,

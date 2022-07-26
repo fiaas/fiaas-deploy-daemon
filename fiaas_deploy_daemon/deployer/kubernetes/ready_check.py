@@ -18,7 +18,7 @@
 import logging
 
 from k8s.client import NotFound
-from k8s.models.custom_resource_definition import CustomResourceDefinition
+from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
 from k8s.models.ingress import Ingress
 from monotonic import monotonic as time_monotonic
@@ -81,7 +81,7 @@ class ReadyCheck(object):
             if ingress.spec.tls:
                 for tls_item in ingress.spec.tls:
                     try:
-                        cert = CustomResourceDefinition.get(tls_item.secretName, ingress.metadata.namespace)
+                        cert = Certificate.get(tls_item.secretName, ingress.metadata.namespace)
                     except NotFound:
                         return False
                     if not self._is_certificate_ready(cert):

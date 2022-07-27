@@ -17,6 +17,8 @@
 
 import logging
 
+from datetime import datetime
+
 from k8s.client import NotFound
 from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
@@ -66,6 +68,8 @@ class ReadyCheck(object):
                 dep.status.observedGeneration >= dep.metadata.generation)
 
     def _is_certificate_ready(self, cert):
+        if cert.status.NotAfter < datetime.utcnow():
+            return False
         for condition in cert.status.conditions:
             if condition.type == "Ready":
                 return condition.status == "True"

@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from datetime import datetime, timedelta
 import mock
 import pytest
 from monotonic import monotonic as time_monotonic
@@ -127,7 +128,8 @@ class TestReadyCheck(object):
             find.return_value = [ingress]
 
             with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                get_crd.return_value = self._mock_certificate(True)
+                expiration_date = datetime.now() + timedelta(days=5)
+                get_crd.return_value = self._mock_certificate(True, expiration_date)
 
                 self._create_response(get, replicas, replicas, replicas, replicas)
                 ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
@@ -137,6 +139,30 @@ class TestReadyCheck(object):
                 bookkeeper.failed.assert_not_called()
                 lifecycle.success.assert_called_with(lifecycle_subject)
                 lifecycle.failed.assert_not_called()
+
+    def test_tls_ingress_ready_expired_certificate(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+        config.tls_certificate_ready = True
+        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
+        replicas = 2
+
+        with mock.patch("k8s.models.ingress.Ingress.find") as find:
+            ingress = mock.create_autospec(Ingress, spec_set=True)
+            ingress.spec.tls = [IngressTLS(hosts=["extra1.example.com"], secretName="secret1")]
+            find.return_value = [ingress]
+
+            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
+                expiration_date = datetime.now() - timedelta(days=5)
+                get_crd.return_value = self._mock_certificate(True, expiration_date)
+
+                self._create_response(get, replicas, replicas, replicas, replicas)
+                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config)
+                ready._fail_after = time_monotonic()
+
+                assert ready() is False
+                bookkeeper.failed.assert_called_with(app_spec)
+                bookkeeper.success.assert_not_called()
+                lifecycle.failed.assert_called_with(lifecycle_subject)
+                lifecycle.success.assert_not_called()
 
     def test_tls_ingress_not_ready_timeout(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
         config.tls_certificate_ready = True
@@ -196,12 +222,15 @@ class TestReadyCheck(object):
         lifecycle.failed.assert_not_called()
 
     @staticmethod
-    def _mock_certificate(desired_status=True):
+    def _mock_certificate(desired_status=True, expiration=None):
         cert = mock.create_autospec(Certificate, spec_set=True)
         condition = mock.create_autospec(CertificateCondition)
         condition.type = "Ready"
         condition.status = str(desired_status)
         cert.status.conditions = [condition]
+
+        if expiration:
+            cert.status.NotAfter = expiration
         return cert
 
     @staticmethod

@@ -17,8 +17,12 @@
 
 import logging
 
+from datetime import datetime
+
 from k8s.client import NotFound
+from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
+from k8s.models.ingress import Ingress
 from monotonic import monotonic as time_monotonic
 
 LOG = logging.getLogger(__name__)
@@ -36,6 +40,7 @@ class ReadyCheck(object):
             app_spec.health_checks.readiness.initial_delay_seconds
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
+        self._should_check_ingress = config.tls_certificate_ready
 
     def __call__(self):
         if self._ready():
@@ -50,7 +55,7 @@ class ReadyCheck(object):
             return False
         return True
 
-    def _ready(self):
+    def _deployment_ready(self):
         try:
             dep = Deployment.get(self._app_spec.name, self._app_spec.namespace)
         except NotFound:
@@ -61,6 +66,38 @@ class ReadyCheck(object):
                 dep.status.replicas == expected_value and
                 dep.status.availableReplicas == expected_value and
                 dep.status.observedGeneration >= dep.metadata.generation)
+
+    def _is_certificate_ready(self, cert):
+        if cert.status.NotAfter and (cert.status.NotAfter < datetime.utcnow()):
+            return False
+        for condition in cert.status.conditions:
+            if condition.type == "Ready":
+                return condition.status == "True"
+        return False
+
+    def _ingress_ready(self):
+        try:
+            ing_list = Ingress.find(self._app_spec.name, self._app_spec.namespace)
+        except NotFound:
+            return False
+
+        for ingress in ing_list:
+            if ingress.spec.tls:
+                for tls_item in ingress.spec.tls:
+                    try:
+                        cert = Certificate.get(tls_item.secretName, ingress.metadata.namespace)
+                    except NotFound:
+                        return False
+                    if not self._is_certificate_ready(cert):
+                        return False
+
+        return True
+
+    def _ready(self):
+        if not self._should_check_ingress or not self._app_spec.ingress_tls.enabled:
+            return self._deployment_ready()
+
+        return self._deployment_ready() and self._ingress_ready()
 
     def __eq__(self, other):
         return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper \

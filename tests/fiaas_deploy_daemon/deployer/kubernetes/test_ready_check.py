@@ -252,9 +252,9 @@ class TestReadyCheck(object):
         cert.status.conditions = [condition]
 
         if expiration:
-            cert.status.NotAfter = expiration
+            cert.status.notAfter = expiration
         else:
-            cert.status.NotAfter = None
+            cert.status.notAfter = None
 
         return cert
 

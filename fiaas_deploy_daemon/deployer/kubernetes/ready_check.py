@@ -68,7 +68,7 @@ class ReadyCheck(object):
                 dep.status.observedGeneration >= dep.metadata.generation)
 
     def _is_certificate_ready(self, cert):
-        if cert.status.notAfter and (cert.status.notAfter < datetime.utcnow()):
+        if cert.status.notAfter and (cert.status.notAfter < datetime.now(cert.status.notAfter.tzinfo)):
             return False
         for condition in cert.status.conditions:
             if condition.type == "Ready":

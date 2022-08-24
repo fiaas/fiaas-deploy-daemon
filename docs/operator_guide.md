@@ -330,7 +330,7 @@ fiaas-deploy-daemon instance manage the Application and ApplicationStatus CRDs. 
 [`disable-crd-creation` flag](#disable-crd-creation) on all but the one fiaas-deploy-daemon instance that should
 manage the CRDs. If you use the helm chart to manage RBAC resources for fiaas-deploy-daemon you can then also disable
 creation of the clusterrole and associated clusterrolebinding for the instances with the `disable-crd-creation` flag
-set by setting the `rbac.clusterRole.create` and `rbac.clusterRole.create` flags to false.
+set by setting the `rbac.clusterRole.create` and `rbac.clusterRoleBinding.create` flags to false.
 
 Migrating from using skipper to using the helm chart to deploy fiaas-deploy-daemon
 ----------------------------------------------------------------------------------

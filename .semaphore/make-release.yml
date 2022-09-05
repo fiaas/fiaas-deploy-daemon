@@ -1,5 +1,5 @@
 
-# Copyright 2017-2019 The FIAAS Authors
+# Copyright 2022- The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 version: v1.0
-name: Promote stable
+name: Release fiaas-deploy-daemon
 agent:
   machine:
     type: e1-standard-2
     os_image: ubuntu1804
 blocks:
-  - name: Stable
+  - name: Make release for fiaas-deploy-daemon
     task:
       secrets:
-      - name: fdd-github
+        - name: github-fiaas-deploy-daemon-release
+        - name: docker
+      prologue:
+        commands:
+          - checkout
+          - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
+          - gh auth setup-git
+          - git config --global user.email "semaphore@example.org"
+          - git config --global user.name "Semaphore CI"
+          - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
       jobs:
-        - name: 'Update release channel stable'
+        - name: Make a new release for a git tag
           commands:
-            - echo 'Promoting stable!'
-            - checkout
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-version
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_git_sha
-            - cache restore $SEMAPHORE_PROJECT_NAME-$SEMAPHORE_WORKFLOW_ID-semaphore_job_id
-            - ./bin/ci/update_release_channel "$(tail -1 < semaphore_job_id)" "$(tail -1 < semaphore_git_sha)"  "$(tail -1 < version)" stable
+            - bin/make_release "$SEMAPHORE_GIT_TAG_NAME"

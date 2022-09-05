@@ -116,6 +116,4 @@ gh release create \
    --title "fiaas-deploy-daemon $RELEASE" \
    --notes-file "$RELEASE_NOTES_FILE" \
    --generate-notes \
-   --prerelease \
-   --draft \
    "$RELEASE"

@@ -1,0 +1,41 @@
+{{- if .Values.ingress.enabled -}}
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{- else -}}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: {{ .Values.name }}
+  labels:
+{{ include "fiaas-deploy-daemon.labels" . | indent 4 }}
+{{ include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.ingress.labels | indent 4 }}
+{{- if or .Values.annotations.global .Values.ingress.annotations }}
+  annotations:
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.annotations.global | indent 4 }}
+{{- include "fiaas-deploy-daemon.labelsOrAnnotations" .Values.ingress.annotations | indent 4 }}
+{{- end }}
+spec:
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts: {{ .Values.ingress.host | quote }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+    - host: {{ .Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: /
+            {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}                    
+            pathType: {{ .Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ .Values.name }}
+                port:
+                  name: http
+            {{- else }}
+            backend:
+              serviceName: {{ .Values.name }}
+              servicePort: http              
+            {{- end }}
+{{- end }}

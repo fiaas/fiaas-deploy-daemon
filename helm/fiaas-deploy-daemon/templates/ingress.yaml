@@ -32,10 +32,10 @@ spec:
               service:
                 name: {{ .Values.name }}
                 port:
-                  name: http
+                  number: {{ .Values.service.port }}
             {{- else }}
             backend:
               serviceName: {{ .Values.name }}
-              servicePort: http              
+              servicePort: {{ .Values.service.port }}
             {{- end }}
 {{- end }}

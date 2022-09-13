@@ -26,4 +26,7 @@ git push origin vMAJOR.MINOR.PATCH
 
 For cases that do not fit into the above, refer to the [semver spec](semver2) (and consider updating this documentation).
 
+### Prereleases
+If the version is alpha or beta, for example `v0.0.1-alpha.2`, the CI should automatically make the release into a prerelease. All that is required for this to occur is that there is some text after the version `v0.0.1`.
+
 [semver2]: https://semver.org/spec/v2.0.0.html

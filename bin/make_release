@@ -111,9 +111,16 @@ tag_push_docker_image "$IMAGE_TARBALL" "${IMAGE}:$IMAGE_VERSION" "${IMAGE}:$RELE
 echo "Packaging and publishing helm chart"
 publish_helm_chart "$RELEASE"
 
+# make prerelease if tag includes '-beta...', '-alpha...' etc after the semver
+PRERELEASE=""
+if echo "$RELEASE" | grep -qP '^v\d+\.\d+\.\d+-\w+'; then
+    PRERELEASE=--prerelease
+fi
+
 echo "Creating Github release $RELEASE"
 gh release create \
    --title "fiaas-deploy-daemon $RELEASE" \
    --notes-file "$RELEASE_NOTES_FILE" \
    --generate-notes \
+   $PRERELEASE \
    "$RELEASE"

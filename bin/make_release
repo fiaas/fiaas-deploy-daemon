@@ -113,7 +113,7 @@ publish_helm_chart "$RELEASE"
 
 # make prerelease if tag includes '-beta...', '-alpha...' etc after the semver
 PRERELEASE=""
-if [[ "$RELEASE" =~ '^v\d+\.\d+\.\d+-\w+' ]]; then
+if echo "$RELEASE" | grep -qP '^v\d+\.\d+\.\d+-\w+'; then
     PRERELEASE=--prerelease
 fi
 

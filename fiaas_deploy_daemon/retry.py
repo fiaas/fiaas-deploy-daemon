@@ -36,9 +36,7 @@ fiaas_upsert_conflict_failure_counter = Counter(
 
 
 class UpsertConflict(Exception):
-    def __init__(self, cause, response):
-        self.traceback = sys.exc_info()
-        super(self.__class__, self).__init__(cause.message)
+    def __init__(self, response):
         self.response = response
 
     def __str__(self):
@@ -85,7 +83,7 @@ def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, m
                 return func(*args, **kwargs)
             except ClientError as e:
                 if e.response.status_code == 409:  # Conflict
-                    raise UpsertConflict(e, e.response)
+                    raise UpsertConflict(e.response) from e
                 else:
                     raise
         return _wrap

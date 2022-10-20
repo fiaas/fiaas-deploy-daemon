@@ -15,10 +15,24 @@
 import mock
 import pytest
 from k8s.client import ClientError
-from requests import Response
+from requests import Response, Request
 
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict, UpsertConflict, canonical_name
 
+def test_upsertconflict_str():
+    expected = "409 Conflict for POST http://example.com. reason=bad conflict, message=conflict because of reasons"
+
+    response = mock.MagicMock(spec=Response)
+    response.status_code = 409  # Conflict
+    request = mock.MagicMock(spec=Request)
+    request.method = "POST"
+    request.url = "http://example.com"
+    response.request = request
+    response.json.return_value = {"reason": "bad conflict", "message": "conflict because of reasons"}
+
+    e = UpsertConflict(response)
+
+    assert str(e) == expected
 
 @pytest.mark.parametrize("status", (
     400,  # Bad Request

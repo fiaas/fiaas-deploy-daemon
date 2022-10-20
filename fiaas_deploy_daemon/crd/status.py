@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
+
 
 import logging
 import struct
@@ -85,7 +85,7 @@ def _save_status(result, subject):
 
 
 def _get_logs(app_name, namespace, deployment_id, result):
-    return get_running_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+    return get_running_logs(app_name, namespace, deployment_id) if result in ["RUNNING", "INITIATED"] else \
            get_final_logs(app_name, namespace, deployment_id)
 
 

@@ -37,7 +37,7 @@ def uuid():
 def prometheus_registry():
     from prometheus_client.core import REGISTRY
     yield REGISTRY
-    for c in REGISTRY._collector_to_names.keys():
+    for c in list(REGISTRY._collector_to_names.keys()):
         REGISTRY.unregister(c)
 
 
@@ -100,14 +100,14 @@ def _add_argument_diff(actual, expected, indent=0, acc=None):
     if type(actual) != type(expected):
         acc.append("{}{!r} {} {!r}".format(" " * indent * 2, actual, "==" if actual == expected else "!=", expected))
     elif isinstance(actual, dict):
-        for k in set(actual.keys() + expected.keys()):
+        for k in set(list(actual.keys()) + list(expected.keys())):
             acc.append("{}{}:".format(" " * indent * 2, k))
             a = actual.get(k)
             e = expected.get(k)
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
     elif isinstance(actual, list):
-        for a, e in itertools.izip_longest(actual, expected):
+        for a, e in itertools.zip_longest(actual, expected):
             acc.append("{}-".format(" " * indent * 2))
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
@@ -145,7 +145,7 @@ class FixtureScheduling(LoadScopeScheduling):
         return scope
 
     def _select_scope(self, fixture_values):
-        groups = itertools.izip_longest(fillvalue="", *([iter(fixture_values)] * 3))
+        groups = itertools.zip_longest(fillvalue="", *([iter(fixture_values)] * 3))
         return "-".join(next(groups))
 
 

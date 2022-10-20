@@ -127,7 +127,7 @@ class TestDeploymentDeployer(object):
         config.pre_stop_delay = 1
         config.log_format = "json"
         config.use_in_memory_emptydirs = Feature.USE_IN_MEMORY_EMPTYDIRS in features
-        config.deployment_max_surge = u"25%"
+        config.deployment_max_surge = "25%"
         config.deployment_max_unavailable = 0
         config.extension_hook_url = None
         config.disable_deprecated_managed_env_vars = Feature.DISABLE_DEPRECATED_MANAGED_ENV_VARS in features
@@ -444,7 +444,7 @@ def create_expected_deployment(config,
     } if add_init_container_annotations else {}
     pod_annotations = _none_if_empty(merge_dicts(pod_annotations, init_container_annotations))
 
-    max_surge = u"25%"
+    max_surge = "25%"
     max_unavailable = 0
     if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
         max_surge = 0
@@ -515,9 +515,9 @@ def create_environment_variables(config, global_env=None, version="version", env
 
     if global_env:
         _env_variables.update(global_env)
-        _env_variables.update({"FIAAS_{}".format(k): v for k, v in global_env.items()})
+        _env_variables.update({"FIAAS_{}".format(k): v for k, v in list(global_env.items())})
 
-    env = [{'name': k, 'value': v} for k, v in _env_variables.items()]
+    env = [{'name': k, 'value': v} for k, v in list(_env_variables.items())]
 
     env.append({'name': 'FIAAS_REQUESTS_CPU', 'valueFrom': {'resourceFieldRef': {
         'containerName': 'testapp', 'resource': 'requests.cpu', 'divisor': 1}}})

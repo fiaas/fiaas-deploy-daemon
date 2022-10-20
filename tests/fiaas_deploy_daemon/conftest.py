@@ -56,8 +56,8 @@ def app_spec():
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                                 timeout_seconds=1)),
-        teams=[u'foo'],
-        tags=[u'bar'],
+        teams=['foo'],
+        tags=['bar'],
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
@@ -117,8 +117,8 @@ def app_spec_teams_and_tags(app_spec):
     return app_spec._replace(
         ports=None,
         health_checks=None,
-        teams=[u'Order Produkt Betaling'],
-        tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
+        teams=['Order Produkt Betaling'],
+        tags=['høyt-i-stacken', 'ad-in', 'Anonnseinnlegging']
     )
 
 

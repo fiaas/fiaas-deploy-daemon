@@ -209,7 +209,7 @@ class Configuration(Namespace):
                             action="store_true")
         parser.add_argument("--deployment-max-surge", help="maximum number of extra pods that can be scheduled above the desired "
                             "number of pods during an update",
-                            default=u"25%", type=_int_or_unicode)
+                            default="25%", type=_int_or_unicode)
         parser.add_argument("--deployment-max-unavailable", help="The maximum number of pods that can be unavailable during an update",
                             default="0", type=_int_or_unicode)
         parser.add_argument("--enable-deprecated-tls-entry-per-host", help=TLS_ENTRY_PER_HOST_HELP,
@@ -360,4 +360,4 @@ def _int_or_unicode(arg):
     try:
         return int(arg)
     except ValueError:
-        return unicode(arg)
+        return str(arg)

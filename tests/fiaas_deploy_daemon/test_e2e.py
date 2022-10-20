@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import, print_function
+
 
 import os
 import subprocess
@@ -41,10 +41,10 @@ from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStat
     AdditionalLabelsOrAnnotations
 from fiaas_deploy_daemon.tools import merge_dicts
 
-IMAGE1 = u"finntech/application-name:123"
-IMAGE2 = u"finntech/application-name:321"
-DEPLOYMENT_ID1 = u"deployment_id_1"
-DEPLOYMENT_ID2 = u"deployment_id_2"
+IMAGE1 = "finntech/application-name:123"
+IMAGE2 = "finntech/application-name:321"
+DEPLOYMENT_ID1 = "deployment_id_1"
+DEPLOYMENT_ID2 = "deployment_id_2"
 PATIENCE = 60
 TIMEOUT = 5
 SHOULD_NOT_EXIST = object()  # Mapped to Kinds that should not exist in a test case
@@ -331,7 +331,7 @@ class TestE2E(object):
         expected = self._construct_expected(expected, request)
 
         # modify the expected service account for this test
-        for k, _ in expected.items():
+        for k, _ in list(expected.items()):
             if expected[k]['kind'] == 'Deployment':
                 name = expected[k]['metadata']['name']
                 expected[k]['spec']['template']['spec']['serviceAccountName'] = name
@@ -343,7 +343,7 @@ class TestE2E(object):
 
     def _construct_expected(self, expected, request):
         new_expected = {}
-        for kind, path in expected.items():
+        for kind, path in list(expected.items()):
             if path == SHOULD_NOT_EXIST:
                 new_expected[kind] = SHOULD_NOT_EXIST
             else:
@@ -382,8 +382,8 @@ class TestE2E(object):
 
     @staticmethod
     def _select_kinds(expected):
-        if len(expected.keys()) > 0:
-            return expected.keys()
+        if len(list(expected.keys())) > 0:
+            return list(expected.keys())
         else:
             return [Service, Deployment, Ingress]
 
@@ -403,7 +403,7 @@ class TestE2E(object):
         # Check that deployment status is RUNNING
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
+            assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
@@ -413,7 +413,7 @@ class TestE2E(object):
         status_labels = fiaas_application.spec.additional_labels.status
         if status_labels:
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-            label_difference = status_labels.viewitems() - status.metadata.labels.viewitems()
+            label_difference = status_labels.items() - status.metadata.labels.items()
             assert label_difference == set()
 
         # Check deploy success
@@ -495,7 +495,7 @@ class TestE2E(object):
             k8s_ingress = NetworkingV1Ingress
         else:
             k8s_ingress = Ingress
-        expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in expected.items()}
+        expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in list(expected.items())}
 
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
@@ -507,7 +507,7 @@ class TestE2E(object):
         # Check that deployment status is RUNNING
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
-            assert status.result == u"RUNNING"
+            assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
 
@@ -517,7 +517,7 @@ class TestE2E(object):
             assert k8s_ingress.get(name)
             assert k8s_ingress.get("{}-1".format(name))
 
-            for ingress_name, expected_dict in expected.items():
+            for ingress_name, expected_dict in list(expected.items()):
                 actual = k8s_ingress.get(ingress_name)
                 assert_k8s_resource_matches(actual, expected_dict, IMAGE1, None, DEPLOYMENT_ID1, None, app_uid)
 
@@ -543,7 +543,7 @@ class TestE2E(object):
         FiaasApplication.delete(name)
 
         def cleanup_complete():
-            for name, _ in expected.items():
+            for name, _ in list(expected.items()):
                 with pytest.raises(NotFound):
                     k8s_ingress.get(name)
 
@@ -552,7 +552,7 @@ class TestE2E(object):
 
 def _deploy_success(name, service_type, image, expected, deployment_id, strongbox_groups=None, app_uid=None):
     def action():
-        for kind, expected_dict in expected.items():
+        for kind, expected_dict in list(expected.items()):
             if expected_dict == SHOULD_NOT_EXIST:
                 with pytest.raises(NotFound):
                     kind.get(name)

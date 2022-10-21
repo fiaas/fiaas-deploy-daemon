@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-import mock
-from mock import create_autospec
+from unittest import mock
+from unittest.mock import create_autospec
 from requests import Response
 
 from k8s.models.service_account import ServiceAccount

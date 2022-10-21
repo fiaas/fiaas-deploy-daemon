@@ -19,7 +19,7 @@ import logging
 import sys
 from io import StringIO
 
-import mock
+from unittest import mock
 import pytest
 from callee import InstanceOf, Attrs, List
 

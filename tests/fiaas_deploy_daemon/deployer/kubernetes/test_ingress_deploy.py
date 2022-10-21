@@ -14,11 +14,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import mock
+from unittest import mock
 import pytest
 from k8s.models.common import ObjectMeta
 from k8s.models.ingress import Ingress, IngressTLS
-from mock import create_autospec, Mock
+from unittest.mock import create_autospec, Mock
 from requests import Response
 
 from fiaas_deploy_daemon import ExtensionHookCaller

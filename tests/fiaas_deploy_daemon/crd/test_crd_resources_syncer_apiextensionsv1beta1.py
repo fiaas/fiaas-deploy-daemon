@@ -17,7 +17,7 @@
 
 
 
-import mock
+from unittest import mock
 from requests import Response
 
 from k8s.client import NotFound

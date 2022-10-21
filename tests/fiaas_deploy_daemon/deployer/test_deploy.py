@@ -16,7 +16,7 @@
 # limitations under the License.
 from queue import Queue
 
-import mock
+from unittest import mock
 import pytest
 
 from fiaas_deploy_daemon.config import Configuration

@@ -3,7 +3,7 @@ from fiaas_deploy_daemon import warn_if_env_variable_config
 
 import logging
 
-import mock
+from unittest import mock
 import pytest
 
 

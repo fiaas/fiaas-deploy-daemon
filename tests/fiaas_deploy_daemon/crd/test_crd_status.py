@@ -16,7 +16,7 @@ import random
 import re
 from collections import namedtuple
 
-import mock
+from unittest import mock
 import pytest
 from blinker import Namespace
 from k8s.client import ClientError, NotFound

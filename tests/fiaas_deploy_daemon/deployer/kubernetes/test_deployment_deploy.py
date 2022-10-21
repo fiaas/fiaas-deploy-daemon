@@ -17,10 +17,10 @@
 from collections import defaultdict
 
 import enum
-import mock
+from unittest import mock
 import pytest
 from k8s.models.deployment import Deployment
-from mock import create_autospec
+from unittest.mock import create_autospec
 from requests import Response
 
 from fiaas_deploy_daemon.extension_hook_caller import ExtensionHookCaller

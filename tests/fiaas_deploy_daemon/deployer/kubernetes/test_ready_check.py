@@ -16,7 +16,7 @@
 # limitations under the License.
 
 from datetime import datetime, timedelta
-import mock
+from unittest import mock
 import pytest
 from monotonic import monotonic as time_monotonic
 

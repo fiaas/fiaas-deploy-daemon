@@ -19,7 +19,7 @@
 
 from queue import Queue
 
-import mock
+from unittest import mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound

@@ -324,10 +324,10 @@ class KindWrapper(object):
             output = subprocess.check_output(args, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             plog("vvvvvvvvvvvvvvvv Output from {} vvvvvvvvvvvvvvvv".format(args[0]))
-            plog(e.output)
+            plog(e.output.decode('utf-8'))
             plog("^^^^^^^^^^^^^^^^ Output from {} ^^^^^^^^^^^^^^^^".format(args[0]))
             raise e
-        return output.strip()
+        return output.decode('utf-8').strip()
 
 
 def _is_macos():

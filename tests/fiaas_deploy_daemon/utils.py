@@ -37,7 +37,7 @@ from distutils.version import StrictVersion
 from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.deployment import Deployment
 from k8s.models.service import Service
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus
 

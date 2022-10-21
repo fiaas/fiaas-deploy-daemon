@@ -17,7 +17,7 @@
 import time
 from queue import PriorityQueue
 
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 
 from ..base_thread import DaemonThread
 

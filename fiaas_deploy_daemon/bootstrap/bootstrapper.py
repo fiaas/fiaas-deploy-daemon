@@ -21,7 +21,7 @@ import threading
 import time
 
 from blinker import signal
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 from yaml import YAMLError
 
 from ..config import InvalidConfigurationException

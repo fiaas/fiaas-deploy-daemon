@@ -24,6 +24,7 @@ from fiaas_deploy_daemon.deployer import DeployerEvent
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.deployer.deploy import Deployer
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.deployer.scheduler import Scheduler
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject, STATUS_STARTED, STATUS_FAILED
@@ -55,12 +56,16 @@ class TestDeploy(object):
                        app_spec.labels.status, app_spec.annotations.status)
 
     @pytest.fixture
+    def ingress_adapter(self):
+        return mock.create_autospec(V1Beta1IngressAdapter, spec_set=True)
+
+    @pytest.fixture
     def config(self):
         return Configuration([])
 
     @pytest.fixture
-    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle, lifecycle_subject, config):
-        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle, config)
+    def deployer(self, app_spec, bookkeeper, adapter, scheduler, lifecycle, lifecycle_subject, ingress_adapter, config):
+        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle, ingress_adapter, config)
         deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
         return deployer
 
@@ -96,8 +101,9 @@ class TestDeploy(object):
         lifecycle.state_change_signal.send.assert_called_with(status=STATUS_FAILED, subject=lifecycle_subject)
 
     def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject,
-                                   config):
+                                   ingress_adapter, config):
         deployer()
 
         lifecycle.state_change_signal.send.assert_called_once_with(status=STATUS_STARTED, subject=lifecycle_subject)
-        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, config))
+        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter,
+                                                    config))

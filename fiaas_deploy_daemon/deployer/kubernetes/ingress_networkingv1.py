@@ -78,6 +78,9 @@ class NetworkingV1IngressAdapter(object):
         except NotFound:
             pass
 
+    def find(self, name, namespace):
+        return Ingress.find(name, namespace)
+
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):
         http_ingress_paths = [
             HTTPIngressPath(

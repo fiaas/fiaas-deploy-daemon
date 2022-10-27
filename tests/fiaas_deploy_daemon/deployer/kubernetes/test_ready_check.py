@@ -277,7 +277,7 @@ class TestReadyCheck(object):
         lifecycle.failed.assert_not_called()
 
     def test_tls_ingress_ready_v1(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_v1_adapter,
-                               config):
+                                  config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -301,7 +301,7 @@ class TestReadyCheck(object):
                 lifecycle.failed.assert_not_called()
 
     def test_tls_ingress_ready_null_notafter_v1(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                             ingress_v1_adapter, config):
+                                                ingress_v1_adapter, config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -324,7 +324,7 @@ class TestReadyCheck(object):
                 lifecycle.failed.assert_not_called()
 
     def test_tls_ingress_ready_expired_certificate_v1(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                                   ingress_v1_adapter, config):
+                                                      ingress_v1_adapter, config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -349,7 +349,7 @@ class TestReadyCheck(object):
                 lifecycle.success.assert_not_called()
 
     def test_tls_ingress_not_ready_timeout_v1(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                           ingress_v1_adapter, config):
+                                              ingress_v1_adapter, config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -373,7 +373,7 @@ class TestReadyCheck(object):
                 lifecycle.success.assert_not_called()
 
     def test_tls_ingress_not_ready_v1(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_v1_adapter,
-                                   config):
+                                      config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -396,7 +396,7 @@ class TestReadyCheck(object):
                 lifecycle.success.assert_not_called()
 
     def test_deployment_tls_config_no_tls_extension_v1(self, get, app_spec, bookkeeper, lifecycle,
-                                                    lifecycle_subject, ingress_v1_adapter, config):
+                                                       lifecycle_subject, ingress_v1_adapter, config):
         config.tls_certificate_ready = True
         self._create_response(get)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_v1_adapter, config)

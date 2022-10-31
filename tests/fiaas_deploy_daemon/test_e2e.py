@@ -76,7 +76,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes_service_account(self, k8s_version):
         try:
-            name = 'kind-{}-{}-{}'.format(k8s_version, "serviceaccount", uuid())
+            name = 'kind-{}-{}-{}'.format(k8s_version, "sa", uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()

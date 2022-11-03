@@ -52,10 +52,13 @@ class TestReadyCheck(object):
         return Configuration([])
 
     @pytest.fixture
-    def ingress_adapter(self, response=None):
-        ingress_adapter = mock.create_autospec(V1Beta1IngressAdapter)
-        ingress_adapter.find.return_value = response
-        return ingress_adapter
+    def ingress_adapter(self):
+        return mock.create_autospec(V1Beta1IngressAdapter)
+
+    @pytest.fixture
+    def get_cert(self):
+        with mock.patch("k8s.models.certificate.Certificate.get") as get_cert:
+            yield get_cert
 
     @pytest.mark.parametrize("generation,observed_generation", (
             (0, 0),
@@ -139,40 +142,39 @@ class TestReadyCheck(object):
             (Ingress, IngressTLS, False, None, True, True),
             (V1Ingress, V1IngressTLS, False, None, True, True)
     ))
-    def test_tls_ingress(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                               ingress_class, ingress_tls, cert_valid, expiration_date, result, success,
-                               config):
+    def test_tls_ingress(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, get_cert, ingress_adapter,
+                         ingress_class, ingress_tls, cert_valid, expiration_date, result, success, config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
+
         ingress = mock.create_autospec(ingress_class, spec_set=True)
         ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-        ingress_adapter = self.ingress_adapter([ingress])
-        with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
+        ingress_adapter.find.return_value = [ingress]
 
-            get_crd.return_value = self._mock_certificate(cert_valid, expiration_date)
-            self._create_response(get, replicas, replicas, replicas, replicas)
+        get_cert.return_value = self._mock_certificate(cert_valid, expiration_date)
+        self._create_response(get, replicas, replicas, replicas, replicas)
 
-            ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
-            if not success:
-                ready._fail_after = time_monotonic()
+        ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
+        if not success:
+            ready._fail_after = time_monotonic()
 
-            assert ready() is result
-            if result:
-                bookkeeper.success.assert_not_called()
-                lifecycle.success.assert_not_called()
-                bookkeeper.failed.assert_not_called()
-                lifecycle.failed.assert_not_called()
-            elif success:
-                bookkeeper.success.assert_called_with(app_spec)
-                lifecycle.success.assert_called_with(lifecycle_subject)
-                bookkeeper.failed.assert_not_called()
-                lifecycle.failed.assert_not_called()
-            else:
-                bookkeeper.success.assert_not_called()
-                lifecycle.success.assert_not_called()
-                bookkeeper.failed.assert_called_with(app_spec)
-                lifecycle.failed.assert_called_with(lifecycle_subject)
+        assert ready() is result
+        if result:
+            bookkeeper.success.assert_not_called()
+            lifecycle.success.assert_not_called()
+            bookkeeper.failed.assert_not_called()
+            lifecycle.failed.assert_not_called()
+        elif success:
+            bookkeeper.success.assert_called_with(app_spec)
+            lifecycle.success.assert_called_with(lifecycle_subject)
+            bookkeeper.failed.assert_not_called()
+            lifecycle.failed.assert_not_called()
+        else:
+            bookkeeper.success.assert_not_called()
+            lifecycle.success.assert_not_called()
+            bookkeeper.failed.assert_called_with(app_spec)
+            lifecycle.failed.assert_called_with(lifecycle_subject)
 
     def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
                                                     ingress_adapter, config):

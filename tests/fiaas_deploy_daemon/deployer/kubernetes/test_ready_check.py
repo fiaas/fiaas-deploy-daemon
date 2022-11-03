@@ -20,12 +20,8 @@ import mock
 import pytest
 from monotonic import monotonic as time_monotonic
 
-from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
-from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressTLSDeployer
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
 from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
-from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.ready_check import ReadyCheck
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
@@ -56,24 +52,10 @@ class TestReadyCheck(object):
         return Configuration([])
 
     @pytest.fixture
-    def ingress_tls_deployer(self):
-        return mock.create_autospec(IngressTLSDeployer, spec_set=True)
-
-    @pytest.fixture
-    def owner_references(self):
-        return mock.create_autospec(OwnerReferences, spec_set=True)
-
-    @pytest.fixture
-    def extension_hook(self):
-        return mock.create_autospec(ExtensionHookCaller, spec_set=True)
-
-    @pytest.fixture
-    def ingress_adapter(self, ingress_tls_deployer, owner_references, extension_hook):
-        return V1Beta1IngressAdapter(ingress_tls_deployer, owner_references, extension_hook)
-
-    @pytest.fixture
-    def ingress_v1_adapter(self, ingress_tls_deployer, owner_references, extension_hook):
-        return NetworkingV1IngressAdapter(ingress_tls_deployer, owner_references, extension_hook)
+    def ingress_adapter(self, response=None):
+        ingress_adapter = mock.create_autospec(V1Beta1IngressAdapter)
+        ingress_adapter.find.return_value = response
+        return ingress_adapter
 
     @pytest.mark.parametrize("generation,observed_generation", (
             (0, 0),
@@ -145,165 +127,57 @@ class TestReadyCheck(object):
         lifecycle.success.assert_called_with(lifecycle_subject)
         lifecycle.failed.assert_not_called()
 
-    @pytest.mark.parametrize("adapter,ingress_class,ingress_tls,ingress_path", (
-            (ingress_adapter, Ingress, IngressTLS, "ingress"),
-            (ingress_v1_adapter, V1Ingress, V1IngressTLS, "networking_v1_ingress")
+    @pytest.mark.parametrize("ingress_class,ingress_tls,cert_valid,expiration_date,result,success", (
+            (Ingress, IngressTLS, True, (datetime.now() + timedelta(days=5)), False, True),
+            (V1Ingress, V1IngressTLS, True, (datetime.now() + timedelta(days=5)), False, True),
+            (Ingress, IngressTLS, True, None, False, True),
+            (V1Ingress, V1IngressTLS, True, None, False, True),
+            (Ingress, IngressTLS, True, (datetime.now() - timedelta(days=5)), False, False),
+            (V1Ingress, V1IngressTLS, True, (datetime.now() - timedelta(days=5)), False, False),
+            (Ingress, IngressTLS, False, None, False, False),
+            (V1Ingress, V1IngressTLS, False, None, False, False),
+            (Ingress, IngressTLS, False, None, True, True),
+            (V1Ingress, V1IngressTLS, False, None, True, True)
     ))
-    def test_tls_ingress_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, adapter, ingress_class,
-                               ingress_tls, ingress_path, ingress_tls_deployer, owner_references, extension_hook,
+    def test_tls_ingress(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
+                               ingress_class, ingress_tls, cert_valid, expiration_date, result, success,
                                config):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
+        ingress = mock.create_autospec(ingress_class, spec_set=True)
+        ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
+        ingress_adapter = self.ingress_adapter([ingress])
+        with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
 
-        with mock.patch("k8s.models." + ingress_path + ".Ingress.find") as find:
-            ingress = mock.create_autospec(ingress_class, spec_set=True)
-            ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-            find.return_value = [ingress]
+            get_crd.return_value = self._mock_certificate(cert_valid, expiration_date)
+            self._create_response(get, replicas, replicas, replicas, replicas)
 
-            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                expiration_date = datetime.now() + timedelta(days=5)
-                get_crd.return_value = self._mock_certificate(True, expiration_date)
-
-                self._create_response(get, replicas, replicas, replicas, replicas)
-                ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
-                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
-
-                assert ready() is False
-                bookkeeper.success.assert_called_with(app_spec)
-                bookkeeper.failed.assert_not_called()
-                lifecycle.success.assert_called_with(lifecycle_subject)
-                lifecycle.failed.assert_not_called()
-
-    @pytest.mark.parametrize("adapter,ingress_class,ingress_tls,ingress_path", (
-            (ingress_adapter, Ingress, IngressTLS, "ingress"),
-            (ingress_v1_adapter, V1Ingress, V1IngressTLS, "networking_v1_ingress")
-    ))
-    def test_tls_ingress_ready_null_notafter(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, adapter,
-                                             ingress_class, ingress_tls, ingress_path, ingress_tls_deployer,
-                                             owner_references, extension_hook, config):
-        config.tls_certificate_ready = True
-        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
-        replicas = 2
-
-        with mock.patch("k8s.models." + ingress_path + ".Ingress.find") as find:
-            ingress = mock.create_autospec(ingress_class, spec_set=True)
-            ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-            find.return_value = [ingress]
-
-            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                get_crd.return_value = self._mock_certificate(True)
-
-                self._create_response(get, replicas, replicas, replicas, replicas)
-                ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
-                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
-
-                assert ready() is False
-                bookkeeper.success.assert_called_with(app_spec)
-                bookkeeper.failed.assert_not_called()
-                lifecycle.success.assert_called_with(lifecycle_subject)
-                lifecycle.failed.assert_not_called()
-
-    @pytest.mark.parametrize("adapter,ingress_class,ingress_tls,ingress_path", (
-            (ingress_adapter, Ingress, IngressTLS, "ingress"),
-            (ingress_v1_adapter, V1Ingress, V1IngressTLS, "networking_v1_ingress")
-    ))
-    def test_tls_ingress_ready_expired_certificate(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                                   adapter, ingress_class, ingress_tls, ingress_path,
-                                                   ingress_tls_deployer, owner_references, extension_hook, config):
-        config.tls_certificate_ready = True
-        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
-        replicas = 2
-
-        with mock.patch("k8s.models." + ingress_path + ".Ingress.find") as find:
-            ingress = mock.create_autospec(ingress_class, spec_set=True)
-            ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-            find.return_value = [ingress]
-
-            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                expiration_date = datetime.now() - timedelta(days=5)
-                get_crd.return_value = self._mock_certificate(True, expiration_date)
-
-                self._create_response(get, replicas, replicas, replicas, replicas)
-                ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
-                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
+            ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
+            if not success:
                 ready._fail_after = time_monotonic()
 
-                assert ready() is False
-                bookkeeper.failed.assert_called_with(app_spec)
+            assert ready() is result
+            if result:
                 bookkeeper.success.assert_not_called()
-                lifecycle.failed.assert_called_with(lifecycle_subject)
                 lifecycle.success.assert_not_called()
-
-    @pytest.mark.parametrize("adapter,ingress_class,ingress_tls,ingress_path", (
-            (ingress_adapter, Ingress, IngressTLS, "ingress"),
-            (ingress_v1_adapter, V1Ingress, V1IngressTLS, "networking_v1_ingress")
-    ))
-    def test_tls_ingress_not_ready_timeout(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, adapter,
-                                           ingress_class, ingress_tls, ingress_path, ingress_tls_deployer,
-                                           owner_references, extension_hook, config):
-        config.tls_certificate_ready = True
-        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
-        replicas = 2
-
-        with mock.patch("k8s.models." + ingress_path + ".Ingress.find") as find:
-            ingress = mock.create_autospec(ingress_class, spec_set=True)
-            ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-            find.return_value = [ingress]
-
-            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                get_crd.return_value = self._mock_certificate(False)
-
-                self._create_response(get, replicas, replicas, replicas, replicas)
-                ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
-                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
-                ready._fail_after = time_monotonic()
-
-                assert ready() is False
-                bookkeeper.failed.assert_called_with(app_spec)
-                bookkeeper.success.assert_not_called()
-                lifecycle.failed.assert_called_with(lifecycle_subject)
-                lifecycle.success.assert_not_called()
-
-    @pytest.mark.parametrize("adapter,ingress_class,ingress_tls,ingress_path", (
-            (ingress_adapter, Ingress, IngressTLS, "ingress"),
-            (ingress_v1_adapter, V1Ingress, V1IngressTLS, "networking_v1_ingress")
-    ))
-    def test_tls_ingress_not_ready(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, adapter,
-                                   ingress_class, ingress_tls, ingress_path, ingress_tls_deployer, owner_references,
-                                   extension_hook, config):
-        config.tls_certificate_ready = True
-        app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
-        replicas = 2
-
-        with mock.patch("k8s.models." + ingress_path + ".Ingress.find") as find:
-            ingress = mock.create_autospec(ingress_class, spec_set=True)
-            ingress.spec.tls = [ingress_tls(hosts=["extra1.example.com"], secretName="secret1")]
-            find.return_value = [ingress]
-
-            with mock.patch("k8s.models.certificate.Certificate.get") as get_crd:
-                get_crd.return_value = self._mock_certificate(False)
-
-                self._create_response(get, replicas, replicas, replicas, replicas)
-                ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
-                ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
-
-                assert ready() is True
                 bookkeeper.failed.assert_not_called()
-                bookkeeper.success.assert_not_called()
                 lifecycle.failed.assert_not_called()
+            elif success:
+                bookkeeper.success.assert_called_with(app_spec)
+                lifecycle.success.assert_called_with(lifecycle_subject)
+                bookkeeper.failed.assert_not_called()
+                lifecycle.failed.assert_not_called()
+            else:
+                bookkeeper.success.assert_not_called()
                 lifecycle.success.assert_not_called()
+                bookkeeper.failed.assert_called_with(app_spec)
+                lifecycle.failed.assert_called_with(lifecycle_subject)
 
-    @pytest.mark.parametrize("adapter", (
-            (ingress_adapter),
-            (ingress_v1_adapter)
-    ))
     def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                                    adapter, ingress_tls_deployer, owner_references, extension_hook,
-                                                    config):
+                                                    ingress_adapter, config):
         config.tls_certificate_ready = True
         self._create_response(get)
-        ingress_adapter = adapter(self, ingress_tls_deployer, owner_references, extension_hook)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
 
         assert ready() is False

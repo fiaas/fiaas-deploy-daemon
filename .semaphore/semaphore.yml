@@ -59,6 +59,8 @@ blocks:
           - tox -e integration_test -- -n 2 --use-docker-for-e2e --e2e-k8s-version "$K8S_VERSION"
         matrix:
           # e2e tests are run vs. these Kubernetes version
+          # When changing the most recent Kubernetes version here, also update the default value for
+          # E2E_K8S_VERSION_OPTION in tests/conftest.py; it should point to the most recent version used in CI.
           - env_var: K8S_VERSION
             values:
               - v1.15.12
@@ -68,6 +70,7 @@ blocks:
               - v1.20.7
               - v1.21.2
               - v1.22.4
+              - v1.23.13
 promotions:
   - name: Push container image
     pipeline_file: push-container-image.yml

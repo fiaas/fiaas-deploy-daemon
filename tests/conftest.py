@@ -157,8 +157,10 @@ def pytest_xdist_make_scheduler(config, log):
 def pytest_addoption(parser):
     parser.addoption(DOCKER_FOR_E2E_OPTION, action="store_true",
                      help="Run FDD using the development container image when executing E2E tests")
+    # When changing the most recent Kubernetes version here, also update the most recent Kubernetes version used in CI
+    # in .semaphore/semaphore.yml, as these should point to the same version.
     parser.addoption(E2E_K8S_VERSION_OPTION, action="store",
-                     default="v1.22.4",
+                     default="v1.23.13",
                      help="Run e2e tests against a kind cluster using this Kubernetes version")
 
 

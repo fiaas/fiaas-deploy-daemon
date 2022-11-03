@@ -22,14 +22,13 @@ from datetime import datetime
 from k8s.client import NotFound
 from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
-from k8s.models.ingress import Ingress
 from monotonic import monotonic as time_monotonic
 
 LOG = logging.getLogger(__name__)
 
 
 class ReadyCheck(object):
-    def __init__(self, app_spec, bookkeeper, lifecycle, lifecycle_subject, config):
+    def __init__(self, app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config):
         self._app_spec = app_spec
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
@@ -41,6 +40,7 @@ class ReadyCheck(object):
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
         self._should_check_ingress = config.tls_certificate_ready
+        self._ingress_adapter = ingress_adapter
 
     def __call__(self):
         if self._ready():
@@ -77,7 +77,7 @@ class ReadyCheck(object):
 
     def _ingress_ready(self):
         try:
-            ing_list = Ingress.find(self._app_spec.name, self._app_spec.namespace)
+            ing_list = self._ingress_adapter.find(self._app_spec.name, self._app_spec.namespace)
         except NotFound:
             return False
 

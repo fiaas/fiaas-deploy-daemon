@@ -176,6 +176,7 @@ class FixtureScheduling(LoadScopeScheduling):
 
         return "-".join(fixture_values[:2])
 
+
 @pytest.mark.tryfirst
 def pytest_xdist_make_scheduler(config, log):
     return FixtureScheduling(config, log)

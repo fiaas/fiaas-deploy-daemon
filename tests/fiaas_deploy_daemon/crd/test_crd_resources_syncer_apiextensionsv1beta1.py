@@ -16,7 +16,6 @@
 # limitations under the License.
 
 
-
 from unittest import mock
 from requests import Response
 

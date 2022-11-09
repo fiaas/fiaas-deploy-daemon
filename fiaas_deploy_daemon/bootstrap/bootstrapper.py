@@ -15,7 +15,6 @@
 # limitations under the License.
 
 
-
 import logging
 import threading
 import time

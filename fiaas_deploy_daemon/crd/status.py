@@ -14,7 +14,6 @@
 # limitations under the License.
 
 
-
 import logging
 import struct
 from base64 import b32encode

@@ -16,7 +16,6 @@
 # limitations under the License.
 
 
-
 from queue import Queue
 
 from unittest import mock

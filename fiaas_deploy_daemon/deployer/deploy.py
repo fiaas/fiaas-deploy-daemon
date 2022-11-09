@@ -16,7 +16,6 @@
 # limitations under the License.
 
 
-
 import logging
 
 from .kubernetes.ready_check import ReadyCheck

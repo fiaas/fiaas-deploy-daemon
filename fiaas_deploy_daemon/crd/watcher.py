@@ -15,7 +15,6 @@
 # limitations under the License.
 
 
-
 import logging
 
 from k8s.base import WatchEvent

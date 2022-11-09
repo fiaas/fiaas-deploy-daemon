@@ -19,6 +19,7 @@ from requests import Response, Request
 
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict, UpsertConflict, canonical_name
 
+
 def test_upsertconflict_str():
     expected = "409 Conflict for POST http://example.com. reason=bad conflict, message=conflict because of reasons"
 
@@ -33,6 +34,7 @@ def test_upsertconflict_str():
     e = UpsertConflict(response)
 
     assert str(e) == expected
+
 
 @pytest.mark.parametrize("status", (
     400,  # Bad Request

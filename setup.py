@@ -44,10 +44,10 @@ WEB_REQ = [
     # TODO: upgrade flask and associated dependencies to 2.x
     "Flask == 1.1.1",
     "flask-talisman==0.7.0",
-    "jinja2 <= 2.11.3", # jinja 3.x requires also upgrading flask to 2.x
-    "markupsafe <= 1.1.1", # markupsafe 2.x requires also upgrading flask to 2.x
-    "itsdangerous <= 1.1.0", # markupsafe 2.x requires also upgrading flask to 2.x
-    "werkzeug <= 1.0.1", # markupsafe 2.x requires also upgrading flask to 2.x
+    "jinja2 <= 2.11.3",  # jinja 3.x requires also upgrading flask to 2.x
+    "markupsafe <= 1.1.1",  # markupsafe 2.x requires also upgrading flask to 2.x
+    "itsdangerous <= 1.1.0",  # markupsafe 2.x requires also upgrading flask to 2.x
+    "werkzeug <= 1.0.1",  # markupsafe 2.x requires also upgrading flask to 2.x
     "blinker == 1.4",
 ]
 

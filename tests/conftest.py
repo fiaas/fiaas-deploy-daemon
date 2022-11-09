@@ -137,8 +137,8 @@ class FixtureScheduling(LoadScopeScheduling):
             scope = LoadScopeScheduling._split_scope(self, nodeid)
         else:
             fixture_values = m.group(1).split("-")
-            if "test_e2e" in nodeid:
-                scope = "-".join(fixture_values[:2])
+            if "test_e2e.py" in nodeid:
+                scope = self._select_scope_e2e(nodeid, fixture_values)
             else:
                 scope = self._select_scope(fixture_values)
         self._assigned_scope[nodeid] = scope
@@ -148,6 +148,33 @@ class FixtureScheduling(LoadScopeScheduling):
         groups = itertools.zip_longest(fillvalue="", *([iter(fixture_values)] * 3))
         return "-".join(next(groups))
 
+    def _select_scope_e2e(self, nodeid, fixture_values):
+        """Kubernetes cluster startup time for the e2e tests in test_e2e.py is significant. To ensure tests that use
+        the same cluster run on the same worker, group tests from test_e2e.py by the cluster the test needs, by
+        setting the same scope for tests that use the same cluster. This should avoid two different workers spinning
+        up the same type of cluster to run tests against separately.
+
+        There are currently 3 cluster types used by the e2e tests;
+        - kubernetes with NodePort service_type,
+        - kubernetes with ClusterIP service_type
+        - kubernetes_service_account
+
+        Scopes:
+        - group tests with NodePort or ClusterIP in fixture_values to use kubernetes/NodePort or kubernetes/ClusterIP
+        respectively
+        - group tests which contain test_custom_resource_definition_deploy_with_service_account together to use
+        kubernetes_service_account
+        - if none of those apply, use the previous behavior of grouping by the two first fixture names (this is just
+        as a fallback and might lead to suboptimal scheduling).
+        """
+        if 'test_custom_resource_definition_deploy_with_service_account' in nodeid:
+            return 'serviceaccount'
+
+        for service_type in ("NodePort", "ClusterIP"):
+            if service_type in fixture_values:
+                return service_type
+
+        return "-".join(fixture_values[:2])
 
 @pytest.mark.tryfirst
 def pytest_xdist_make_scheduler(config, log):

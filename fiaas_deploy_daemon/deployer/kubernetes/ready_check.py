@@ -33,10 +33,12 @@ class ReadyCheck(object):
         self._bookkeeper = bookkeeper
         self._lifecycle = lifecycle
         self._lifecycle_subject = lifecycle_subject
+        readiness_delay = app_spec.health_checks.readiness.initial_delay_seconds
+        liveness_delay = app_spec.health_checks.liveness.initial_delay_seconds
         self._fail_after_seconds = _calculate_fail_time(
             config.ready_check_timeout_multiplier,
             app_spec.autoscaler.max_replicas,
-            app_spec.health_checks.readiness.initial_delay_seconds
+            readiness_delay if readiness_delay > liveness_delay else liveness_delay
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
         self._should_check_ingress = config.tls_certificate_ready

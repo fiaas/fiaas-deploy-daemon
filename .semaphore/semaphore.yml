@@ -63,11 +63,6 @@ blocks:
           # E2E_K8S_VERSION_OPTION in tests/conftest.py; it should point to the most recent version used in CI.
           - env_var: K8S_VERSION
             values:
-              - v1.15.12
-              - v1.16.15
-              - v1.18.19
-              - v1.19.11
-              - v1.20.7
               - v1.21.2
               - v1.22.4
               - v1.23.13

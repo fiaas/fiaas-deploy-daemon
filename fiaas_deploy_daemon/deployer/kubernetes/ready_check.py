@@ -38,7 +38,7 @@ class ReadyCheck(object):
         self._fail_after_seconds = _calculate_fail_time(
             config.ready_check_timeout_multiplier,
             app_spec.autoscaler.max_replicas,
-            readiness_delay if readiness_delay > liveness_delay else liveness_delay
+            max(readiness_delay, liveness_delay)
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
         self._should_check_ingress = config.tls_certificate_ready

@@ -3,7 +3,7 @@ from fiaas_deploy_daemon import warn_if_env_variable_config
 
 import logging
 
-import mock
+from unittest import mock
 import pytest
 
 
@@ -54,9 +54,9 @@ def config_flags():
         ConfigFlag('CLIENT_CERT', 'client_cert'),
         ConfigFlag('CLIENT_KEY', 'client_key'),
         ConfigFlag('INGRESS_SUFFIXES', r'[1\.example.com,2.example.com]', config_value=[r'1\.example.com', '2.example.com']),
-        ConfigFlag('HOST_REWRITE_RULES', r'[pattern=value,(\d+)\.\example\.com=$1.example.net,www.([a-z]+.com)={env}.$1]',
+        ConfigFlag('HOST_REWRITE_RULES', r'[pattern=value,(\d+)\.example\.com=$1.example.net,www.([a-z]+.com)={env}.$1]',
                    config_value=[HostRewriteRule('pattern=value'),
-                                 HostRewriteRule(r'(\d+)\.\example\.com=$1.example.net'),
+                                 HostRewriteRule(r'(\d+)\.example\.com=$1.example.net'),
                                  HostRewriteRule('www.([a-z]+.com)={env}.$1')]),
         ConfigFlag('FIAAS_GLOBAL_ENV', '[pattern=value,FIAAS_ENV=test]', config_key='global_env',
                    config_value={'pattern': 'value', 'FIAAS_ENV': 'test'}),

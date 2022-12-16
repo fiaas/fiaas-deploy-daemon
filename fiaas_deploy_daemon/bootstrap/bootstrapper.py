@@ -14,14 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
 import threading
 import time
 
 from blinker import signal
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 from yaml import YAMLError
 
 from ..config import InvalidConfigurationException
@@ -48,10 +47,10 @@ class StatusCollector(object):
 
     def values(self):
         with self._statuses_lock:
-            return self._statuses.values()
+            return list(self._statuses.values())
 
     def items(self):
-        for key, status in self._statuses.iteritems():
+        for key, status in self._statuses.items():
             name, namespace = key
             yield name, namespace, status
 
@@ -131,15 +130,15 @@ class Bootstrapper(object):
     def _wait_for_readiness(self, wait_time_seconds, timeout_seconds):
         start = time_monotonic()
         while time_monotonic() < (start + timeout_seconds):
-            if all(status == STATUS_SUCCESS for status in self._status_collector.values()):
-                LOG.info("Bootstrapped {} applications".format(len(self._status_collector.values())))
+            if all(status == STATUS_SUCCESS for status in list(self._status_collector.values())):
+                LOG.info("Bootstrapped {} applications".format(len(list(self._status_collector.values()))))
                 return True
             else:
                 time.sleep(wait_time_seconds)
 
         message = "Timed out after waiting {}s  for applications to become ready.\n".format(timeout_seconds)
         message += "Applications which failed to become ready:\n"
-        for name, namespace, status in self._status_collector.items():
+        for name, namespace, status in list(self._status_collector.items()):
             message += "{} in namespace {} had final state {}\n".format(name, namespace, status)
         LOG.error(message)
         return False

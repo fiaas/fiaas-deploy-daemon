@@ -16,7 +16,7 @@ import random
 import re
 from collections import namedtuple
 
-import mock
+from unittest import mock
 import pytest
 from blinker import Namespace
 from k8s.client import ClientError, NotFound
@@ -33,8 +33,8 @@ from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."
-DEPLOYMENT_ID = u"deployment_id"
-NAME = u"name"
+DEPLOYMENT_ID = "deployment_id"
+NAME = "name"
 VALID_NAME = re.compile(r"^[a-z0-9.-]+$")
 
 
@@ -78,10 +78,10 @@ class TestStatusReport(object):
             TestData = namedtuple("TestData", ("signal_name", "action", "status", "result", "new",
                                                "called_mock", "ignored_mock"))
             name2result = {
-                STATUS_STARTED: u"RUNNING",
-                STATUS_FAILED: u"FAILED",
-                STATUS_SUCCESS: u"SUCCESS",
-                STATUS_INITIATED: u"INITIATED"
+                STATUS_STARTED: "RUNNING",
+                STATUS_FAILED: "FAILED",
+                STATUS_SUCCESS: "SUCCESS",
+                STATUS_INITIATED: "INITIATED"
             }
             action2data = {
                 "create": (True, "post", "put"),
@@ -186,10 +186,10 @@ class TestStatusReport(object):
         ignored_mock.assert_not_called()
 
     @pytest.mark.parametrize("deployment_id", (
-            u"fiaas/fiaas-deploy-daemon:latest",
-            u"1234123",
-            u"The Ultimate Deployment ID",
-            u"@${[]}!#%&/()=?"
+            "fiaas/fiaas-deploy-daemon:latest",
+            "1234123",
+            "The Ultimate Deployment ID",
+            "@${[]}!#%&/()=?"
     ))
     def test_create_name(self, deployment_id):
         final_name = status.create_name(NAME, deployment_id)
@@ -279,4 +279,4 @@ def _subject_from_app_spec(app_spec):
 def _create_status(i, annotate=True):
     annotations = {LAST_UPDATED_KEY: "2020-12-12T23.59.{:02}".format(i)} if annotate else None
     metadata = ObjectMeta(name="name-{}".format(i), namespace="test", annotations=annotations)
-    return FiaasApplicationStatus(new=False, metadata=metadata, result=u"SUCCESS")
+    return FiaasApplicationStatus(new=False, metadata=metadata, result="SUCCESS")

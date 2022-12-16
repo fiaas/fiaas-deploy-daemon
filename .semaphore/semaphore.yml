@@ -26,10 +26,10 @@ blocks:
       - name: docker
       prologue:
         commands:
+          - sem-version python 3.9
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
-          - export PATH="$PATH:$HOME/.local/bin"
-          - pip install --user .[ci]
+          - pip install .[ci]
       jobs:
       - name: "Unit tests + docker build"
         commands:
@@ -44,9 +44,11 @@ blocks:
     task:
       prologue:
         commands:
+          - sem-version python 3.9
           - checkout
+          - pip install .[ci]
+          - mkdir -p "$HOME/.local/bin"
           - export PATH="$PATH:$HOME/.local/bin"
-          - pip install --user .[ci]
           - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
           - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
       jobs:

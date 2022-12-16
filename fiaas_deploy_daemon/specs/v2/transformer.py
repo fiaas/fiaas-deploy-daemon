@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, unicode_literals
+
 
 import collections
 import pkgutil
@@ -70,7 +70,7 @@ class Transformer(BaseTransformer):
                 "readiness": readiness,
             }
         }
-        for old, new in Transformer.COPY_MAPPING.iteritems():
+        for old, new in Transformer.COPY_MAPPING.items():
             value = _get(lookup, old)
             _set(new_config, new, value)
         if lookup["autoscaler"]["enabled"]:
@@ -100,11 +100,11 @@ class Transformer(BaseTransformer):
             pass
         return dict(
             [("version", app_config["version"])] +
-            _remove_intersect(app_config, v3defaults).items())
+            list(_remove_intersect(app_config, v3defaults).items()))
 
     @staticmethod
     def _health_check(lookup, ports_lookup):
-        value = {key: value for key, value in lookup.iteritems() if key not in ("execute", "http", "tcp")}
+        value = {key: value for key, value in lookup.items() if key not in ("execute", "http", "tcp")}
         for check in ("execute", "http", "tcp"):
             if lookup.get_config_value(check):
                 value[check] = lookup[check]
@@ -175,12 +175,12 @@ def _set(d, keys, value):
 
 def _flatten(d):
     if isinstance(d, collections.Mapping):
-        return {k: _flatten(v) for k, v in d.items()}
+        return {k: _flatten(v) for k, v in list(d.items())}
     return d
 
 
 def _remove_intersect(dict1, dict2):
-    map(dict1.pop, filter(lambda k: k in dict2 and dict2[k] == dict1[k], dict1))
+    list(map(dict1.pop, [k for k in dict1 if k in dict2 and dict2[k] == dict1[k]]))
     keys_dict1 = set(dict1.keys())
     keys_dict2 = set(dict2.keys())
     for k in keys_dict1 & keys_dict2:
@@ -188,7 +188,7 @@ def _remove_intersect(dict1, dict2):
             dict1[k].update(_remove_intersect(dict1[k], dict2[k]))
         elif all(_single_dict_list(x) for x in [dict1[k], dict2[k]]):
             dict1[k] = [item for item in [_remove_intersect(x, y) for x, y in zip(dict1[k], dict2[k])] if item]
-    map(dict1.pop, filter(lambda k: not dict1[k], dict1))
+    list(map(dict1.pop, [k for k in dict1 if not dict1[k]]))
     return dict1
 
 

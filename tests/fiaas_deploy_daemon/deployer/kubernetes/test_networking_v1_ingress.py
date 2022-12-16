@@ -14,10 +14,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import mock
+from unittest import mock
 import pytest
 from k8s.models.networking_v1_ingress import Ingress, IngressTLS
-from mock import create_autospec, Mock
+from unittest.mock import create_autospec, Mock
 from requests import Response
 
 from fiaas_deploy_daemon import ExtensionHookCaller
@@ -61,8 +61,8 @@ def app_spec(**kwargs):
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1,
                                 failure_threshold=3, timeout_seconds=1)),
-        teams=[u'foo'],
-        tags=[u'bar'],
+        teams=['foo'],
+        tags=['bar'],
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, ANNOTATIONS.copy(), {}, {}, {}, {}),
@@ -382,11 +382,11 @@ class TestIngressDeployer(object):
         pytest.helpers.assert_any_call(delete, INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
     @pytest.mark.parametrize("app_spec, hosts", (
-            (app_spec(), [u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),
+            (app_spec(), ['testapp.svc.test.example.com', 'testapp.127.0.0.1.xip.io']),
             (app_spec(ingresses=[
                 IngressItemSpec(host="foo.rewrite.example.com",
                                 pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})]),
-             [u'test.foo.rewrite.example.com', u'testapp.svc.test.example.com', u'testapp.127.0.0.1.xip.io']),
+             ['test.foo.rewrite.example.com', 'testapp.svc.test.example.com', 'testapp.127.0.0.1.xip.io']),
     ))
     @pytest.mark.usefixtures("delete")
     def test_applies_ingress_tls_deployer(self, deployer, ingress_tls_deployer, app_spec, hosts):

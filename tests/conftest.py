@@ -37,7 +37,7 @@ def uuid():
 def prometheus_registry():
     from prometheus_client.core import REGISTRY
     yield REGISTRY
-    for c in REGISTRY._collector_to_names.keys():
+    for c in list(REGISTRY._collector_to_names.keys()):
         REGISTRY.unregister(c)
 
 
@@ -68,8 +68,8 @@ def assert_dicts(actual, expected):
 
     try:
         assert actual == expected
-    except AssertionError as ae:
-        raise AssertionError(ae.message + _add_argument_diff(actual, expected))
+    except AssertionError:
+        raise AssertionError(_add_argument_diff(actual, expected))
 
 
 def _add_useful_error_message(assertion, mockk, first, args):
@@ -80,14 +80,14 @@ def _add_useful_error_message(assertion, mockk, first, args):
     __tracebackhide__ = True
     try:
         assertion()
-    except AssertionError as ae:
+    except AssertionError:
         other_calls = [call[0] for call in mockk.call_args_list if (first is None or call[0][0] == first)]
         if other_calls:
             extra_info = '\n\nURI {} got the following other calls:\n{}\n'.format(first, '\n'.join(
                 _format_call(call) for call in other_calls))
             if len(other_calls) == 1 and len(other_calls[0]) == 2 and args is not None:
                 extra_info += _add_argument_diff(other_calls[0][1], args[0])
-            raise AssertionError(ae.message + extra_info)
+            raise AssertionError(extra_info)
         else:
             raise
 
@@ -100,14 +100,14 @@ def _add_argument_diff(actual, expected, indent=0, acc=None):
     if type(actual) != type(expected):
         acc.append("{}{!r} {} {!r}".format(" " * indent * 2, actual, "==" if actual == expected else "!=", expected))
     elif isinstance(actual, dict):
-        for k in set(actual.keys() + expected.keys()):
+        for k in set(list(actual.keys()) + list(expected.keys())):
             acc.append("{}{}:".format(" " * indent * 2, k))
             a = actual.get(k)
             e = expected.get(k)
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
     elif isinstance(actual, list):
-        for a, e in itertools.izip_longest(actual, expected):
+        for a, e in itertools.zip_longest(actual, expected):
             acc.append("{}-".format(" " * indent * 2))
             if a != e:
                 _add_argument_diff(a, e, indent + 1, acc)
@@ -137,16 +137,44 @@ class FixtureScheduling(LoadScopeScheduling):
             scope = LoadScopeScheduling._split_scope(self, nodeid)
         else:
             fixture_values = m.group(1).split("-")
-            if "test_e2e" in nodeid:
-                scope = "-".join(fixture_values[:2])
+            if "test_e2e.py" in nodeid:
+                scope = self._select_scope_e2e(nodeid, fixture_values)
             else:
                 scope = self._select_scope(fixture_values)
         self._assigned_scope[nodeid] = scope
         return scope
 
     def _select_scope(self, fixture_values):
-        groups = itertools.izip_longest(fillvalue="", *([iter(fixture_values)] * 3))
+        groups = itertools.zip_longest(fillvalue="", *([iter(fixture_values)] * 3))
         return "-".join(next(groups))
+
+    def _select_scope_e2e(self, nodeid, fixture_values):
+        """Kubernetes cluster startup time for the e2e tests in test_e2e.py is significant. To ensure tests that use
+        the same cluster run on the same worker, group tests from test_e2e.py by the cluster the test needs, by
+        setting the same scope for tests that use the same cluster. This should avoid two different workers spinning
+        up the same type of cluster to run tests against separately.
+
+        There are currently 3 cluster types used by the e2e tests;
+        - kubernetes with NodePort service_type,
+        - kubernetes with ClusterIP service_type
+        - kubernetes_service_account
+
+        Scopes:
+        - group tests with NodePort or ClusterIP in fixture_values to use kubernetes/NodePort or kubernetes/ClusterIP
+        respectively
+        - group tests which contain test_custom_resource_definition_deploy_with_service_account together to use
+        kubernetes_service_account
+        - if none of those apply, use the previous behavior of grouping by the two first fixture names (this is just
+        as a fallback and might lead to suboptimal scheduling).
+        """
+        if 'test_custom_resource_definition_deploy_with_service_account' in nodeid:
+            return 'serviceaccount'
+
+        for service_type in ("NodePort", "ClusterIP"):
+            if service_type in fixture_values:
+                return service_type
+
+        return "-".join(fixture_values[:2])
 
 
 @pytest.mark.tryfirst

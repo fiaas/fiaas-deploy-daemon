@@ -16,9 +16,9 @@
 # limitations under the License.
 
 from datetime import datetime, timedelta
-import mock
+from unittest import mock
 import pytest
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 
 from fiaas_deploy_daemon.deployer.bookkeeper import Bookkeeper
 from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter

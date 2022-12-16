@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import mock
+from unittest import mock
 import pytest
 from k8s.models.common import ObjectMeta
 from k8s.models.resourcequota import ResourceQuota, ResourceQuotaSpec, NotBestEffort, BestEffort
@@ -27,8 +27,8 @@ from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccou
 from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
 
 FIAAS_VERSION = "1"
-TEAMS = u"foo"
-TAGS = u"bar"
+TEAMS = "foo"
+TAGS = "bar"
 
 
 class TestK8s(object):

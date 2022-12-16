@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
@@ -36,7 +36,7 @@ class V1Beta1IngressAdapter(object):
     @retry_on_upsert_conflict
     def create_ingress(self, app_spec, annotated_ingress, labels):
         default_annotations = {
-            u"fiaas/expose": u"true" if annotated_ingress.explicit_host else u"false"
+            "fiaas/expose": "true" if annotated_ingress.explicit_host else "false"
         }
         annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
 

@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import unicode_literals, absolute_import
+
 
 import pytest
 
@@ -69,7 +69,7 @@ class TestLookup(object):
         assert len(lookup[type]) == expected
 
     def test_items(self, lookup):
-        assert lookup["object"].items() == [("simple", 1), ("complex", {"first": 1, "second": 2})]
+        assert list(lookup["object"].items()) == [("simple", 1), ("complex", {"first": 1, "second": 2})]
 
     @pytest.mark.parametrize("config,defaults", (
         (CONFIG, 1),

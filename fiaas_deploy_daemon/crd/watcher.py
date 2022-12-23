@@ -23,7 +23,7 @@ from k8s.watcher import Watcher
 from yaml import YAMLError
 
 from .status import create_name
-from .types import FiaasApplication, FiaasApplicationStatus
+from .types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationStatusInline
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
@@ -68,7 +68,23 @@ class CrdWatcher(DaemonThread):
         else:
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
 
+    # When we receive update event on FiaasApplication
+    # don't deploy if it's a status update
+    def _skip_status_event(self, application):
+        app_name = application.spec.application
+        namespace = application.metadata.namespace
+        deployment_id = application.metadata.labels["fiaas/deployment_id"]
+        status = FiaasApplicationStatusInline.get(app_name, namespace)
+        generation = int(status.metadata.generation)
+        observed_generation = int(status.status.observedGeneration)
+        if observed_generation < generation:
+            LOG.debug("Event created from status update %s for app %s", deployment_id, app_name)
+            return True
+        return False
+
     def _deploy(self, application):
+        if self._skip_status_event(application):
+            return 
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
         try:

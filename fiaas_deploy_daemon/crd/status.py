@@ -24,7 +24,7 @@ from py27hash.hash import hash27
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta, OwnerReference
 
-from .types import FiaasApplicationStatus
+from .types import FiaasApplicationStatus, FiaasApplicationStatusInline, FiaasApplicationStatusResult
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
 from ..log_extras import get_final_logs, get_running_logs
 from ..retry import retry_on_upsert_conflict
@@ -53,6 +53,23 @@ def _handle_signal(sender, status, subject):
 
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
+    _save_status_inline(status, subject)
+
+@retry_on_upsert_conflict
+def _save_status_inline(result,subject):
+    (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
+    LOG.info("Saving FiaasApplication.status result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
+    # logs = _get_logs(app_name, namespace, deployment_id, result)
+
+    status = FiaasApplicationStatusInline.get(app_name, namespace)
+    generation = int(status.metadata.generation)
+    
+    status.status = FiaasApplicationStatusResult(result=result)
+    if result == "SUCCESS":
+        status.status.observedGeneration = generation
+    status.save()
+        
+    
 
 
 @retry_on_upsert_conflict

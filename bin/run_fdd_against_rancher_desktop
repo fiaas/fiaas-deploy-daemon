@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -euo pipefail
+IFS=$'\n\t'
+export CLUSTER_NAME="${1:-rancher-desktop}"
+echo "Using kind cluster: $CLUSTER_NAME"
+export NAMESPACE="${NAMESPACE:-default}"
+
+KUBECONFIG_JSON="$(kubectl --context rancher-desktop config view --output json --raw)"
+API_SERVER="$(jq -r ".clusters[] | select(.name == \""${CLUSTER_NAME}"\") | .cluster.server" <<< "$KUBECONFIG_JSON")"
+APISERVER_CERT=$(mktemp)
+CLIENT_CERT=$(mktemp)
+CLIENT_KEY=$(mktemp)
+__cleanup() {
+    rm -f "$APISERVER_CERT"
+    rm -f "$CLIENT_CERT"
+    rm -f "$CLIENT_KEY"
+}
+trap __cleanup EXIT
+
+jq -r ".clusters[] | select(.name == \"${CLUSTER_NAME}\") | .cluster.\"certificate-authority-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$APISERVER_CERT"
+jq -r ".users[] | select(.name == \"${CLUSTER_NAME}\") | .user.\"client-certificate-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$CLIENT_CERT"
+jq -r ".users[] | select(.name == \"${CLUSTER_NAME}\") | .user.\"client-key-data\"" <<< "$KUBECONFIG_JSON" | base64 --decode > "$CLIENT_KEY"
+
+ARGS=(
+'--debug'
+'--api-server' "$API_SERVER"
+'--api-cert' "$APISERVER_CERT"
+'--client-cert' "$CLIENT_CERT"
+'--client-key' "$CLIENT_KEY"
+'--service-type' 'ClusterIP'
+'--environment' 'test'
+'--infrastructure' 'diy' '--port' '5001'
+'--datadog-container-image' 'datadog/docker-dd-agent:12.2.5172-alpine'
+'--enable-crd-support'
+'--enable-service-account-per-app'
+'--use-apiextensionsv1-crd'
+'--use-networkingv1-ingress'
+)
+
+(set -ux; fiaas-deploy-daemon "${ARGS[@]}")

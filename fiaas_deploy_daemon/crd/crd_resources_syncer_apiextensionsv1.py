@@ -21,8 +21,10 @@ import logging
 from k8s.models.common import ObjectMeta
 from k8s.models.apiextensions_v1_custom_resource_definition import CustomResourceConversion,\
     CustomResourceDefinitionNames, CustomResourceDefinitionSpec, CustomResourceDefinition,\
-    CustomResourceDefinitionVersion, CustomResourceValidation, JSONSchemaProps
+    CustomResourceDefinitionVersion, CustomResourceValidation, JSONSchemaProps,\
+    CustomResourceSubresources, CustomResourceSubresourceScale
 
+from .types import AdditionalCustomResourceSubresources, JSONSchemaPropsForStatus
 from ..retry import retry_on_upsert_conflict
 
 LOG = logging.getLogger(__name__)
@@ -35,8 +37,13 @@ class CrdResourcesSyncerApiextensionsV1(object):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-        schema = CustomResourceValidation(openAPIV3Schema=JSONSchemaProps(type="object", properties=schema_properties))
-        version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
+        if kind == "Application":
+            openAPIV3Schema = JSONSchemaPropsForStatus(type="object", properties=schema_properties)
+        else:
+            openAPIV3Schema = JSONSchemaProps(type="object", properties=schema_properties)
+        schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
+        subresources = AdditionalCustomResourceSubresources(status = {})
+        version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema, subresources=subresources)
         spec = CustomResourceDefinitionSpec(
             group=group,
             names=names,
@@ -89,6 +96,25 @@ class CrdResourcesSyncerApiextensionsV1(object):
                             "status": object_with_unknown_fields,
                         }
                     }
+                }
+            },
+            "status": {
+                "type": "object",
+                "properties": {
+                    "result": {
+                        "type": "string"
+                    },
+                    "observedGeneration": {
+                        "type": "integer"
+                    }
+
+                    # ,
+                    # "logs": {
+                    #     "type": "array",
+                    #     "items": {
+                    #         "type": "string"
+                    #     }
+                    # }
                 }
             }
         }

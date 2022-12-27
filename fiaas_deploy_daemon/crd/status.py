@@ -67,7 +67,7 @@ def _save_status_inline(result,subject):
     # when _save_status tries to get them.
     logs = get_running_logs(app_name, namespace, deployment_id)
 
-    LOG.info("Saving inline result %s for %s/%s generation %s Logs: %s", result,namespace, app_name, generation, logs)
+    LOG.info("Saving inline result %s for %s/%s generation %s", result,namespace, app_name, generation)
     status.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
     status.save()
 

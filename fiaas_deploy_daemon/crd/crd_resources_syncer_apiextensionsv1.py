@@ -40,9 +40,12 @@ class CrdResourcesSyncerApiextensionsV1(object):
     def _create_or_update(kind, plural, short_names, group, schema_properties):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
+        subresources = None
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
+        # This might be unnecessary we can enable status on both to save logic
         if kind == "Application":
             openAPIV3Schema = JSONSchemaPropsForStatus(type="object", properties=schema_properties)
+            subresources = AdditionalCustomResourceSubresources(status={})
         else:
             openAPIV3Schema = JSONSchemaProps(type="object", properties=schema_properties)
         schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)

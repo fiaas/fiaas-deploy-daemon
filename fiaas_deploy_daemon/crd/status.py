@@ -51,24 +51,26 @@ def _handle_signal(sender, status, subject):
     else:
         status = status.upper()
 
+    _save_status_inline(status, subject)
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
-    _save_status_inline(status, subject)
 
 @retry_on_upsert_conflict
 def _save_status_inline(result,subject):
     (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
-    LOG.info("Saving FiaasApplication.status result %s for %s/%s deployment_id=%s", result, namespace, app_name, deployment_id)
-    # logs = _get_logs(app_name, namespace, deployment_id, result)
-
+    
     status = FiaasApplicationStatusInline.get(app_name, namespace)
     generation = int(status.metadata.generation)
-    
-    status.status = FiaasApplicationStatusResult(result=result)
-    if result == "SUCCESS":
-        status.status.observedGeneration = generation
+
+    # We always want to get running logs here.
+    # If we do a call to _get_logs here then logs will be empty
+    # when _save_status tries to get them.
+    logs = get_running_logs(app_name, namespace, deployment_id)
+
+    LOG.info("Saving inline result %s for %s/%s generation %s Logs: %s", result,namespace, app_name, generation, logs)
+    status.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
     status.save()
-        
+
     
 
 

@@ -78,7 +78,7 @@ class CrdWatcher(DaemonThread):
         status = FiaasApplicationStatusInline.get(app_name, namespace)
         generation = int(status.metadata.generation)
         observed_generation = int(status.status.observedGeneration)
-        if observed_generation < generation:
+        if observed_generation == generation:
             LOG.debug("Event created from status update %s for app %s", deployment_id, app_name)
             return True
         return False

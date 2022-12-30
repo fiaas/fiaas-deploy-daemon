@@ -63,9 +63,7 @@ def _save_status_inline(result,subject):
     status = FiaasApplicationStatusInline.get(app_name, namespace)
     generation = int(status.metadata.generation)
 
-    # We always want to get running logs here.
-    # If we do a call to _get_logs here then logs will be empty
-    # when _save_status tries to get them.
+    # We only want to get error logs here.
     logs = _get_error_logs(app_name, namespace, deployment_id, result)
 
     LOG.info("Saving inline result %s for %s/%s generation %s", result,namespace, app_name, generation)

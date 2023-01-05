@@ -17,31 +17,36 @@
 from collections import namedtuple
 
 
-class AppSpec(namedtuple("AppSpec", [
-    "uid",
-    "namespace",
-    "name",
-    "image",
-    "autoscaler",
-    "resources",
-    "admin_access",
-    "secrets_in_environment",
-    "prometheus",
-    "datadog",
-    "ports",
-    "health_checks",
-    "teams",
-    "tags",
-    "deployment_id",
-    "labels",
-    "annotations",
-    "ingresses",
-    "strongbox",
-    "singleton",
-    "ingress_tls",
-    "secrets",
-    "app_config"
-])):
+class AppSpec(
+    namedtuple(
+        "AppSpec",
+        [
+            "uid",
+            "namespace",
+            "name",
+            "image",
+            "autoscaler",
+            "resources",
+            "admin_access",
+            "secrets_in_environment",
+            "prometheus",
+            "datadog",
+            "ports",
+            "health_checks",
+            "teams",
+            "tags",
+            "deployment_id",
+            "labels",
+            "annotations",
+            "ingresses",
+            "strongbox",
+            "singleton",
+            "ingress_tls",
+            "secrets",
+            "app_config",
+        ],
+    )
+):
     __slots__ = ()
 
     @property
@@ -49,100 +54,90 @@ class AppSpec(namedtuple("AppSpec", [
         if ":" in self.image:
             return self.image.split(":")[-1]
         else:
-            raise RuntimeError('Version must be specified for docker image aka image:version')
+            raise RuntimeError("Version must be specified for docker image aka image:version")
 
 
-ResourceRequirementSpec = namedtuple("ResourceRequirementSpec", [
-    "cpu",
-    "memory"])
+ResourceRequirementSpec = namedtuple("ResourceRequirementSpec", ["cpu", "memory"])
 
-ResourcesSpec = namedtuple("ResourcesSpec", [
-    "limits",
-    "requests"])
+ResourcesSpec = namedtuple("ResourcesSpec", ["limits", "requests"])
 
-PrometheusSpec = namedtuple("PrometheusSpec", [
-    "enabled",
-    "port",
-    "path"])
+PrometheusSpec = namedtuple("PrometheusSpec", ["enabled", "port", "path"])
 
-DatadogSpec = namedtuple("DatadogSpec", [
-    "enabled",
-    "tags"])
+DatadogSpec = namedtuple("DatadogSpec", ["enabled", "tags"])
 
-PortSpec = namedtuple("PortSpec", [
-    "protocol",
-    "name",
-    "port",
-    "target_port",
-])
+PortSpec = namedtuple(
+    "PortSpec",
+    [
+        "protocol",
+        "name",
+        "port",
+        "target_port",
+    ],
+)
 
-HealthCheckSpec = namedtuple("HealthCheckSpec", [
-    "liveness",
-    "readiness"])
+HealthCheckSpec = namedtuple("HealthCheckSpec", ["liveness", "readiness"])
 
-CheckSpec = namedtuple("CheckSpec", [
-    "execute",
-    "http",
-    "tcp",
-    "initial_delay_seconds",
-    "period_seconds",
-    "success_threshold",
-    "failure_threshold",
-    "timeout_seconds"])
+CheckSpec = namedtuple(
+    "CheckSpec",
+    [
+        "execute",
+        "http",
+        "tcp",
+        "initial_delay_seconds",
+        "period_seconds",
+        "success_threshold",
+        "failure_threshold",
+        "timeout_seconds",
+    ],
+)
 
-ExecCheckSpec = namedtuple("ExecCheckSpec", [
-    "command"])
+ExecCheckSpec = namedtuple("ExecCheckSpec", ["command"])
 
-HttpCheckSpec = namedtuple("HttpCheckSpec", [
-    "path",
-    "port",
-    "http_headers"])
+HttpCheckSpec = namedtuple("HttpCheckSpec", ["path", "port", "http_headers"])
 
-TcpCheckSpec = namedtuple("TcpCheckSpec", [
-    "port"])
+TcpCheckSpec = namedtuple("TcpCheckSpec", ["port"])
 
-AutoscalerSpec = namedtuple("AutoscalerSpec", [
-    "enabled",
-    "min_replicas",
-    "max_replicas",
-    "cpu_threshold_percentage"
-])
+AutoscalerSpec = namedtuple("AutoscalerSpec", ["enabled", "min_replicas", "max_replicas", "cpu_threshold_percentage"])
 
-LabelAndAnnotationSpec = namedtuple("LabelAndAnnotationSpec", [
-    "deployment",
-    "horizontal_pod_autoscaler",
-    "ingress",
-    "service",
-    "service_account",
-    "pod",
-    "status",
-])
+LabelAndAnnotationSpec = namedtuple(
+    "LabelAndAnnotationSpec",
+    [
+        "deployment",
+        "horizontal_pod_autoscaler",
+        "ingress",
+        "service",
+        "service_account",
+        "pod",
+        "status",
+    ],
+)
 
-IngressItemSpec = namedtuple("IngressItemSpec", [
-    "host",
-    "pathmappings",
-    "annotations"
-])
+IngressItemSpec = namedtuple("IngressItemSpec", ["host", "pathmappings", "annotations"])
 
-IngressPathMappingSpec = namedtuple("IngressPathMappingSpec", [
-    "path",
-    "port",
-])
+IngressPathMappingSpec = namedtuple(
+    "IngressPathMappingSpec",
+    [
+        "path",
+        "port",
+    ],
+)
 
-StrongboxSpec = namedtuple("StrongboxSpec", [
-    "enabled",
-    "iam_role",
-    "aws_region",
-    "groups",
-])
+StrongboxSpec = namedtuple(
+    "StrongboxSpec",
+    [
+        "enabled",
+        "iam_role",
+        "aws_region",
+        "groups",
+    ],
+)
 
-SecretsSpec = namedtuple("SecretsSpec", [
-    "type",
-    "parameters",
-    "annotations"
-])
+SecretsSpec = namedtuple("SecretsSpec", ["type", "parameters", "annotations"])
 
-IngressTLSSpec = namedtuple("IngressTLSSpec", [
-    "enabled",
-    "certificate_issuer",
-])
+IngressTLSSpec = namedtuple(
+    "IngressTLSSpec",
+    [
+        "enabled",
+        "certificate_issuer",
+    ],
+)

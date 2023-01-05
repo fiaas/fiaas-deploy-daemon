@@ -32,6 +32,7 @@ class SpecBindings(pinject.BindingSpec):
 
     def provide_factory(self):
         from .v3 import Factory
+
         return Factory()
 
     def provide_transformers(self):

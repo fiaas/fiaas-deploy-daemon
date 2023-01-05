@@ -26,7 +26,9 @@ STATUS_SUCCESS = "success"
 STATUS_INITIATED = "initiated"
 
 
-Subject = namedtuple("Subject", ("uid", "app_name", "namespace", "deployment_id", "repository", "labels", "annotations"))
+Subject = namedtuple(
+    "Subject", ("uid", "app_name", "namespace", "deployment_id", "repository", "labels", "annotations")
+)
 
 
 class Lifecycle(object):

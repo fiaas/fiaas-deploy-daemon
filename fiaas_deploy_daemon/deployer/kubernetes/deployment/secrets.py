@@ -16,8 +16,18 @@
 # limitations under the License.
 import logging
 
-from k8s.models.pod import EnvFromSource, SecretEnvSource, EnvVar, Container, ConfigMapEnvSource, VolumeMount, Volume, \
-    EmptyDirVolumeSource, ConfigMapVolumeSource, SecretVolumeSource
+from k8s.models.pod import (
+    EnvFromSource,
+    SecretEnvSource,
+    EnvVar,
+    Container,
+    ConfigMapEnvSource,
+    VolumeMount,
+    Volume,
+    EmptyDirVolumeSource,
+    ConfigMapVolumeSource,
+    SecretVolumeSource,
+)
 
 from fiaas_deploy_daemon.tools import merge_dicts
 from fiaas_deploy_daemon.specs.models import SecretsSpec
@@ -35,17 +45,11 @@ class Secrets(object):
             "AWS_REGION": app_spec.strongbox.aws_region,
             "SECRET_GROUPS": ",".join(app_spec.strongbox.groups),
         }
-        strongbox_annotations = {
-            "iam.amazonaws.com/role": app_spec.strongbox.iam_role
-        }
-        return SecretsSpec(type="strongbox",
-                           parameters=strongbox_params,
-                           annotations=strongbox_annotations)
+        strongbox_annotations = {"iam.amazonaws.com/role": app_spec.strongbox.iam_role}
+        return SecretsSpec(type="strongbox", parameters=strongbox_params, annotations=strongbox_annotations)
 
     def _default_init_secret(self):
-        return SecretsSpec(type="default",
-                           parameters={},
-                           annotations={})
+        return SecretsSpec(type="default", parameters={}, annotations={})
 
     def apply(self, deployment, app_spec):
         secret_specs = app_spec.secrets
@@ -90,15 +94,20 @@ class KubernetesSecrets(object):
 
     def _make_volumes(self, app_spec):
         volumes = [
-            Volume(name="{}-secret".format(app_spec.name),
-                   secret=SecretVolumeSource(secretName=app_spec.name, optional=True)),
+            Volume(
+                name="{}-secret".format(app_spec.name),
+                secret=SecretVolumeSource(secretName=app_spec.name, optional=True),
+            ),
         ]
         return volumes
 
     def _make_volume_mounts(self, app_spec, is_init_container=False):
         volume_mounts = [
-            VolumeMount(name="{}-secret".format(app_spec.name), readOnly=not is_init_container,
-                        mountPath="/var/run/secrets/fiaas/"),
+            VolumeMount(
+                name="{}-secret".format(app_spec.name),
+                readOnly=not is_init_container,
+                mountPath="/var/run/secrets/fiaas/",
+            ),
         ]
         return volume_mounts
 
@@ -112,19 +121,23 @@ class GenericInitSecrets(KubernetesSecrets):
         self._automount_service_account_token = False
         if config.strongbox_init_container_image is not None:
             if "strongbox" in self._available_secrets_containers:
-                LOG.warn("Image %s for strongbox-init-container-image will be ignored.\
+                LOG.warn(
+                    "Image %s for strongbox-init-container-image will be ignored.\
                      secret-init-container strongbox=%s will be used instead",
-                         config.strongbox_init_container_image,
-                         self._available_secrets_containers["strongbox"])
+                    config.strongbox_init_container_image,
+                    self._available_secrets_containers["strongbox"],
+                )
             else:
                 self._available_secrets_containers["strongbox"] = config.strongbox_init_container_image
 
         if config.secrets_init_container_image is not None:
             if "default" in self._available_secrets_containers:
-                LOG.warn("Image %s for secrets-init-container-image will be ignored.\
+                LOG.warn(
+                    "Image %s for secrets-init-container-image will be ignored.\
                      secret-init-container default=%s will be used instead",
-                         config.secrets_init_container_image,
-                         self._available_secrets_containers["default"])
+                    config.secrets_init_container_image,
+                    self._available_secrets_containers["default"],
+                )
             else:
                 self._automount_service_account_token = True
                 self._available_secrets_containers["default"] = config.secrets_init_container_image
@@ -168,8 +181,10 @@ class GenericInitSecrets(KubernetesSecrets):
             empty_dir_volume_source = EmptyDirVolumeSource()
         volumes = [
             Volume(name="{}-secret".format(app_spec.name), emptyDir=empty_dir_volume_source),
-            Volume(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
-                   configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True)),
+            Volume(
+                name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                configMap=ConfigMapVolumeSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True),
+            ),
         ]
         return volumes
 
@@ -177,8 +192,11 @@ class GenericInitSecrets(KubernetesSecrets):
         volume_mounts = super(GenericInitSecrets, self)._make_volume_mounts(app_spec, is_init_container)
         if is_init_container:
             init_container_mounts = [
-                VolumeMount(name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME), readOnly=True,
-                            mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME)),
+                VolumeMount(
+                    name="{}-config".format(self.SECRETS_INIT_CONTAINER_NAME),
+                    readOnly=True,
+                    mountPath="/var/run/config/{}/".format(self.SECRETS_INIT_CONTAINER_NAME),
+                ),
                 VolumeMount(name="{}-config".format(app_spec.name), readOnly=True, mountPath="/var/run/config/fiaas/"),
                 VolumeMount(name="tmp", readOnly=False, mountPath="/tmp"),
             ]
@@ -190,13 +208,14 @@ class GenericInitSecrets(KubernetesSecrets):
             env_vars = {}
         env_vars.update({"K8S_DEPLOYMENT": app_spec.name})
         environment = [EnvVar(name=k, value=v) for k, v in list(env_vars.items())]
-        container = Container(name=self.SECRETS_INIT_CONTAINER_NAME,
-                              image=image,
-                              imagePullPolicy="IfNotPresent",
-                              env=environment,
-                              envFrom=[
-                                  EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME,
-                                                                                optional=True))
-                              ],
-                              volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True))
+        container = Container(
+            name=self.SECRETS_INIT_CONTAINER_NAME,
+            image=image,
+            imagePullPolicy="IfNotPresent",
+            env=environment,
+            envFrom=[
+                EnvFromSource(configMapRef=ConfigMapEnvSource(name=self.SECRETS_INIT_CONTAINER_NAME, optional=True))
+            ],
+            volumeMounts=self._make_volume_mounts(app_spec, is_init_container=True),
+        )
         return container

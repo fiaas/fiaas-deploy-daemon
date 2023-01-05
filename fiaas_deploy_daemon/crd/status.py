@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -78,15 +77,24 @@ def _save_status(result, subject):
         status = FiaasApplicationStatus.get_or_create(metadata=metadata, result=result, logs=logs)
     resource_version = status.metadata.resourceVersion
 
-    LOG.debug("save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s", result, namespace, app_name,
-              deployment_id, resource_version)
+    LOG.debug(
+        "save()-ing %s for %s/%s deployment_id=%s resourceVersion=%s",
+        result,
+        namespace,
+        app_name,
+        deployment_id,
+        resource_version,
+    )
     _apply_owner_reference(status, subject)
     status.save()
 
 
 def _get_logs(app_name, namespace, deployment_id, result):
-    return get_running_logs(app_name, namespace, deployment_id) if result in ["RUNNING", "INITIATED"] else \
-           get_final_logs(app_name, namespace, deployment_id)
+    return (
+        get_running_logs(app_name, namespace, deployment_id)
+        if result in ["RUNNING", "INITIATED"]
+        else get_final_logs(app_name, namespace, deployment_id)
+    )
 
 
 def _cleanup(app_name=None, namespace=None):
@@ -110,17 +118,19 @@ def create_name(name, deployment_id):
     By convention, the names of Kubernetes resources should be up to maximum length of 253
     characters and consist of lower case alphanumeric characters, '-', and '.'.
     """
-    suffix = b32encode(struct.pack('q', hash27(deployment_id))).decode("utf-8").lower().strip("=")
+    suffix = b32encode(struct.pack("q", hash27(deployment_id))).decode("utf-8").lower().strip("=")
     return "{}-{}".format(name, suffix)
 
 
 def _apply_owner_reference(status, subject):
     if subject.uid:
-        owner_reference = OwnerReference(apiVersion="fiaas.schibsted.io/v1",
-                                         blockOwnerDeletion=True,
-                                         controller=True,
-                                         kind="Application",
-                                         name=subject.app_name,
-                                         uid=subject.uid)
+        owner_reference = OwnerReference(
+            apiVersion="fiaas.schibsted.io/v1",
+            blockOwnerDeletion=True,
+            controller=True,
+            kind="Application",
+            name=subject.app_name,
+            uid=subject.uid,
+        )
 
         status.metadata.ownerReferences = [owner_reference]

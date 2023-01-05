@@ -14,8 +14,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from k8s.models.pod import ResourceRequirements, Container, EnvVar, EnvVarSource, ExecAction, Handler, Lifecycle, \
-    SecretKeySelector
+from k8s.models.pod import (
+    ResourceRequirements,
+    Container,
+    EnvVar,
+    EnvVarSource,
+    ExecAction,
+    Handler,
+    Lifecycle,
+    SecretKeySelector,
+)
 
 
 class DataDog(object):
@@ -42,8 +50,10 @@ class DataDog(object):
         if besteffort_qos_is_required:
             resource_requirements = ResourceRequirements()
         else:
-            resource_requirements = ResourceRequirements(limits={"cpu": "400m", "memory": self._datadog_container_memory},
-                                                         requests={"cpu": "200m", "memory": self._datadog_container_memory})
+            resource_requirements = ResourceRequirements(
+                limits={"cpu": "400m", "memory": self._datadog_container_memory},
+                requests={"cpu": "200m", "memory": self._datadog_container_memory},
+            )
 
         tags = {}
         if self._datadog_global_tags:
@@ -70,20 +80,19 @@ class DataDog(object):
             imagePullPolicy=image_pull_policy,
             env=[
                 EnvVar(name="DD_TAGS", value=dd_tags),
-                EnvVar(name="DD_API_KEY",
-                       valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey"))),
+                EnvVar(
+                    name="DD_API_KEY",
+                    valueFrom=EnvVarSource(secretKeyRef=SecretKeySelector(name="datadog", key="apikey")),
+                ),
                 EnvVar(name="NON_LOCAL_TRAFFIC", value="false"),
                 EnvVar(name="DD_LOGS_STDOUT", value="yes"),
                 EnvVar(name="DD_EXPVAR_PORT", value="42622"),
                 EnvVar(name="DD_CMD_PORT", value="42623"),
             ],
             lifecycle=lifecycle,
-            resources=resource_requirements
+            resources=resource_requirements,
         )
 
     @staticmethod
     def _get_env_vars():
-        return (
-            EnvVar(name="STATSD_HOST", value="localhost"),
-            EnvVar(name="STATSD_PORT", value="8125")
-        )
+        return (EnvVar(name="STATSD_HOST", value="localhost"), EnvVar(name="STATSD_PORT", value="8125"))

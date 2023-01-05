@@ -23,7 +23,6 @@ LOG = logging.getLogger(__name__)
 
 
 class ExtensionHookCaller(object):
-
     def __init__(self, config, session):
         self._url = config.extension_hook_url
         self._session = session
@@ -35,9 +34,7 @@ class ExtensionHookCaller(object):
         url = posixpath.join(url, type(obj).__name__)
         dump = json.dumps({"object": obj.as_dict(), "application": app_spec.app_config})
         response = self._session.post(
-            url,
-            data=dump,
-            headers={'Content-Type': 'application/json', 'Accept': 'application/json'}
+            url, data=dump, headers={"Content-Type": "application/json", "Accept": "application/json"}
         )
         if response.status_code == 200:
             data = response.json()

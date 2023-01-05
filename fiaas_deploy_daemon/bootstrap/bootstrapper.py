@@ -42,8 +42,11 @@ class StatusCollector(object):
     def store_status(self, status, app_name, namespace):
         with self._statuses_lock:
             self._statuses[(app_name, namespace)] = status
-            LOG.info("Received {status} for {name} in namespace {namespace}".format(status=status, name=app_name,
-                                                                                    namespace=namespace))
+            LOG.info(
+                "Received {status} for {name} in namespace {namespace}".format(
+                    status=status, name=app_name, namespace=namespace
+                )
+            )
 
     def values(self):
         with self._statuses_lock:
@@ -67,19 +70,22 @@ class Bootstrapper(object):
             self._resource_class = FiaasApplication
             from ..crd.status import connect_signals
         else:
-            raise InvalidConfigurationException(
-                "Custom Resource Definition support must be enabled when bootstrapping")
+            raise InvalidConfigurationException("Custom Resource Definition support must be enabled when bootstrapping")
         connect_signals()
         signal(DEPLOY_STATUS_CHANGED).connect(self._store_status)
 
     def run(self):
-        for application in self._resource_class.find(name=None, namespace=self._namespace,
-                                                     labels={"fiaas/bootstrap": "true"}):
+        for application in self._resource_class.find(
+            name=None, namespace=self._namespace, labels={"fiaas/bootstrap": "true"}
+        ):
             try:
                 self._deploy(application)
             except BaseException:
-                LOG.exception("Caught exception when deploying {name} in namespace {namespace}".format(
-                    name=application.metadata.name, namespace=application.metadata.namespace))
+                LOG.exception(
+                    "Caught exception when deploying {name} in namespace {namespace}".format(
+                        name=application.metadata.name, namespace=application.metadata.namespace
+                    )
+                )
                 raise
 
         return self._wait_for_readiness(wait_time_seconds=5, timeout_seconds=120)
@@ -88,20 +94,25 @@ class Bootstrapper(object):
         LOG.debug("Deploying %s", application.spec.application)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
-            set_extras(app_name=application.spec.application,
-                       namespace=application.metadata.namespace,
-                       deployment_id=deployment_id)
+            set_extras(
+                app_name=application.spec.application,
+                namespace=application.metadata.namespace,
+                deployment_id=deployment_id,
+            )
         except (AttributeError, KeyError, TypeError):
-            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
-                application.spec.application))
+            raise ValueError(
+                "The Application {} is missing the 'fiaas/deployment_id' label".format(application.spec.application)
+            )
 
-        lifecycle_subject = self._lifecycle.initiate(uid=application.metadata.uid,
-                                                     app_name=application.spec.application,
-                                                     namespace=application.metadata.namespace,
-                                                     deployment_id=deployment_id,
-                                                     repository=None,
-                                                     labels=application.spec.additional_labels.status,
-                                                     annotations=application.spec.additional_annotations.status)
+        lifecycle_subject = self._lifecycle.initiate(
+            uid=application.metadata.uid,
+            app_name=application.spec.application,
+            namespace=application.metadata.namespace,
+            deployment_id=deployment_id,
+            repository=None,
+            labels=application.spec.additional_labels.status,
+            annotations=application.spec.additional_annotations.status,
+        )
 
         try:
             app_spec = self._spec_factory(
@@ -118,8 +129,9 @@ class Bootstrapper(object):
             )
             self._store_status(None, DEPLOY_SCHEDULED, lifecycle_subject)
             self._deploy_queue.put(DeployerEvent("UPDATE", app_spec, lifecycle_subject))
-            LOG.debug("Queued deployment for %s in namespace %s", application.spec.application,
-                      application.metadata.namespace)
+            LOG.debug(
+                "Queued deployment for %s in namespace %s", application.spec.application, application.metadata.namespace
+            )
         except (YAMLError, InvalidConfiguration):
             self._lifecycle.failed(lifecycle_subject)
             raise

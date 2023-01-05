@@ -35,17 +35,19 @@ class V1Beta1IngressAdapter(object):
 
     @retry_on_upsert_conflict
     def create_ingress(self, app_spec, annotated_ingress, labels):
-        default_annotations = {
-            "fiaas/expose": "true" if annotated_ingress.explicit_host else "false"
-        }
+        default_annotations = {"fiaas/expose": "true" if annotated_ingress.explicit_host else "false"}
         annotations = merge_dicts(app_spec.annotations.ingress, annotated_ingress.annotations, default_annotations)
 
-        metadata = ObjectMeta(name=annotated_ingress.name, namespace=app_spec.namespace, labels=labels,
-                              annotations=annotations)
+        metadata = ObjectMeta(
+            name=annotated_ingress.name, namespace=app_spec.namespace, labels=labels, annotations=annotations
+        )
 
         per_host_ingress_rules = [
-            IngressRule(host=ingress_item.host, http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings))
-            for ingress_item in annotated_ingress.ingress_items if ingress_item.host is not None
+            IngressRule(
+                host=ingress_item.host, http=self._make_http_ingress_rule_value(app_spec, ingress_item.pathmappings)
+            )
+            for ingress_item in annotated_ingress.ingress_items
+            if ingress_item.host is not None
         ]
         if annotated_ingress.default:
             use_suffixes = True
@@ -57,7 +59,9 @@ class V1Beta1IngressAdapter(object):
         ingress = Ingress.get_or_create(metadata=metadata, spec=ingress_spec)
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
-        self._ingress_tls_deployer.apply(ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes)
+        self._ingress_tls_deployer.apply(
+            ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes
+        )
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)
         ingress.save()
@@ -66,14 +70,15 @@ class V1Beta1IngressAdapter(object):
         filter_labels = [
             ("app", Equality(labels["app"])),
             ("fiaas/deployment_id", Exists()),
-            ("fiaas/deployment_id", Inequality(labels["fiaas/deployment_id"]))
+            ("fiaas/deployment_id", Inequality(labels["fiaas/deployment_id"])),
         ]
         Ingress.delete_list(namespace=app_spec.namespace, labels=filter_labels)
 
     def delete_list(self, app_spec):
         try:
-            Ingress.delete_list(namespace=app_spec.namespace,
-                                labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()})
+            Ingress.delete_list(
+                namespace=app_spec.namespace, labels={"app": Equality(app_spec.name), "fiaas/deployment_id": Exists()}
+            )
         except NotFound:
             pass
 
@@ -83,6 +88,7 @@ class V1Beta1IngressAdapter(object):
     def _make_http_ingress_rule_value(self, app_spec, pathmappings):
         http_ingress_paths = [
             HTTPIngressPath(path=pm.path, backend=IngressBackend(serviceName=app_spec.name, servicePort=pm.port))
-            for pm in deduplicate_in_order(pathmappings)]
+            for pm in deduplicate_in_order(pathmappings)
+        ]
 
         return HTTPIngressRuleValue(paths=http_ingress_paths)

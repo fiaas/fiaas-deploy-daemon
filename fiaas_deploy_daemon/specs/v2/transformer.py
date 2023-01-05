@@ -52,23 +52,24 @@ class Transformer(BaseTransformer):
         lookup = LookupMapping(app_config, self._defaults)
 
         liveness = self._health_check(lookup["healthchecks"]["liveness"], lookup["ports"])
-        if not lookup["healthchecks"].get_config_value("readiness") \
-           and lookup["healthchecks"].get_config_value("liveness"):
+        if not lookup["healthchecks"].get_config_value("readiness") and lookup["healthchecks"].get_config_value(
+            "liveness"
+        ):
             readiness = liveness
         else:
             readiness = self._health_check(lookup["healthchecks"]["readiness"], lookup["ports"])
 
         new_config = {
-            'version': 3,
-            'replicas': {
-                'minimum': lookup["replicas"],
-                'maximum': lookup["replicas"],
-                'cpu_threshold_percentage': lookup["autoscaler"]["cpu_threshold_percentage"],
+            "version": 3,
+            "replicas": {
+                "minimum": lookup["replicas"],
+                "maximum": lookup["replicas"],
+                "cpu_threshold_percentage": lookup["autoscaler"]["cpu_threshold_percentage"],
             },
             "healthchecks": {
                 "liveness": liveness,
                 "readiness": readiness,
-            }
+            },
         }
         for old, new in Transformer.COPY_MAPPING.items():
             value = _get(lookup, old)
@@ -78,7 +79,9 @@ class Transformer(BaseTransformer):
 
         new_config["resources"] = {}
         for requirement_type in ("limits", "requests"):
-            new_config["resources"][requirement_type] = self._resource_requirement(lookup["resources"][requirement_type])
+            new_config["resources"][requirement_type] = self._resource_requirement(
+                lookup["resources"][requirement_type]
+            )
 
         new_config.update(self._ports(lookup["ports"], lookup["host"]))
         new_config = _flatten(new_config)
@@ -94,13 +97,11 @@ class Transformer(BaseTransformer):
                 for resource in ("cpu", "memory"):
                     if app_config["resources"][requirement_type][resource] == RESOURCE_UNDEFINED_UGLYHACK:
                         del app_config["resources"][requirement_type][resource]
-            if not app_config['resources']:
-                del app_config['resources']
+            if not app_config["resources"]:
+                del app_config["resources"]
         except KeyError:
             pass
-        return dict(
-            [("version", app_config["version"])] +
-            list(_remove_intersect(app_config, v3defaults).items()))
+        return dict([("version", app_config["version"])] + list(_remove_intersect(app_config, v3defaults).items()))
 
     @staticmethod
     def _health_check(lookup, ports_lookup):
@@ -112,14 +113,9 @@ class Transformer(BaseTransformer):
         if len(ports_lookup) > 1:
             raise InvalidConfiguration("Must specify health check when more than one ports defined")
         elif ports_lookup[0]["protocol"] == "http":
-            value["http"] = {
-                "path": ports_lookup[0]["path"],
-                "port": ports_lookup[0]["name"]
-            }
+            value["http"] = {"path": ports_lookup[0]["path"], "port": ports_lookup[0]["name"]}
         elif ports_lookup[0]["protocol"] == "tcp":
-            value["tcp"] = {
-                    "port": ports_lookup[0]["name"]
-                }
+            value["tcp"] = {"port": ports_lookup[0]["name"]}
         return value
 
     @staticmethod
@@ -128,24 +124,16 @@ class Transformer(BaseTransformer):
         ports = []
         for port in lookup:
             if port["protocol"] == "http":
-                paths.append({
-                    "path": port["path"],
-                    "port": port["name"]
-                })
-            ports.append({
-                "protocol": port["protocol"],
-                "name": port["name"],
-                "port": port["port"],
-                "target_port": port["target_port"]
-
-            })
-        return {
-            "ingress": [{
-                "host": host,
-                "paths": paths
-            }] if paths else [],
-            "ports": ports
-        }
+                paths.append({"path": port["path"], "port": port["name"]})
+            ports.append(
+                {
+                    "protocol": port["protocol"],
+                    "name": port["name"],
+                    "port": port["port"],
+                    "target_port": port["target_port"],
+                }
+            )
+        return {"ingress": [{"host": host, "paths": paths}] if paths else [], "ports": ports}
 
     @staticmethod
     def _resource_requirement(lookup):

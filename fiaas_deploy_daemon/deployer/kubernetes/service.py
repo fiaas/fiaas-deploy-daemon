@@ -60,7 +60,9 @@ class ServiceDeployer(object):
         service_name = app_spec.name
         custom_labels = merge_dicts(app_spec.labels.service, labels)
         custom_annotations = merge_dicts(app_spec.annotations.service, self._make_tcp_port_annotation(app_spec))
-        metadata = ObjectMeta(name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations)
+        metadata = ObjectMeta(
+            name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations
+        )
         spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         self._owner_references.apply(svc, app_spec)
@@ -78,19 +80,12 @@ class ServiceDeployer(object):
 
     @staticmethod
     def _make_service_port(port_spec):
-        return ServicePort(
-            protocol='TCP',
-            name=port_spec.name,
-            port=port_spec.port,
-            targetPort=port_spec.target_port)
+        return ServicePort(protocol="TCP", name=port_spec.name, port=port_spec.port, targetPort=port_spec.target_port)
 
     @staticmethod
     def _make_tcp_port_annotation(app_spec):
-        tcp_port_names = [port_spec.name for port_spec in app_spec.ports
-                          if port_spec.protocol == "tcp"]
-        return {
-            'fiaas/tcp_port_names': ','.join(map(str, tcp_port_names))
-        } if tcp_port_names else {}
+        tcp_port_names = [port_spec.name for port_spec in app_spec.ports if port_spec.protocol == "tcp"]
+        return {"fiaas/tcp_port_names": ",".join(map(str, tcp_port_names))} if tcp_port_names else {}
 
     @staticmethod
     def _should_have_service(app_spec):

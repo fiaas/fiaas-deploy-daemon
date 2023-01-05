@@ -22,7 +22,7 @@ from datetime import datetime
 from k8s.client import NotFound
 from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 
 LOG = logging.getLogger(__name__)
 

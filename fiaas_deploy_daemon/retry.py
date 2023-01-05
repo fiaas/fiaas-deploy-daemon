@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import functools
-import inspect
-import sys
 
 import backoff
 from k8s.client import ClientError
@@ -36,9 +34,7 @@ fiaas_upsert_conflict_failure_counter = Counter(
 
 
 class UpsertConflict(Exception):
-    def __init__(self, cause, response):
-        self.traceback = sys.exc_info()
-        super(self.__class__, self).__init__(cause.message)
+    def __init__(self, response):
         self.response = response
 
     def __str__(self):
@@ -67,13 +63,7 @@ def _count_failure(target, *args, **kwargs):
 
 
 def canonical_name(func):
-    if inspect.ismethod(func):
-        # method's class is im_class, classmethod's class is im_self
-        method_cls = func.im_class if func.im_self is None else func.im_self
-        for cls in inspect.getmro(method_cls):
-            if func.__name__ in cls.__dict__:
-                return "{}.{}.{}".format(cls.__module__, cls.__name__, func.__name__)
-    return "{}.{}".format(func.__module__, func.__name__)
+    return "{}.{}".format(func.__module__, func.__qualname__)
 
 
 def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, max_tries=CONFLICT_MAX_RETRIES):
@@ -91,7 +81,7 @@ def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, m
                 return func(*args, **kwargs)
             except ClientError as e:
                 if e.response.status_code == 409:  # Conflict
-                    raise UpsertConflict(e, e.response)
+                    raise UpsertConflict(e.response) from e
                 else:
                     raise
         return _wrap

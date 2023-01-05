@@ -31,18 +31,23 @@ GENERIC_REQ = [
     "pyaml == 19.4.1",
     "pinject == 0.14.1",
     "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)
-    "six == 1.12.0",
+    "six >= 1.12.0",
     "dnspython == 1.16.0",
     "k8s == 0.21.4",
-    "monotonic == 1.6",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.9.1",
     "backoff == 1.8.0",
+    "py27hash == 1.1.0",
 ]
 
 WEB_REQ = [
+    # TODO: upgrade flask and associated dependencies to 2.x
     "Flask == 1.1.1",
     "flask-talisman==0.7.0",
+    "jinja2 <= 2.11.3",  # jinja 3.x requires also upgrading flask to 2.x
+    "markupsafe <= 1.1.1",  # markupsafe 2.x requires also upgrading flask to 2.x
+    "itsdangerous <= 1.1.0",  # markupsafe 2.x requires also upgrading flask to 2.x
+    "werkzeug <= 1.0.1",  # markupsafe 2.x requires also upgrading flask to 2.x
     "blinker == 1.4",
 ]
 
@@ -59,7 +64,6 @@ FLAKE8_REQ = [
 ]
 
 TESTS_REQ = [
-    'mock == 3.0.5',
     'pytest-xdist == 1.27.0',
     'pytest-sugar == 0.9.2',
     'pytest-html == 1.22.0',

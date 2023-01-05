@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import pytest
-from mock import ANY, create_autospec
+from unittest.mock import ANY, create_autospec
 
 from fiaas_deploy_daemon import Configuration
 from fiaas_deploy_daemon.specs.factory import SpecFactory, InvalidConfiguration, BaseFactory, BaseTransformer
 
-IMAGE = u"finntech/docker-image:some-version"
-NAME = u"application-name"
+IMAGE = "finntech/docker-image:some-version"
+NAME = "application-name"
 TEAMS = "IO"
 TAGS = "Foo"
 DEPLOYMENT_ID = "deployment_id"

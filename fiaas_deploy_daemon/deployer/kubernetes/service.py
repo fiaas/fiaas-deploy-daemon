@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 
@@ -87,7 +87,7 @@ class ServiceDeployer(object):
     @staticmethod
     def _make_tcp_port_annotation(app_spec):
         tcp_port_names = [port_spec.name for port_spec in app_spec.ports
-                          if port_spec.protocol == u"tcp"]
+                          if port_spec.protocol == "tcp"]
         return {
             'fiaas/tcp_port_names': ','.join(map(str, tcp_port_names))
         } if tcp_port_names else {}

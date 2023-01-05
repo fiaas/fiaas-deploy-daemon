@@ -76,7 +76,7 @@ class DevhoseDeploymentEventTransformer(object):
                                        details={'environment': self._environment},
                                        trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
                                        team=self._team)
-        return event.__dict__
+        return event._asdict()
 
 
 def _environment(env):

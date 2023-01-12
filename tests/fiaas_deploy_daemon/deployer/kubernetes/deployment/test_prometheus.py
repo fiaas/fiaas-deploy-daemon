@@ -44,21 +44,20 @@ class TestPrometheus(object):
         prometheus.apply(deployment, app_spec)
         assert expected == deployment
 
-    @pytest.mark.parametrize("port,expected_port,path", (
+    @pytest.mark.parametrize(
+        "port,expected_port,path",
+        (
             ("9999", "9999", "/_/metrics"),
             ("8080", "8080", "/internal-backstage/prometheus"),
             ("http", "8080", "/awesome"),
-    ))
+        ),
+    )
     def test_adds_annotations_when_enabled(self, prometheus, app_spec, deployment, port, expected_port, path):
         prometheus_spec = app_spec.prometheus._replace(port=port, path=path)
         app_spec = app_spec._replace(prometheus=prometheus_spec)
         original_annotations = deepcopy(deployment.spec.template.metadata.annotations)
         prometheus.apply(deployment, app_spec)
-        expected = {
-            "prometheus.io/scrape": "true",
-            "prometheus.io/port": expected_port,
-            "prometheus.io/path": path
-        }
+        expected = {"prometheus.io/scrape": "true", "prometheus.io/port": expected_port, "prometheus.io/path": path}
         annotations = deployment.spec.template.metadata.annotations
         for key in expected:
             assert expected[key] == annotations[key]

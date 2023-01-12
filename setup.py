@@ -53,25 +53,25 @@ WEB_REQ = [
 
 DEPLOY_REQ = [
     "requests == 2.27.1",
-    "ipaddress == 1.0.22"  # Required by requests for resolving IP address in SSL cert
+    "ipaddress == 1.0.22",  # Required by requests for resolving IP address in SSL cert
 ]
 
 FLAKE8_REQ = [
-    'flake8-print == 3.1.4',
-    'flake8-comprehensions == 1.4.1',
-    'pep8-naming == 0.11.1',
-    'flake8 == 3.9.0'
+    "flake8-print == 3.1.4",
+    "flake8-comprehensions == 1.4.1",
+    "pep8-naming == 0.11.1",
+    "flake8 == 3.9.0",
 ]
 
 TESTS_REQ = [
-    'pytest-xdist == 1.27.0',
-    'pytest-sugar == 0.9.2',
-    'pytest-html == 1.22.0',
-    'pytest-cov == 2.7.1',
-    'pytest-helpers-namespace == 2019.1.8',
-    'pytest == 3.10.1',
-    'requests-file == 1.4.3',
-    'callee == 0.3',
+    "pytest-xdist == 1.27.0",
+    "pytest-sugar == 0.9.2",
+    "pytest-html == 1.22.0",
+    "pytest-cov == 2.7.1",
+    "pytest-helpers-namespace == 2019.1.8",
+    "pytest == 3.10.1",
+    "requests-file == 1.4.3",
+    "callee == 0.3",
 ]
 
 DEV_TOOLS = [
@@ -90,25 +90,22 @@ if __name__ == "__main__":
         packages=find_packages(exclude=("tests",)),
         zip_safe=True,
         include_package_data=True,
-
         # Requirements
         install_requires=GENERIC_REQ + WEB_REQ + DEPLOY_REQ,
-        setup_requires=['pytest-runner', 'wheel', 'setuptools_git >= 0.3'],
+        setup_requires=["pytest-runner", "wheel", "setuptools_git >= 0.3"],
         extras_require={
             "dev": TESTS_REQ + FLAKE8_REQ + DEV_TOOLS,
-            "ci": DEV_TOOLS
+            "ci": DEV_TOOLS,
         },
-
         # Metadata
         description="Deploy applications to Kubernetes",
         long_description=read("README.md"),
         url="https://github.schibsted.io/finn/fiaas-deploy-daemon",
-
         # Entrypoints
         entry_points={
             "console_scripts": [
                 "fiaas-deploy-daemon = fiaas_deploy_daemon:main",
                 "fiaas-deploy-daemon-bootstrap = fiaas_deploy_daemon.bootstrap:main",
             ]
-        }
+        },
     )

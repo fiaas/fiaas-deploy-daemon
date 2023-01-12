@@ -48,16 +48,19 @@ class TestDevHoseAuth(object):
         auth = DevHoseAuth(self._KEY, "߷\u23FB@/")
         timestamp = (datetime(2017, 9, 26, 11, 16, 25, 439000) - datetime(1970, 1, 1)).total_seconds()
         string_to_sign = auth._create_string_to_sign(mock_request, timestamp, "߷\u23FB@/")
-        assert string_to_sign == "/%DF%B7%E2%8F%BB@/a-zA-Z0-9.-~_@:!$&'()*+,;=/?\n" \
-                                 "%DF%B7%E2%8F%BB%40%2F\n" \
-                                 "1506424585000\n" \
-                                 "eyJ0eXBlIjogIlx1MDdmN1x1MjNmYkAvIn0%3D\n" \
-                                 "%DF%B7%E2%8F%BB%40%2F\n"
+        assert (
+            string_to_sign == "/%DF%B7%E2%8F%BB@/a-zA-Z0-9.-~_@:!$&'()*+,;=/?\n"
+            "%DF%B7%E2%8F%BB%40%2F\n"
+            "1506424585000\n"
+            "eyJ0eXBlIjogIlx1MDdmN1x1MjNmYkAvIn0%3D\n"
+            "%DF%B7%E2%8F%BB%40%2F\n"
+        )
 
     @pytest.mark.parametrize("key", (_KEY, b"\n" + _KEY, _KEY + b"\n"))
     def test_signing(self, mock_request, key):
-        with mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.uuid.uuid4") as m_uuid, \
-                mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.time.time") as m_time:
+        with mock.patch("fiaas_deploy_daemon.usage_reporting.dev_hose_auth.uuid.uuid4") as m_uuid, mock.patch(
+            "fiaas_deploy_daemon.usage_reporting.dev_hose_auth.time.time"
+        ) as m_time:
             m_uuid.return_value = "mocked_nonce"
             m_time.return_value = 1514764861.000001
             auth = DevHoseAuth(key, "tenant")

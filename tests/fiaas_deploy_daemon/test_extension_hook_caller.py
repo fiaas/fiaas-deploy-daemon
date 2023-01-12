@@ -33,7 +33,6 @@ class Object(object):
 
 
 class TestExtensionHookCaller(object):
-
     @pytest.fixture
     def session_respond_500(self):
         mock_session = mock.create_autospec(Session)
@@ -90,7 +89,7 @@ class TestExtensionHookCaller(object):
 
     @pytest.mark.usefixtures("session_respond_404")
     def test_return_same_object_when_404_occurs(self, session_respond_404, app_spec, deployment):
-        conf = Configuration(['--extension-hook-url', URL_PARAM])
+        conf = Configuration(["--extension-hook-url", URL_PARAM])
         extension_hook_caller = ExtensionHookCaller(conf, session_respond_404)
         obj = copy.deepcopy(deployment)
         extension_hook_caller.apply(obj, app_spec)
@@ -98,7 +97,7 @@ class TestExtensionHookCaller(object):
 
     @pytest.mark.usefixtures("session_respond_200")
     def test_return_respone_when_200_occurs(self, session_respond_200, app_spec, deployment):
-        conf = Configuration(['--extension-hook-url', URL_PARAM])
+        conf = Configuration(["--extension-hook-url", URL_PARAM])
         extension_hook_caller = ExtensionHookCaller(conf, session_respond_200)
         obj = copy.deepcopy(deployment)
         expected = self.deployment_v2()
@@ -109,7 +108,7 @@ class TestExtensionHookCaller(object):
 
     @pytest.mark.usefixtures("session_respond_500")
     def test_raise_exception_when_500_occurs(self, session_respond_500, app_spec, deployment):
-        conf = Configuration(['--extension-hook-url', URL_PARAM])
+        conf = Configuration(["--extension-hook-url", URL_PARAM])
         extension_hook_caller = ExtensionHookCaller(conf, session_respond_500)
         obj = copy.deepcopy(deployment)
         with pytest.raises(HTTPError):

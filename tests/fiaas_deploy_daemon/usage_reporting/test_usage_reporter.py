@@ -46,19 +46,29 @@ class TestUsageReporter(object):
     def mock_auth(self):
         return mock.create_autospec(AuthBase())
 
-    @pytest.mark.parametrize("result,repository", [
-        (STATUS_STARTED, None),
-        (STATUS_FAILED, None),
-        (STATUS_SUCCESS, None),
-        (STATUS_STARTED, "repo"),
-        (STATUS_FAILED, "repo"),
-        (STATUS_SUCCESS, "repo"),
-    ])
+    @pytest.mark.parametrize(
+        "result,repository",
+        [
+            (STATUS_STARTED, None),
+            (STATUS_FAILED, None),
+            (STATUS_SUCCESS, None),
+            (STATUS_STARTED, "repo"),
+            (STATUS_FAILED, "repo"),
+            (STATUS_SUCCESS, "repo"),
+        ],
+    )
     def test_signal_to_event(self, config, mock_transformer, mock_session, mock_auth, app_spec, result, repository):
         reporter = UsageReporter(config, mock_transformer, mock_session, mock_auth)
 
-        lifecycle_subject = Subject(uid=app_spec.uid, app_name=app_spec.name, namespace=app_spec.namespace,
-                                    deployment_id=app_spec.deployment_id, repository=repository, labels=None, annotations=None)
+        lifecycle_subject = Subject(
+            uid=app_spec.uid,
+            app_name=app_spec.name,
+            namespace=app_spec.namespace,
+            deployment_id=app_spec.deployment_id,
+            repository=repository,
+            labels=None,
+            annotations=None,
+        )
         signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
 
         event = reporter._event_queue.get_nowait()
@@ -76,8 +86,9 @@ class TestUsageReporter(object):
 
         reporter()
 
-        mock_transformer.assert_called_once_with(event.status, event.app_name, event.namespace, event.deployment_id,
-                                                 event.repository)
+        mock_transformer.assert_called_once_with(
+            event.status, event.app_name, event.namespace, event.deployment_id, event.repository
+        )
 
     def test_post_to_webhook(self, config, mock_transformer, mock_session, mock_auth):
         event = UsageEvent("status", "name", "namespace", "deployment_id", "repository")

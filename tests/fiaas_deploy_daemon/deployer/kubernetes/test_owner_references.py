@@ -7,19 +7,20 @@ from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerRefere
 
 
 class TestOwnerReferences(object):
-
     @pytest.fixture
     def owner_references(self):
         return OwnerReferences()
 
     @pytest.fixture
     def expected(self, app_spec):
-        expected = OwnerReference(apiVersion="fiaas.schibsted.io/v1",
-                                  kind="Application",
-                                  controller=True,
-                                  blockOwnerDeletion=True,
-                                  name=app_spec.name,
-                                  uid=app_spec.uid)
+        expected = OwnerReference(
+            apiVersion="fiaas.schibsted.io/v1",
+            kind="Application",
+            controller=True,
+            blockOwnerDeletion=True,
+            name=app_spec.name,
+            uid=app_spec.uid,
+        )
         return expected
 
     def test_apply(self, app_spec, owner_references, expected):

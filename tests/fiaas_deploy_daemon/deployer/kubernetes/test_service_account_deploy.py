@@ -29,12 +29,11 @@ from utils import TypeMatcher
 
 from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
 
-SERVICE_ACCOUNT_URI = '/api/v1/namespaces/default/serviceaccounts/'
+SERVICE_ACCOUNT_URI = "/api/v1/namespaces/default/serviceaccounts/"
 LABELS = {"service": "pass through"}
 
 
 class TestServiceAccountDeployer(object):
-
     @pytest.fixture
     def deployer(self, owner_references):
         config = create_autospec(Configuration([]), spec_set=True)
@@ -43,9 +42,9 @@ class TestServiceAccountDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_deploy_new_service_account(self, deployer, post, app_spec, owner_references):
         expected_service_account = {
-                'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-                'secrets': [],
-                'imagePullSecrets': []
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "secrets": [],
+            "imagePullSecrets": [],
         }
 
         mock_response = create_autospec(Response)
@@ -57,31 +56,36 @@ class TestServiceAccountDeployer(object):
         pytest.helpers.assert_any_call(post, SERVICE_ACCOUNT_URI, expected_service_account)
         owner_references.apply.assert_called_once_with(TypeMatcher(ServiceAccount), app_spec)
 
-    @pytest.mark.parametrize('owner_references', (
-        [],
-        [{
-                "apiVersion": "example.com/v1",
-                "kind": "random",
-                "name": "testapp",
-        }],
-        [
-            {
-                "apiVersion": "example.com/v1",
-                "kind": "random",
-                "name": "testapp",
-            },
-            {
-                "apiVersion": "example.com/v1",
-                "kind": "random2",
-                "name": "testapp",
-            },
-        ],
-    ))
+    @pytest.mark.parametrize(
+        "owner_references",
+        (
+            [],
+            [
+                {
+                    "apiVersion": "example.com/v1",
+                    "kind": "random",
+                    "name": "testapp",
+                }
+            ],
+            [
+                {
+                    "apiVersion": "example.com/v1",
+                    "kind": "random",
+                    "name": "testapp",
+                },
+                {
+                    "apiVersion": "example.com/v1",
+                    "kind": "random2",
+                    "name": "testapp",
+                },
+            ],
+        ),
+    )
     def test_deploy_existing_service_account(self, get, deployer, post, put, app_spec, owner_references):
         existing_service_account = {
-                'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS, owner_references=owner_references),
-                'secrets': [],
-                'imagePullSecrets': []
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS, owner_references=owner_references),
+            "secrets": [],
+            "imagePullSecrets": [],
         }
 
         mock_response = create_autospec(Response)
@@ -95,20 +99,22 @@ class TestServiceAccountDeployer(object):
 
     def test_deploy_existing_fiaas_owned_service_account(self, get, post, put, app_spec):
         existing_service_account = {
-            'metadata': pytest.helpers.create_metadata(
+            "metadata": pytest.helpers.create_metadata(
                 app_spec.name,
                 labels=LABELS,
-                owner_references=[{
-                    "apiVersion": "fiaas.schibsted.io/v1",
-                    "blockOwnerDeletion": True,
-                    "controller": True,
-                    "kind": "Application",
-                    "name": app_spec.name,
-                    "uid": app_spec.uid,
-                }],
+                owner_references=[
+                    {
+                        "apiVersion": "fiaas.schibsted.io/v1",
+                        "blockOwnerDeletion": True,
+                        "controller": True,
+                        "kind": "Application",
+                        "name": app_spec.name,
+                        "uid": app_spec.uid,
+                    }
+                ],
             ),
-            'secrets': [{'name': app_spec.name + "-token-6f7fp"}],
-            'imagePullSecrets': []
+            "secrets": [{"name": app_spec.name + "-token-6f7fp"}],
+            "imagePullSecrets": [],
         }
 
         def get_existing_or_not(uri):
@@ -134,19 +140,22 @@ class TestServiceAccountDeployer(object):
 
     @pytest.fixture
     def service_account_get(self):
-        with mock.patch('k8s.models.service_account.ServiceAccount.get') as get:
+        with mock.patch("k8s.models.service_account.ServiceAccount.get") as get:
             yield get
 
-    @pytest.mark.parametrize('default_sa_exists,image_pull_secrets', (
-        (False, []),
-        (True, []),
-        (True, ['one']),
-        (True, ['one', 'two', 'three']),
-    ))
-    def test_service_account_should_propagate_image_pull_secrets_from_default(self, service_account_get, post,
-                                                                              app_spec, owner_references, deployer,
-                                                                              default_sa_exists, image_pull_secrets):
-        default_sa_name = 'default'
+    @pytest.mark.parametrize(
+        "default_sa_exists,image_pull_secrets",
+        (
+            (False, []),
+            (True, []),
+            (True, ["one"]),
+            (True, ["one", "two", "three"]),
+        ),
+    )
+    def test_service_account_should_propagate_image_pull_secrets_from_default(
+        self, service_account_get, post, app_spec, owner_references, deployer, default_sa_exists, image_pull_secrets
+    ):
+        default_sa_name = "default"
         default_service_account = ServiceAccount(
             metadata=ObjectMeta(name=default_sa_name),
             imagePullSecrets=image_pull_secrets,
@@ -161,9 +170,9 @@ class TestServiceAccountDeployer(object):
         service_account_get.side_effect = get_default_or_notfound
 
         expected_service_account = {
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-            'secrets': [],
-            'imagePullSecrets': image_pull_secrets,
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "secrets": [],
+            "imagePullSecrets": image_pull_secrets,
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service_account

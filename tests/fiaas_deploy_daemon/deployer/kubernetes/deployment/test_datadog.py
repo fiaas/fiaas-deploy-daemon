@@ -66,7 +66,7 @@ class TestDataDog(object):
         expected = [
             {"name": "DUMMY", "value": "CANARY"},
             {"name": "STATSD_HOST", "value": "localhost"},
-            {"name": "STATSD_PORT", "value": "8125"}
+            {"name": "STATSD_PORT", "value": "8125"},
         ]
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][0]["env"]
 
@@ -75,49 +75,43 @@ class TestDataDog(object):
         app_spec = app_spec._replace(datadog=datadog_spec)
         datadog.apply(deployment, app_spec, best_effort_required, 0)
         expected = {
-                    'name': 'DD_TAGS',
-                    'value': "app:{},k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
-                }
+            "name": "DD_TAGS",
+            "value": "app:{},k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace),
+        }
         assert expected in deployment.as_dict()["spec"]["template"]["spec"]["containers"][1]["env"]
 
-    @pytest.mark.parametrize("name, namespace", (
-        ("bilbo", "baggins"),
-        ("rincewind", "discworld")
-    ))
+    @pytest.mark.parametrize("name, namespace", (("bilbo", "baggins"), ("rincewind", "discworld")))
     def test_adds_container_when_enabled(self, datadog, app_spec, deployment, best_effort_required, name, namespace):
-        datadog_spec = app_spec.datadog._replace(
-            enabled=True,
-            tags={"a": "1", "b": "2"}
-        )
+        datadog_spec = app_spec.datadog._replace(enabled=True, tags={"a": "1", "b": "2"})
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(datadog=datadog_spec)
         app_spec = app_spec._replace(name=name, namespace=namespace)
         datadog.apply(deployment, app_spec, best_effort_required, 0)
         expected = {
-            'name': DataDog.DATADOG_CONTAINER_NAME,
-            'image': CONTAINER_IMAGE,
-            'volumeMounts': [],
-            'command': [],
-            'args': [],
-            'env': [
+            "name": DataDog.DATADOG_CONTAINER_NAME,
+            "image": CONTAINER_IMAGE,
+            "volumeMounts": [],
+            "command": [],
+            "args": [],
+            "env": [
                 {
-                    'name': 'DD_TAGS',
-                    'value': "a:1,app:{},b:2,k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace)
+                    "name": "DD_TAGS",
+                    "value": "a:1,app:{},b:2,k8s_namespace:{},tag:test".format(app_spec.name, app_spec.namespace),
                 },
-                {'name': 'DD_API_KEY', 'valueFrom': {'secretKeyRef': {'name': 'datadog', 'key': 'apikey'}}},
-                {'name': 'NON_LOCAL_TRAFFIC', 'value': 'false'},
-                {'name': 'DD_LOGS_STDOUT', 'value': 'yes'},
-                {'name': 'DD_EXPVAR_PORT', 'value': '42622'},
-                {'name': 'DD_CMD_PORT', 'value': '42623'},
+                {"name": "DD_API_KEY", "valueFrom": {"secretKeyRef": {"name": "datadog", "key": "apikey"}}},
+                {"name": "NON_LOCAL_TRAFFIC", "value": "false"},
+                {"name": "DD_LOGS_STDOUT", "value": "yes"},
+                {"name": "DD_EXPVAR_PORT", "value": "42622"},
+                {"name": "DD_CMD_PORT", "value": "42623"},
             ],
-            'envFrom': [],
-            'imagePullPolicy': 'IfNotPresent',
-            'ports': []
+            "envFrom": [],
+            "imagePullPolicy": "IfNotPresent",
+            "ports": [],
         }
         if not best_effort_required:
             expected["resources"] = {
-                'limits': {'cpu': '400m', 'memory': '2Gi'},
-                'requests': {'cpu': '200m', 'memory': '2Gi'}
+                "limits": {"cpu": "400m", "memory": "2Gi"},
+                "requests": {"cpu": "200m", "memory": "2Gi"},
             }
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
 
@@ -125,47 +119,37 @@ class TestDataDog(object):
         config.datadog_container_image = CONTAINER_IMAGE_LATEST
         datadog = DataDog(config)
 
-        datadog_spec = app_spec.datadog._replace(
-            enabled=True
-        )
+        datadog_spec = app_spec.datadog._replace(enabled=True)
         app_spec = app_spec._replace(datadog=datadog_spec)
 
         datadog.apply(deployment, app_spec, False, 0)
 
         actual = deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]
-        assert actual['image'] == CONTAINER_IMAGE_LATEST
-        assert actual['imagePullPolicy'] == "Always"
+        assert actual["image"] == CONTAINER_IMAGE_LATEST
+        assert actual["imagePullPolicy"] == "Always"
 
     def test_adds_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_active(self, config, app_spec, deployment):
         config.datadog_container_image = CONTAINER_IMAGE_LATEST
         config.datadog_activate_sleep = True
         datadog = DataDog(config)
 
-        datadog_spec = app_spec.datadog._replace(
-            enabled=True
-        )
+        datadog_spec = app_spec.datadog._replace(enabled=True)
         app_spec = app_spec._replace(datadog=datadog_spec)
 
         datadog.apply(deployment, app_spec, False, 5)
 
-        expected = {
-            'preStop': {
-                'exec': {
-                    'command': ['sleep', '5']
-                }
-            }
-        }
+        expected = {"preStop": {"exec": {"command": ["sleep", "5"]}}}
 
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]["lifecycle"]
 
-    def test_does_not_add_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_not_active(self, config, app_spec, deployment):
+    def test_does_not_add_lifecycle_when_pre_stop_delay_is_set_and_sleep_is_not_active(
+        self, config, app_spec, deployment
+    ):
         config.datadog_container_image = CONTAINER_IMAGE_LATEST
         config.datadog_activate_sleep = False
         datadog = DataDog(config)
 
-        datadog_spec = app_spec.datadog._replace(
-            enabled=True
-        )
+        datadog_spec = app_spec.datadog._replace(enabled=True)
         app_spec = app_spec._replace(datadog=datadog_spec)
 
         datadog.apply(deployment, app_spec, False, 5)

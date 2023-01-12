@@ -17,37 +17,37 @@
 import pytest
 
 from fiaas_deploy_daemon.specs.lookup import LookupMapping
-from fiaas_deploy_daemon.specs.v2.transformer import Transformer, _get, _set, RESOURCE_UNDEFINED_UGLYHACK, \
-    _flatten, _remove_intersect
+from fiaas_deploy_daemon.specs.v2.transformer import (
+    Transformer,
+    _get,
+    _set,
+    RESOURCE_UNDEFINED_UGLYHACK,
+    _flatten,
+    _remove_intersect,
+)
 
 
 class TestTransformer(object):
     @pytest.fixture
     def data(self):
-        return {
-            "first": {
-                "second": {
-                    "third": {
-                        "one": 1,
-                        "string": "some string"
-                    }
-                }
-            }
-        }
+        return {"first": {"second": {"third": {"one": 1, "string": "some string"}}}}
 
     @pytest.fixture
     def transformer(self):
         return Transformer()
 
-    @pytest.mark.parametrize("filename", (
-        "v2minimal",
-        "full_config",
-        "host",
-        "multiple_ports",
-        "tcp_config",
-        "partial_override",
-        "only_liveness",
-    ))
+    @pytest.mark.parametrize(
+        "filename",
+        (
+            "v2minimal",
+            "full_config",
+            "host",
+            "multiple_ports",
+            "tcp_config",
+            "partial_override",
+            "only_liveness",
+        ),
+    )
     def test_transformation(self, filename, transformer, load_app_config_testdata, load_app_config_transformations):
         config = load_app_config_testdata(filename)
         expected = load_app_config_transformations(filename)
@@ -72,48 +72,59 @@ class TestTransformer(object):
         assert data["first"]["alternative"]["crazy"] == "crazy"
 
     def test_flatten_creates_dicts(self):
-        x = {'prometheus': LookupMapping(
-                config={'path': '/xxx'},
-                defaults={'path': '/internal-backstage/prometheus', 'enabled': True, 'port': 'http'})}
-        assert _flatten(x) == {'prometheus': {'path': '/xxx', 'enabled': True, 'port': 'http'}}
+        x = {
+            "prometheus": LookupMapping(
+                config={"path": "/xxx"},
+                defaults={"path": "/internal-backstage/prometheus", "enabled": True, "port": "http"},
+            )
+        }
+        assert _flatten(x) == {"prometheus": {"path": "/xxx", "enabled": True, "port": "http"}}
 
-    @pytest.mark.parametrize("filename", (
-        "v2minimal",
-        "full_config",
-        "host",
-        "multiple_ports",
-        "tcp_config",
-        "partial_override",
-        "only_liveness",
-    ))
-    def test_transformation_strips_defaults(self, filename, transformer,
-                                            load_app_config_testdata, load_app_config_transformations):
+    @pytest.mark.parametrize(
+        "filename",
+        (
+            "v2minimal",
+            "full_config",
+            "host",
+            "multiple_ports",
+            "tcp_config",
+            "partial_override",
+            "only_liveness",
+        ),
+    )
+    def test_transformation_strips_defaults(
+        self, filename, transformer, load_app_config_testdata, load_app_config_transformations
+    ):
         config = load_app_config_testdata(filename)
         expected = load_app_config_transformations("strip_defaults/" + filename)
         actual = transformer(config, strip_defaults=True)
         assert expected == actual
 
-    @pytest.mark.parametrize("test_input, expected", (
-        pytest.param(({'first': 1},
-                      {'first': 1}),
-                     {},
-                     id='removes identical values'),
-        pytest.param(({'first': [{'yy': 123, 'zz': 456, 'xx': 777}]},
-                      {'first': [{'yy': 123, 'zz': 456, 'xx': 777}]}),
-                     {},
-                     id='removes identical values from single item dict list'),
-        pytest.param(({'first': [{'yy': 1}]},
-                      {'first': [{'yy': 1, 'zz': 2, 'xx': 3}]}),
-                     {},
-                     id='removes items from single item dict list that are subset'),
-        pytest.param(({'first': [{'yy': 1, 'xx': 2, 'zz': 3}]},
-                      {'first': [{'yy': 1, 'xx': 3}]}),
-                     {'first': [{'xx': 2, 'zz': 3}]},
-                     id='leaves items from single item dict list that are different'),
-        pytest.param(({'first': {'yy': 1}},
-                      {'first': {'yy': 1, 'zz': 2, 'xx': 3}}),
-                     {},
-                     id='removes dict values that are the same')
-    ))
+    @pytest.mark.parametrize(
+        "test_input, expected",
+        (
+            pytest.param(({"first": 1}, {"first": 1}), {}, id="removes identical values"),
+            pytest.param(
+                ({"first": [{"yy": 123, "zz": 456, "xx": 777}]}, {"first": [{"yy": 123, "zz": 456, "xx": 777}]}),
+                {},
+                id="removes identical values from single item dict list",
+            ),
+            pytest.param(
+                ({"first": [{"yy": 1}]}, {"first": [{"yy": 1, "zz": 2, "xx": 3}]}),
+                {},
+                id="removes items from single item dict list that are subset",
+            ),
+            pytest.param(
+                ({"first": [{"yy": 1, "xx": 2, "zz": 3}]}, {"first": [{"yy": 1, "xx": 3}]}),
+                {"first": [{"xx": 2, "zz": 3}]},
+                id="leaves items from single item dict list that are different",
+            ),
+            pytest.param(
+                ({"first": {"yy": 1}}, {"first": {"yy": 1, "zz": 2, "xx": 3}}),
+                {},
+                id="removes dict values that are the same",
+            ),
+        ),
+    )
     def test_remove_intersect(self, test_input, expected):
         assert _remove_intersect(test_input[0], test_input[1]) == expected

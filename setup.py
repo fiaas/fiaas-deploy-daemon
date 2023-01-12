@@ -76,7 +76,8 @@ TESTS_REQ = [
 
 DEV_TOOLS = [
     "tox==3.14.5",
-    "virtualenv==20.13.0"
+    "virtualenv==20.13.0",
+    "black ~= 22.0",
 ]
 
 

@@ -21,7 +21,7 @@ fiaas-deploy-daemon is released by pushing an [annotated git tag](https://git-sc
 ```shell
 git tag -a vMAJOR.MINOR.PATCH [git ref]
 ```
-The version number must follow [semantic versioning](semver2). git ref must be a commit on the master branch.
+The version number must follow [semantic versioning][semver2]. git ref must be a commit on the master branch.
 
 The message of the annotated tag should contain the release notes, describing the changes included in the release. A header will be added automatically by the release tooling, so you don't need to include one in the release notes. These release notes end up on the resulting release in Github.
 
@@ -38,6 +38,6 @@ git push origin vMAJOR.MINOR.PATCH
 - If a new feature is added, but backwards compatibility is preserved, increase the minor version.
 - For bug fixes and similar, increase the patch version.
 
-For cases that do not fit into the above, refer to the [semver spec](semver2) (and consider updating this documentation).
+For cases that do not fit into the above, refer to the [semver spec][semver2] (and consider updating this documentation).
 
 [semver2]: https://semver.org/spec/v2.0.0.html

@@ -18,8 +18,11 @@
 import logging
 
 from k8s.models.common import ObjectMeta
-from k8s.models.custom_resource_definition import CustomResourceDefinitionNames, CustomResourceDefinitionSpec, \
-    CustomResourceDefinition
+from k8s.models.custom_resource_definition import (
+    CustomResourceDefinitionNames,
+    CustomResourceDefinitionSpec,
+    CustomResourceDefinition,
+)
 
 from ..retry import retry_on_upsert_conflict
 
@@ -41,4 +44,6 @@ class CrdResourcesSyncerApiextensionsV1Beta1(object):
     @classmethod
     def update_crd_resources(cls):
         cls._create_or_update("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
-        cls._create_or_update("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io")
+        cls._create_or_update(
+            "ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io"
+        )

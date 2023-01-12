@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,12 +23,12 @@ CONFLICT_MAX_VALUE = 3
 fiaas_upsert_conflict_retry_counter = Counter(
     "fiaas_upsert_conflict_retry",
     "Number of retries made due to 409 Conflict when upserting a Kubernetes resource",
-    ["target"]
+    ["target"],
 )
 fiaas_upsert_conflict_failure_counter = Counter(
     "fiaas_upsert_conflict_failure",
     "Number of times max retries were exceeded due to 409 Conflict when upserting a Kubernetes resource",
-    ["target"]
+    ["target"],
 )
 
 
@@ -50,7 +49,7 @@ class UpsertConflict(Exception):
             method=self.response.request.method,
             url=self.response.request.url,
             message=message,
-            reason=reason
+            reason=reason,
         )
 
 
@@ -70,11 +69,14 @@ def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, m
     def _retry_decorator(func):
         target = canonical_name(func)
 
-        @backoff.on_exception(backoff.expo, UpsertConflict,
-                              max_value=max_value_seconds,
-                              max_tries=max_tries,
-                              on_backoff=functools.partial(_count_retry, target),
-                              on_giveup=functools.partial(_count_failure, target))
+        @backoff.on_exception(
+            backoff.expo,
+            UpsertConflict,
+            max_value=max_value_seconds,
+            max_tries=max_tries,
+            on_backoff=functools.partial(_count_retry, target),
+            on_giveup=functools.partial(_count_failure, target),
+        )
         @functools.wraps(func)
         def _wrap(*args, **kwargs):
             try:
@@ -84,6 +86,7 @@ def retry_on_upsert_conflict(_func=None, max_value_seconds=CONFLICT_MAX_VALUE, m
                     raise UpsertConflict(e.response) from e
                 else:
                     raise
+
         return _wrap
 
     if _func is None:

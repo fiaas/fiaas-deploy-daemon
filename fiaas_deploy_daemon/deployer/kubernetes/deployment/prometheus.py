@@ -43,5 +43,5 @@ def _make_prometheus_annotations(app_spec):
     return {
         "prometheus.io/scrape": str(prometheus_spec.enabled).lower(),
         "prometheus.io/port": str(port),
-        "prometheus.io/path": prometheus_spec.path
+        "prometheus.io/path": prometheus_spec.path,
     }

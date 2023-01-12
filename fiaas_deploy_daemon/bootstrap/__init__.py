@@ -49,10 +49,7 @@ class MainBindings(pinject.BindingSpec):
     def provide_session(self, config):
         session = requests.Session()
         if config.proxy:
-            session.proxies = {scheme: config.proxy for scheme in (
-                "http",
-                "https"
-            )}
+            session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
         return session
 
 
@@ -88,5 +85,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

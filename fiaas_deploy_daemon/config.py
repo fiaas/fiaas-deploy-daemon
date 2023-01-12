@@ -102,7 +102,9 @@ In the config-file, these should be defined as a YAML list
 
 If an arg is specified in more than one place, then commandline values
 override config file values which override defaults.
-""".format(DEFAULT_CONFIG_FILE)
+""".format(
+    DEFAULT_CONFIG_FILE
+)
 
 DATADOG_GLOBAL_TAGS_LONG_HELP = """
 If you wish to send certain tags to datadog in every application
@@ -155,137 +157,243 @@ class Configuration(Namespace):
         self.namespace = self._resolve_namespace()
 
     def _parse_args(self, args):
-        parser = configargparse.ArgParser(add_config_file_help=False,
-                                          add_env_var_help=False,
-                                          config_file_parser_class=configargparse.YAMLConfigFileParser,
-                                          default_config_files=[DEFAULT_CONFIG_FILE],
-                                          args_for_setting_config_path=["-c", "--config-file"],
-                                          ignore_unknown_config_file_keys=True,
-                                          description="%(prog)s deploys applications to Kubernetes",
-                                          epilog=EPILOG,
-                                          formatter_class=configargparse.ArgumentDefaultsHelpFormatter)
-        parser.add_argument("--secrets-directory", help="Load secrets from this directory (default: %(default)s)",
-                            default=DEFAULT_SECRETS_DIR)
-        parser.add_argument("--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT,
-                            default="plain")
+        parser = configargparse.ArgParser(
+            add_config_file_help=False,
+            add_env_var_help=False,
+            config_file_parser_class=configargparse.YAMLConfigFileParser,
+            default_config_files=[DEFAULT_CONFIG_FILE],
+            args_for_setting_config_path=["-c", "--config-file"],
+            ignore_unknown_config_file_keys=True,
+            description="%(prog)s deploys applications to Kubernetes",
+            epilog=EPILOG,
+            formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        )
+        parser.add_argument(
+            "--secrets-directory",
+            help="Load secrets from this directory (default: %(default)s)",
+            default=DEFAULT_SECRETS_DIR,
+        )
+        parser.add_argument(
+            "--log-format", help="Set logformat (default: %(default)s)", choices=self.VALID_LOG_FORMAT, default="plain"
+        )
         parser.add_argument("--proxy", help="Use http proxy (currently only used for for usage reporting)")
-        parser.add_argument("--debug", help="Enable a number of debugging options (including disable SSL-verification)",
-                            action="store_true")
+        parser.add_argument(
+            "--debug",
+            help="Enable a number of debugging options (including disable SSL-verification)",
+            action="store_true",
+        )
         parser.add_argument("--environment", help="Environment to deploy to", default="")
-        parser.add_argument("--service-type", help="Type of kubernetes Service to create",
-                            choices=("ClusterIP", "NodePort", "LoadBalancer"), default="ClusterIP")
-        parser.add_argument("--infrastructure",
-                            help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
-                            choices=("diy", "gke"), default="diy")
-        parser.add_argument("--port", help="Port to use for the web-interface (default: %(default)s)", type=int,
-                            default=5000)
-        parser.add_argument("--enable-crd-support", help="Enable Custom Resource Definition support.",
-                            action="store_true")
-        parser.add_argument("--secrets-init-container-image",
-                            help="Use specified docker image as init container for secrets (experimental)",
-                            default=None)
-        parser.add_argument("--secrets-service-account-name",
-                            help="The service account that is passed to secrets init containers", default=None)
-        parser.add_argument("--datadog-container-image",
-                            help="Use specified docker image as datadog sidecar for apps", default=None)
-        parser.add_argument("--datadog-container-memory",
-                            help="The amount of memory (request and limit) for the datadog sidecar", default="2Gi")
+        parser.add_argument(
+            "--service-type",
+            help="Type of kubernetes Service to create",
+            choices=("ClusterIP", "NodePort", "LoadBalancer"),
+            default="ClusterIP",
+        )
+        parser.add_argument(
+            "--infrastructure",
+            help="The underlying infrastructure of the cluster to deploy to. (default: %(default)s).",
+            choices=("diy", "gke"),
+            default="diy",
+        )
+        parser.add_argument(
+            "--port", help="Port to use for the web-interface (default: %(default)s)", type=int, default=5000
+        )
+        parser.add_argument(
+            "--enable-crd-support", help="Enable Custom Resource Definition support.", action="store_true"
+        )
+        parser.add_argument(
+            "--secrets-init-container-image",
+            help="Use specified docker image as init container for secrets (experimental)",
+            default=None,
+        )
+        parser.add_argument(
+            "--secrets-service-account-name",
+            help="The service account that is passed to secrets init containers",
+            default=None,
+        )
+        parser.add_argument(
+            "--datadog-container-image", help="Use specified docker image as datadog sidecar for apps", default=None
+        )
+        parser.add_argument(
+            "--datadog-container-memory",
+            help="The amount of memory (request and limit) for the datadog sidecar",
+            default="2Gi",
+        )
         datadog_global_tags_parser = parser.add_argument_group("Datadog Global tags", DATADOG_GLOBAL_TAGS_LONG_HELP)
-        datadog_global_tags_parser.add_argument("--datadog-global-tags", default=[],
-                                                help="Various non-essential global tags to send to datadog for all applications",
-                                                action="append", type=KeyValue, dest="datadog_global_tags")
-        parser.add_argument("--datadog-activate-sleep",
-                            help="Flag to activate the sleep in datadog when a pre-stop-delay is in the main container",
-                            action="store_true", default=False)
-        parser.add_argument("--pre-stop-delay", type=int,
-                            help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
-                            default=0)
-        parser.add_argument("--strongbox-init-container-image",
-                            help="Use specified docker image as init container for apps that are configured to use Strongbox",
-                            default=None)
-        parser.add_argument("--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP,
-                            action="store_true")
-        parser.add_argument("--use-in-memory-emptydirs", help="Use memory for emptydirs mounted in the deployed application",
-                            action="store_true")
-        parser.add_argument("--deployment-max-surge", help="maximum number of extra pods that can be scheduled above the desired "
-                            "number of pods during an update",
-                            default="25%", type=_int_or_unicode)
-        parser.add_argument("--deployment-max-unavailable", help="The maximum number of pods that can be unavailable during an update",
-                            default="0", type=_int_or_unicode)
-        parser.add_argument("--enable-deprecated-tls-entry-per-host", help=TLS_ENTRY_PER_HOST_HELP,
-                            action="store_true")
-        parser.add_argument("--ready-check-timeout-multiplier", type=int,
-                            help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this " +
-                                 "number of seconds  (default: %(default)s)", default=10)
-        parser.add_argument("--disable-deprecated-managed-env-vars", help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
-                            action="store_true", default=False)
+        datadog_global_tags_parser.add_argument(
+            "--datadog-global-tags",
+            default=[],
+            help="Various non-essential global tags to send to datadog for all applications",
+            action="append",
+            type=KeyValue,
+            dest="datadog_global_tags",
+        )
+        parser.add_argument(
+            "--datadog-activate-sleep",
+            help="Flag to activate the sleep in datadog when a pre-stop-delay is in the main container",
+            action="store_true",
+            default=False,
+        )
+        parser.add_argument(
+            "--pre-stop-delay",
+            type=int,
+            help="Add a pre-stop hook that sleeps for this amount of seconds  (default: %(default)s)",
+            default=0,
+        )
+        parser.add_argument(
+            "--strongbox-init-container-image",
+            help="Use specified docker image as init container for apps that are configured to use Strongbox",
+            default=None,
+        )
+        parser.add_argument(
+            "--enable-deprecated-multi-namespace-support", help=MULTI_NAMESPACE_HELP, action="store_true"
+        )
+        parser.add_argument(
+            "--use-in-memory-emptydirs",
+            help="Use memory for emptydirs mounted in the deployed application",
+            action="store_true",
+        )
+        parser.add_argument(
+            "--deployment-max-surge",
+            help="maximum number of extra pods that can be scheduled above the desired "
+            "number of pods during an update",
+            default="25%",
+            type=_int_or_unicode,
+        )
+        parser.add_argument(
+            "--deployment-max-unavailable",
+            help="The maximum number of pods that can be unavailable during an update",
+            default="0",
+            type=_int_or_unicode,
+        )
+        parser.add_argument("--enable-deprecated-tls-entry-per-host", help=TLS_ENTRY_PER_HOST_HELP, action="store_true")
+        parser.add_argument(
+            "--ready-check-timeout-multiplier",
+            type=int,
+            help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this "
+            + "number of seconds  (default: %(default)s)",
+            default=10,
+        )
+        parser.add_argument(
+            "--disable-deprecated-managed-env-vars",
+            help=DISABLE_DEPRECATED_MANAGED_ENV_VARS,
+            action="store_true",
+            default=False,
+        )
         parser.add_argument("--extension-hook-url", help=EXTENSION_HOOK_URL_HELP, default=None)
-        parser.add_argument("--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP,
-                            action="store_true", default=False)
-        parser.add_argument("--use-networkingv1-ingress",
-                            help="use ingress from apiversion networking.k8s.io instead of extensions/v1beta1",
-                            action="store_true", default=False)
-        parser.add_argument("--use-apiextensionsv1-crd",
-                            help="Use apiextensions/v1 CustomResourceDefinition instead of apiextensions/v1beta1",
-                            action="store_true", default=False)
-        parser.add_argument("--disable-crd-creation",
-                            help="Crd Watcher will skip the crd creation and it will go directly to watch the events",
-                            action="store_true", default=False)
+        parser.add_argument(
+            "--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP, action="store_true", default=False
+        )
+        parser.add_argument(
+            "--use-networkingv1-ingress",
+            help="use ingress from apiversion networking.k8s.io instead of extensions/v1beta1",
+            action="store_true",
+            default=False,
+        )
+        parser.add_argument(
+            "--use-apiextensionsv1-crd",
+            help="Use apiextensions/v1 CustomResourceDefinition instead of apiextensions/v1beta1",
+            action="store_true",
+            default=False,
+        )
+        parser.add_argument(
+            "--disable-crd-creation",
+            help="Crd Watcher will skip the crd creation and it will go directly to watch the events",
+            action="store_true",
+            default=False,
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
-        usage_reporting_parser.add_argument("--usage-reporting-cluster-name",
-                                            help="Name of the cluster where the fiaas-deploy-daemon instance resides")
-        usage_reporting_parser.add_argument("--usage-reporting-operator",
-                                            help="Identifier for the operator of the fiaas-deploy-daemon instance")
+        usage_reporting_parser.add_argument(
+            "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"
+        )
+        usage_reporting_parser.add_argument(
+            "--usage-reporting-operator", help="Identifier for the operator of the fiaas-deploy-daemon instance"
+        )
         usage_reporting_parser.add_argument("--usage-reporting-endpoint", help="Endpoint to POST usage data to")
         usage_reporting_parser.add_argument("--usage-reporting-tenant", help="Name of publisher of events")
-        usage_reporting_parser.add_argument("--usage-reporting-team",
-                                            help="""Name of team that is responsible for components deployed \
-                                                 "by the fiaas-deploy-daemon instance""")
+        usage_reporting_parser.add_argument(
+            "--usage-reporting-team",
+            help="""Name of team that is responsible for components deployed \
+                                                 "by the fiaas-deploy-daemon instance""",
+        )
         api_parser = parser.add_argument_group("API server")
-        api_parser.add_argument("--api-server", help="Address of the api-server to use (IP or name)",
-                                default="https://kubernetes.default.svc.cluster.local")
+        api_parser.add_argument(
+            "--api-server",
+            help="Address of the api-server to use (IP or name)",
+            default="https://kubernetes.default.svc.cluster.local",
+        )
         api_parser.add_argument("--api-token", help="Token to use (default: lookup from service account)", default=None)
-        api_parser.add_argument("--api-cert", help="API server certificate (default: lookup from service account)",
-                                default=None)
+        api_parser.add_argument(
+            "--api-cert", help="API server certificate (default: lookup from service account)", default=None
+        )
         client_cert_parser = parser.add_argument_group("Client certificate")
         client_cert_parser.add_argument("--client-cert", help="Client certificate to use", default=None)
         client_cert_parser.add_argument("--client-key", help="Client certificate key to use", default=None)
         ingress_parser = parser.add_argument_group("Ingress suffix", INGRESS_SUFFIX_LONG_HELP)
-        ingress_parser.add_argument("--ingress-suffix", help="Suffix to use for ingress", action="append",
-                                    dest="ingress_suffixes", default=[])
+        ingress_parser.add_argument(
+            "--ingress-suffix", help="Suffix to use for ingress", action="append", dest="ingress_suffixes", default=[]
+        )
         host_rule_parser = parser.add_argument_group("Host rewrite rules", HOST_REWRITE_RULE_LONG_HELP)
-        host_rule_parser.add_argument("--host-rewrite-rule", help="Rule for rewriting host", action="append",
-                                      type=HostRewriteRule, dest="host_rewrite_rules", default=[])
+        host_rule_parser.add_argument(
+            "--host-rewrite-rule",
+            help="Rule for rewriting host",
+            action="append",
+            type=HostRewriteRule,
+            dest="host_rewrite_rules",
+            default=[],
+        )
         global_env_parser = parser.add_argument_group("Global environment variables", GLOBAL_ENV_LONG_HELP)
-        global_env_parser.add_argument("--global-env", default=[],
-                                       help="Various non-essential global variables to expose for all applications",
-                                       action="append", type=KeyValue, dest="global_env")
+        global_env_parser.add_argument(
+            "--global-env",
+            default=[],
+            help="Various non-essential global variables to expose for all applications",
+            action="append",
+            type=KeyValue,
+            dest="global_env",
+        )
         secret_init_containers_parser = parser.add_argument_group("Secret init-containers", SECRET_CONTAINERS_LONG_HELP)
-        secret_init_containers_parser.add_argument("--secret-init-containers", default=[],
-                                                   help="Images to use for secret init-containers by key",
-                                                   action="append", type=KeyValue, dest="secret_init_containers")
+        secret_init_containers_parser.add_argument(
+            "--secret-init-containers",
+            default=[],
+            help="Images to use for secret init-containers by key",
+            action="append",
+            type=KeyValue,
+            dest="secret_init_containers",
+        )
 
         tls_parser = parser.add_argument_group("Ingress TLS")
-        tls_parser.add_argument("--use-ingress-tls", help=TLS_HELP,
-                                choices=("disabled", "default_off", "default_on"),
-                                default="disabled")
-        tls_parser.add_argument("--tls-certificate-issuer",
-                                help="Certificate issuer to use with cert-manager to provision certificates",
-                                default=None)
-        tls_parser.add_argument("--tls-certificate-issuer-type-default",
-                                help="The annotation to set for cert-manager to provision certificates",
-                                default="certmanager.k8s.io/cluster-issuer")
-        tls_parser.add_argument("--tls-certificate-issuer-type-overrides", help="Issuers to use for specified domain suffixes",
-                                default=[],
-                                action="append", type=KeyValue, dest="tls_certificate_issuer_type_overrides")
-        tls_parser.add_argument("--tls-certificate-ready", help="Check whether certificates are ready", default=False, action="store_true")
+        tls_parser.add_argument(
+            "--use-ingress-tls", help=TLS_HELP, choices=("disabled", "default_off", "default_on"), default="disabled"
+        )
+        tls_parser.add_argument(
+            "--tls-certificate-issuer",
+            help="Certificate issuer to use with cert-manager to provision certificates",
+            default=None,
+        )
+        tls_parser.add_argument(
+            "--tls-certificate-issuer-type-default",
+            help="The annotation to set for cert-manager to provision certificates",
+            default="certmanager.k8s.io/cluster-issuer",
+        )
+        tls_parser.add_argument(
+            "--tls-certificate-issuer-type-overrides",
+            help="Issuers to use for specified domain suffixes",
+            default=[],
+            action="append",
+            type=KeyValue,
+            dest="tls_certificate_issuer_type_overrides",
+        )
+        tls_parser.add_argument(
+            "--tls-certificate-ready", help="Check whether certificates are ready", default=False, action="store_true"
+        )
 
         parser.parse_args(args, namespace=self)
         self.global_env = {env_var.key: env_var.value for env_var in self.global_env}
         self.datadog_global_tags = {tag.key: tag.value for tag in self.datadog_global_tags}
         self.secret_init_containers = {provider.key: provider.value for provider in self.secret_init_containers}
-        self.tls_certificate_issuer_type_overrides = {issuer_type.key: issuer_type.value
-                                                      for issuer_type in self.tls_certificate_issuer_type_overrides}
+        self.tls_certificate_issuer_type_overrides = {
+            issuer_type.key: issuer_type.value for issuer_type in self.tls_certificate_issuer_type_overrides
+        }
 
     def _resolve_env(self):
         image = os.getenv("IMAGE")
@@ -305,7 +413,7 @@ class Configuration(Namespace):
         namespace_file_path = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
         namespace_env_variable = "NAMESPACE"
         try:
-            with open(namespace_file_path, 'r') as fobj:
+            with open(namespace_file_path, "r") as fobj:
                 namespace = fobj.read().strip()
                 if namespace:
                     return namespace
@@ -315,12 +423,17 @@ class Configuration(Namespace):
                 return namespace
         raise InvalidConfigurationException(
             "Could not determine namespace: could not read {path}, and ${env_var} was not set".format(
-                path=namespace_file_path, env_var=namespace_env_variable))
+                path=namespace_file_path, env_var=namespace_env_variable
+            )
+        )
 
     def __repr__(self):
         return "Configuration({})".format(
-            ", ".join("{}={}".format(key, self.__dict__[key]) for key in vars(self)
-                      if not key.startswith("_") and not key.isupper() and "token" not in key)
+            ", ".join(
+                "{}={}".format(key, self.__dict__[key])
+                for key in vars(self)
+                if not key.startswith("_") and not key.isupper() and "token" not in key
+            )
         )
 
 

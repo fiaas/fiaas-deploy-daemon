@@ -27,8 +27,19 @@ from .log_extras import ExtraFilter
 
 class FiaasFormatter(logging.Formatter):
     UNWANTED = (
-        "msg", "args", "exc_info", "exc_text", "levelno", "created", "msecs", "relativeCreated", "funcName",
-        "filename", "lineno", "module")
+        "msg",
+        "args",
+        "exc_info",
+        "exc_text",
+        "levelno",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "funcName",
+        "filename",
+        "lineno",
+        "module",
+    )
     RENAME = {
         "levelname": "level",
         "threadName": "thread",
@@ -73,7 +84,7 @@ class FiaasFormatter(logging.Formatter):
             "method": fields["funcName"],
             "file": fields["filename"],
             "line": fields["lineno"],
-            "module": fields["module"]
+            "module": fields["module"],
         }
 
 

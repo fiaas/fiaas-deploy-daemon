@@ -19,6 +19,7 @@ from prometheus_client import Counter, Gauge, Histogram
 
 class Bookkeeper(object):
     """Measures time, fails and successes"""
+
     deploy_gauge = Gauge("deployer_requests", "Request to deploy an app", ["app"])
     error_counter = Counter("deployer_errors", "Deploy failed", ["app"])
     success_counter = Counter("deployer_success", "Deploy successful", ["app"])

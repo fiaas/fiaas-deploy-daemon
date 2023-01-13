@@ -46,9 +46,9 @@ class TestLogSetup(object):
 
     @staticmethod
     def _describe_stream_handler(formatter):
-        return InstanceOf(logging.StreamHandler) & Attrs(stream=sys.stdout,
-                                                         filters=List(of=InstanceOf(ExtraFilter)),
-                                                         formatter=InstanceOf(formatter, exact=True))
+        return InstanceOf(logging.StreamHandler) & Attrs(
+            stream=sys.stdout, filters=List(of=InstanceOf(ExtraFilter)), formatter=InstanceOf(formatter, exact=True)
+        )
 
     @staticmethod
     def _describe_status_handler():
@@ -57,16 +57,18 @@ class TestLogSetup(object):
     def test_default_behaviour(self, root_logger):
         init_logging(_FakeConfig())
 
-        root_logger.addHandler.assert_has_calls((mock.call(self._describe_stream_handler(logging.Formatter)),
-                                                 mock.call(self._describe_status_handler())),
-                                                any_order=True)
+        root_logger.addHandler.assert_has_calls(
+            (mock.call(self._describe_stream_handler(logging.Formatter)), mock.call(self._describe_status_handler())),
+            any_order=True,
+        )
         root_logger.setLevel.assert_called_with(logging.INFO)
 
     def test_output_json(self, root_logger):
         init_logging(_FakeConfig("json"))
-        root_logger.addHandler.assert_has_calls((mock.call(self._describe_stream_handler(FiaasFormatter)),
-                                                 mock.call(self._describe_status_handler())),
-                                                any_order=True)
+        root_logger.addHandler.assert_has_calls(
+            (mock.call(self._describe_stream_handler(FiaasFormatter)), mock.call(self._describe_status_handler())),
+            any_order=True,
+        )
 
     def test_debug_logging(self, root_logger):
         init_logging(_FakeConfig(debug=True))

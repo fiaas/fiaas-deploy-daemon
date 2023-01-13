@@ -19,20 +19,36 @@ import pytest
 from k8s import config
 from k8s.client import NotFound
 
-from fiaas_deploy_daemon.specs.models import AppSpec, \
-    ResourceRequirementSpec, ResourcesSpec, PrometheusSpec, DatadogSpec, \
-    PortSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, HealthCheckSpec, \
-    AutoscalerSpec, ExecCheckSpec, LabelAndAnnotationSpec, \
-    IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSSpec
+from fiaas_deploy_daemon.specs.models import (
+    AppSpec,
+    ResourceRequirementSpec,
+    ResourcesSpec,
+    PrometheusSpec,
+    DatadogSpec,
+    PortSpec,
+    CheckSpec,
+    HttpCheckSpec,
+    TcpCheckSpec,
+    HealthCheckSpec,
+    AutoscalerSpec,
+    ExecCheckSpec,
+    LabelAndAnnotationSpec,
+    IngressItemSpec,
+    IngressPathMappingSpec,
+    StrongboxSpec,
+    IngressTLSSpec,
+)
 
-PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port='http', path='/internal-backstage/prometheus')
+PROMETHEUS_SPEC = PrometheusSpec(enabled=True, port="http", path="/internal-backstage/prometheus")
 DATADOG_SPEC = DatadogSpec(enabled=False, tags={})
 AUTOSCALER_SPEC = AutoscalerSpec(enabled=False, min_replicas=2, max_replicas=3, cpu_threshold_percentage=50)
-EMPTY_RESOURCE_SPEC = ResourcesSpec(requests=ResourceRequirementSpec(cpu=None, memory=None),
-                                    limits=ResourceRequirementSpec(cpu=None, memory=None))
+EMPTY_RESOURCE_SPEC = ResourcesSpec(
+    requests=ResourceRequirementSpec(cpu=None, memory=None), limits=ResourceRequirementSpec(cpu=None, memory=None)
+)
 
 
 # App specs
+
 
 @pytest.fixture
 def app_spec():
@@ -51,22 +67,40 @@ def app_spec():
             PortSpec(protocol="http", name="http", port=80, target_port=8080),
         ],
         health_checks=HealthCheckSpec(
-            liveness=CheckSpec(tcp=TcpCheckSpec(port=8080), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
-            readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
-                                timeout_seconds=1)),
-        teams=['foo'],
-        tags=['bar'],
+            liveness=CheckSpec(
+                tcp=TcpCheckSpec(port=8080),
+                http=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
+            readiness=CheckSpec(
+                http=HttpCheckSpec(path="/", port=8080, http_headers={}),
+                tcp=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
+        ),
+        teams=["foo"],
+        tags=["bar"],
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
-        ingresses=[IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})],
+        ingresses=[
+            IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})
+        ],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
         ingress_tls=IngressTLSSpec(enabled=False, certificate_issuer=None),
         secrets=[],
-        app_config={}
+        app_config={},
     )
 
 
@@ -77,13 +111,28 @@ def app_spec_thrift(app_spec):
             PortSpec(protocol="tcp", name="thrift", port=7999, target_port=7999),
         ],
         health_checks=HealthCheckSpec(
-            liveness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
-            readiness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
-                                timeout_seconds=1)
+            liveness=CheckSpec(
+                tcp=TcpCheckSpec(port=7999),
+                http=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
+            readiness=CheckSpec(
+                tcp=TcpCheckSpec(port=7999),
+                http=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
         ),
-        ingresses=[]
+        ingresses=[],
     )
 
 
@@ -104,11 +153,27 @@ def app_spec_thrift_and_http(app_spec):
             PortSpec(protocol="tcp", name="thrift", port=7999, target_port=7999),
         ],
         health_checks=HealthCheckSpec(
-            liveness=CheckSpec(tcp=TcpCheckSpec(port=7999), http=None, execute=None, initial_delay_seconds=10,
-                               period_seconds=10, success_threshold=1, failure_threshold=3, timeout_seconds=1),
-            readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
-                                initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
-                                timeout_seconds=1)),
+            liveness=CheckSpec(
+                tcp=TcpCheckSpec(port=7999),
+                http=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
+            readiness=CheckSpec(
+                http=HttpCheckSpec(path="/", port=8080, http_headers={}),
+                tcp=None,
+                execute=None,
+                initial_delay_seconds=10,
+                period_seconds=10,
+                success_threshold=1,
+                failure_threshold=3,
+                timeout_seconds=1,
+            ),
+        ),
     )
 
 
@@ -117,19 +182,26 @@ def app_spec_teams_and_tags(app_spec):
     return app_spec._replace(
         ports=None,
         health_checks=None,
-        teams=['Order Produkt Betaling'],
-        tags=['høyt-i-stacken', 'ad-in', 'Anonnseinnlegging']
+        teams=["Order Produkt Betaling"],
+        tags=["høyt-i-stacken", "ad-in", "Anonnseinnlegging"],
     )
 
 
 @pytest.fixture
 def app_spec_no_ports(app_spec):
-    exec_check = CheckSpec(http=None, tcp=None, execute=ExecCheckSpec(command="/app/check.sh"),
-                           initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
-                           timeout_seconds=1)
-    return app_spec._replace(ports=[],
-                             health_checks=HealthCheckSpec(liveness=exec_check, readiness=exec_check),
-                             ingresses=[])
+    exec_check = CheckSpec(
+        http=None,
+        tcp=None,
+        execute=ExecCheckSpec(command="/app/check.sh"),
+        initial_delay_seconds=10,
+        period_seconds=10,
+        success_threshold=1,
+        failure_threshold=3,
+        timeout_seconds=1,
+    )
+    return app_spec._replace(
+        ports=[], health_checks=HealthCheckSpec(liveness=exec_check, readiness=exec_check), ingresses=[]
+    )
 
 
 # k8s client library mocks
@@ -145,26 +217,26 @@ def k8s_config(monkeypatch):
 
 @pytest.fixture()
 def get():
-    with mock.patch('k8s.client.Client.get') as mockk:
+    with mock.patch("k8s.client.Client.get") as mockk:
         mockk.side_effect = NotFound()
         yield mockk
 
 
 @pytest.fixture()
 def post():
-    with mock.patch('k8s.client.Client.post') as mockk:
+    with mock.patch("k8s.client.Client.post") as mockk:
         yield mockk
 
 
 @pytest.fixture()
 def put():
-    with mock.patch('k8s.client.Client.put') as mockk:
+    with mock.patch("k8s.client.Client.put") as mockk:
         yield mockk
 
 
 @pytest.fixture()
 def delete():
-    with mock.patch('k8s.client.Client.delete') as mockk:
+    with mock.patch("k8s.client.Client.delete") as mockk:
         yield mockk
 
 

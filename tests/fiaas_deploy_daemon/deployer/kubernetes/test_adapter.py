@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -54,15 +53,24 @@ class TestK8s(object):
 
     @pytest.fixture(autouse=True)
     def resource_quota_list(self):
-        with mock.patch('k8s.models.resourcequota.ResourceQuota.list') as mockk:
+        with mock.patch("k8s.models.resourcequota.ResourceQuota.list") as mockk:
             mockk.return_value = []
             yield mockk
 
     @pytest.fixture
-    def k8s(self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer):
+    def k8s(
+        self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer
+    ):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
-        return K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer)
+        return K8s(
+            config,
+            service_deployer,
+            deployment_deployer,
+            ingress_deployer,
+            autoscaler_deployer,
+            service_account_deployer,
+        )
 
     def test_make_labels(self, k8s, app_spec):
         actual = k8s._make_labels(app_spec)
@@ -80,36 +88,66 @@ class TestK8s(object):
         assert actual["tags.fiaas/anonnseinnlegging"] == "true"
 
     def test_make_selector(self, app_spec):
-        assert _make_selector(app_spec) == {'app': app_spec.name}
+        assert _make_selector(app_spec) == {"app": app_spec.name}
 
-    @pytest.mark.parametrize("resource_quota_specs,expect_strip_resources,has_resources", [
-        ([], False, True),
-        ([], False, False),
-        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),
-        ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
-        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
-          {"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),
-        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
-          {"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
-        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, True),
-        ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, False),
-        ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, True),
-        ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, False),
-    ]
+    @pytest.mark.parametrize(
+        "resource_quota_specs,expect_strip_resources,has_resources",
+        [
+            ([], False, True),
+            ([], False, False),
+            ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, True),
+            ([{"hard": {"pods": "0"}, "scopes": [NotBestEffort]}], True, False),
+            (
+                [
+                    {"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
+                    {"hard": {"pods": "0"}, "scopes": [NotBestEffort]},
+                ],
+                True,
+                True,
+            ),
+            (
+                [
+                    {"hard": {"pods": "10"}, "scopes": [NotBestEffort]},
+                    {"hard": {"pods": "0"}, "scopes": [NotBestEffort]},
+                ],
+                True,
+                False,
+            ),
+            ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, True),
+            ([{"hard": {"pods": "10"}, "scopes": [NotBestEffort]}], False, False),
+            ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, True),
+            ([{"hard": {"pods": "0"}, "scopes": [BestEffort]}], False, False),
+        ],
     )
-    def test_pass_to_deployment(self, app_spec, k8s, deployment_deployer, resource_quota_list,
-                                resource_quota_specs, expect_strip_resources, has_resources):
-        explicit_resources = ResourcesSpec(limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
-                                           requests=ResourceRequirementSpec(cpu="100m", memory="64M"))
-        no_resources = ResourcesSpec(limits=ResourceRequirementSpec(cpu=None, memory=None),
-                                     requests=ResourceRequirementSpec(cpu=None, memory=None))
+    def test_pass_to_deployment(
+        self,
+        app_spec,
+        k8s,
+        deployment_deployer,
+        resource_quota_list,
+        resource_quota_specs,
+        expect_strip_resources,
+        has_resources,
+    ):
+        explicit_resources = ResourcesSpec(
+            limits=ResourceRequirementSpec(cpu="200m", memory="128M"),
+            requests=ResourceRequirementSpec(cpu="100m", memory="64M"),
+        )
+        no_resources = ResourcesSpec(
+            limits=ResourceRequirementSpec(cpu=None, memory=None),
+            requests=ResourceRequirementSpec(cpu=None, memory=None),
+        )
 
         app_spec = app_spec._replace(resources=explicit_resources if has_resources else no_resources)
         expected_app_spec = app_spec._replace(resources=no_resources) if expect_strip_resources else app_spec
 
-        resource_quotas = [ResourceQuota(metadata=ObjectMeta(name="quota-{}".format(i), namespace=app_spec.namespace),
-                                         spec=ResourceQuotaSpec(**spec))
-                           for i, spec in enumerate(resource_quota_specs)]
+        resource_quotas = [
+            ResourceQuota(
+                metadata=ObjectMeta(name="quota-{}".format(i), namespace=app_spec.namespace),
+                spec=ResourceQuotaSpec(**spec),
+            )
+            for i, spec in enumerate(resource_quota_specs)
+        ]
         resource_quota_list.return_value = resource_quotas
 
         selector = _make_selector(app_spec)
@@ -117,8 +155,9 @@ class TestK8s(object):
 
         k8s.deploy(app_spec)
 
-        pytest.helpers.assert_any_call(deployment_deployer.deploy, expected_app_spec, selector, labels,
-                                       expect_strip_resources)
+        pytest.helpers.assert_any_call(
+            deployment_deployer.deploy, expected_app_spec, selector, labels, expect_strip_resources
+        )
 
     def test_pass_to_ingress(self, app_spec, k8s, ingress_deployer, resource_quota_list):
         labels = k8s._make_labels(app_spec)
@@ -135,17 +174,31 @@ class TestK8s(object):
 
         pytest.helpers.assert_any_call(service_deployer.deploy, app_spec, selector, labels)
 
-    @pytest.mark.parametrize('service_account_per_app_enabled', (True, False))
-    def test_pass_to_service_account(self, app_spec, k8s, service_deployer,
-                                     resource_quota_list, deployment_deployer,
-                                     ingress_deployer, autoscaler_deployer,
-                                     service_account_deployer,
-                                     service_account_per_app_enabled):
+    @pytest.mark.parametrize("service_account_per_app_enabled", (True, False))
+    def test_pass_to_service_account(
+        self,
+        app_spec,
+        k8s,
+        service_deployer,
+        resource_quota_list,
+        deployment_deployer,
+        ingress_deployer,
+        autoscaler_deployer,
+        service_account_deployer,
+        service_account_per_app_enabled,
+    ):
 
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
         config.enable_service_account_per_app = service_account_per_app_enabled
-        k8s = K8s(config, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer)
+        k8s = K8s(
+            config,
+            service_deployer,
+            deployment_deployer,
+            ingress_deployer,
+            autoscaler_deployer,
+            service_account_deployer,
+        )
 
         labels = k8s._make_labels(app_spec)
 

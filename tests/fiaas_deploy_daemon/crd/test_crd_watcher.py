@@ -35,23 +35,16 @@ from fiaas_deploy_daemon.specs.factory import InvalidConfiguration
 ADD_EVENT = {
     "object": {
         "metadata": {
-            "labels": {
-                "fiaas/deployment_id": "deployment_id"
-            },
+            "labels": {"fiaas/deployment_id": "deployment_id"},
             "name": "example",
             "namespace": "the-namespace",
-            "uid": "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c"
+            "uid": "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
         },
         "spec": {
             "application": "example",
-            "config": {
-                "version": 2,
-                "host": "example.com",
-                "namespace": "default",
-                "annotations": {}
-            },
-            "image": "example/app"
-        }
+            "config": {"version": 2, "host": "example.com", "namespace": "default", "annotations": {}},
+            "image": "example/app",
+        },
     },
     "type": WatchEvent.ADDED,
 }
@@ -74,7 +67,6 @@ class FakeCrdResourcesSyncer(object):
 
 
 class TestWatcher(object):
-
     @pytest.fixture
     def spec_factory(self):
         with mock.patch("fiaas_deploy_daemon.specs.factory.SpecFactory") as mockk:
@@ -133,15 +125,29 @@ class TestWatcher(object):
         crd_watcher._watch(None)
         assert deploy_queue.qsize() == 1
 
-    @pytest.mark.parametrize("event,deployer_event_type,annotations,repository", [
-        (ADD_EVENT, "UPDATE", None, None),
-        (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-        (MODIFIED_EVENT, "UPDATE", None, None),
-        (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-        (DELETED_EVENT, "DELETE", None, None),
-    ])
-    def test_deploy(self, crd_watcher, deploy_queue, spec_factory, watcher, app_spec, event, deployer_event_type,
-                    lifecycle, annotations, repository):
+    @pytest.mark.parametrize(
+        "event,deployer_event_type,annotations,repository",
+        [
+            (ADD_EVENT, "UPDATE", None, None),
+            (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
+            (MODIFIED_EVENT, "UPDATE", None, None),
+            (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
+            (DELETED_EVENT, "DELETE", None, None),
+        ],
+    )
+    def test_deploy(
+        self,
+        crd_watcher,
+        deploy_queue,
+        spec_factory,
+        watcher,
+        app_spec,
+        event,
+        deployer_event_type,
+        lifecycle,
+        annotations,
+        repository,
+    ):
         event["object"]["spec"]["config"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
@@ -149,36 +155,47 @@ class TestWatcher(object):
         app_name = spec["application"]
         uid = event["object"]["metadata"]["uid"]
         namespace = event["object"]["metadata"]["namespace"]
-        deployment_id = (event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
-                         if deployer_event_type != "DELETE" else "deletion")
+        deployment_id = (
+            event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
+            if deployer_event_type != "DELETE"
+            else "deletion"
+        )
 
         app_spec = app_spec._replace(name=app_name, namespace=namespace, deployment_id=deployment_id)
         spec_factory.return_value = app_spec
-        lifecycle_subject = Subject(uid, app_name, namespace, deployment_id, repository, app_spec.labels.status,
-                                    app_spec.annotations.status)
+        lifecycle_subject = Subject(
+            uid, app_name, namespace, deployment_id, repository, app_spec.labels.status, app_spec.annotations.status
+        )
         lifecycle.initiate.return_value = lifecycle_subject
 
         crd_watcher._watch(None)
 
         if event in [ADD_EVENT, MODIFIED_EVENT]:
-            lifecycle.initiate.assert_called_once_with(uid=event["object"]["metadata"]["uid"],
-                                                       app_name=event["object"]["spec"]["application"],
-                                                       namespace=event["object"]["metadata"]["namespace"],
-                                                       deployment_id='deployment_id',
-                                                       repository=repository,
-                                                       labels=None,
-                                                       annotations=None)
+            lifecycle.initiate.assert_called_once_with(
+                uid=event["object"]["metadata"]["uid"],
+                app_name=event["object"]["spec"]["application"],
+                namespace=event["object"]["metadata"]["namespace"],
+                deployment_id="deployment_id",
+                repository=repository,
+                labels=None,
+                annotations=None,
+            )
 
         app_config = spec["config"]
         additional_labels = AdditionalLabelsOrAnnotations()
         additional_annotations = AdditionalLabelsOrAnnotations()
-        spec_factory.assert_called_once_with(uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
-                                             name=app_name, image=spec["image"], app_config=app_config,
-                                             teams=[], tags=[],
-                                             deployment_id=deployment_id,
-                                             namespace=namespace,
-                                             additional_labels=additional_labels,
-                                             additional_annotations=additional_annotations)
+        spec_factory.assert_called_once_with(
+            uid="c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
+            name=app_name,
+            image=spec["image"],
+            app_config=app_config,
+            teams=[],
+            tags=[],
+            deployment_id=deployment_id,
+            namespace=namespace,
+            additional_labels=additional_labels,
+            additional_annotations=additional_annotations,
+        )
 
         assert deploy_queue.qsize() == 1
         deployer_event = deploy_queue.get_nowait()
@@ -193,29 +210,49 @@ class TestWatcher(object):
         crd_watcher._watch(namespace)
         watcher.watch.assert_called_once_with(namespace=namespace)
 
-    @pytest.mark.parametrize("event,deployer_event_type,error,annotations,repository", [
-        (ADD_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
-        (ADD_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
-        (MODIFIED_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
-        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
-        (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"),
-         {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-    ])
-    def test_deploy_reports_failure_on_exception(self, crd_watcher, deploy_queue, spec_factory, watcher, event,
-                                                 deployer_event_type,
-                                                 error, lifecycle, annotations, repository):
+    @pytest.mark.parametrize(
+        "event,deployer_event_type,error,annotations,repository",
+        [
+            (ADD_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
+            (ADD_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
+            (MODIFIED_EVENT, "UPDATE", YAMLError("invalid yaml"), {}, None),
+            (MODIFIED_EVENT, "UPDATE", InvalidConfiguration("invalid config"), {}, None),
+            (
+                MODIFIED_EVENT,
+                "UPDATE",
+                InvalidConfiguration("invalid config"),
+                {"deployment": {"fiaas/source-repository": "xyz"}},
+                "xyz",
+            ),
+        ],
+    )
+    def test_deploy_reports_failure_on_exception(
+        self,
+        crd_watcher,
+        deploy_queue,
+        spec_factory,
+        watcher,
+        event,
+        deployer_event_type,
+        error,
+        lifecycle,
+        annotations,
+        repository,
+    ):
         event["object"]["metadata"]["annotations"] = annotations
         watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         spec_factory.side_effect = error
 
-        lifecycle_subject = Subject(uid=event["object"]["metadata"]["uid"],
-                                    app_name=event["object"]["spec"]["application"],
-                                    namespace=event["object"]["metadata"]["namespace"],
-                                    deployment_id='deployment_id',
-                                    repository=repository,
-                                    labels=None,
-                                    annotations=None)
+        lifecycle_subject = Subject(
+            uid=event["object"]["metadata"]["uid"],
+            app_name=event["object"]["spec"]["application"],
+            namespace=event["object"]["metadata"]["namespace"],
+            deployment_id="deployment_id",
+            repository=repository,
+            labels=None,
+            annotations=None,
+        )
         lifecycle.initiate.return_value = lifecycle_subject
 
         crd_watcher._watch(None)
@@ -223,13 +260,16 @@ class TestWatcher(object):
         lifecycle.failed.assert_called_once_with(lifecycle_subject)
         assert deploy_queue.empty()
 
-    @pytest.mark.parametrize("result, count", (
+    @pytest.mark.parametrize(
+        "result, count",
+        (
             ("SUCCESS", 0),
             ("FAILED", 1),
             ("RUNNING", 1),
             ("INITIATED", 1),
             ("ANY_OTHER_VALUE_THAN_SUCCESS", 1),
-    ))
+        ),
+    )
     def test_deploy_based_on_status_result(self, crd_watcher, deploy_queue, watcher, status_get, result, count):
         watcher.watch.return_value = [WatchEvent(ADD_EVENT, FiaasApplication)]
         status_get.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound

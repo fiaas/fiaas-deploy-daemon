@@ -52,8 +52,15 @@ class TestDeploy(object):
 
     @pytest.fixture
     def lifecycle_subject(self, app_spec):
-        return Subject(app_spec.uid, app_spec.name, app_spec.namespace, app_spec.deployment_id, None,
-                       app_spec.labels.status, app_spec.annotations.status)
+        return Subject(
+            app_spec.uid,
+            app_spec.name,
+            app_spec.namespace,
+            app_spec.deployment_id,
+            None,
+            app_spec.labels.status,
+            app_spec.annotations.status,
+        )
 
     @pytest.fixture
     def ingress_adapter(self):
@@ -74,10 +81,13 @@ class TestDeploy(object):
 
         adapter.deploy.assert_called_with(app_spec)
 
-    @pytest.mark.parametrize("annotations,repository", [
-        (None, None),
-        ({"fiaas/source-repository": "xyz"}, "xyz"),
-    ])
+    @pytest.mark.parametrize(
+        "annotations,repository",
+        [
+            (None, None),
+            ({"fiaas/source-repository": "xyz"}, "xyz"),
+        ],
+    )
     def test_signals_start_of_deploy(self, app_spec, lifecycle, lifecycle_subject, deployer, annotations, repository):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 7))
@@ -86,11 +96,16 @@ class TestDeploy(object):
 
         lifecycle.state_change_signal.send.assert_called_with(status=STATUS_STARTED, subject=lifecycle_subject)
 
-    @pytest.mark.parametrize("annotations,repository", [
-        (None, None),
-        ({"fiaas/source-repository": "xyz"}, "xyz"),
-    ])
-    def test_signals_failure_on_exception(self, app_spec, lifecycle, lifecycle_subject, deployer, adapter, annotations, repository):
+    @pytest.mark.parametrize(
+        "annotations,repository",
+        [
+            (None, None),
+            ({"fiaas/source-repository": "xyz"}, "xyz"),
+        ],
+    )
+    def test_signals_failure_on_exception(
+        self, app_spec, lifecycle, lifecycle_subject, deployer, adapter, annotations, repository
+    ):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 7))
         deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
@@ -100,10 +115,12 @@ class TestDeploy(object):
 
         lifecycle.state_change_signal.send.assert_called_with(status=STATUS_FAILED, subject=lifecycle_subject)
 
-    def test_schedules_ready_check(self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject,
-                                   ingress_adapter, config):
+    def test_schedules_ready_check(
+        self, app_spec, scheduler, bookkeeper, deployer, lifecycle, lifecycle_subject, ingress_adapter, config
+    ):
         deployer()
 
         lifecycle.state_change_signal.send.assert_called_once_with(status=STATUS_STARTED, subject=lifecycle_subject)
-        scheduler.add.assert_called_with(ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter,
-                                                    config))
+        scheduler.add.assert_called_with(
+            ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
+        )

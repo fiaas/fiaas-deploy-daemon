@@ -44,8 +44,15 @@ class TestReadyCheck(object):
 
     @pytest.fixture
     def lifecycle_subject(self, app_spec):
-        return Subject(app_spec.uid, app_spec.name, app_spec.namespace, app_spec.deployment_id, None,
-                       app_spec.labels.status, app_spec.annotations.status)
+        return Subject(
+            app_spec.uid,
+            app_spec.name,
+            app_spec.namespace,
+            app_spec.deployment_id,
+            None,
+            app_spec.labels.status,
+            app_spec.annotations.status,
+        )
 
     @pytest.fixture
     def config(self):
@@ -60,12 +67,19 @@ class TestReadyCheck(object):
         with mock.patch("k8s.models.certificate.Certificate.get") as get_cert:
             yield get_cert
 
-    @pytest.mark.parametrize("generation,observed_generation", (
-            (0, 0),
-            (0, 1)
-    ))
-    def test_deployment_complete(self, get, app_spec, bookkeeper, generation, observed_generation, lifecycle,
-                                 lifecycle_subject, ingress_adapter, config):
+    @pytest.mark.parametrize("generation,observed_generation", ((0, 0), (0, 1)))
+    def test_deployment_complete(
+        self,
+        get,
+        app_spec,
+        bookkeeper,
+        generation,
+        observed_generation,
+        lifecycle,
+        lifecycle_subject,
+        ingress_adapter,
+        config,
+    ):
         self._create_response(get, generation=generation, observed_generation=observed_generation)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
 
@@ -75,17 +89,33 @@ class TestReadyCheck(object):
         lifecycle.success.assert_called_with(lifecycle_subject)
         lifecycle.failed.assert_not_called()
 
-    @pytest.mark.parametrize("requested,replicas,available,updated,generation,observed_generation", (
+    @pytest.mark.parametrize(
+        "requested,replicas,available,updated,generation,observed_generation",
+        (
             (8, 9, 7, 2, 0, 0),
             (2, 2, 1, 2, 0, 0),
             (2, 2, 2, 1, 0, 0),
             (2, 1, 1, 1, 0, 0),
             (1, 2, 1, 1, 0, 0),
             (2, 2, 2, 2, 1, 0),
-    ))
-    def test_deployment_incomplete(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                                   generation, observed_generation, lifecycle, lifecycle_subject, ingress_adapter,
-                                   config):
+        ),
+    )
+    def test_deployment_incomplete(
+        self,
+        get,
+        app_spec,
+        bookkeeper,
+        requested,
+        replicas,
+        available,
+        updated,
+        generation,
+        observed_generation,
+        lifecycle,
+        lifecycle_subject,
+        ingress_adapter,
+        config,
+    ):
         self._create_response(get, requested, replicas, available, updated, generation, observed_generation)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
 
@@ -95,15 +125,32 @@ class TestReadyCheck(object):
         lifecycle.success.assert_not_called()
         lifecycle.failed.assert_not_called()
 
-    @pytest.mark.parametrize("requested,replicas,available,updated,annotations,repository", (
+    @pytest.mark.parametrize(
+        "requested,replicas,available,updated,annotations,repository",
+        (
             (8, 9, 7, 2, None, None),
             (2, 2, 1, 2, None, None),
             (2, 2, 2, 1, None, None),
             (2, 1, 1, 1, None, None),
             (2, 1, 1, 1, {"fiaas/source-repository": "xyz"}, "xyz"),
-    ))
-    def test_deployment_failed(self, get, app_spec, bookkeeper, requested, replicas, available, updated,
-                               lifecycle, lifecycle_subject, annotations, repository, ingress_adapter, config):
+        ),
+    )
+    def test_deployment_failed(
+        self,
+        get,
+        app_spec,
+        bookkeeper,
+        requested,
+        replicas,
+        available,
+        updated,
+        lifecycle,
+        lifecycle_subject,
+        annotations,
+        repository,
+        ingress_adapter,
+        config,
+    ):
         if annotations:
             app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 7))
 
@@ -118,8 +165,9 @@ class TestReadyCheck(object):
         lifecycle.success.assert_not_called()
         lifecycle.failed.assert_called_with(lifecycle_subject)
 
-    def test_deployment_complete_deactivated(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                             ingress_adapter, config):
+    def test_deployment_complete_deactivated(
+        self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config
+    ):
 
         self._create_response_zero_replicas(get)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
@@ -130,7 +178,9 @@ class TestReadyCheck(object):
         lifecycle.success.assert_called_with(lifecycle_subject)
         lifecycle.failed.assert_not_called()
 
-    @pytest.mark.parametrize("ingress_class,ingress_tls,cert_valid,expiration_date,result,success", (
+    @pytest.mark.parametrize(
+        "ingress_class,ingress_tls,cert_valid,expiration_date,result,success",
+        (
             (Ingress, IngressTLS, True, (datetime.now() + timedelta(days=5)), False, True),
             (V1Ingress, V1IngressTLS, True, (datetime.now() + timedelta(days=5)), False, True),
             (Ingress, IngressTLS, True, None, False, True),
@@ -140,10 +190,26 @@ class TestReadyCheck(object):
             (Ingress, IngressTLS, False, None, False, False),
             (V1Ingress, V1IngressTLS, False, None, False, False),
             (Ingress, IngressTLS, False, None, True, True),
-            (V1Ingress, V1IngressTLS, False, None, True, True)
-    ))
-    def test_tls_ingress(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, get_cert, ingress_adapter,
-                         ingress_class, ingress_tls, cert_valid, expiration_date, result, success, config):
+            (V1Ingress, V1IngressTLS, False, None, True, True),
+        ),
+    )
+    def test_tls_ingress(
+        self,
+        get,
+        app_spec,
+        bookkeeper,
+        lifecycle,
+        lifecycle_subject,
+        get_cert,
+        ingress_adapter,
+        ingress_class,
+        ingress_tls,
+        cert_valid,
+        expiration_date,
+        result,
+        success,
+        config,
+    ):
         config.tls_certificate_ready = True
         app_spec = app_spec._replace(ingress_tls=IngressTLSSpec(enabled=True, certificate_issuer=None))
         replicas = 2
@@ -176,8 +242,9 @@ class TestReadyCheck(object):
             bookkeeper.failed.assert_called_with(app_spec)
             lifecycle.failed.assert_called_with(lifecycle_subject)
 
-    def test_deployment_tls_config_no_tls_extension(self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject,
-                                                    ingress_adapter, config):
+    def test_deployment_tls_config_no_tls_extension(
+        self, get, app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config
+    ):
         config.tls_certificate_ready = True
         self._create_response(get)
         ready = ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
@@ -204,33 +271,42 @@ class TestReadyCheck(object):
         return cert
 
     @staticmethod
-    def _create_response(get, requested=REPLICAS, replicas=REPLICAS, available=REPLICAS, updated=REPLICAS,
-                         generation=0, observed_generation=0):
+    def _create_response(
+        get,
+        requested=REPLICAS,
+        replicas=REPLICAS,
+        available=REPLICAS,
+        updated=REPLICAS,
+        generation=0,
+        observed_generation=0,
+    ):
         get.side_effect = None
         resp = mock.MagicMock()
         get.return_value = resp
         resp.json.return_value = {
-            'metadata': pytest.helpers.create_metadata('testapp', generation=generation),
-            'spec': {
-                'selector': {'matchLabels': {'app': 'testapp'}},
-                'template': {
-                    'spec': {
-                        'containers': [{
-                            'name': 'testapp',
-                            'image': 'finntech/testimage:version',
-                        }]
+            "metadata": pytest.helpers.create_metadata("testapp", generation=generation),
+            "spec": {
+                "selector": {"matchLabels": {"app": "testapp"}},
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "testapp",
+                                "image": "finntech/testimage:version",
+                            }
+                        ]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp')
+                    "metadata": pytest.helpers.create_metadata("testapp"),
                 },
-                'replicas': requested
+                "replicas": requested,
             },
-            'status': {
-                'replicas': replicas,
-                'availableReplicas': available,
-                'unavailableReplicas': replicas - available,
-                'updatedReplicas': updated,
-                'observedGeneration': observed_generation,
-            }
+            "status": {
+                "replicas": replicas,
+                "availableReplicas": available,
+                "unavailableReplicas": replicas - available,
+                "updatedReplicas": updated,
+                "observedGeneration": observed_generation,
+            },
         }
 
     @staticmethod
@@ -239,21 +315,23 @@ class TestReadyCheck(object):
         resp = mock.MagicMock()
         get.return_value = resp
         resp.json.return_value = {
-            'metadata': pytest.helpers.create_metadata('testapp', generation=0),
-            'spec': {
-                'selector': {'matchLabels': {'app': 'testapp'}},
-                'template': {
-                    'spec': {
-                        'containers': [{
-                            'name': 'testapp',
-                            'image': 'finntech/testimage:version',
-                        }]
+            "metadata": pytest.helpers.create_metadata("testapp", generation=0),
+            "spec": {
+                "selector": {"matchLabels": {"app": "testapp"}},
+                "template": {
+                    "spec": {
+                        "containers": [
+                            {
+                                "name": "testapp",
+                                "image": "finntech/testimage:version",
+                            }
+                        ]
                     },
-                    'metadata': pytest.helpers.create_metadata('testapp')
+                    "metadata": pytest.helpers.create_metadata("testapp"),
                 },
-                'replicas': 0
+                "replicas": 0,
             },
-            'status': {
-                'observedGeneration': 0,
-            }
+            "status": {
+                "observedGeneration": 0,
+            },
         }

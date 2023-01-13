@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -70,15 +69,21 @@ def wait_until(action, description=None, exception_class=AssertionError, patienc
     if cause:
         message.append("\nThe last exception was:\n")
         message.extend(cause)
-    header = "Gave up waiting for {} after {} seconds at {}".format(description, patience, datetime.now().isoformat(" "))
+    header = "Gave up waiting for {} after {} seconds at {}".format(
+        description, patience, datetime.now().isoformat(" ")
+    )
     message.insert(0, header)
     raise exception_class("".join(message))
 
 
 def crd_available(kubernetes, timeout=5):
-    app_url = urljoin(kubernetes["host-to-container-server"], FiaasApplication._meta.url_template.format(namespace="default", name=""))
-    status_url = urljoin(kubernetes["host-to-container-server"],
-                         FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""))
+    app_url = urljoin(
+        kubernetes["host-to-container-server"], FiaasApplication._meta.url_template.format(namespace="default", name="")
+    )
+    status_url = urljoin(
+        kubernetes["host-to-container-server"],
+        FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""),
+    )
     session = requests.Session()
     session.verify = kubernetes["api-cert"]
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
@@ -102,7 +107,7 @@ def use_networkingv1_ingress(k8s_version):
 
 
 def read_yml(yml_path):
-    with open(yml_path, 'r') as fobj:
+    with open(yml_path, "r") as fobj:
         yml = yaml.safe_load(fobj)
     return yml
 
@@ -122,7 +127,9 @@ def _fix_service_account(expected_dict, actual_dict):
         _ensure_key_missing(actual_dict, "secrets")
 
 
-def assert_k8s_resource_matches(resource, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid=None):
+def assert_k8s_resource_matches(
+    resource, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid=None
+):
     actual_dict = deepcopy(resource.as_dict())
     expected_dict = deepcopy(expected_dict)
 
@@ -144,8 +151,8 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
             ref["uid"] = app_uid
 
     # the k8s client library doesn't return apiVersion or kind, so ignore those fields
-    del expected_dict['apiVersion']
-    del expected_dict['kind']
+    del expected_dict["apiVersion"]
+    del expected_dict["kind"]
 
     # delete auto-generated k8s fields that we can't control in test data and/or don't care about testing
     _ensure_key_missing(actual_dict, "metadata", "creationTimestamp")  # the time at which the resource was created
@@ -170,14 +177,23 @@ def assert_k8s_resource_matches(resource, expected_dict, image, service_type, de
     # pod.beta.kubernetes.io/init-container-statuses
     # are automatically set when converting from core.Pod to v1.Pod internally in Kubernetes (in some versions)
     if isinstance(resource, Deployment):
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
-                            "pod.alpha.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
-                            "pod.beta.kubernetes.io/init-containers")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
-                            "pod.alpha.kubernetes.io/init-container-statuses")
-        _ensure_key_missing(actual_dict, "spec", "template", "metadata", "annotations",
-                            "pod.beta.kubernetes.io/init-container-statuses")
+        _ensure_key_missing(
+            actual_dict, "spec", "template", "metadata", "annotations", "pod.alpha.kubernetes.io/init-containers"
+        )
+        _ensure_key_missing(
+            actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-containers"
+        )
+        _ensure_key_missing(
+            actual_dict,
+            "spec",
+            "template",
+            "metadata",
+            "annotations",
+            "pod.alpha.kubernetes.io/init-container-statuses",
+        )
+        _ensure_key_missing(
+            actual_dict, "spec", "template", "metadata", "annotations", "pod.beta.kubernetes.io/init-container-statuses"
+        )
     if isinstance(resource, Service):
         _ensure_key_missing(actual_dict, "spec", "clusterIP")  # an available ip is picked randomly
         for port in actual_dict["spec"]["ports"]:
@@ -263,14 +279,22 @@ class KindWrapper(object):
         self.k8s_version = k8s_version
         self.name = name
         # on Docker for mac, directories under $TMPDIR can't be mounted by default. use /tmp, which works
-        tmp_dir = '/tmp' if _is_macos() else None
+        tmp_dir = "/tmp" if _is_macos() else None
         self._workdir = tempfile.mkdtemp(prefix="kind-{}-".format(name), dir=tmp_dir)
         self._kubeconfig = os.path.join(self._workdir, "kubeconfig")
 
     def start(self):
         plog("creating kubeconfig at " + self._kubeconfig)
         image_name = "kindest/node:" + self.k8s_version
-        args = ["kind", "create", "cluster", "--name="+self.name, "--kubeconfig="+self._kubeconfig, "--image="+image_name, "--wait=40s"]
+        args = [
+            "kind",
+            "create",
+            "cluster",
+            "--name=" + self.name,
+            "--kubeconfig=" + self._kubeconfig,
+            "--image=" + image_name,
+            "--wait=40s",
+        ]
 
         self._run_cmd(args)
 
@@ -295,7 +319,7 @@ class KindWrapper(object):
         return result
 
     def _kubeconfig_connection_params(self):
-        with open(self._kubeconfig, 'r') as f:
+        with open(self._kubeconfig, "r") as f:
             config = yaml.safe_load(f.read())
         api_cert = self._save_to_file("api_cert", config["clusters"][-1]["cluster"]["certificate-authority-data"])
         client_cert = self._save_to_file("client_cert", config["users"][-1]["user"]["client-certificate-data"])
@@ -324,18 +348,17 @@ class KindWrapper(object):
             output = subprocess.check_output(args, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             plog("vvvvvvvvvvvvvvvv Output from {} vvvvvvvvvvvvvvvv".format(args[0]))
-            plog(e.output.decode('utf-8'))
+            plog(e.output.decode("utf-8"))
             plog("^^^^^^^^^^^^^^^^ Output from {} ^^^^^^^^^^^^^^^^".format(args[0]))
             raise e
-        return output.decode('utf-8').strip()
+        return output.decode("utf-8").strip()
 
 
 def _is_macos():
-    return os.uname()[0] == 'Darwin'
+    return os.uname()[0] == "Darwin"
 
 
 class TypeMatcher(object):
-
     def __init__(self, _type):
         self._type = _type
 

@@ -33,8 +33,18 @@ from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationSpec
 from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
 from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
 from fiaas_deploy_daemon.tools import merge_dicts
-from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, get_unbound_port, \
-    KindWrapper, uuid, use_apiextensionsv1_crd, use_networkingv1_ingress
+from utils import (
+    wait_until,
+    crd_available,
+    read_yml,
+    sanitize_resource_name,
+    assert_k8s_resource_matches,
+    get_unbound_port,
+    KindWrapper,
+    uuid,
+    use_apiextensionsv1_crd,
+    use_networkingv1_ingress,
+)
 
 PATIENCE = 30
 TIMEOUT = 5
@@ -43,41 +53,66 @@ DEPLOYMENT_ID = "1"
 SHOULD_NOT_EXIST = object()  # Mapped to Kinds that should not exist in a test case
 # Test case format: (path_to_fiaas_yml, namespace, labels, {Kind: path/to/expected_k8s.yml or SHOULD_NOT_EXIST})
 TEST_CASES = (
-    ("specs/v2/data/examples/v2bootstrap.yml", "default", {"fiaas/bootstrap": "true"}, {
-        Service: "bootstrap_e2e_expected/v2bootstrap-service.yml",
-        Deployment: "bootstrap_e2e_expected/v2bootstrap-deployment.yml",
-        Ingress: "bootstrap_e2e_expected/v2bootstrap-ingress.yml",
-        NetworkingV1Ingress: "bootstrap_e2e_expected/v2bootstrap-networkingv1-ingress.yml",
-        HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
-    }),
-    ("specs/v2/data/examples/v2bootstrap.yml", "kube-system", {"fiaas/bootstrap": "false"}, {
-        Service: SHOULD_NOT_EXIST,
-        Deployment: SHOULD_NOT_EXIST,
-        Ingress: SHOULD_NOT_EXIST,
-        NetworkingV1Ingress: SHOULD_NOT_EXIST,
-        HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
-    }),
-    ("specs/v3/data/examples/v3bootstrap.yml", "default", {"fiaas/bootstrap": "true"}, {
-        Service: "bootstrap_e2e_expected/v3bootstrap-service.yml",
-        Deployment: "bootstrap_e2e_expected/v3bootstrap-deployment.yml",
-        Ingress: "bootstrap_e2e_expected/v3bootstrap-ingress.yml",
-        NetworkingV1Ingress: "bootstrap_e2e_expected/v3bootstrap-networkingv1-ingress.yml",
-        HorizontalPodAutoscaler: "bootstrap_e2e_expected/v3bootstrap-hpa.yml",
-    }),
-    ("specs/v3/data/examples/full.yml", "default", {}, {
-        Service: SHOULD_NOT_EXIST,
-        Deployment: SHOULD_NOT_EXIST,
-        Ingress: SHOULD_NOT_EXIST,
-        NetworkingV1Ingress: SHOULD_NOT_EXIST,
-        HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
-    }),
-    ("specs/v3/data/examples/v3minimal.yml", "kube-system", {"fiaas/bootstrap": "true"}, {
-        Service: SHOULD_NOT_EXIST,
-        Deployment: SHOULD_NOT_EXIST,
-        Ingress: SHOULD_NOT_EXIST,
-        NetworkingV1Ingress: SHOULD_NOT_EXIST,
-        HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
-    }),
+    (
+        "specs/v2/data/examples/v2bootstrap.yml",
+        "default",
+        {"fiaas/bootstrap": "true"},
+        {
+            Service: "bootstrap_e2e_expected/v2bootstrap-service.yml",
+            Deployment: "bootstrap_e2e_expected/v2bootstrap-deployment.yml",
+            Ingress: "bootstrap_e2e_expected/v2bootstrap-ingress.yml",
+            NetworkingV1Ingress: "bootstrap_e2e_expected/v2bootstrap-networkingv1-ingress.yml",
+            HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
+        },
+    ),
+    (
+        "specs/v2/data/examples/v2bootstrap.yml",
+        "kube-system",
+        {"fiaas/bootstrap": "false"},
+        {
+            Service: SHOULD_NOT_EXIST,
+            Deployment: SHOULD_NOT_EXIST,
+            Ingress: SHOULD_NOT_EXIST,
+            NetworkingV1Ingress: SHOULD_NOT_EXIST,
+            HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
+        },
+    ),
+    (
+        "specs/v3/data/examples/v3bootstrap.yml",
+        "default",
+        {"fiaas/bootstrap": "true"},
+        {
+            Service: "bootstrap_e2e_expected/v3bootstrap-service.yml",
+            Deployment: "bootstrap_e2e_expected/v3bootstrap-deployment.yml",
+            Ingress: "bootstrap_e2e_expected/v3bootstrap-ingress.yml",
+            NetworkingV1Ingress: "bootstrap_e2e_expected/v3bootstrap-networkingv1-ingress.yml",
+            HorizontalPodAutoscaler: "bootstrap_e2e_expected/v3bootstrap-hpa.yml",
+        },
+    ),
+    (
+        "specs/v3/data/examples/full.yml",
+        "default",
+        {},
+        {
+            Service: SHOULD_NOT_EXIST,
+            Deployment: SHOULD_NOT_EXIST,
+            Ingress: SHOULD_NOT_EXIST,
+            NetworkingV1Ingress: SHOULD_NOT_EXIST,
+            HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
+        },
+    ),
+    (
+        "specs/v3/data/examples/v3minimal.yml",
+        "kube-system",
+        {"fiaas/bootstrap": "true"},
+        {
+            Service: SHOULD_NOT_EXIST,
+            Deployment: SHOULD_NOT_EXIST,
+            Ingress: SHOULD_NOT_EXIST,
+            NetworkingV1Ingress: SHOULD_NOT_EXIST,
+            HorizontalPodAutoscaler: SHOULD_NOT_EXIST,
+        },
+    ),
 )
 
 
@@ -90,7 +125,7 @@ class TestBootstrapE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, k8s_version):
         try:
-            name = 'kind-bootstrap-{}-{}'.format(k8s_version, uuid())
+            name = "kind-bootstrap-{}-{}".format(k8s_version, uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()
@@ -110,16 +145,26 @@ class TestBootstrapE2E(object):
 
     def run_bootstrap(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        docker_args = use_docker_for_e2e(request, cert_path, "bootstrap",  k8s_version, get_unbound_port(),
-                                         kubernetes['container-to-container-server-ip'])
-        server = kubernetes['container-to-container-server'] if docker_args else kubernetes["host-to-container-server"]
+        docker_args = use_docker_for_e2e(
+            request,
+            cert_path,
+            "bootstrap",
+            k8s_version,
+            get_unbound_port(),
+            kubernetes["container-to-container-server-ip"],
+        )
+        server = kubernetes["container-to-container-server"] if docker_args else kubernetes["host-to-container-server"]
         args = [
             "fiaas-deploy-daemon-bootstrap",
             "--debug",
-            "--api-server", server,
-            "--api-cert", kubernetes["api-cert"],
-            "--client-cert", kubernetes["client-cert"],
-            "--client-key", kubernetes["client-key"],
+            "--api-server",
+            server,
+            "--api-cert",
+            kubernetes["api-cert"],
+            "--client-cert",
+            kubernetes["client-cert"],
+            "--client-key",
+            kubernetes["client-key"],
             "--enable-crd-support",
         ]
         if use_apiextensionsv1_crd(k8s_version):
@@ -142,8 +187,9 @@ class TestBootstrapE2E(object):
 
         name = sanitize_resource_name(fiaas_path)
 
-        metadata = ObjectMeta(name=name, namespace=namespace,
-                              labels=merge_dicts(labels, {"fiaas/deployment_id": DEPLOYMENT_ID}))
+        metadata = ObjectMeta(
+            name=name, namespace=namespace, labels=merge_dicts(labels, {"fiaas/deployment_id": DEPLOYMENT_ID})
+        )
         spec = FiaasApplicationSpec(application=name, image=IMAGE, config=fiaas_yml)
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
@@ -155,7 +201,9 @@ class TestBootstrapE2E(object):
         wait_until(crd_available(kubernetes), "CRD resources was created", patience=PATIENCE)
 
         def prepare_test_case(test_case):
-            name, fiaas_application, expected = self.custom_resource_definition_test_case(*test_case, k8s_version=k8s_version)
+            name, fiaas_application, expected = self.custom_resource_definition_test_case(
+                *test_case, k8s_version=k8s_version
+            )
 
             ensure_resources_not_exists(name, expected, fiaas_application.metadata.namespace)
 
@@ -169,7 +217,10 @@ class TestBootstrapE2E(object):
         assert exit_code == 0
 
         def success():
-            all(deploy_successful(name, namespace, app_uid, expected) for name, namespace, app_uid, expected in expectations)
+            all(
+                deploy_successful(name, namespace, app_uid, expected)
+                for name, namespace, app_uid, expected in expectations
+            )
 
         wait_until(success, "CRD bootstrapping was successful", patience=PATIENCE)
 

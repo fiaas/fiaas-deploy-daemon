@@ -22,11 +22,15 @@ from utils import TypeMatcher
 
 from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler, AutoscalerDeployer
-from fiaas_deploy_daemon.specs.models import AutoscalerSpec, ResourcesSpec, ResourceRequirementSpec, \
-    LabelAndAnnotationSpec
+from fiaas_deploy_daemon.specs.models import (
+    AutoscalerSpec,
+    ResourcesSpec,
+    ResourceRequirementSpec,
+    LabelAndAnnotationSpec,
+)
 
 LABELS = {"autoscaler_deployer": "pass through"}
-AUTOSCALER_API = '/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/'
+AUTOSCALER_API = "/apis/autoscaling/v1/namespaces/default/horizontalpodautoscalers/"
 
 
 def test_default_spec_should_create_no_autoscaler(app_spec):
@@ -35,20 +39,23 @@ def test_default_spec_should_create_no_autoscaler(app_spec):
 
 def test_autoscaler_enabled_and_1_replica_gives_no_autoscaler(app_spec):
     app_spec = app_spec._replace(
-        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=1, cpu_threshold_percentage=50))
+        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=1, cpu_threshold_percentage=50)
+    )
     assert should_have_autoscaler(app_spec) is False
 
 
 def test_autoscaler_enabled_and_2_max_replicas_and_no_requested_cpu_gives_no_autoscaler(app_spec):
     app_spec = app_spec._replace(
-        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=2, cpu_threshold_percentage=50))
+        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=2, cpu_threshold_percentage=50)
+    )
 
     assert should_have_autoscaler(app_spec) is False
 
 
 def test_autoscaler_enabled_and_2_max_replicas_and__requested_cpu_gives_autoscaler(app_spec):
     app_spec = app_spec._replace(
-        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=2, cpu_threshold_percentage=50))
+        autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=2, cpu_threshold_percentage=50)
+    )
     app_spec = app_spec._replace(resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
 
     assert should_have_autoscaler(app_spec)
@@ -66,23 +73,20 @@ class TestAutoscalerDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_new_autoscaler(self, deployer, post, app_spec, owner_references, extension_hook):
         app_spec = app_spec._replace(
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50))
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50)
+        )
         app_spec = app_spec._replace(
-            resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
+            resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1))
+        )
 
         expected_autoscaler = {
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS),
-            'spec': {
-                "scaleTargetRef": {
-                    "kind": "Deployment",
-                    "name": "testapp",
-                    "apiVersion": "apps/v1"
-                },
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "spec": {
+                "scaleTargetRef": {"kind": "Deployment", "name": "testapp", "apiVersion": "apps/v1"},
                 "minReplicas": 2,
                 "maxReplicas": 4,
-                "targetCPUUtilizationPercentage": 50
+                "targetCPUUtilizationPercentage": 50,
             },
-
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_autoscaler
@@ -95,32 +99,47 @@ class TestAutoscalerDeployer(object):
         extension_hook.apply.assert_called_once_with(TypeMatcher(HorizontalPodAutoscaler), app_spec)
 
     @pytest.mark.usefixtures("get")
-    def test_new_autoscaler_with_custom_labels_and_annotations(self, deployer, post, app_spec, owner_references,
-                                                               extension_hook):
+    def test_new_autoscaler_with_custom_labels_and_annotations(
+        self, deployer, post, app_spec, owner_references, extension_hook
+    ):
         app_spec = app_spec._replace(
-            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50))
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=2, max_replicas=4, cpu_threshold_percentage=50)
+        )
         app_spec = app_spec._replace(
-            resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1)))
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "label"}, ingress={},
-                                        service={}, pod={}, status={}, service_account={})
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={"custom": "annotation"},
-                                             ingress={}, service={}, pod={}, status={}, service_account={})
+            resources=ResourcesSpec(limits=[], requests=ResourceRequirementSpec(cpu=1, memory=1))
+        )
+        labels = LabelAndAnnotationSpec(
+            deployment={},
+            horizontal_pod_autoscaler={"custom": "label"},
+            ingress={},
+            service={},
+            pod={},
+            status={},
+            service_account={},
+        )
+        annotations = LabelAndAnnotationSpec(
+            deployment={},
+            horizontal_pod_autoscaler={"custom": "annotation"},
+            ingress={},
+            service={},
+            pod={},
+            status={},
+            service_account={},
+        )
         app_spec = app_spec._replace(labels=labels, annotations=annotations)
 
         expected_autoscaler = {
-            'metadata': pytest.helpers.create_metadata('testapp', labels={"autoscaler_deployer": "pass through",
-                                                                          "custom": "label"},
-                                                       annotations={"custom": "annotation"}),
-            'spec': {
-                "scaleTargetRef": {
-                    "kind": "Deployment",
-                    "name": "testapp",
-                    "apiVersion": "apps/v1"
-                },
+            "metadata": pytest.helpers.create_metadata(
+                "testapp",
+                labels={"autoscaler_deployer": "pass through", "custom": "label"},
+                annotations={"custom": "annotation"},
+            ),
+            "spec": {
+                "scaleTargetRef": {"kind": "Deployment", "name": "testapp", "apiVersion": "apps/v1"},
                 "minReplicas": 2,
                 "maxReplicas": 4,
-                "targetCPUUtilizationPercentage": 50
-            }
+                "targetCPUUtilizationPercentage": 50,
+            },
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_autoscaler

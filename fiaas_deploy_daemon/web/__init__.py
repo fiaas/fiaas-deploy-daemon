@@ -14,15 +14,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 import pkgutil
 
 import pinject
 import yaml
-from flask import Flask, Blueprint, current_app, render_template, make_response, request_started, request_finished, \
-    got_request_exception, abort, request
+from flask import (
+    Flask,
+    Blueprint,
+    current_app,
+    render_template,
+    make_response,
+    request_started,
+    request_finished,
+    got_request_exception,
+    abort,
+    request,
+)
 from flask_talisman import Talisman, DENY
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST, Counter, Histogram
 
@@ -81,19 +91,19 @@ def healthz():
         return "I don't feel so good...", 500
 
 
-@web.route("/transform", methods=['GET', 'POST'])
+@web.route("/transform", methods=["GET", "POST"])
 @transform_histogram.time()
 def transform():
-    if request.method == 'GET':
+    if request.method == "GET":
         return render_template("transform.html")
-    elif request.method == 'POST':
+    elif request.method == "POST":
         return _transform(yaml.safe_load(request.get_data()))
 
 
 def _transform(app_config):
     try:
         data = current_app.transformer.transform(app_config)
-        return current_app.response_class(data, content_type='text/vnd.yaml; charset=utf-8')
+        return current_app.response_class(data, content_type="text/vnd.yaml; charset=utf-8")
     except InvalidConfiguration as err:
         abort(400, err.message)
 
@@ -128,8 +138,13 @@ class WebBindings(pinject.BindingSpec):
 
         # TODO: These options are like this because we haven't set up TLS, but should be
         # configurable if the operator wants to. Even better would be to somehow auto-detect.
-        csp = {"default-src": "'self'", "style-src": ["'self'", "finncdn.no", "*.finncdn.no"],
-               "script-src": ["'none'"], "object-src": ["'none'"]}
-        Talisman(app, frame_options=DENY, content_security_policy=csp,
-                 force_https=False, strict_transport_security=False)
+        csp = {
+            "default-src": "'self'",
+            "style-src": ["'self'", "finncdn.no", "*.finncdn.no"],
+            "script-src": ["'none'"],
+            "object-src": ["'none'"],
+        }
+        Talisman(
+            app, frame_options=DENY, content_security_policy=csp, force_https=False, strict_transport_security=False
+        )
         return app

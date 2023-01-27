@@ -30,16 +30,18 @@ def namedtuple_with_defaults(typename, field_names, default_values=()):
     return T
 
 
-DevhoseDeploymentEvent = namedtuple_with_defaults('DevhoseDeploymentEvent',
-                                                  'id application environment repository started_at timestamp target \
-                                                   status source_type facility details trigger team',
-                                                  {'source_type': 'fiaas', 'facility': 'sdrn:schibsted:service:fiaas'})
+DevhoseDeploymentEvent = namedtuple_with_defaults(
+    "DevhoseDeploymentEvent",
+    "id application environment repository started_at timestamp target \
+                                                   status source_type facility details trigger team",
+    {"source_type": "fiaas", "facility": "sdrn:schibsted:service:fiaas"},
+)
 
-status_map = {'STARTED': 'in_progress', 'SUCCESS': 'succeeded', 'FAILED': 'failed'}
+status_map = {"STARTED": "in_progress", "SUCCESS": "succeeded", "FAILED": "failed"}
 
 
 class DevhoseDeploymentEventTransformer(object):
-    FIAAS_TRIGGER = {'type': 'fiaas'}
+    FIAAS_TRIGGER = {"type": "fiaas"}
 
     def __init__(self, config):
         self._environment = config.environment
@@ -52,7 +54,7 @@ class DevhoseDeploymentEventTransformer(object):
     def __call__(self, status, app_name, namespace, deployment_id, repository):
         timestamp = _timestamp()
         started_timestamp = None
-        if status == 'STARTED':
+        if status == "STARTED":
             self._deployments_started[(app_name, deployment_id)] = timestamp
             started_timestamp = timestamp
         else:
@@ -62,25 +64,38 @@ class DevhoseDeploymentEventTransformer(object):
                 # This can happen if deployment fails immediately such as in case of config parse errors
                 pass
 
-        event = DevhoseDeploymentEvent(id=deployment_id,
-                                       application=app_name,
-                                       environment=_environment(self._environment[:3]),
-                                       repository=repository,
-                                       started_at=started_timestamp if started_timestamp else timestamp,
-                                       timestamp=timestamp,
-                                       target={'infrastructure': self._target_infrastructure,
-                                               'provider': self._target_provider,
-                                               'team': self._operator,
-                                               'instance': namespace},
-                                       status=status_map[status],
-                                       details={'environment': self._environment},
-                                       trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
-                                       team=self._team)
-        return event.__dict__
+        event = DevhoseDeploymentEvent(
+            id=deployment_id,
+            application=app_name,
+            environment=_environment(self._environment[:3]),
+            repository=repository,
+            started_at=started_timestamp if started_timestamp else timestamp,
+            timestamp=timestamp,
+            target={
+                "infrastructure": self._target_infrastructure,
+                "provider": self._target_provider,
+                "team": self._operator,
+                "instance": namespace,
+            },
+            status=status_map[status],
+            details={"environment": self._environment},
+            trigger=DevhoseDeploymentEventTransformer.FIAAS_TRIGGER,
+            team=self._team,
+        )
+        return event._asdict()
 
 
 def _environment(env):
-    return env if env in ('dev', 'pre', 'pro',) else 'other'
+    return (
+        env
+        if env
+        in (
+            "dev",
+            "pre",
+            "pro",
+        )
+        else "other"
+    )
 
 
 def _timestamp():

@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
 
@@ -74,23 +73,22 @@ class CrdWatcher(DaemonThread):
         LOG.debug("Deploying %s", app_name)
         try:
             deployment_id = application.metadata.labels["fiaas/deployment_id"]
-            set_extras(app_name=app_name,
-                       namespace=application.metadata.namespace,
-                       deployment_id=deployment_id)
+            set_extras(app_name=app_name, namespace=application.metadata.namespace, deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
-            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(
-                app_name))
+            raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
         if self._already_deployed(app_name, application.metadata.namespace, deployment_id):
             LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)
             return
         repository = _repository(application)
-        lifecycle_subject = self._lifecycle.initiate(uid=application.metadata.uid,
-                                                     app_name=app_name,
-                                                     namespace=application.metadata.namespace,
-                                                     deployment_id=deployment_id,
-                                                     repository=repository,
-                                                     labels=application.spec.additional_labels.status,
-                                                     annotations=application.spec.additional_annotations.status)
+        lifecycle_subject = self._lifecycle.initiate(
+            uid=application.metadata.uid,
+            app_name=app_name,
+            namespace=application.metadata.namespace,
+            deployment_id=deployment_id,
+            repository=repository,
+            labels=application.spec.additional_labels.status,
+            annotations=application.spec.additional_annotations.status,
+        )
         try:
             app_spec = self._spec_factory(
                 uid=application.metadata.uid,

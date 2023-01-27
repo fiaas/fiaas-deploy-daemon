@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, unicode_literals
+
 
 import logging
 
@@ -26,10 +26,11 @@ LOG = logging.getLogger(__name__)
 
 
 class K8s(object):
-    """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster
-    """
+    """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster"""
 
-    def __init__(self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, service_account_deployer):
+    def __init__(
+        self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, service_account_deployer
+    ):
         self._version = config.version
         self._enable_service_account_per_app = config.enable_service_account_per_app
         self._service_deployer = service_deployer
@@ -77,13 +78,11 @@ def _add_labels(prefix, labels, values):
 
 
 def _to_valid_label_value(value):
-    return value.lower() \
-        .replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae") \
-        .replace(":", "-")
+    return value.lower().replace(" ", "-").replace("ø", "oe").replace("å", "aa").replace("æ", "ae").replace(":", "-")
 
 
 def _make_selector(app_spec):
-    return {'app': app_spec.name}
+    return {"app": app_spec.name}
 
 
 def _remove_resource_requirements(app_spec):

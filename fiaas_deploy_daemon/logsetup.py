@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import datetime
 import json
@@ -27,8 +27,19 @@ from .log_extras import ExtraFilter
 
 class FiaasFormatter(logging.Formatter):
     UNWANTED = (
-        "msg", "args", "exc_info", "exc_text", "levelno", "created", "msecs", "relativeCreated", "funcName",
-        "filename", "lineno", "module")
+        "msg",
+        "args",
+        "exc_info",
+        "exc_text",
+        "levelno",
+        "created",
+        "msecs",
+        "relativeCreated",
+        "funcName",
+        "filename",
+        "lineno",
+        "module",
+    )
     RENAME = {
         "levelname": "level",
         "threadName": "thread",
@@ -44,7 +55,7 @@ class FiaasFormatter(logging.Formatter):
         fields["extras"] = getattr(record, "extras", {})
         if "exc_info" in fields and fields["exc_info"]:
             fields["throwable"] = self.formatException(fields["exc_info"])
-        for original, replacement in self.RENAME.iteritems():
+        for original, replacement in self.RENAME.items():
             fields[replacement] = fields.pop(original)
         for unwanted in self.UNWANTED:
             fields.pop(unwanted)
@@ -73,7 +84,7 @@ class FiaasFormatter(logging.Formatter):
             "method": fields["funcName"],
             "file": fields["filename"],
             "line": fields["lineno"],
-            "module": fields["module"]
+            "module": fields["module"],
         }
 
 

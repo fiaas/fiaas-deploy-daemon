@@ -22,7 +22,7 @@ from datetime import datetime
 from k8s.client import NotFound
 from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
-from monotonic import monotonic as time_monotonic
+from time import monotonic as time_monotonic
 
 LOG = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class ReadyCheck(object):
         self._fail_after_seconds = _calculate_fail_time(
             config.ready_check_timeout_multiplier,
             app_spec.autoscaler.max_replicas,
-            app_spec.health_checks.readiness.initial_delay_seconds
+            app_spec.health_checks.readiness.initial_delay_seconds,
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
         self._should_check_ingress = config.tls_certificate_ready
@@ -48,8 +48,11 @@ class ReadyCheck(object):
             self._bookkeeper.success(self._app_spec)
             return False
         if time_monotonic() >= self._fail_after:
-            LOG.error("Timed out after %d seconds waiting for %s to become ready",
-                      self._fail_after_seconds, self._app_spec.name)
+            LOG.error(
+                "Timed out after %d seconds waiting for %s to become ready",
+                self._fail_after_seconds,
+                self._app_spec.name,
+            )
             self._lifecycle.failed(self._lifecycle_subject)
             self._bookkeeper.failed(self._app_spec)
             return False
@@ -62,10 +65,12 @@ class ReadyCheck(object):
             return False
         expected_value = dep.spec.replicas if dep.spec.replicas > 0 else None
 
-        return (dep.status.updatedReplicas == expected_value and
-                dep.status.replicas == expected_value and
-                dep.status.availableReplicas == expected_value and
-                dep.status.observedGeneration >= dep.metadata.generation)
+        return (
+            dep.status.updatedReplicas == expected_value
+            and dep.status.replicas == expected_value
+            and dep.status.availableReplicas == expected_value
+            and dep.status.observedGeneration >= dep.metadata.generation
+        )
 
     def _is_certificate_ready(self, cert):
         if cert.status.notAfter and (cert.status.notAfter < datetime.now(cert.status.notAfter.tzinfo)):
@@ -100,9 +105,12 @@ class ReadyCheck(object):
         return self._deployment_ready() and self._ingress_ready()
 
     def __eq__(self, other):
-        return other._app_spec == self._app_spec and other._bookkeeper == self._bookkeeper \
-               and other._lifecycle == self._lifecycle
+        return (
+            other._app_spec == self._app_spec
+            and other._bookkeeper == self._bookkeeper
+            and other._lifecycle == self._lifecycle
+        )
 
 
 def _calculate_fail_time(time_out, replicas, delay_seconds):
-    return time_out*delay_seconds if replicas == 0 else time_out*delay_seconds*replicas
+    return time_out * delay_seconds if replicas == 0 else time_out * delay_seconds * replicas

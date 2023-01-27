@@ -54,7 +54,6 @@ Useful resources:
 
 - http://docs.python-guide.org/
 - http://pytest.org/
-- http://www.voidspace.org.uk/python/mock
 - http://flask.pocoo.org/
 
 Running fiaas-deploy-daemon against a local `minikube` or `kind` backed Kubernetes cluster

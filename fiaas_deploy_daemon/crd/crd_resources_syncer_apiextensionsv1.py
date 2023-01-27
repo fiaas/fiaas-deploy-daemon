@@ -14,14 +14,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
 
 from k8s.models.common import ObjectMeta
-from k8s.models.apiextensions_v1_custom_resource_definition import CustomResourceConversion,\
-    CustomResourceDefinitionNames, CustomResourceDefinitionSpec, CustomResourceDefinition,\
-    CustomResourceDefinitionVersion, CustomResourceValidation, JSONSchemaProps
+from k8s.models.apiextensions_v1_custom_resource_definition import (
+    CustomResourceConversion,
+    CustomResourceDefinitionNames,
+    CustomResourceDefinitionSpec,
+    CustomResourceDefinition,
+    CustomResourceDefinitionVersion,
+    CustomResourceValidation,
+    JSONSchemaProps,
+)
 
 from ..retry import retry_on_upsert_conflict
 
@@ -43,7 +48,7 @@ class CrdResourcesSyncerApiextensionsV1(object):
             versions=[version_v1],
             preserveUnknownFields=False,
             scope="Namespaced",
-            conversion=CustomResourceConversion(strategy="None")
+            conversion=CustomResourceConversion(strategy="None"),
         )
         definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
         definition.save()
@@ -74,7 +79,7 @@ class CrdResourcesSyncerApiextensionsV1(object):
                             "service_account": object_with_unknown_fields,
                             "pod": object_with_unknown_fields,
                             "status": object_with_unknown_fields,
-                        }
+                        },
                     },
                     "additional_annotations": {
                         "type": "object",
@@ -87,22 +92,22 @@ class CrdResourcesSyncerApiextensionsV1(object):
                             "service_account": object_with_unknown_fields,
                             "pod": object_with_unknown_fields,
                             "status": object_with_unknown_fields,
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             }
         }
         application_status_schema_properties = {
-            "result": {
-                "type": "string"
-            },
-            "logs": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                }
-            }
+            "result": {"type": "string"},
+            "logs": {"type": "array", "items": {"type": "string"}},
         }
-        cls._create_or_update("Application", "applications", ("app", "fa"), "fiaas.schibsted.io", application_schema_properties)
-        cls._create_or_update("ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io",
-                              application_status_schema_properties)
+        cls._create_or_update(
+            "Application", "applications", ("app", "fa"), "fiaas.schibsted.io", application_schema_properties
+        )
+        cls._create_or_update(
+            "ApplicationStatus",
+            "application-statuses",
+            ("status", "appstatus", "fs"),
+            "fiaas.schibsted.io",
+            application_status_schema_properties,
+        )

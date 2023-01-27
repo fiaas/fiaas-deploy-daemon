@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 
@@ -46,12 +46,18 @@ class ServiceAccountDeployer(object):
         custom_labels = labels
         custom_labels = merge_dicts(app_spec.labels.service_account, custom_labels)
         custom_annotations = merge_dicts(app_spec.annotations.service_account, custom_annotations)
-        metadata = ObjectMeta(name=service_account_name, namespace=namespace, labels=custom_labels, annotations=custom_annotations)
+        metadata = ObjectMeta(
+            name=service_account_name, namespace=namespace, labels=custom_labels, annotations=custom_annotations
+        )
         try:
             service_account = ServiceAccount.get(service_account_name, namespace)
             if not self._owned_by_fiaas(service_account):
                 LOG.info("Found serviceAccount %s not managed by us.", service_account_name)
-                LOG.info("Aborting the creation of a serviceAccount for Application: %s with labels: %s", service_account_name, labels)
+                LOG.info(
+                    "Aborting the creation of a serviceAccount for Application: %s with labels: %s",
+                    service_account_name,
+                    labels,
+                )
                 return
         except NotFound:
             service_account = ServiceAccount()
@@ -70,5 +76,6 @@ class ServiceAccountDeployer(object):
 
     def _owned_by_fiaas(self, service_account):
         return any(
-                ref.apiVersion == 'fiaas.schibsted.io/v1' and ref.kind == 'Application' for ref in service_account.metadata.ownerReferences
+            ref.apiVersion == "fiaas.schibsted.io/v1" and ref.kind == "Application"
+            for ref in service_account.metadata.ownerReferences
         )

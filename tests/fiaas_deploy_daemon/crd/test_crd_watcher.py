@@ -15,11 +15,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import, unicode_literals
 
-from Queue import Queue
+from queue import Queue
 
-import mock
+from unittest import mock
 import pytest
 from k8s.base import WatchEvent
 from k8s.client import NotFound

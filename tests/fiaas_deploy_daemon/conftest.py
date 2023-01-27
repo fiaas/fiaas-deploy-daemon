@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import mock
+from unittest import mock
 import pytest
 from k8s import config
 from k8s.client import NotFound
@@ -56,8 +56,8 @@ def app_spec():
             readiness=CheckSpec(http=HttpCheckSpec(path="/", port=8080, http_headers={}), tcp=None, execute=None,
                                 initial_delay_seconds=10, period_seconds=10, success_threshold=1, failure_threshold=3,
                                 timeout_seconds=1)),
-        teams=[u'foo'],
-        tags=[u'bar'],
+        teams=['foo'],
+        tags=['bar'],
         deployment_id="test_app_deployment_id",
         labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
         annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}),
@@ -117,8 +117,8 @@ def app_spec_teams_and_tags(app_spec):
     return app_spec._replace(
         ports=None,
         health_checks=None,
-        teams=[u'Order Produkt Betaling'],
-        tags=[u'høyt-i-stacken', u'ad-in', u'Anonnseinnlegging']
+        teams=['Order Produkt Betaling'],
+        tags=['høyt-i-stacken', 'ad-in', 'Anonnseinnlegging']
     )
 
 
@@ -184,6 +184,6 @@ def _open():
         else:
             return real_open(name, *args, **kwargs)
 
-    with mock.patch("__builtin__.open") as mock_open:
+    with mock.patch("builtins.open") as mock_open:
         mock_open.side_effect = _mock_namespace_file_open
         yield mock_open

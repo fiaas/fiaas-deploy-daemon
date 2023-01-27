@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import unicode_literals, absolute_import
+
 
 import pytest
 
@@ -52,6 +52,6 @@ class TestSecrets(object):
         assert isinstance(secrets.usage_reporting_key, bytes)
 
     def test_secrets_are_stripped(self, secrets_dir):
-        secrets_dir.join("usage-reporting-key").write(KEY + "\n")
+        secrets_dir.join("usage-reporting-key").write(KEY + b"\n")
         secrets = resolve_secrets(str(secrets_dir))
         assert secrets.usage_reporting_key == KEY

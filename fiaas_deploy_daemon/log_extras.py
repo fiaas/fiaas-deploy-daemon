@@ -21,8 +21,9 @@ from collections import defaultdict
 
 _LOGS = defaultdict(list)
 _LOG_EXTRAS = threading.local()
-_LOG_FORMAT = u"[%(asctime)s|%(levelname)7s] %(message)s " \
-              u"[%(name)s|%(threadName)s|%(extras_namespace)s/%(extras_app_name)s]"
+_LOG_FORMAT = (
+    "[%(asctime)s|%(levelname)7s] %(message)s " "[%(name)s|%(threadName)s|%(extras_namespace)s/%(extras_app_name)s]"
+)
 
 
 class ExtraFilter(logging.Filter):

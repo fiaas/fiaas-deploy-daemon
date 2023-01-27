@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import unicode_literals, absolute_import
 
 import collections
 import logging
@@ -63,13 +62,18 @@ class UsageReporter(DaemonThread):
             LOG.info("Usage reporting enabled, sending events to %s", self._usage_reporting_endpoint)
             signal(DEPLOY_STATUS_CHANGED).connect(self._handle_signal)
         else:
-            LOG.debug("Usage reporting disabled: Endpoint: %r, UsageAuth: %r",
-                      self._usage_reporting_endpoint, self._usage_auth)
+            LOG.debug(
+                "Usage reporting disabled: Endpoint: %r, UsageAuth: %r",
+                self._usage_reporting_endpoint,
+                self._usage_auth,
+            )
 
     def _handle_signal(self, sender, status, subject):
         if status in [STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED]:
             status = status.upper()
-            self._event_queue.put(UsageEvent(status, subject.app_name, subject.namespace, subject.deployment_id, subject.repository))
+            self._event_queue.put(
+                UsageEvent(status, subject.app_name, subject.namespace, subject.deployment_id, subject.repository)
+            )
 
     def __call__(self):
         for event in self._event_queue:
@@ -80,14 +84,16 @@ class UsageReporter(DaemonThread):
         try:
             self._send_data(data)
         except requests.exceptions.RequestException:
-            LOG.error('Unable to send usage reporting event', exc_info=True)
+            LOG.error("Unable to send usage reporting event", exc_info=True)
 
-    @backoff.on_exception(backoff.expo,
-                          requests.exceptions.RequestException,
-                          max_tries=5,
-                          on_success=_success_handler,
-                          on_backoff=_retry_handler,
-                          on_giveup=_failure_handler)
+    @backoff.on_exception(
+        backoff.expo,
+        requests.exceptions.RequestException,
+        max_tries=5,
+        on_success=_success_handler,
+        on_backoff=_retry_handler,
+        on_giveup=_failure_handler,
+    )
     @reporting_histogram.time()
     def _send_data(self, data):
         resp = self._session.post(self._usage_reporting_endpoint, json=data, auth=self._usage_auth)

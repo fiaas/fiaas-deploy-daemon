@@ -15,7 +15,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from __future__ import absolute_import
 
 import logging
 
@@ -59,8 +58,16 @@ class Deployer(DaemonThread):
             with self._bookkeeper.time(app_spec):
                 self._adapter.deploy(app_spec)
             if app_spec.name != "fiaas-deploy-daemon":
-                self._scheduler.add(ReadyCheck(app_spec, self._bookkeeper, self._lifecycle, lifecycle_subject,
-                                               self._ingress_adapter, self._config))
+                self._scheduler.add(
+                    ReadyCheck(
+                        app_spec,
+                        self._bookkeeper,
+                        self._lifecycle,
+                        lifecycle_subject,
+                        self._ingress_adapter,
+                        self._config,
+                    )
+                )
             else:
                 self._lifecycle.success(lifecycle_subject)
                 self._bookkeeper.success(app_spec)

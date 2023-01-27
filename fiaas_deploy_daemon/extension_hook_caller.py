@@ -17,13 +17,12 @@
 import json
 import logging
 import posixpath
-import urlparse
+import urllib.parse
 
 LOG = logging.getLogger(__name__)
 
 
 class ExtensionHookCaller(object):
-
     def __init__(self, config, session):
         self._url = config.extension_hook_url
         self._session = session
@@ -31,13 +30,11 @@ class ExtensionHookCaller(object):
     def apply(self, obj, app_spec):
         if self._url is None:
             return obj
-        url = urlparse.urljoin(self._url, "fiaas/deploy/")
+        url = urllib.parse.urljoin(self._url, "fiaas/deploy/")
         url = posixpath.join(url, type(obj).__name__)
         dump = json.dumps({"object": obj.as_dict(), "application": app_spec.app_config})
         response = self._session.post(
-            url,
-            data=dump,
-            headers={'Content-Type': 'application/json', 'Accept': 'application/json'}
+            url, data=dump, headers={"Content-Type": "application/json", "Accept": "application/json"}
         )
         if response.status_code == 200:
             data = response.json()

@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import, unicode_literals
+
 
 import pkgutil
 
@@ -22,9 +22,26 @@ import yaml
 
 from ..factory import BaseFactory, InvalidConfiguration
 from ..lookup import LookupMapping
-from ..models import AppSpec, PrometheusSpec, DatadogSpec, ResourcesSpec, ResourceRequirementSpec, PortSpec, \
-    HealthCheckSpec, CheckSpec, HttpCheckSpec, TcpCheckSpec, ExecCheckSpec, AutoscalerSpec, \
-    LabelAndAnnotationSpec, IngressItemSpec, IngressPathMappingSpec, StrongboxSpec, IngressTLSSpec, SecretsSpec
+from ..models import (
+    AppSpec,
+    PrometheusSpec,
+    DatadogSpec,
+    ResourcesSpec,
+    ResourceRequirementSpec,
+    PortSpec,
+    HealthCheckSpec,
+    CheckSpec,
+    HttpCheckSpec,
+    TcpCheckSpec,
+    ExecCheckSpec,
+    AutoscalerSpec,
+    LabelAndAnnotationSpec,
+    IngressItemSpec,
+    IngressPathMappingSpec,
+    StrongboxSpec,
+    IngressTLSSpec,
+    SecretsSpec,
+)
 from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
 from ...tools import merge_dicts
 
@@ -37,11 +54,25 @@ class Factory(BaseFactory):
         # Overwrite default value based on config flag for ingress_tls
         self._defaults["extensions"]["tls"]["enabled"] = config and config.use_ingress_tls == "default_on"
 
-    def __call__(self, uid, name, image, teams, tags, app_config, deployment_id, namespace,
-                 additional_labels, additional_annotations):
-        if app_config.get("extensions") and app_config["extensions"].get("tls") and type(
-                app_config["extensions"]["tls"]) == bool:
-            app_config["extensions"]["tls"] = {u"enabled": app_config["extensions"]["tls"]}
+    def __call__(
+        self,
+        uid,
+        name,
+        image,
+        teams,
+        tags,
+        app_config,
+        deployment_id,
+        namespace,
+        additional_labels,
+        additional_annotations,
+    ):
+        if (
+            app_config.get("extensions")
+            and app_config["extensions"].get("tls")
+            and type(app_config["extensions"]["tls"]) == bool
+        ):
+            app_config["extensions"]["tls"] = {"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)
         app_spec = AppSpec(
             uid=uid,
@@ -66,10 +97,10 @@ class Factory(BaseFactory):
             singleton=lookup["replicas"]["singleton"],
             ingress_tls=IngressTLSSpec(
                 enabled=lookup["extensions"]["tls"]["enabled"],
-                certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"]
+                certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"],
             ),
             secrets=self._secrets_specs(lookup["extensions"]["secrets"]),
-            app_config=app_config
+            app_config=app_config,
         )
         return app_spec
 
@@ -84,13 +115,13 @@ class Factory(BaseFactory):
             enabled=enabled,
             min_replicas=minimum,
             max_replicas=maximum,
-            cpu_threshold_percentage=cpu_threshold_percentage
+            cpu_threshold_percentage=cpu_threshold_percentage,
         )
 
     def _resources_spec(self, resources_lookup):
         return ResourcesSpec(
             limits=self._resource_requirements_spec(resources_lookup["limits"]),
-            requests=self._resource_requirements_spec(resources_lookup["requests"])
+            requests=self._resource_requirements_spec(resources_lookup["requests"]),
         )
 
     @staticmethod
@@ -102,25 +133,19 @@ class Factory(BaseFactory):
     @staticmethod
     def _prometheus_spec(prometheus_lookup):
         return PrometheusSpec(
-            enabled=prometheus_lookup["enabled"],
-            port=prometheus_lookup["port"],
-            path=prometheus_lookup["path"]
+            enabled=prometheus_lookup["enabled"], port=prometheus_lookup["port"], path=prometheus_lookup["path"]
         )
 
     @staticmethod
     def _datadog_spec(datadog_lookup):
-        return DatadogSpec(
-            enabled=datadog_lookup["enabled"],
-            tags=dict(datadog_lookup["tags"])
-        )
+        return DatadogSpec(enabled=datadog_lookup["enabled"], tags=dict(datadog_lookup["tags"]))
 
     @staticmethod
     def _port_specs(ports_lookup):
-        return [PortSpec(protocol=port["protocol"],
-                         name=port["name"],
-                         port=port["port"],
-                         target_port=port["target_port"])
-                for port in ports_lookup]
+        return [
+            PortSpec(protocol=port["protocol"], name=port["name"], port=port["port"], target_port=port["target_port"])
+            for port in ports_lookup
+        ]
 
     def _health_checks_spec(self, healthchecks_lookup, ports_lookup):
         liveness = self._check_spec(healthchecks_lookup["liveness"], ports_lookup, "liveness")
@@ -154,7 +179,7 @@ class Factory(BaseFactory):
             healthcheck_lookup["period_seconds"],
             healthcheck_lookup["success_threshold"],
             healthcheck_lookup["failure_threshold"],
-            healthcheck_lookup["timeout_seconds"]
+            healthcheck_lookup["timeout_seconds"],
         )
 
     @staticmethod
@@ -188,13 +213,13 @@ class Factory(BaseFactory):
     @staticmethod
     def _labels_annotations_spec(labels_annotations_lookup, overrides):
         params = {
-            'deployment': dict(labels_annotations_lookup["deployment"]),
-            'horizontal_pod_autoscaler': dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
-            'ingress': dict(labels_annotations_lookup["ingress"]),
-            'service': dict(labels_annotations_lookup["service"]),
-            'service_account': dict(labels_annotations_lookup["service_account"]),
-            'pod': dict(labels_annotations_lookup["pod"]),
-            'status': {}
+            "deployment": dict(labels_annotations_lookup["deployment"]),
+            "horizontal_pod_autoscaler": dict(labels_annotations_lookup["horizontal_pod_autoscaler"]),
+            "ingress": dict(labels_annotations_lookup["ingress"]),
+            "service": dict(labels_annotations_lookup["service"]),
+            "service_account": dict(labels_annotations_lookup["service_account"]),
+            "pod": dict(labels_annotations_lookup["pod"]),
+            "status": {},
         }
         if overrides:
             globals = _get_value("_global", overrides)
@@ -211,7 +236,7 @@ class Factory(BaseFactory):
             port_number = http_ports.get(port)
             if port_number:
                 return port_number
-            elif port in http_ports.values():
+            elif port in list(http_ports.values()):
                 return port
             else:
                 raise InvalidConfiguration("{} is not a valid port name or port number".format(port))
@@ -223,9 +248,11 @@ class Factory(BaseFactory):
             ]
             return IngressItemSpec(host=host, pathmappings=ingress_path_mapping_specs, annotations=annotations)
 
-        if len(http_ports.items()) > 0:
-            return [ingress_item(host_path_mapping["host"], host_path_mapping["paths"], host_path_mapping["annotations"])
-                    for host_path_mapping in ingress_lookup]
+        if len(list(http_ports.items())) > 0:
+            return [
+                ingress_item(host_path_mapping["host"], host_path_mapping["paths"], host_path_mapping["annotations"])
+                for host_path_mapping in ingress_lookup
+            ]
         else:
             return []
 
@@ -234,15 +261,16 @@ class Factory(BaseFactory):
         iam_role = strongbox_lookup.get_config_value("iam_role")
         groups = strongbox_lookup.get_config_value("groups")
         enabled = iam_role is not None and groups is not None
-        return StrongboxSpec(enabled=enabled, iam_role=iam_role,
-                             aws_region=strongbox_lookup["aws_region"],
-                             groups=groups)
+        return StrongboxSpec(
+            enabled=enabled, iam_role=iam_role, aws_region=strongbox_lookup["aws_region"], groups=groups
+        )
 
     @staticmethod
     def _secrets_specs(secrets_lookup):
-        return [SecretsSpec(type=k,
-                            parameters=v["parameters"],
-                            annotations=v["annotations"]) for (k, v) in secrets_lookup.iteritems()]
+        return [
+            SecretsSpec(type=k, parameters=v["parameters"], annotations=v["annotations"])
+            for (k, v) in secrets_lookup.items()
+        ]
 
 
 def _get_value(key, overrides):

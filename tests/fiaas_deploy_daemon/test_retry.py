@@ -12,12 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import mock
+from unittest import mock
 import pytest
 from k8s.client import ClientError
-from requests import Response
+from requests import Response, Request
 
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict, UpsertConflict, canonical_name
+
+
+def test_upsertconflict_str():
+    expected = "409 Conflict for POST http://example.com. reason=bad conflict, message=conflict because of reasons"
+
+    response = mock.MagicMock(spec=Response)
+    response.status_code = 409  # Conflict
+    request = mock.MagicMock(spec=Request)
+    request.method = "POST"
+    request.url = "http://example.com"
+    response.request = request
+    response.json.return_value = {"reason": "bad conflict", "message": "conflict because of reasons"}
+
+    e = UpsertConflict(response)
+
+    assert str(e) == expected
 
 
 @pytest.mark.parametrize("status", (
@@ -109,7 +125,7 @@ def name_test_function():
 
 
 @pytest.mark.parametrize("func, expected", (
-    (id, "__builtin__.id"),
+    (id, "builtins.id"),
     (name_test_function, "{}.name_test_function".format(__name__)),
     (NameTester.clsmethod, "{}.NameTester.clsmethod".format(__name__)),
     (NameTester.method, "{}.NameTester.method".format(__name__)),

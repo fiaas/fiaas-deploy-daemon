@@ -16,7 +16,7 @@
 # limitations under the License.
 from copy import deepcopy
 
-import mock
+from unittest import mock
 import pytest
 from k8s.models.deployment import Deployment, DeploymentSpec
 from k8s.models.pod import PodTemplateSpec, PodSpec, Container, EnvVar

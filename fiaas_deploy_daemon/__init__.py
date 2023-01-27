@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 import os
@@ -22,7 +22,7 @@ import signal
 import sys
 import threading
 import traceback
-from Queue import Queue
+from queue import Queue
 
 import pinject
 import requests
@@ -58,10 +58,7 @@ class MainBindings(pinject.BindingSpec):
     def provide_session(self, config):
         session = requests.Session()
         if config.proxy:
-            session.proxies = {scheme: config.proxy for scheme in (
-                "http",
-                "https"
-            )}
+            session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
         if config.debug:
             session.hooks["response"].append(log_request_response)
         return session
@@ -76,12 +73,14 @@ class HealthCheck(object):
         pass
 
     def is_healthy(self):
-        return all((
-            self._deployer.is_alive(),
-            self._scheduler.is_alive(),
-            self._crd_watcher.is_alive(),
-            self._usage_reporter.is_alive(),
-        ))
+        return all(
+            (
+                self._deployer.is_alive(),
+                self._scheduler.is_alive(),
+                self._crd_watcher.is_alive(),
+                self._usage_reporter.is_alive(),
+            )
+        )
 
 
 class Main(object):
@@ -127,7 +126,7 @@ def thread_dump_logger(log):
     def _dump_threads(signum, frame):
         log.info("Received signal %s, dumping thread stacks", signum)
         thread_names = {t.ident: t.name for t in threading.enumerate()}
-        for thread_ident, frame in sys._current_frames().items():
+        for thread_ident, frame in list(sys._current_frames().items()):
             log.info("Thread ident=0x%x name=%s", thread_ident, thread_names.get(thread_ident, "unknown"))
             log.info("".join(traceback.format_stack(frame)))
 
@@ -138,58 +137,60 @@ def warn_if_env_variable_config(config, log):
     """temporary deprecation warning for https://github.com/fiaas/fiaas-deploy-daemon/issues/12"""
 
     configuration_env_variable_keys = {
-        'SECRETS_DIRECTORY',
-        'LOG_FORMAT',
-        'http_proxy',
-        'DEBUG',
-        'FIAAS_ENVIRONMENT',
-        'FIAAS_SERVICE_TYPE',
-        'FIAAS_INFRASTRUCTURE',
-        'PORT',
-        'ENABLE_CRD_SUPPORT',
-        'SECRETS_INIT_CONTAINER_IMAGE',
-        'SECRETS_SERVICE_ACCOUNT_NAME',
-        'DATADOG_CONTAINER_IMAGE',
-        'DATADOG_CONTAINER_MEMORY',
-        'FIAAS_DATADOG_GLOBAL_TAGS',
-        'PRE_STOP_DELAY',
-        'STRONGBOX_INIT_CONTAINER_IMAGE',
-        'ENABLE_DEPRECATED_MULTI_NAMESPACE_SUPPORT',
-        'USE_INGRESS_TLS',
-        'TLS_CERTIFICATE_ISSUER',
-        'USE_IN_MEMORY_EMPTYDIRS',
-        'DEPLOYMENT_MAX_SURGE',
-        'DEPLOYMENT_MAX_UNAVAILABLE',
-        'READY_CHECK_TIMEOUT_MULTIPLIER',
-        'DISABLE_DEPRECATED_MANAGED_ENV_VARS',
-        'USAGE_REPORTING_CLUSTER_NAME',
-        'USAGE_REPORTING_OPERATOR',
-        'USAGE_REPORTING_ENDPOINT',
-        'USAGE_REPORTING_TENANT',
-        'USAGE_REPORTING_TEAM',
-        'API_SERVER',
-        'API_TOKEN',
-        'API_CERT',
-        'CLIENT_CERT',
-        'CLIENT_KEY',
-        'INGRESS_SUFFIXES',
-        'HOST_REWRITE_RULES',
-        'FIAAS_GLOBAL_ENV',
-        'FIAAS_SECRET_INIT_CONTAINERS',
+        "SECRETS_DIRECTORY",
+        "LOG_FORMAT",
+        "http_proxy",
+        "DEBUG",
+        "FIAAS_ENVIRONMENT",
+        "FIAAS_SERVICE_TYPE",
+        "FIAAS_INFRASTRUCTURE",
+        "PORT",
+        "ENABLE_CRD_SUPPORT",
+        "SECRETS_INIT_CONTAINER_IMAGE",
+        "SECRETS_SERVICE_ACCOUNT_NAME",
+        "DATADOG_CONTAINER_IMAGE",
+        "DATADOG_CONTAINER_MEMORY",
+        "FIAAS_DATADOG_GLOBAL_TAGS",
+        "PRE_STOP_DELAY",
+        "STRONGBOX_INIT_CONTAINER_IMAGE",
+        "ENABLE_DEPRECATED_MULTI_NAMESPACE_SUPPORT",
+        "USE_INGRESS_TLS",
+        "TLS_CERTIFICATE_ISSUER",
+        "USE_IN_MEMORY_EMPTYDIRS",
+        "DEPLOYMENT_MAX_SURGE",
+        "DEPLOYMENT_MAX_UNAVAILABLE",
+        "READY_CHECK_TIMEOUT_MULTIPLIER",
+        "DISABLE_DEPRECATED_MANAGED_ENV_VARS",
+        "USAGE_REPORTING_CLUSTER_NAME",
+        "USAGE_REPORTING_OPERATOR",
+        "USAGE_REPORTING_ENDPOINT",
+        "USAGE_REPORTING_TENANT",
+        "USAGE_REPORTING_TEAM",
+        "API_SERVER",
+        "API_TOKEN",
+        "API_CERT",
+        "CLIENT_CERT",
+        "CLIENT_KEY",
+        "INGRESS_SUFFIXES",
+        "HOST_REWRITE_RULES",
+        "FIAAS_GLOBAL_ENV",
+        "FIAAS_SECRET_INIT_CONTAINERS",
     }
     environ_keys = set(os.environ.keys())
     possible_config_env_variables = sorted(configuration_env_variable_keys & environ_keys)
     if len(possible_config_env_variables) > 0:
-        log.warn("found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables " +
-                 "has been removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, " +
-                 "that configuration will not take effect. Please switch to configuring via a config file/ConfigMap or command-line " +
-                 "flags. See https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information.",
-                 ', '.join(possible_config_env_variables))
+        log.warn(
+            "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables "
+            + "has been removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, "
+            + "that configuration will not take effect. Please switch to configuring via a config file/ConfigMap or command-line "
+            + "flags. See https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information.",
+            ", ".join(possible_config_env_variables),
+        )
 
 
 def expose_fdd_version(config):
-    i = Info('fiaas_fdd_version', 'The tag of the running fiaas-deploy-daemon docker image.')
-    i.info({'fiaas_fdd_version': config.version})
+    i = Info("fiaas_fdd_version", "The tag of the running fiaas-deploy-daemon docker image.")
+    i.info({"fiaas_fdd_version": config.version})
 
 
 def main():

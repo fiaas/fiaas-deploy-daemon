@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 
@@ -39,13 +39,19 @@ class AutoscalerDeployer(object):
         if should_have_autoscaler(app_spec):
             LOG.info("Creating/updating %s for %s", self.name, app_spec.name)
             custom_labels = merge_dicts(app_spec.labels.horizontal_pod_autoscaler, labels)
-            metadata = ObjectMeta(name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels,
-                                  annotations=app_spec.annotations.horizontal_pod_autoscaler)
-            scale_target_ref = CrossVersionObjectReference(kind=u"Deployment", name=app_spec.name, apiVersion="apps/v1")
-            spec = HorizontalPodAutoscalerSpec(scaleTargetRef=scale_target_ref,
-                                               minReplicas=app_spec.autoscaler.min_replicas,
-                                               maxReplicas=app_spec.autoscaler.max_replicas,
-                                               targetCPUUtilizationPercentage=app_spec.autoscaler.cpu_threshold_percentage)
+            metadata = ObjectMeta(
+                name=app_spec.name,
+                namespace=app_spec.namespace,
+                labels=custom_labels,
+                annotations=app_spec.annotations.horizontal_pod_autoscaler,
+            )
+            scale_target_ref = CrossVersionObjectReference(kind="Deployment", name=app_spec.name, apiVersion="apps/v1")
+            spec = HorizontalPodAutoscalerSpec(
+                scaleTargetRef=scale_target_ref,
+                minReplicas=app_spec.autoscaler.min_replicas,
+                maxReplicas=app_spec.autoscaler.max_replicas,
+                targetCPUUtilizationPercentage=app_spec.autoscaler.cpu_threshold_percentage,
+            )
             autoscaler = HorizontalPodAutoscaler.get_or_create(metadata=metadata, spec=spec)
             self._owner_references.apply(autoscaler, app_spec)
             self._extension_hook.apply(autoscaler, app_spec)
@@ -69,7 +75,9 @@ def should_have_autoscaler(app_spec):
     if not _autoscaler_enabled(app_spec.autoscaler):
         return False
     if not _enough_replicas_wanted(app_spec):
-        LOG.warn("Can't enable autoscaler for %s with only %d max replicas", app_spec.name, app_spec.autoscaler.max_replicas)
+        LOG.warn(
+            "Can't enable autoscaler for %s with only %d max replicas", app_spec.name, app_spec.autoscaler.max_replicas
+        )
         return False
     if not _request_cpu_is_set(app_spec):
         LOG.warn("Can't enable autoscaler for %s without CPU requests", app_spec.name)

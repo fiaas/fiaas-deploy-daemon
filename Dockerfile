@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM python:2-alpine3.8 as common
+FROM python:3.9-alpine3.16 as common
 MAINTAINER fiaas@googlegroups.com
 # Install any binary package dependencies here
 RUN apk --no-cache add \
@@ -29,9 +29,6 @@ COPY . /fiaas-deploy-daemon
 COPY .wheel_cache/*.whl /links/
 WORKDIR /fiaas-deploy-daemon
 
-# setuptools needs to be upgraded in order to perform the build of the wheels
-# Note: setuptools 45.0.0 will drop the support for python 2
-RUN pip install -U setuptools==44.1.1
 RUN pip wheel . --no-cache-dir --wheel-dir=/wheels/ --find-links=/links/
 
 FROM common as production

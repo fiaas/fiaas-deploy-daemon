@@ -16,7 +16,7 @@
 # limitations under the License.
 import pytest
 from k8s.models.autoscaler import HorizontalPodAutoscaler
-from mock import create_autospec
+from unittest.mock import create_autospec
 from requests import Response
 from utils import TypeMatcher
 

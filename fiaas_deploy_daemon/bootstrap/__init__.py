@@ -14,11 +14,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from __future__ import absolute_import
+
 
 import logging
 import sys
-from Queue import Queue
+from queue import Queue
 
 import pinject
 import requests
@@ -49,10 +49,7 @@ class MainBindings(pinject.BindingSpec):
     def provide_session(self, config):
         session = requests.Session()
         if config.proxy:
-            session.proxies = {scheme: config.proxy for scheme in (
-                "http",
-                "https"
-            )}
+            session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
         return session
 
 
@@ -88,5 +85,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

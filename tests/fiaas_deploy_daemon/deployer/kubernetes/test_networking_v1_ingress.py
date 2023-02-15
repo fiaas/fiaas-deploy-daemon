@@ -610,7 +610,6 @@ class TestIngressDeployer(object):
                 TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER_TYPE, DEFAULT_TLS_ISSUER, use_suffixes=True
             )
 
-
     @pytest.fixture
     def deployer_issuer_overrides(self, config, default_app_spec, ingress_adapter):
         config.tls_certificate_issuer_type_overrides = {

@@ -35,6 +35,10 @@ class IngressDeployer(object):
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_adapter = ingress_adapter
         self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
+        self._tls_issuer_name_default = config.tls_certificate_issuer
+        self._tls_issuer_overrides = sorted(
+            iter(config.tls_certificate_issuer_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
+        )
         self._tls_issuer_type_overrides = sorted(
             iter(config.tls_certificate_issuer_type_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
         )
@@ -103,6 +107,13 @@ class IngressDeployer(object):
 
         return self._tls_issuer_type_default
 
+    def _get_issuer_name(self, host):
+        for (suffix, issuer_name) in self._tls_issuer_overrides:
+            if host and (host == suffix or host.endswith("." + suffix)):
+                return issuer_name
+
+        return self._tls_issuer_name_default
+
     def _group_ingresses(self, app_spec):
         """Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
         are separated
@@ -114,7 +125,7 @@ class IngressDeployer(object):
         ingress_items += self._expand_default_hosts(app_spec)
 
         AnnotatedIngress = namedtuple(
-            "AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "default"]
+            "AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"]
         )
         default_ingress = AnnotatedIngress(
             name=app_spec.name,
@@ -128,6 +139,7 @@ class IngressDeployer(object):
         override_issuer_ingresses = {}
         for ingress_item in ingress_items:
             issuer_type = self._get_issuer_type(ingress_item.host)
+            issuer_name = self._get_issuer_name(ingress_item.host)
             next_name = "{}-{}".format(app_spec.name, len(ingresses) + len(override_issuer_ingresses))
             if ingress_item.annotations:
                 annotated_ingresses = AnnotatedIngress(
@@ -136,6 +148,7 @@ class IngressDeployer(object):
                     annotations=ingress_item.annotations,
                     explicit_host=True,
                     issuer_type=issuer_type,
+                    issuer_name=issuer_name,
                     default=False,
                 )
                 ingresses.append(annotated_ingresses)
@@ -148,6 +161,7 @@ class IngressDeployer(object):
                         annotations={},
                         explicit_host=explicit_host,
                         issuer_type=issuer_type,
+                        issuer_name=issuer_name,
                         default=False,
                     ),
                 )

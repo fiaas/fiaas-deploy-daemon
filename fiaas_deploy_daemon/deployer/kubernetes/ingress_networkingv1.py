@@ -69,7 +69,7 @@ class NetworkingV1IngressAdapter(object):
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
         self._ingress_tls_deployer.apply(
-            ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, use_suffixes=use_suffixes
+            ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, annotated_ingress.issuer_name, use_suffixes=use_suffixes
         )
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)

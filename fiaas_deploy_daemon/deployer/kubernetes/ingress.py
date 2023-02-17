@@ -113,10 +113,8 @@ class IngressDeployer(object):
             for (suffix, issuer_name) in self._tls_issuer_overrides:
                 if ingress_suffix and (ingress_suffix == suffix or ingress_suffix.endswith("." + suffix)):
                     return issuer_name
-        cert_issuer = app_spec.ingress_tls.certificate_issuer
-        if cert_issuer is None:
-            return self._tls_issuer_name_default
-        return cert_issuer
+
+        return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
 
     def _get_issuer_type(self, host):
         for (suffix, issuer_type) in self._tls_issuer_type_overrides:
@@ -130,10 +128,7 @@ class IngressDeployer(object):
             if host and (host == suffix or host.endswith("." + suffix)):
                 return issuer_name
 
-        cert_issuer = app_spec.ingress_tls.certificate_issuer
-        if cert_issuer is None:
-            return self._tls_issuer_name_default
-        return cert_issuer
+        return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
 
     def _group_ingresses(self, app_spec):
         """Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers

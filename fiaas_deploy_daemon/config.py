@@ -403,8 +403,7 @@ class Configuration(Namespace):
             issuer_type.key: issuer_type.value for issuer_type in self.tls_certificate_issuer_type_overrides
         }
         self.tls_certificate_issuer_overrides = {
-            issuer_name.key: issuer_name.value
-            for issuer_name in self.tls_certificate_issuer_overrides
+            issuer_name.key: issuer_name.value for issuer_name in self.tls_certificate_issuer_overrides
         }
 
     def _resolve_env(self):

@@ -34,7 +34,7 @@ def log_request_response(resp, *args, **kwargs):
         return  # k8s library already does its own dumping, we don't need to do it here
     log = logging.getLogger(__name__)
     data = dump_all(resp, "<<<", ">>>")
-    log.debug("Request/Response\n" + data)
+    log.debug("Request/Response\n" + data.decode('utf-8'))
 
 
 class IterableQueue(Queue, Iterator):

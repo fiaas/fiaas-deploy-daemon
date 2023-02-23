@@ -371,6 +371,14 @@ class Configuration(Namespace):
             default=None,
         )
         tls_parser.add_argument(
+            "--tls-certificate-issuer-overrides",
+            help="Issuers name to use for specified domain suffixes",
+            default=[],
+            action="append",
+            type=KeyValue,
+            dest="tls_certificate_issuer_overrides",
+        )
+        tls_parser.add_argument(
             "--tls-certificate-issuer-type-default",
             help="The annotation to set for cert-manager to provision certificates",
             default="certmanager.k8s.io/cluster-issuer",
@@ -393,6 +401,9 @@ class Configuration(Namespace):
         self.secret_init_containers = {provider.key: provider.value for provider in self.secret_init_containers}
         self.tls_certificate_issuer_type_overrides = {
             issuer_type.key: issuer_type.value for issuer_type in self.tls_certificate_issuer_type_overrides
+        }
+        self.tls_certificate_issuer_overrides = {
+            issuer_name.key: issuer_name.value for issuer_name in self.tls_certificate_issuer_overrides
         }
 
     def _resolve_env(self):

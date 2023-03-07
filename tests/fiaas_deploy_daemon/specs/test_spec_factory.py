@@ -56,11 +56,14 @@ class TestSpecFactory(object):
     def factory(self, v3, transformers, config):
         return SpecFactory(v3, transformers, config)
 
-    @pytest.mark.parametrize("version,mock_to_call", [
-        (None, "v1"),
-        (1, "v1"),
-        (2, "v2"),
-    ])
+    @pytest.mark.parametrize(
+        "version,mock_to_call",
+        [
+            (None, "v1"),
+            (1, "v1"),
+            (2, "v2"),
+        ],
+    )
     def test_dispatch_to_correct_transformer(self, request, factory, version, mock_to_call):
         minimal_config = {}
         if version:
@@ -92,14 +95,7 @@ class TestSpecFactory(object):
         actual = factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         assert actual == expected
 
-    @pytest.mark.parametrize("exception", (
-        AttributeError,
-        KeyError,
-        IndexError,
-        ValueError,
-        TypeError,
-        NameError
-    ))
+    @pytest.mark.parametrize("exception", (AttributeError, KeyError, IndexError, ValueError, TypeError, NameError))
     def test_parse_errors_raises_invalid_config(self, factory, v3, exception):
         v3.side_effect = exception
         with pytest.raises(InvalidConfiguration):

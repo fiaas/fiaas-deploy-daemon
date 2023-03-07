@@ -1,4 +1,3 @@
-
 # Copyright 2017-2019 The FIAAS Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,22 +35,25 @@ def test_upsertconflict_str():
     assert str(e) == expected
 
 
-@pytest.mark.parametrize("status", (
-    400,  # Bad Request
-    402,  # Payment Required
-    403,  # Forbidden
-    404,  # Not Found
-    405,  # Method Not Allowed
-    406,  # Not Acceptable
-    408,  # Request Timeout
-    410,  # Gone
-    411,  # Length Required
-    413,  # Payload Too Large
-    414,  # URI Too long
-    415,  # Unsupported Media Type
-    417,  # Expectation Failed
-    426,  # Upgrade Required
-))
+@pytest.mark.parametrize(
+    "status",
+    (
+        400,  # Bad Request
+        402,  # Payment Required
+        403,  # Forbidden
+        404,  # Not Found
+        405,  # Method Not Allowed
+        406,  # Not Acceptable
+        408,  # Request Timeout
+        410,  # Gone
+        411,  # Length Required
+        413,  # Payload Too Large
+        414,  # URI Too long
+        415,  # Unsupported Media Type
+        417,  # Expectation Failed
+        426,  # Upgrade Required
+    ),
+)
 def test_retry_on_conflict_should_raise_clienterror_for_non_conflict_clienterror(status):
     response = mock.MagicMock(spec=Response)
     response.status_code = status
@@ -124,11 +126,14 @@ def name_test_function():
     pass
 
 
-@pytest.mark.parametrize("func, expected", (
-    (id, "builtins.id"),
-    (name_test_function, "{}.name_test_function".format(__name__)),
-    (NameTester.clsmethod, "{}.NameTester.clsmethod".format(__name__)),
-    (NameTester.method, "{}.NameTester.method".format(__name__)),
-))
+@pytest.mark.parametrize(
+    "func, expected",
+    (
+        (id, "builtins.id"),
+        (name_test_function, "{}.name_test_function".format(__name__)),
+        (NameTester.clsmethod, "{}.NameTester.clsmethod".format(__name__)),
+        (NameTester.method, "{}.NameTester.method".format(__name__)),
+    ),
+)
 def test_canonical_name(func, expected):
     assert canonical_name(func) == expected

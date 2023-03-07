@@ -32,12 +32,26 @@ from k8s.models.ingress import Ingress
 from k8s.models.networking_v1_ingress import Ingress as NetworkingV1Ingress
 from k8s.models.service import Service
 from k8s.models.service_account import ServiceAccount
-from utils import wait_until, crd_available, read_yml, sanitize_resource_name, assert_k8s_resource_matches, \
-    get_unbound_port, KindWrapper, uuid, use_networkingv1_ingress, use_apiextensionsv1_crd
+from utils import (
+    wait_until,
+    crd_available,
+    read_yml,
+    sanitize_resource_name,
+    assert_k8s_resource_matches,
+    get_unbound_port,
+    KindWrapper,
+    uuid,
+    use_networkingv1_ingress,
+    use_apiextensionsv1_crd,
+)
 
 from fiaas_deploy_daemon.crd.status import create_name
-from fiaas_deploy_daemon.crd.types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationSpec, \
-    AdditionalLabelsOrAnnotations
+from fiaas_deploy_daemon.crd.types import (
+    FiaasApplication,
+    FiaasApplicationStatus,
+    FiaasApplicationSpec,
+    AdditionalLabelsOrAnnotations,
+)
 from fiaas_deploy_daemon.tools import merge_dicts
 
 IMAGE1 = "finntech/application-name:123"
@@ -62,7 +76,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes(self, service_type, k8s_version):
         try:
-            name = 'kind-{}-{}-{}'.format(k8s_version, service_type.lower(), uuid())
+            name = "kind-{}-{}-{}".format(k8s_version, service_type.lower(), uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()
@@ -75,7 +89,7 @@ class TestE2E(object):
     @pytest.fixture(scope="module")
     def kubernetes_service_account(self, k8s_version):
         try:
-            name = 'kind-{}-{}-{}'.format(k8s_version, "sa", uuid())
+            name = "kind-{}-{}-{}".format(k8s_version, "sa", uuid())
             kind = KindWrapper(k8s_version, name)
             try:
                 yield kind.start()
@@ -116,8 +130,9 @@ class TestE2E(object):
 
     @pytest.fixture(scope="module")
     def fdd_service_account(self, request, kubernetes_service_account, k8s_version, use_docker_for_e2e):
-        args, port, ready = self.prepare_fdd(request, kubernetes_service_account, k8s_version,
-                                             use_docker_for_e2e, "ClusterIP", service_account=True)
+        args, port, ready = self.prepare_fdd(
+            request, kubernetes_service_account, k8s_version, use_docker_for_e2e, "ClusterIP", service_account=True
+        )
         try:
             daemon = subprocess.Popen(args, stdout=sys.stderr, env=merge_dicts(os.environ, {"NAMESPACE": "default"}))
             time.sleep(1)
@@ -130,33 +145,44 @@ class TestE2E(object):
 
     def wait_until_fdd_ready(self, k8s_version, kubernetes, ready):
         wait_until(ready, "web-interface healthy", RuntimeError, patience=PATIENCE)
-        wait_until(
-            crd_available(kubernetes, timeout=TIMEOUT),
-            "CRD available", RuntimeError, patience=PATIENCE
-        )
+        wait_until(crd_available(kubernetes, timeout=TIMEOUT), "CRD available", RuntimeError, patience=PATIENCE)
 
     def prepare_fdd(self, request, kubernetes, k8s_version, use_docker_for_e2e, service_type, service_account=False):
         port = get_unbound_port()
         cert_path = os.path.dirname(kubernetes["api-cert"])
-        docker_args = use_docker_for_e2e(request, cert_path, service_type, k8s_version, port,
-                                         kubernetes['container-to-container-server-ip'])
-        server = kubernetes['container-to-container-server'] if docker_args else kubernetes["host-to-container-server"]
+        docker_args = use_docker_for_e2e(
+            request, cert_path, service_type, k8s_version, port, kubernetes["container-to-container-server-ip"]
+        )
+        server = kubernetes["container-to-container-server"] if docker_args else kubernetes["host-to-container-server"]
         args = [
             "fiaas-deploy-daemon",
-            "--port", str(port),
-            "--api-server", server,
-            "--api-cert", kubernetes["api-cert"],
-            "--client-cert", kubernetes["client-cert"],
-            "--client-key", kubernetes["client-key"],
-            "--service-type", service_type,
-            "--ingress-suffix", "svc.test.example.com",
-            "--environment", "test",
-            "--datadog-container-image", "DATADOG_IMAGE:tag",
-            "--strongbox-init-container-image", "STRONGBOX_IMAGE",
-            "--secret-init-containers", "parameter-store=PARAM_STORE_IMAGE",
-            "--tls-certificate-issuer-type-overrides", "use-issuer.example.com=certmanager.k8s.io/issuer",
-            "--use-ingress-tls", "default_off",
-            "--enable-crd-support"
+            "--port",
+            str(port),
+            "--api-server",
+            server,
+            "--api-cert",
+            kubernetes["api-cert"],
+            "--client-cert",
+            kubernetes["client-cert"],
+            "--client-key",
+            kubernetes["client-key"],
+            "--service-type",
+            service_type,
+            "--ingress-suffix",
+            "svc.test.example.com",
+            "--environment",
+            "test",
+            "--datadog-container-image",
+            "DATADOG_IMAGE:tag",
+            "--strongbox-init-container-image",
+            "STRONGBOX_IMAGE",
+            "--secret-init-containers",
+            "parameter-store=PARAM_STORE_IMAGE",
+            "--tls-certificate-issuer-type-overrides",
+            "use-issuer.example.com=certmanager.k8s.io/issuer",
+            "--use-ingress-tls",
+            "default_off",
+            "--enable-crd-support",
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
@@ -172,114 +198,167 @@ class TestE2E(object):
 
         return args, port, ready
 
-    @pytest.fixture(ids=_fixture_names, params=(
-            ("data/v2minimal.yml", {
-                Service: "e2e_expected/v2minimal-service.yml",
-                Deployment: "e2e_expected/v2minimal-deployment.yml",
-                Ingress: "e2e_expected/v2minimal-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
-                ServiceAccount: SHOULD_NOT_EXIST,
-            }),
-            ("v2/data/examples/host.yml", {
-                Service: "e2e_expected/host-service.yml",
-                Deployment: "e2e_expected/host-deployment.yml",
-                Ingress: "e2e_expected/host-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/host-networkingv1-ingress.yml",
-            }),
-            ("v2/data/examples/exec_config.yml", {
-                Service: "e2e_expected/exec-service.yml",
-                Deployment: "e2e_expected/exec-deployment.yml",
-                Ingress: "e2e_expected/exec-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/exec-networkingv1-ingress.yml",
-            }),
-            ("v2/data/examples/tcp_ports.yml", {
-                Service: "e2e_expected/tcp_ports-service.yml",
-                Deployment: "e2e_expected/tcp_ports-deployment.yml",
-            }),
-            ("v2/data/examples/single_tcp_port.yml", {
-                Service: "e2e_expected/single_tcp_port-service.yml",
-                Deployment: "e2e_expected/single_tcp_port-deployment.yml",
-            }),
-            ("v2/data/examples/partial_override.yml", {
-                Service: "e2e_expected/partial_override-service.yml",
-                Deployment: "e2e_expected/partial_override-deployment.yml",
-                Ingress: "e2e_expected/partial_override-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/partial_override-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
-            }),
-            ("v3/data/examples/v3minimal.yml", {
-                Service: "e2e_expected/v3minimal-service.yml",
-                Deployment: "e2e_expected/v3minimal-deployment.yml",
-                Ingress: "e2e_expected/v3minimal-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
-                ServiceAccount: SHOULD_NOT_EXIST,
-            }, AdditionalLabelsOrAnnotations(
-                _global={"global/label": "true"},
-                deployment={"deployment/label": "true"},
-                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
-                ingress={"ingress/label": "true"},
-                service={"service/label": "true"},
-                pod={"pod/label": "true"},
-                status={"status/label": "true"},
-            )),
-            ("v3/data/examples/full.yml", {
-                Service: "e2e_expected/v3full-service.yml",
-                Deployment: "e2e_expected/v3full-deployment.yml",
-                Ingress: "e2e_expected/v3full-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/v3full-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
-            }, AdditionalLabelsOrAnnotations(
-                _global={"global/label": "true"},
-                deployment={"deployment/label": "true"},
-                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
-                ingress={"ingress/label": "true"},
-                service={"service/label": "true"},
-                pod={"pod/label": "true", "s": "override"},
-                status={"status/label": "true"},
-            )),
-            ("v3/data/examples/multiple_hosts_multiple_paths.yml", {
-                Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
-                Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
-                Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_hosts_multiple_paths-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
-            }),
-            ("v3/data/examples/strongbox.yml", {
-                Service: "e2e_expected/strongbox-service.yml",
-                Deployment: "e2e_expected/strongbox-deployment.yml",
-                Ingress: "e2e_expected/strongbox-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/strongbox-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
-            }),
-            ("v3/data/examples/secrets.yml", {
-                Deployment: "e2e_expected/secrets-deployment.yml",
-            }),
-            ("v3/data/examples/single-replica-singleton.yml", {
-                Deployment: "e2e_expected/single-replica-singleton.yml",
-            }),
-            ("v3/data/examples/single-replica-not-singleton.yml", {
-                Deployment: "e2e_expected/single-replica-not-singleton.yml",
-            }),
-            ("v3/data/examples/tls_enabled.yml", {
-                Service: "e2e_expected/tls-service.yml",
-                Deployment: "e2e_expected/tls-deployment.yml",
-                Ingress: "e2e_expected/tls-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
-            }),
-            ("v3/data/examples/tls_enabled_cert_issuer.yml", {
-                Service: "e2e_expected/tls-service-cert-issuer.yml",
-                Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
-                Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
-                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-cert-issuer.yml",
-                HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
-            }),
-            ("v3/data/examples/tls_enabled_multiple.yml", {
-                Ingress: "e2e_expected/tls-ingress-multiple.yml",
-                NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-multiple.yml",
-            }),
-    ))
+    @pytest.fixture(
+        ids=_fixture_names,
+        params=(
+            (
+                "data/v2minimal.yml",
+                {
+                    Service: "e2e_expected/v2minimal-service.yml",
+                    Deployment: "e2e_expected/v2minimal-deployment.yml",
+                    Ingress: "e2e_expected/v2minimal-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
+                    ServiceAccount: SHOULD_NOT_EXIST,
+                },
+            ),
+            (
+                "v2/data/examples/host.yml",
+                {
+                    Service: "e2e_expected/host-service.yml",
+                    Deployment: "e2e_expected/host-deployment.yml",
+                    Ingress: "e2e_expected/host-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/host-networkingv1-ingress.yml",
+                },
+            ),
+            (
+                "v2/data/examples/exec_config.yml",
+                {
+                    Service: "e2e_expected/exec-service.yml",
+                    Deployment: "e2e_expected/exec-deployment.yml",
+                    Ingress: "e2e_expected/exec-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/exec-networkingv1-ingress.yml",
+                },
+            ),
+            (
+                "v2/data/examples/tcp_ports.yml",
+                {
+                    Service: "e2e_expected/tcp_ports-service.yml",
+                    Deployment: "e2e_expected/tcp_ports-deployment.yml",
+                },
+            ),
+            (
+                "v2/data/examples/single_tcp_port.yml",
+                {
+                    Service: "e2e_expected/single_tcp_port-service.yml",
+                    Deployment: "e2e_expected/single_tcp_port-deployment.yml",
+                },
+            ),
+            (
+                "v2/data/examples/partial_override.yml",
+                {
+                    Service: "e2e_expected/partial_override-service.yml",
+                    Deployment: "e2e_expected/partial_override-deployment.yml",
+                    Ingress: "e2e_expected/partial_override-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/partial_override-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/partial_override-hpa.yml",
+                },
+            ),
+            (
+                "v3/data/examples/v3minimal.yml",
+                {
+                    Service: "e2e_expected/v3minimal-service.yml",
+                    Deployment: "e2e_expected/v3minimal-deployment.yml",
+                    Ingress: "e2e_expected/v3minimal-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+                    ServiceAccount: SHOULD_NOT_EXIST,
+                },
+                AdditionalLabelsOrAnnotations(
+                    _global={"global/label": "true"},
+                    deployment={"deployment/label": "true"},
+                    horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                    ingress={"ingress/label": "true"},
+                    service={"service/label": "true"},
+                    pod={"pod/label": "true"},
+                    status={"status/label": "true"},
+                ),
+            ),
+            (
+                "v3/data/examples/full.yml",
+                {
+                    Service: "e2e_expected/v3full-service.yml",
+                    Deployment: "e2e_expected/v3full-deployment.yml",
+                    Ingress: "e2e_expected/v3full-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/v3full-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/v3full-hpa.yml",
+                },
+                AdditionalLabelsOrAnnotations(
+                    _global={"global/label": "true"},
+                    deployment={"deployment/label": "true"},
+                    horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                    ingress={"ingress/label": "true"},
+                    service={"service/label": "true"},
+                    pod={"pod/label": "true", "s": "override"},
+                    status={"status/label": "true"},
+                ),
+            ),
+            (
+                "v3/data/examples/multiple_hosts_multiple_paths.yml",
+                {
+                    Service: "e2e_expected/multiple_hosts_multiple_paths-service.yml",
+                    Deployment: "e2e_expected/multiple_hosts_multiple_paths-deployment.yml",
+                    Ingress: "e2e_expected/multiple_hosts_multiple_paths-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/multiple_hosts_multiple_paths-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/multiple_hosts_multiple_paths-hpa.yml",
+                },
+            ),
+            (
+                "v3/data/examples/strongbox.yml",
+                {
+                    Service: "e2e_expected/strongbox-service.yml",
+                    Deployment: "e2e_expected/strongbox-deployment.yml",
+                    Ingress: "e2e_expected/strongbox-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/strongbox-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/strongbox-hpa.yml",
+                },
+            ),
+            (
+                "v3/data/examples/secrets.yml",
+                {
+                    Deployment: "e2e_expected/secrets-deployment.yml",
+                },
+            ),
+            (
+                "v3/data/examples/single-replica-singleton.yml",
+                {
+                    Deployment: "e2e_expected/single-replica-singleton.yml",
+                },
+            ),
+            (
+                "v3/data/examples/single-replica-not-singleton.yml",
+                {
+                    Deployment: "e2e_expected/single-replica-not-singleton.yml",
+                },
+            ),
+            (
+                "v3/data/examples/tls_enabled.yml",
+                {
+                    Service: "e2e_expected/tls-service.yml",
+                    Deployment: "e2e_expected/tls-deployment.yml",
+                    Ingress: "e2e_expected/tls-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/tls-hpa.yml",
+                },
+            ),
+            (
+                "v3/data/examples/tls_enabled_cert_issuer.yml",
+                {
+                    Service: "e2e_expected/tls-service-cert-issuer.yml",
+                    Deployment: "e2e_expected/tls-deployment-cert-issuer.yml",
+                    Ingress: "e2e_expected/tls-ingress-cert-issuer.yml",
+                    NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-cert-issuer.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/tls-hpa-cert-issuer.yml",
+                },
+            ),
+            (
+                "v3/data/examples/tls_enabled_multiple.yml",
+                {
+                    Ingress: "e2e_expected/tls-ingress-multiple.yml",
+                    NetworkingV1Ingress: "e2e_expected/tls-networkingv1-ingress-multiple.yml",
+                },
+            ),
+        ),
+    )
     def custom_resource_definition(self, request, k8s_version):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
@@ -294,31 +373,41 @@ class TestE2E(object):
         request.addfinalizer(lambda: self._ensure_clean(name, expected))
         return name, FiaasApplication(metadata=metadata, spec=spec), expected
 
-    @pytest.fixture(ids=_fixture_names, params=(
-            ("data/v2minimal.yml", {
-                Service: "e2e_expected/v2minimal-service.yml",
-                Deployment: "e2e_expected/v2minimal-deployment.yml",
-                Ingress: "e2e_expected/v2minimal-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
-                ServiceAccount: "e2e_expected/v2minimal-service-account.yml",
-            }),
-            ("v3/data/examples/v3minimal.yml", {
-                Service: "e2e_expected/v3minimal-service.yml",
-                Deployment: "e2e_expected/v3minimal-deployment.yml",
-                Ingress: "e2e_expected/v3minimal-ingress.yml",
-                NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
-                HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
-                ServiceAccount: "e2e_expected/v3minimal-service-account.yml",
-            }, AdditionalLabelsOrAnnotations(
-                _global={"global/label": "true"},
-                deployment={"deployment/label": "true"},
-                horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
-                ingress={"ingress/label": "true"},
-                service={"service/label": "true"},
-                pod={"pod/label": "true"},
-                status={"status/label": "true"},
-            )),
-    ))
+    @pytest.fixture(
+        ids=_fixture_names,
+        params=(
+            (
+                "data/v2minimal.yml",
+                {
+                    Service: "e2e_expected/v2minimal-service.yml",
+                    Deployment: "e2e_expected/v2minimal-deployment.yml",
+                    Ingress: "e2e_expected/v2minimal-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/v2minimal-networkingv1-ingress.yml",
+                    ServiceAccount: "e2e_expected/v2minimal-service-account.yml",
+                },
+            ),
+            (
+                "v3/data/examples/v3minimal.yml",
+                {
+                    Service: "e2e_expected/v3minimal-service.yml",
+                    Deployment: "e2e_expected/v3minimal-deployment.yml",
+                    Ingress: "e2e_expected/v3minimal-ingress.yml",
+                    NetworkingV1Ingress: "e2e_expected/v3minimal-networkingv1-ingress.yml",
+                    HorizontalPodAutoscaler: "e2e_expected/v3minimal-hpa.yml",
+                    ServiceAccount: "e2e_expected/v3minimal-service-account.yml",
+                },
+                AdditionalLabelsOrAnnotations(
+                    _global={"global/label": "true"},
+                    deployment={"deployment/label": "true"},
+                    horizontal_pod_autoscaler={"horizontal-pod-autoscaler/label": "true"},
+                    ingress={"ingress/label": "true"},
+                    service={"service/label": "true"},
+                    pod={"pod/label": "true"},
+                    status={"status/label": "true"},
+                ),
+            ),
+        ),
+    )
     def custom_resource_definition_service_account(self, request, k8s_version):
         fiaas_path, expected, additional_labels = self._resource_labels(request.param)
 
@@ -331,9 +420,9 @@ class TestE2E(object):
 
         # modify the expected service account for this test
         for k, _ in list(expected.items()):
-            if expected[k]['kind'] == 'Deployment':
-                name = expected[k]['metadata']['name']
-                expected[k]['spec']['template']['spec']['serviceAccountName'] = name
+            if expected[k]["kind"] == "Deployment":
+                name = expected[k]["metadata"]["name"]
+                expected[k]["spec"]["template"]["spec"]["serviceAccountName"] = name
                 break
 
         name, metadata, spec = self._resource_components(fiaas_path, fiaas_yml, additional_labels)
@@ -352,8 +441,9 @@ class TestE2E(object):
     def _resource_components(self, fiaas_path, fiaas_yml, additional_labels):
         name = sanitize_resource_name(fiaas_path)
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
-        spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml,
-                                    additional_labels=additional_labels)
+        spec = FiaasApplicationSpec(
+            application=name, image=IMAGE1, config=fiaas_yml, additional_labels=additional_labels
+        )
         return name, metadata, spec
 
     def _resource_labels(self, param):
@@ -416,7 +506,9 @@ class TestE2E(object):
             assert label_difference == set()
 
         # Check deploy success
-        wait_until(_deploy_success(name, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE)
+        wait_until(
+            _deploy_success(name, service_type, IMAGE1, expected, DEPLOYMENT_ID1, app_uid=app_uid), patience=PATIENCE
+        )
 
         if not service_account:
             # Redeploy, new image, possibly new init-container
@@ -429,8 +521,12 @@ class TestE2E(object):
             fiaas_application.save()
             app_uid = fiaas_application.metadata.uid
             # Check success
-            wait_until(_deploy_success(name, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups, app_uid=app_uid),
-                       patience=PATIENCE)
+            wait_until(
+                _deploy_success(
+                    name, service_type, IMAGE2, expected, DEPLOYMENT_ID2, strongbox_groups, app_uid=app_uid
+                ),
+                patience=PATIENCE,
+            )
 
         # Cleanup
         FiaasApplication.delete(name)
@@ -452,38 +548,50 @@ class TestE2E(object):
         self.run_crd_deploy(custom_resource_definition_service_account, service_type, service_account=True)
 
     @pytest.mark.usefixtures("fdd", "k8s_client")
-    @pytest.mark.parametrize("input, expected", [
-        ("multiple_ingress", {
-            "v3-data-examples-multiple-ingress": {
-                Ingress: "e2e_expected/multiple_ingress1.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress.yml",
-            },
-            "v3-data-examples-multiple-ingress-1": {
-                Ingress: "e2e_expected/multiple_ingress2.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress2.yml",
-            },
-        }),
-        ("multiple_ingress_default_host", {
-            "v3-data-examples-multiple-ingress-default-host": {
-                Ingress: "e2e_expected/multiple_ingress_default_host1.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host1.yml",
-            },
-            "v3-data-examples-multiple-ingress-default-host-1": {
-                Ingress: "e2e_expected/multiple_ingress_default_host2.yml",
-                NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host2.yml",
-            },
-        }),
-        ("tls_issuer_override", {
-            "v3-data-examples-tls-issuer-override": {
-                Ingress: "e2e_expected/tls_issuer_override1.yml",
-                NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override1.yml",
-            },
-            "v3-data-examples-tls-issuer-override-1": {
-                Ingress: "e2e_expected/tls_issuer_override2.yml",
-                NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override2.yml",
-            },
-        })
-    ])
+    @pytest.mark.parametrize(
+        "input, expected",
+        [
+            (
+                "multiple_ingress",
+                {
+                    "v3-data-examples-multiple-ingress": {
+                        Ingress: "e2e_expected/multiple_ingress1.yml",
+                        NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress.yml",
+                    },
+                    "v3-data-examples-multiple-ingress-1": {
+                        Ingress: "e2e_expected/multiple_ingress2.yml",
+                        NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress2.yml",
+                    },
+                },
+            ),
+            (
+                "multiple_ingress_default_host",
+                {
+                    "v3-data-examples-multiple-ingress-default-host": {
+                        Ingress: "e2e_expected/multiple_ingress_default_host1.yml",
+                        NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host1.yml",
+                    },
+                    "v3-data-examples-multiple-ingress-default-host-1": {
+                        Ingress: "e2e_expected/multiple_ingress_default_host2.yml",
+                        NetworkingV1Ingress: "e2e_expected/multiple_networkingv1-ingress_default_host2.yml",
+                    },
+                },
+            ),
+            (
+                "tls_issuer_override",
+                {
+                    "v3-data-examples-tls-issuer-override": {
+                        Ingress: "e2e_expected/tls_issuer_override1.yml",
+                        NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override1.yml",
+                    },
+                    "v3-data-examples-tls-issuer-override-1": {
+                        Ingress: "e2e_expected/tls_issuer_override2.yml",
+                        NetworkingV1Ingress: "e2e_expected/tls_issuer_networkingv1_override2.yml",
+                    },
+                },
+            ),
+        ],
+    )
     def test_multiple_ingresses(self, request, input, expected, k8s_version):
         fiaas_path = "v3/data/examples/%s.yml" % input
         fiaas_yml = read_yml(request.fspath.dirpath().join("specs").join(fiaas_path).strpath)
@@ -494,7 +602,9 @@ class TestE2E(object):
             k8s_ingress = NetworkingV1Ingress
         else:
             k8s_ingress = Ingress
-        expected = {k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in list(expected.items())}
+        expected = {
+            k: read_yml(request.fspath.dirpath().join(v[k8s_ingress]).strpath) for (k, v) in list(expected.items())
+        }
 
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
@@ -557,6 +667,8 @@ def _deploy_success(name, service_type, image, expected, deployment_id, strongbo
                     kind.get(name)
             else:
                 actual = kind.get(name)
-                assert_k8s_resource_matches(actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid)
+                assert_k8s_resource_matches(
+                    actual, expected_dict, image, service_type, deployment_id, strongbox_groups, app_uid
+                )
 
     return action

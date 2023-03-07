@@ -280,7 +280,6 @@ TEST_DATA = {
         "strongbox.iam_role": "arn:aws:iam::12345678:role/the-role-name",
         "strongbox.groups[0]": "secretgroup1",
         "strongbox.groups[1]": "secretgroup2",
-
     },
     "liveness_exec_readiness_http": {
         "health_checks.liveness.execute.command": "/bin/alive",
@@ -325,44 +324,41 @@ TEST_DATA = {
     "tls_enabled": {
         "ingress_tls.enabled": True,
     },
-    "tls_enabled_cert_issuer": {
-        "ingress_tls.enabled": True,
-        "ingress_tls.certificate_issuer": "myissuer"
-    },
+    "tls_enabled_cert_issuer": {"ingress_tls.enabled": True, "ingress_tls.certificate_issuer": "myissuer"},
     "secrets": {
         "secrets[0].type": "parameter-store",
-        "secrets[0].parameters": {
-            "AWS_REGION": "eu-central-1",
-            "SECRET_PATH": "some-param"
-        },
+        "secrets[0].parameters": {"AWS_REGION": "eu-central-1", "SECRET_PATH": "some-param"},
         "secrets[0].annotations": {
             "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name",
-            "some.other/annotation": "annotation-value"
-        }
+            "some.other/annotation": "annotation-value",
+        },
     },
     "secrets_strongbox": {
         "secrets[0].type": "strongbox",
         "secrets[0].parameters": {
             "AWS_REGION": "eu-central-1",
-            "SECRET_GROUPS": "secretgroup1,secretgroup2,secretgroup3"
+            "SECRET_GROUPS": "secretgroup1,secretgroup2,secretgroup3",
         },
-        "secrets[0].annotations": {
-            "iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name"
-        }
-    }
+        "secrets[0].annotations": {"iam.amazonaws.com/role": "arn:aws:iam::12345678:role/the-role-name"},
+    },
 }
 
 
 def pytest_generate_tests(metafunc):
     fixtures = ("filename", "attribute", "value")
-    if metafunc.cls == TestFactory and metafunc.function.__name__ == "test" \
-       and all(fixname in metafunc.fixturenames for fixname in fixtures):
+    if (
+        metafunc.cls == TestFactory
+        and metafunc.function.__name__ == "test"
+        and all(fixname in metafunc.fixturenames for fixname in fixtures)
+    ):
         for filename in TEST_DATA:
             for attribute in TEST_DATA[filename]:
                 value = TEST_DATA[filename][attribute]
                 fixture_args = {"filename": filename, "attribute": attribute, "value": value}
-                metafunc.addcall(fixture_args, "{}/{}=={}".format(filename, attribute.replace(".", "_"),
-                                                                  repr(value).replace(".", "_")))
+                metafunc.addcall(
+                    fixture_args,
+                    "{}/{}=={}".format(filename, attribute.replace(".", "_"), repr(value).replace(".", "_")),
+                )
 
 
 class TestFactory(object):
@@ -371,42 +367,74 @@ class TestFactory(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         return SpecFactory(Factory(), {}, config)
 
-    @pytest.mark.parametrize("filename", (
-            "v3minimal",
-    ))
+    @pytest.mark.parametrize("filename", ("v3minimal",))
     def test_name_and_image(self, load_app_config_testdata, factory, filename):
-        app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
-                           None, None)
+        app_spec = factory(
+            UID,
+            NAME,
+            IMAGE,
+            load_app_config_testdata(filename),
+            ["IO"],
+            ["foo"],
+            "deployment_id",
+            NAMESPACE,
+            None,
+            None,
+        )
         assert app_spec.name == NAME
         assert app_spec.image == IMAGE
 
-    @pytest.mark.parametrize("filename", (
+    @pytest.mark.parametrize(
+        "filename",
+        (
             "invalid_no_health_check_defined_http",
             "invalid_no_health_check_defined_tcp",
             "invalid_ingress_port_number",
             "invalid_ingress_port_name",
-    ))
+        ),
+    )
     def test_invalid_configuration(self, load_app_config_testdata, factory, filename):
         with pytest.raises(InvalidConfiguration):
-            factory(UID, NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
-                    None, None)
+            factory(
+                UID,
+                NAME,
+                IMAGE,
+                load_app_config_testdata(filename),
+                ["IO"],
+                ["foo"],
+                "deployment_id",
+                NAMESPACE,
+                None,
+                None,
+            )
 
-    @pytest.mark.parametrize("filename,attribute,value", (
+    @pytest.mark.parametrize(
+        "filename,attribute,value",
+        (
             ("v3minimal", "annotations.deployment", {"global/annotation": "true", "deployment/annotation": "true"}),
-            ("labels_and_annotations", "annotations.pod", {
-                "global/annotation": "true",
-                "pod/annotation": "true",
-                "x": "y",
-                "z": "override",
-            }),
-            ("labels_and_annotations", "labels.pod", {
-                "global/label": "true",
-                "pod/label": "true",
-                "q": "r",
-                "s": "override",
-            }),
+            (
+                "labels_and_annotations",
+                "annotations.pod",
+                {
+                    "global/annotation": "true",
+                    "pod/annotation": "true",
+                    "x": "y",
+                    "z": "override",
+                },
+            ),
+            (
+                "labels_and_annotations",
+                "labels.pod",
+                {
+                    "global/label": "true",
+                    "pod/label": "true",
+                    "q": "r",
+                    "s": "override",
+                },
+            ),
             ("labels_and_annotations", "labels.status", {"global/label": "true", "status/label": "true"}),
-    ))
+        ),
+    )
     def test_additional_labels_and_annotations(self, load_app_config_testdata, factory, filename, attribute, value):
         additional_labels = AdditionalLabelsOrAnnotations(
             _global={"global/label": "true"},
@@ -415,7 +443,7 @@ class TestFactory(object):
             ingress={"ingress/label": "true"},
             service={"service/label": "true"},
             pod={"pod/label": "true", "s": "override"},
-            status={"status/label": "true"}
+            status={"status/label": "true"},
         )
         additional_annotations = AdditionalLabelsOrAnnotations(
             _global={"global/annotation": "true"},
@@ -424,10 +452,20 @@ class TestFactory(object):
             ingress={"ingress/annotation": "true"},
             service={"service/annotation": "true"},
             pod={"pod/annotation": "true", "z": "override"},
-            status={"status/annotation": "true"}
+            status={"status/annotation": "true"},
         )
-        app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), [], [], "deployment_id", NAMESPACE,
-                           additional_labels, additional_annotations)
+        app_spec = factory(
+            UID,
+            NAME,
+            IMAGE,
+            load_app_config_testdata(filename),
+            [],
+            [],
+            "deployment_id",
+            NAMESPACE,
+            additional_labels,
+            additional_annotations,
+        )
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         actual = eval(code)
@@ -435,8 +473,18 @@ class TestFactory(object):
         assert actual == value
 
     def test(self, load_app_config_testdata, factory, filename, attribute, value):
-        app_spec = factory(UID, NAME, IMAGE, load_app_config_testdata(filename), ["IO"], ["foo"], "deployment_id", NAMESPACE,
-                           None, None)
+        app_spec = factory(
+            UID,
+            NAME,
+            IMAGE,
+            load_app_config_testdata(filename),
+            ["IO"],
+            ["foo"],
+            "deployment_id",
+            NAMESPACE,
+            None,
+            None,
+        )
         assert app_spec is not None
         code = "app_spec.%s" % attribute
         assert app_spec.secrets is not None

@@ -25,40 +25,36 @@ from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import Cr
 
 
 EXPECTED_APPLICATION = {
-    'metadata': {
-        'namespace': 'default',
-        'name': 'applications.fiaas.schibsted.io',
-        'ownerReferences': [],
-        'finalizers': [],
+    "metadata": {
+        "namespace": "default",
+        "name": "applications.fiaas.schibsted.io",
+        "ownerReferences": [],
+        "finalizers": [],
     },
-    'spec': {
-        'version': 'v1',
-        'group': 'fiaas.schibsted.io',
-        'names': {
-            'shortNames': ['app', 'fa'],
-            'kind': 'Application',
-            'plural': 'applications'
-        }
-    }
+    "spec": {
+        "version": "v1",
+        "group": "fiaas.schibsted.io",
+        "names": {"shortNames": ["app", "fa"], "kind": "Application", "plural": "applications"},
+    },
 }
 
 
 EXPECTED_STATUS = {
-    'metadata': {
-        'namespace': 'default',
-        'name': 'application-statuses.fiaas.schibsted.io',
-        'ownerReferences': [],
-        'finalizers': [],
+    "metadata": {
+        "namespace": "default",
+        "name": "application-statuses.fiaas.schibsted.io",
+        "ownerReferences": [],
+        "finalizers": [],
     },
-    'spec': {
-        'version': 'v1',
-        'group': 'fiaas.schibsted.io',
-        'names': {
-            'shortNames': ['status', 'appstatus', 'fs'],
-            'kind': 'ApplicationStatus',
-            'plural': 'application-statuses'
-        }
-    }
+    "spec": {
+        "version": "v1",
+        "group": "fiaas.schibsted.io",
+        "names": {
+            "shortNames": ["status", "appstatus", "fs"],
+            "kind": "ApplicationStatus",
+            "plural": "application-statuses",
+        },
+    },
 }
 
 
@@ -77,7 +73,7 @@ class TestCrdResourcesSyncerV1beta1(object):
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", EXPECTED_APPLICATION),
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", EXPECTED_STATUS)
+            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", EXPECTED_STATUS),
         ]
         assert post.call_args_list == calls
 
@@ -93,8 +89,13 @@ class TestCrdResourcesSyncerV1beta1(object):
         CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
 
         calls = [
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/applications.fiaas.schibsted.io", EXPECTED_APPLICATION),
-            mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/application-statuses.fiaas.schibsted.io",
-                      EXPECTED_STATUS)
+            mock.call(
+                "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/applications.fiaas.schibsted.io",
+                EXPECTED_APPLICATION,
+            ),
+            mock.call(
+                "/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/application-statuses.fiaas.schibsted.io",
+                EXPECTED_STATUS,
+            ),
         ]
         assert put.call_args_list == calls

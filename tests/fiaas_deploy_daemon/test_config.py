@@ -22,7 +22,6 @@ from fiaas_deploy_daemon.config import Configuration, HostRewriteRule, KeyValue,
 
 
 class TestConfig(object):
-
     @pytest.fixture
     def getenv(self):
         with mock.patch("os.getenv") as getenv:
@@ -48,7 +47,7 @@ class TestConfig(object):
         config = Configuration([])
 
         assert not config.debug
-        assert config.api_server == 'https://kubernetes.default.svc.cluster.local'
+        assert config.api_server == "https://kubernetes.default.svc.cluster.local"
         assert config.api_token is None
         assert config.environment == ""
         assert config.infrastructure == "diy"
@@ -59,14 +58,17 @@ class TestConfig(object):
         assert config.disable_deprecated_managed_env_vars is False
         assert config.tls_certificate_ready is False
 
-    @pytest.mark.parametrize("arg,key", [
-        ("--api-server", "api_server"),
-        ("--api-token", "api_token"),
-        ("--api-cert", "api_cert"),
-        ("--environment", "environment"),
-        ("--proxy", "proxy"),
-        ("--strongbox-init-container-image", "strongbox_init_container_image"),
-    ])
+    @pytest.mark.parametrize(
+        "arg,key",
+        [
+            ("--api-server", "api_server"),
+            ("--api-token", "api_token"),
+            ("--api-cert", "api_cert"),
+            ("--environment", "environment"),
+            ("--proxy", "proxy"),
+            ("--strongbox-init-container-image", "strongbox_init_container_image"),
+        ],
+    )
     def test_parameters(self, arg, key):
         config = Configuration([arg, "value"])
 
@@ -77,14 +79,17 @@ class TestConfig(object):
 
         assert config.infrastructure == "gke"
 
-    @pytest.mark.parametrize("key", (
-        "debug",
-        "enable_crd_support",
-        "enable_deprecated_multi_namespace_support",
-        "enable_deprecated_tls_entry_per_host",
-        "disable_crd_creation",
-        "datadog_activate_sleep"
-    ))
+    @pytest.mark.parametrize(
+        "key",
+        (
+            "debug",
+            "enable_crd_support",
+            "enable_deprecated_multi_namespace_support",
+            "enable_deprecated_tls_entry_per_host",
+            "disable_crd_creation",
+            "datadog_activate_sleep",
+        ),
+    )
     def test_flags(self, key):
         flag = "--{}".format(key.replace("_", "-"))
         config = Configuration([])
@@ -92,13 +97,16 @@ class TestConfig(object):
         config = Configuration([flag])
         assert getattr(config, key) is True
 
-    @pytest.mark.parametrize("key,attr,value", [
-        ("environment", "environment", "gke"),
-        ("proxy", "proxy", "http://proxy.example.com"),
-        ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
-        ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
-        ("extension-hook-url", "extension_hook_url", "hook-service-url"),
-    ])
+    @pytest.mark.parametrize(
+        "key,attr,value",
+        [
+            ("environment", "environment", "gke"),
+            ("proxy", "proxy", "http://proxy.example.com"),
+            ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
+            ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
+            ("extension-hook-url", "extension_hook_url", "hook-service-url"),
+        ],
+    )
     def test_config_from_file(self, key, attr, value, tmpdir):
         config_file = tmpdir.join("config.yaml")
         with config_file.open("w") as fobj:
@@ -166,10 +174,7 @@ class TestConfig(object):
         issuer_types = ["foo.bar.com=issuer", "woo.foo.bar.com=other"]
         args = ["--tls-certificate-issuer-type-overrides=%s" % issuer_type for issuer_type in issuer_types]
         config = Configuration(args)
-        assert config.tls_certificate_issuer_type_overrides == {
-            "foo.bar.com": "issuer",
-            "woo.foo.bar.com": "other"
-        }
+        assert config.tls_certificate_issuer_type_overrides == {"foo.bar.com": "issuer", "woo.foo.bar.com": "other"}
 
 
 class TestHostRewriteRule(object):
@@ -177,12 +182,18 @@ class TestHostRewriteRule(object):
         arg = "pattern=value"
         assert HostRewriteRule(arg) == HostRewriteRule(arg)
 
-    @pytest.mark.parametrize("rule,host,result", [
-        (r"pattern=value", "pattern", "value"),
-        (r"www.([a-z]+).com=www.\1.net", "www.example.com", "www.example.net"),
-        (r"(?P<name>[a-z_-]+).example.com=\g<name>-stage.route.\g<name>.example.net", "query-manager.example.com",
-         "query-manager-stage.route.query-manager.example.net"),
-    ])
+    @pytest.mark.parametrize(
+        "rule,host,result",
+        [
+            (r"pattern=value", "pattern", "value"),
+            (r"www.([a-z]+).com=www.\1.net", "www.example.com", "www.example.net"),
+            (
+                r"(?P<name>[a-z_-]+).example.com=\g<name>-stage.route.\g<name>.example.net",
+                "query-manager.example.com",
+                "query-manager-stage.route.query-manager.example.net",
+            ),
+        ],
+    )
     def test_apply(self, rule, host, result):
         hrr = HostRewriteRule(rule)
         assert hrr.matches(host)

@@ -26,7 +26,13 @@ from requests import Response
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
 from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
-from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
+from fiaas_deploy_daemon.lifecycle import (
+    DEPLOY_STATUS_CHANGED,
+    STATUS_INITIATED,
+    STATUS_STARTED,
+    STATUS_SUCCESS,
+    STATUS_FAILED,
+)
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
 from fiaas_deploy_daemon.lifecycle import Subject
 from utils import configure_mock_fail_then_success
@@ -75,50 +81,50 @@ class TestStatusReport(object):
     # create vs update => new_status, url, post/put
     def pytest_generate_tests(self, metafunc):
         if metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_action_on_signal":
-            TestData = namedtuple("TestData", ("signal_name", "action", "status", "result", "new",
-                                               "called_mock", "ignored_mock"))
+            TestData = namedtuple(
+                "TestData", ("signal_name", "action", "status", "result", "new", "called_mock", "ignored_mock")
+            )
             name2result = {
                 STATUS_STARTED: "RUNNING",
                 STATUS_FAILED: "FAILED",
                 STATUS_SUCCESS: "SUCCESS",
-                STATUS_INITIATED: "INITIATED"
+                STATUS_INITIATED: "INITIATED",
             }
-            action2data = {
-                "create": (True, "post", "put"),
-                "update": (False, "put", "post")
-            }
+            action2data = {"create": (True, "post", "put"), "update": (False, "put", "post")}
             for result in (STATUS_STARTED, STATUS_FAILED, STATUS_SUCCESS, STATUS_INITIATED):
                 for action in ("create", "update"):
 
-                    test_data = TestData(DEPLOY_STATUS_CHANGED, action, result, name2result[result], *action2data[action])
+                    test_data = TestData(
+                        DEPLOY_STATUS_CHANGED, action, result, name2result[result], *action2data[action]
+                    )
                     test_id = "{} status on {}".format(action, result)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
     @pytest.mark.usefixtures("post", "put", "find", "logs")
     def test_action_on_signal(self, request, get, app_spec, test_data, signal):
-        app_name = '{}-isb5oqum36ylo'.format(test_data.result)
+        app_name = "{}-isb5oqum36ylo".format(test_data.result)
         expected_logs = [LOG_LINE]
         if not test_data.new:
             get.side_effect = lambda *args, **kwargs: mock.DEFAULT  # disable default behavior of raising NotFound
             get_response = mock.create_autospec(Response)
             get_response.json.return_value = {
-                'apiVersion': 'fiaas.schibsted.io/v1',
-                'kind': 'ApplicationStatus',
-                'metadata': {
-                    'labels': {
-                        'app': app_spec.name,
-                        'fiaas/deployment_id': app_spec.deployment_id,
-                        'label/on_existing_resource': 'label_value',
+                "apiVersion": "fiaas.schibsted.io/v1",
+                "kind": "ApplicationStatus",
+                "metadata": {
+                    "labels": {
+                        "app": app_spec.name,
+                        "fiaas/deployment_id": app_spec.deployment_id,
+                        "label/on_existing_resource": "label_value",
                     },
-                    'annotations': {
-                        'fiaas/last_updated': LAST_UPDATE,
-                        'annotation/on_existing_resource': 'annotation_value',
+                    "annotations": {
+                        "fiaas/last_updated": LAST_UPDATE,
+                        "annotation/on_existing_resource": "annotation_value",
                     },
-                    'namespace': 'default',
-                    'name': app_name,
-                    },
-                'result': 'INITIATED',
-                'logs': expected_logs,
+                    "namespace": "default",
+                    "name": app_name,
+                },
+                "result": "INITIATED",
+                "logs": expected_logs,
             }
             get.return_value = get_response
 
@@ -132,37 +138,39 @@ class TestStatusReport(object):
 
         # setup expected API call resulting from status update
         expected_call = {
-            'apiVersion': 'fiaas.schibsted.io/v1',
-            'kind': 'ApplicationStatus',
-            'result': test_data.result,
-            'logs': expected_logs,
-            'metadata': {
-                'labels': {
-                    'app': app_spec.name,
-                    'fiaas/deployment_id': app_spec.deployment_id,
-                    'status/label': 'true',
+            "apiVersion": "fiaas.schibsted.io/v1",
+            "kind": "ApplicationStatus",
+            "result": test_data.result,
+            "logs": expected_logs,
+            "metadata": {
+                "labels": {
+                    "app": app_spec.name,
+                    "fiaas/deployment_id": app_spec.deployment_id,
+                    "status/label": "true",
                 },
-                'annotations': {
-                    'fiaas/last_updated': LAST_UPDATE,
-                    'status/annotations': 'true',
+                "annotations": {
+                    "fiaas/last_updated": LAST_UPDATE,
+                    "status/annotations": "true",
                 },
-                'namespace': 'default',
-                'name': app_name,
-                'ownerReferences': [{
-                    'controller': True,
-                    'apiVersion': 'fiaas.schibsted.io/v1',
-                    'kind': 'Application',
-                    'blockOwnerDeletion': True,
-                    'name': app_spec.name,
-                    'uid': app_spec.uid
-                }],
-                'finalizers': [],
-            }
+                "namespace": "default",
+                "name": app_name,
+                "ownerReferences": [
+                    {
+                        "controller": True,
+                        "apiVersion": "fiaas.schibsted.io/v1",
+                        "kind": "Application",
+                        "blockOwnerDeletion": True,
+                        "name": app_spec.name,
+                        "uid": app_spec.uid,
+                    }
+                ],
+                "finalizers": [],
+            },
         }
         # if we have an existing resource, expect that existing labels and annotations are present after update
         if not test_data.new:
-            expected_call['metadata']['labels']['label/on_existing_resource'] = 'label_value'
-            expected_call['metadata']['annotations']['annotation/on_existing_resource'] = 'annotation_value'
+            expected_call["metadata"]["labels"]["label/on_existing_resource"] = "label_value"
+            expected_call["metadata"]["annotations"]["annotation/on_existing_resource"] = "annotation_value"
 
         called_mock = request.getfixturevalue(test_data.called_mock)
         mock_response = mock.create_autospec(Response)
@@ -177,20 +185,18 @@ class TestStatusReport(object):
 
         # assert that the api function expected to be called was called, and that the ignored api function was not
         if test_data.action == "create":
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/'
+            url = "/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/"
         else:
-            url = '/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/{}'.format(app_name)
+            url = "/apis/fiaas.schibsted.io/v1/namespaces/default/application-statuses/{}".format(app_name)
 
         called_mock.assert_called_once_with(url, expected_call)
         ignored_mock = request.getfixturevalue(test_data.ignored_mock)
         ignored_mock.assert_not_called()
 
-    @pytest.mark.parametrize("deployment_id", (
-            "fiaas/fiaas-deploy-daemon:latest",
-            "1234123",
-            "The Ultimate Deployment ID",
-            "@${[]}!#%&/()=?"
-    ))
+    @pytest.mark.parametrize(
+        "deployment_id",
+        ("fiaas/fiaas-deploy-daemon:latest", "1234123", "The Ultimate Deployment ID", "@${[]}!#%&/()=?"),
+    )
     def test_create_name(self, deployment_id):
         final_name = status.create_name(NAME, deployment_id)
         assert VALID_NAME.match(final_name), "Name is not valid"
@@ -214,14 +220,18 @@ class TestStatusReport(object):
         except NotFound:
             pytest.fail("delete raised NotFound on signal")
 
-    @pytest.mark.parametrize("result,fail_times", (
-            ((result, fail_times)
-             for result in (STATUS_INITIATED, STATUS_STARTED, STATUS_STARTED, STATUS_FAILED)
-             for fail_times in range(5))
-    ))
+    @pytest.mark.parametrize(
+        "result,fail_times",
+        (
+            (
+                (result, fail_times)
+                for result in (STATUS_INITIATED, STATUS_STARTED, STATUS_STARTED, STATUS_FAILED)
+                for fail_times in range(5)
+            )
+        ),
+    )
     @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
     def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, result, fail_times):
-
         def _fail():
             response = mock.MagicMock(spec=Response)
             response.status_code = 409  # Conflict
@@ -238,17 +248,12 @@ class TestStatusReport(object):
             signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
         except UpsertConflict as e:
             if fail_times < CONFLICT_MAX_RETRIES:
-                pytest.fail('Exception {} was raised when signaling {}'.format(e, result))
+                pytest.fail("Exception {} was raised when signaling {}".format(e, result))
 
         save_calls = min(fail_times + 1, CONFLICT_MAX_RETRIES)
         assert save.call_args_list == [mock.call()] * save_calls
 
-    @pytest.mark.parametrize("result", (
-            STATUS_INITIATED,
-            STATUS_STARTED,
-            STATUS_SUCCESS,
-            STATUS_FAILED
-    ))
+    @pytest.mark.parametrize("result", (STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED))
     @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
     def test_fail_on_error(self, get_or_create, save, app_spec, signal, result):
         response = mock.MagicMock(spec=Response)
@@ -267,13 +272,15 @@ class TestStatusReport(object):
 
 
 def _subject_from_app_spec(app_spec):
-    return Subject(app_spec.uid,
-                   app_spec.name,
-                   app_spec.namespace,
-                   app_spec.deployment_id,
-                   None,
-                   app_spec.labels.status,
-                   app_spec.annotations.status)
+    return Subject(
+        app_spec.uid,
+        app_spec.name,
+        app_spec.namespace,
+        app_spec.deployment_id,
+        None,
+        app_spec.labels.status,
+        app_spec.annotations.status,
+    )
 
 
 def _create_status(i, annotate=True):

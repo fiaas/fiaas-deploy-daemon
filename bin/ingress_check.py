@@ -34,6 +34,7 @@ from requests.packages.urllib3.contrib import pyopenssl as reqs
 try:
     from tqdm import tqdm
 except ImportError:
+
     def tqdm(it, *args, **kwargs):
         return it
 
@@ -91,10 +92,7 @@ def _has_selected_ingress_class(ingress):
 
 def _get_certificate_issuer_cn(secret):
     crt = base64.b64decode(secret.data["tls.crt"])
-    x509 = reqs.OpenSSL.crypto.load_certificate(
-        reqs.OpenSSL.crypto.FILETYPE_PEM,
-        crt
-    )
+    x509 = reqs.OpenSSL.crypto.load_certificate(reqs.OpenSSL.crypto.FILETYPE_PEM, crt)
     issuer = x509.get_issuer()
     return issuer.CN
 
@@ -108,8 +106,9 @@ def _has_invalid_certificate(ingress):
             secret = Secret.get(secret_name, ingress.metadata.namespace)
             issuer_cn = _get_certificate_issuer_cn(secret)
             if "Let's Encrypt Authority X3" != issuer_cn:
-                invalid_certs.append(Problem(secret_name, "Incorrect issuer: {}".format(issuer_cn),
-                                             ProblemType.WRONG_CA))
+                invalid_certs.append(
+                    Problem(secret_name, "Incorrect issuer: {}".format(issuer_cn), ProblemType.WRONG_CA)
+                )
         except NotFound:
             invalid_certs.append(Problem(secret_name, "No certificate provisioned", ProblemType.NO_CERTIFICATE))
     return invalid_certs
@@ -162,9 +161,12 @@ def _collect_problems(ingresses):
         if invalid_certificates:
             for ic in invalid_certificates:
                 if len(ic.host) > 63:
-                    problems.append(ic._replace(
-                        reason="Host is too long ({}) to be a CommonName".format(len(ic.host)),
-                        type=ProblemType.TOO_LONG))
+                    problems.append(
+                        ic._replace(
+                            reason="Host is too long ({}) to be a CommonName".format(len(ic.host)),
+                            type=ProblemType.TOO_LONG,
+                        )
+                    )
                 else:
                     problems.append(ic)
         if unreachable_hosts:

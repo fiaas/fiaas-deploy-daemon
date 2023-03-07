@@ -29,7 +29,9 @@ class TestLogExtras(object):
         logger = logging.getLogger("test.log.extras")
         logger.addHandler(StatusHandler())
         logger.warning(TEST_MESSAGE)
-        logs = get_final_logs(app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id)
+        logs = get_final_logs(
+            app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id
+        )
         assert len(logs) == 1
         log_message = logs[0]
         assert TEST_MESSAGE in log_message
@@ -42,7 +44,9 @@ class TestLogExtras(object):
             kw = {request.param: None}
             return app_spec._replace(**kw)
 
-    @pytest.mark.parametrize("spec,name,namespace,deployment_id", (
+    @pytest.mark.parametrize(
+        "spec,name,namespace,deployment_id",
+        (
             (False, None, "namespace", "deployment_id"),
             (False, "name", None, "deployment_id"),
             (False, "name", "namespace", None),
@@ -50,7 +54,9 @@ class TestLogExtras(object):
             ("name", None, None, None),
             ("namespace", None, None, None),
             ("deployment_id", None, None, None),
-    ), indirect=["spec"])
+        ),
+        indirect=["spec"],
+    )
     def test_require_all_three_fields(self, spec, name, namespace, deployment_id):
         with pytest.raises(TypeError):
             set_extras(app_spec=spec, app_name=name, namespace=namespace, deployment_id=deployment_id)

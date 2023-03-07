@@ -21,23 +21,32 @@ from k8s.models.deployment import Deployment, DeploymentSpec
 from k8s.models.pod import Container, PodSpec, PodTemplateSpec, EnvVar
 
 from fiaas_deploy_daemon import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.deployment import GenericInitSecrets, KubernetesSecrets, \
-    Secrets
+from fiaas_deploy_daemon.deployer.kubernetes.deployment import GenericInitSecrets, KubernetesSecrets, Secrets
 from fiaas_deploy_daemon.specs.models import StrongboxSpec, SecretsSpec
 
 CANARY_NAME = "DUMMY"
 CANARY_VALUE = "CANARY"
 SECRET_IMAGE = "fiaas/secret_image:version"
-STRONGBOX_IMAGE = 'fiaas/strongbox_image:version'
+STRONGBOX_IMAGE = "fiaas/strongbox_image:version"
 DEFAULT_IMAGE = "some/image:version"
 
-APP_SPEC_SECRETS = [SecretsSpec(type='some-provider', parameters={}, annotations={})]
+APP_SPEC_SECRETS = [SecretsSpec(type="some-provider", parameters={}, annotations={})]
 
 
 def _secrets_mode_ids(fixture_value):
-    generic_enabled, strongbox_enabled, app_strongbox_enabled, app_spec_secrets_enabled, default_enabled, _ = fixture_value
-    return "Generic:{!r:^5}, Strongbox: {!r:^5}, app_strongbox:{!r:^5}, app_spec_secrets:{!r:^5}, default:{!r:^5}".format(
-        generic_enabled, strongbox_enabled, app_strongbox_enabled, app_spec_secrets_enabled, default_enabled)
+    (
+        generic_enabled,
+        strongbox_enabled,
+        app_strongbox_enabled,
+        app_spec_secrets_enabled,
+        default_enabled,
+        _,
+    ) = fixture_value
+    return (
+        "Generic:{!r:^5}, Strongbox: {!r:^5}, app_strongbox:{!r:^5}, app_spec_secrets:{!r:^5}, default:{!r:^5}".format(
+            generic_enabled, strongbox_enabled, app_strongbox_enabled, app_spec_secrets_enabled, default_enabled
+        )
+    )
 
 
 @pytest.fixture
@@ -51,41 +60,44 @@ def deployment():
 
 
 class TestSecrets(object):
-    @pytest.fixture(params=[
-        # (Enable generic, Enable strongbox, app strongbox, app-spec secrets, default_secret Name of called mock)
-        (True, True, True, False, False, "generic_init_secrets"),
-        (True, True, True, False, True, "generic_init_secrets"),
-        (True, True, True, True, False, "generic_init_secrets"),
-        (True, True, True, True, True, "generic_init_secrets"),
-        (True, True, False, False, False, "generic_init_secrets"),
-        (True, True, False, False, True, "generic_init_secrets"),
-        (True, True, False, True, False, "generic_init_secrets"),
-        (True, True, False, True, True, "generic_init_secrets"),
-        (True, False, True, False, False, "generic_init_secrets"),
-        (True, False, True, False, True, "generic_init_secrets"),
-        (True, False, True, True, False, "generic_init_secrets"),
-        (True, False, True, True, True, "generic_init_secrets"),
-        (True, False, False, False, False, "generic_init_secrets"),
-        (True, False, False, False, True, "generic_init_secrets"),
-        (True, False, False, True, False, "generic_init_secrets"),
-        (True, False, False, True, True, "generic_init_secrets"),
-        (False, True, True, False, False, "generic_init_secrets"),
-        (False, True, True, False, True, "generic_init_secrets"),
-        (False, True, True, True, False, "generic_init_secrets"),
-        (False, True, True, True, True, "generic_init_secrets"),
-        (False, True, False, False, False, "kubernetes_secrets"),
-        (False, True, False, False, True, "generic_init_secrets"),
-        (False, True, False, True, False, "generic_init_secrets"),
-        (False, True, False, True, True, "generic_init_secrets"),
-        (False, False, True, False, False, "kubernetes_secrets"),
-        (False, False, True, False, True, "generic_init_secrets"),
-        (False, False, True, True, False, "generic_init_secrets"),
-        (False, False, True, True, True, "generic_init_secrets"),
-        (False, False, False, False, False, "kubernetes_secrets"),
-        (False, False, False, False, True, "generic_init_secrets"),
-        (False, False, False, True, False, "generic_init_secrets"),
-        (False, False, False, True, True, "generic_init_secrets"),
-    ], ids=_secrets_mode_ids)
+    @pytest.fixture(
+        params=[
+            # (Enable generic, Enable strongbox, app strongbox, app-spec secrets, default_secret Name of called mock)
+            (True, True, True, False, False, "generic_init_secrets"),
+            (True, True, True, False, True, "generic_init_secrets"),
+            (True, True, True, True, False, "generic_init_secrets"),
+            (True, True, True, True, True, "generic_init_secrets"),
+            (True, True, False, False, False, "generic_init_secrets"),
+            (True, True, False, False, True, "generic_init_secrets"),
+            (True, True, False, True, False, "generic_init_secrets"),
+            (True, True, False, True, True, "generic_init_secrets"),
+            (True, False, True, False, False, "generic_init_secrets"),
+            (True, False, True, False, True, "generic_init_secrets"),
+            (True, False, True, True, False, "generic_init_secrets"),
+            (True, False, True, True, True, "generic_init_secrets"),
+            (True, False, False, False, False, "generic_init_secrets"),
+            (True, False, False, False, True, "generic_init_secrets"),
+            (True, False, False, True, False, "generic_init_secrets"),
+            (True, False, False, True, True, "generic_init_secrets"),
+            (False, True, True, False, False, "generic_init_secrets"),
+            (False, True, True, False, True, "generic_init_secrets"),
+            (False, True, True, True, False, "generic_init_secrets"),
+            (False, True, True, True, True, "generic_init_secrets"),
+            (False, True, False, False, False, "kubernetes_secrets"),
+            (False, True, False, False, True, "generic_init_secrets"),
+            (False, True, False, True, False, "generic_init_secrets"),
+            (False, True, False, True, True, "generic_init_secrets"),
+            (False, False, True, False, False, "kubernetes_secrets"),
+            (False, False, True, False, True, "generic_init_secrets"),
+            (False, False, True, True, False, "generic_init_secrets"),
+            (False, False, True, True, True, "generic_init_secrets"),
+            (False, False, False, False, False, "kubernetes_secrets"),
+            (False, False, False, False, True, "generic_init_secrets"),
+            (False, False, False, True, False, "generic_init_secrets"),
+            (False, False, False, True, True, "generic_init_secrets"),
+        ],
+        ids=_secrets_mode_ids,
+    )
     def secrets_mode(self, request):
         yield request.param
 
@@ -122,18 +134,29 @@ class TestSecrets(object):
 
         return wrapped
 
-    def test_secret_selection(self, request, secrets_mode, secrets, deployment, app_spec,
-                              kubernetes_secrets, generic_init_secrets, config):
-        generic_enabled, strongbox_enabled, app_strongbox_enabled, app_spec_secrets_enabled, default_enabled, \
-            wanted_mock_name = secrets_mode
+    def test_secret_selection(
+        self, request, secrets_mode, secrets, deployment, app_spec, kubernetes_secrets, generic_init_secrets, config
+    ):
+        (
+            generic_enabled,
+            strongbox_enabled,
+            app_strongbox_enabled,
+            app_spec_secrets_enabled,
+            default_enabled,
+            wanted_mock_name,
+        ) = secrets_mode
 
-        generic_init_secrets.supports.side_effect = self.mock_supports(generic_enabled, strongbox_enabled, default_enabled)
+        generic_init_secrets.supports.side_effect = self.mock_supports(
+            generic_enabled, strongbox_enabled, default_enabled
+        )
 
         if not generic_enabled:
             assert config.secrets_init_container_image is None
 
         if app_strongbox_enabled:
-            strongbox = StrongboxSpec(enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"])
+            strongbox = StrongboxSpec(
+                enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"]
+            )
         else:
             strongbox = StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None)
 
@@ -161,13 +184,13 @@ class TestSecrets(object):
         config.secrets_service_account_name = "secretsmanager"
 
         generic_init_secrets = mock.create_autospec(GenericInitSecrets(config), spec_set=True, instance=True)
-        generic_init_secrets.supports.side_effect = lambda _type: _type == 'default'
+        generic_init_secrets.supports.side_effect = lambda _type: _type == "default"
 
-        secrets = Secrets(config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets)
+        secrets = Secrets(
+            config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets
+        )
 
-        expected_spec = SecretsSpec(type="default",
-                                    parameters={},
-                                    annotations={})
+        expected_spec = SecretsSpec(type="default", parameters={}, annotations={})
 
         secrets.apply(deployment, app_spec)
 
@@ -178,16 +201,23 @@ class TestSecrets(object):
         config.strongbox_init_container_image = STRONGBOX_IMAGE
 
         app_spec = app_spec._replace(
-            strongbox=StrongboxSpec(enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"]))
+            strongbox=StrongboxSpec(
+                enabled=True, iam_role="iam_role", aws_region="eu-west-1", groups=["group1", "group2"]
+            )
+        )
 
         generic_init_secrets = mock.create_autospec(GenericInitSecrets(config), spec_set=True, instance=True)
-        generic_init_secrets.supports.side_effect = lambda _type: _type == 'strongbox'
+        generic_init_secrets.supports.side_effect = lambda _type: _type == "strongbox"
 
-        secrets = Secrets(config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets)
+        secrets = Secrets(
+            config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets
+        )
 
-        expected_spec = SecretsSpec(type="strongbox",
-                                    parameters={"AWS_REGION": "eu-west-1", "SECRET_GROUPS": "group1,group2"},
-                                    annotations={"iam.amazonaws.com/role": "iam_role"})
+        expected_spec = SecretsSpec(
+            type="strongbox",
+            parameters={"AWS_REGION": "eu-west-1", "SECRET_GROUPS": "group1,group2"},
+            annotations={"iam.amazonaws.com/role": "iam_role"},
+        )
 
         secrets.apply(deployment, app_spec)
 
@@ -197,7 +227,9 @@ class TestSecrets(object):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         app_spec = app_spec._replace(secrets=APP_SPEC_SECRETS)
         generic_init_secrets = mock.create_autospec(GenericInitSecrets(config), spec_set=True, instance=True)
-        secrets = Secrets(config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets)
+        secrets = Secrets(
+            config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets
+        )
         expected_spec = APP_SPEC_SECRETS[0]
 
         secrets.apply(deployment, app_spec)
@@ -209,13 +241,13 @@ class TestSecrets(object):
         config.secret_init_containers = {"default": DEFAULT_IMAGE}
 
         generic_init_secrets = mock.create_autospec(GenericInitSecrets(config), spec_set=True, instance=True)
-        generic_init_secrets.supports.side_effect = lambda _type: _type == 'default'
+        generic_init_secrets.supports.side_effect = lambda _type: _type == "default"
 
-        secrets = Secrets(config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets)
+        secrets = Secrets(
+            config, mock.create_autospec(KubernetesSecrets(), spec_set=True, instance=True), generic_init_secrets
+        )
 
-        expected_spec = SecretsSpec(type="default",
-                                    parameters={},
-                                    annotations={})
+        expected_spec = SecretsSpec(type="default", parameters={}, annotations={})
 
         secrets.apply(deployment, app_spec)
 
@@ -248,17 +280,12 @@ class TestRegisteredInitSecrets(object):
     @pytest.fixture
     def generic_init_secrets(self):
         config = mock.create_autospec(Configuration([]), spec_set=True)
-        config.secret_init_containers = {
-            "default": "default-image",
-            "some-provider": "some-secret-container-image"
-        }
+        config.secret_init_containers = {"default": "default-image", "some-provider": "some-secret-container-image"}
         return GenericInitSecrets(config)
 
     @pytest.fixture
     def secrets_spec(self):
-        return SecretsSpec(type="some-provider",
-                           parameters={},
-                           annotations={})
+        return SecretsSpec(type="some-provider", parameters={}, annotations={})
 
     def test_init_container(self, deployment, app_spec, generic_init_secrets, secrets_spec):
         generic_init_secrets.apply(deployment, app_spec, secrets_spec)
@@ -289,11 +316,11 @@ class TestDefaultGenericInitSecrets(object):
 
     @pytest.fixture
     def secrets_spec(self):
-        return SecretsSpec(type="default",
-                           parameters={},
-                           annotations={})
+        return SecretsSpec(type="default", parameters={}, annotations={})
 
-    def test_main_container_volumes(self, deployment, app_spec, generic_init_secrets, use_in_memory_emptydirs, secrets_spec):
+    def test_main_container_volumes(
+        self, deployment, app_spec, generic_init_secrets, use_in_memory_emptydirs, secrets_spec
+    ):
         assert generic_init_secrets.supports("default")
         generic_init_secrets.apply(deployment, app_spec, secrets_spec)
 
@@ -343,9 +370,11 @@ class TestStrongboxSecrets(object):
 
     @pytest.fixture
     def secrets_spec(self, app_spec):
-        return SecretsSpec(type="strongbox",
-                           parameters={"AWS_REGION": self.AWS_REGION, "SECRET_GROUPS": self.GROUPS},
-                           annotations={"iam.amazonaws.com/role": self.IAM_ROLE})
+        return SecretsSpec(
+            type="strongbox",
+            parameters={"AWS_REGION": self.AWS_REGION, "SECRET_GROUPS": self.GROUPS},
+            annotations={"iam.amazonaws.com/role": self.IAM_ROLE},
+        )
 
     def test_environment(self, deployment, app_spec, strongbox_secrets, secrets_spec):
         assert strongbox_secrets.supports("strongbox")
@@ -366,7 +395,4 @@ class TestStrongboxSecrets(object):
         strongbox_secrets.apply(deployment, app_spec, secrets_spec)
 
         pod_metadata = deployment.spec.template.metadata
-        assert pod_metadata.annotations == {
-            CANARY_NAME: CANARY_VALUE,
-            "iam.amazonaws.com/role": self.IAM_ROLE
-        }
+        assert pod_metadata.annotations == {CANARY_NAME: CANARY_VALUE, "iam.amazonaws.com/role": self.IAM_ROLE}

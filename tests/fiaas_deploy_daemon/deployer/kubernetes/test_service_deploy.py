@@ -27,9 +27,9 @@ from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
 
 from utils import TypeMatcher
 
-SELECTOR = {'app': 'testapp'}
+SELECTOR = {"app": "testapp"}
 LABELS = {"service": "pass through"}
-SERVICES_URI = '/api/v1/namespaces/default/services/'
+SERVICES_URI = "/api/v1/namespaces/default/services/"
 
 
 class TestServiceDeployer(object):
@@ -50,20 +50,14 @@ class TestServiceDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_deploy_new_service(self, deployer, service_type, post, app_spec, owner_references, extension_hook):
         expected_service = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
-                "loadBalancerSourceRanges": [
-                ],
-                'ports': [{
-                    'protocol': 'TCP',
-                    'targetPort': 8080,
-                    'name': 'http',
-                    'port': 80
-                }],
-                'sessionAffinity': 'None'
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
+                "loadBalancerSourceRanges": [],
+                "ports": [{"protocol": "TCP", "targetPort": 8080, "name": "http", "port": 80}],
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service
@@ -81,30 +75,39 @@ class TestServiceDeployer(object):
         expected_annotations = {"custom": "annotation"}
 
         expected_service = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
-                "loadBalancerSourceRanges": [
-                ],
-                'ports': [{
-                    'protocol': 'TCP',
-                    'targetPort': 8080,
-                    'name': 'http',
-                    'port': 80
-                }],
-                'sessionAffinity': 'None'
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
+                "loadBalancerSourceRanges": [],
+                "ports": [{"protocol": "TCP", "targetPort": 8080, "name": "http", "port": 80}],
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=expected_labels,
-                                                       annotations=expected_annotations)
+            "metadata": pytest.helpers.create_metadata(
+                "testapp", labels=expected_labels, annotations=expected_annotations
+            ),
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service
         post.return_value = mock_response
 
-        labels = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
-                                        service=expected_labels, service_account={}, pod={}, status={})
-        annotations = LabelAndAnnotationSpec(deployment={}, horizontal_pod_autoscaler={}, ingress={},
-                                             service=expected_annotations, service_account={}, pod={}, status={})
+        labels = LabelAndAnnotationSpec(
+            deployment={},
+            horizontal_pod_autoscaler={},
+            ingress={},
+            service=expected_labels,
+            service_account={},
+            pod={},
+            status={},
+        )
+        annotations = LabelAndAnnotationSpec(
+            deployment={},
+            horizontal_pod_autoscaler={},
+            ingress={},
+            service=expected_annotations,
+            service_account={},
+            pod={},
+            status={},
+        )
         app_spec_custom_labels_and_annotations = app_spec._replace(labels=labels, annotations=annotations)
 
         deployer.deploy(app_spec_custom_labels_and_annotations, SELECTOR, {})
@@ -114,28 +117,19 @@ class TestServiceDeployer(object):
     @pytest.mark.usefixtures("get")
     def test_deploy_new_service_with_multiple_ports(self, deployer, service_type, post, app_spec_thrift_and_http):
         expected_service = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
                 "loadBalancerSourceRanges": [],
-                'ports': [
-                    {
-                        'protocol': 'TCP',
-                        'targetPort': 8080,
-                        'name': 'http',
-                        'port': 80
-                    },
-                    {
-                        'protocol': 'TCP',
-                        'targetPort': 7999,
-                        'name': 'thrift',
-                        'port': 7999
-                    },
+                "ports": [
+                    {"protocol": "TCP", "targetPort": 8080, "name": "http", "port": 80},
+                    {"protocol": "TCP", "targetPort": 7999, "name": "thrift", "port": 7999},
                 ],
-                'sessionAffinity': 'None'
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS,
-                                                       annotations={"fiaas/tcp_port_names": "thrift"})
+            "metadata": pytest.helpers.create_metadata(
+                "testapp", labels=LABELS, annotations={"fiaas/tcp_port_names": "thrift"}
+            ),
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service
@@ -146,31 +140,23 @@ class TestServiceDeployer(object):
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 
     @pytest.mark.usefixtures("get")
-    def test_deploy_new_service_with_multiple_tcp_ports(self, deployer, service_type, post,
-                                                        app_spec_multiple_thrift_ports):
+    def test_deploy_new_service_with_multiple_tcp_ports(
+        self, deployer, service_type, post, app_spec_multiple_thrift_ports
+    ):
         expected_service = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
                 "loadBalancerSourceRanges": [],
-                'ports': [
-                    {
-                        'protocol': 'TCP',
-                        'targetPort': 7999,
-                        'name': 'thrift1',
-                        'port': 7999
-                    },
-                    {
-                        'protocol': 'TCP',
-                        'targetPort': 8000,
-                        'name': 'thrift2',
-                        'port': 8000
-                    },
+                "ports": [
+                    {"protocol": "TCP", "targetPort": 7999, "name": "thrift1", "port": 7999},
+                    {"protocol": "TCP", "targetPort": 8000, "name": "thrift2", "port": 8000},
                 ],
-                'sessionAffinity': 'None'
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS,
-                                                       annotations={"fiaas/tcp_port_names": "thrift1,thrift2"})
+            "metadata": pytest.helpers.create_metadata(
+                "testapp", labels=LABELS, annotations={"fiaas/tcp_port_names": "thrift1,thrift2"}
+            ),
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service
@@ -183,41 +169,27 @@ class TestServiceDeployer(object):
     def test_update_service(self, deployer, service_type, get, post, put, app_spec):
         mock_response = create_autospec(Response)
         mock_response.json.return_value = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
-                "loadBalancerSourceRanges": [
-                ],
-                'ports': [{
-                    'protocol': 'TCP',
-                    'targetPort': 8081,
-                    'name': 'http',
-                    'port': 81,
-                    'nodePort': 34567
-                }],
-                'sessionAffinity': 'None'
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
+                "loadBalancerSourceRanges": [],
+                "ports": [{"protocol": "TCP", "targetPort": 8081, "name": "http", "port": 81, "nodePort": 34567}],
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
         }
         get.side_effect = None
         get.return_value = mock_response
 
         expected_service = {
-            'spec': {
-                'selector': SELECTOR,
-                'type': service_type,
-                "loadBalancerSourceRanges": [
-                ],
-                'ports': [{
-                    'protocol': 'TCP',
-                    'targetPort': 8080,
-                    'name': 'http',
-                    'port': 80,
-                    'nodePort': 34567
-                }],
-                'sessionAffinity': 'None'
+            "spec": {
+                "selector": SELECTOR,
+                "type": service_type,
+                "loadBalancerSourceRanges": [],
+                "ports": [{"protocol": "TCP", "targetPort": 8080, "name": "http", "port": 80, "nodePort": 34567}],
+                "sessionAffinity": "None",
             },
-            'metadata': pytest.helpers.create_metadata('testapp', labels=LABELS)
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
         }
         mock_response = create_autospec(Response)
         mock_response.json.return_value = expected_service

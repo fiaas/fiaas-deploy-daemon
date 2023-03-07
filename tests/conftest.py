@@ -26,7 +26,7 @@ from xdist.scheduler import LoadScopeScheduling
 DOCKER_FOR_E2E_OPTION = "--use-docker-for-e2e"
 E2E_K8S_VERSION_OPTION = "--e2e-k8s-version"
 
-pytest_plugins = ['helpers_namespace']
+pytest_plugins = ["helpers_namespace"]
 
 
 def uuid():
@@ -36,6 +36,7 @@ def uuid():
 @pytest.fixture(autouse=True)
 def prometheus_registry():
     from prometheus_client.core import REGISTRY
+
     yield REGISTRY
     for c in list(REGISTRY._collector_to_names.keys()):
         REGISTRY.unregister(c)
@@ -83,8 +84,9 @@ def _add_useful_error_message(assertion, mockk, first, args):
     except AssertionError:
         other_calls = [call[0] for call in mockk.call_args_list if (first is None or call[0][0] == first)]
         if other_calls:
-            extra_info = '\n\nURI {} got the following other calls:\n{}\n'.format(first, '\n'.join(
-                _format_call(call) for call in other_calls))
+            extra_info = "\n\nURI {} got the following other calls:\n{}\n".format(
+                first, "\n".join(_format_call(call) for call in other_calls)
+            )
             if len(other_calls) == 1 and len(other_calls[0]) == 2 and args is not None:
                 extra_info += _add_argument_diff(other_calls[0][1], args[0])
             raise AssertionError(extra_info)
@@ -119,9 +121,9 @@ def _add_argument_diff(actual, expected, indent=0, acc=None):
 
 def _format_call(call):
     if len(call) > 1:
-        return 'call({}, {})'.format(call[0], call[1])
+        return "call({}, {})".format(call[0], call[1])
     else:
-        return 'call({})'.format(call[0])
+        return "call({})".format(call[0])
 
 
 class FixtureScheduling(LoadScopeScheduling):
@@ -167,8 +169,8 @@ class FixtureScheduling(LoadScopeScheduling):
         - if none of those apply, use the previous behavior of grouping by the two first fixture names (this is just
         as a fallback and might lead to suboptimal scheduling).
         """
-        if 'test_custom_resource_definition_deploy_with_service_account' in nodeid:
-            return 'serviceaccount'
+        if "test_custom_resource_definition_deploy_with_service_account" in nodeid:
+            return "serviceaccount"
 
         for service_type in ("NodePort", "ClusterIP"):
             if service_type in fixture_values:
@@ -183,13 +185,19 @@ def pytest_xdist_make_scheduler(config, log):
 
 
 def pytest_addoption(parser):
-    parser.addoption(DOCKER_FOR_E2E_OPTION, action="store_true",
-                     help="Run FDD using the development container image when executing E2E tests")
+    parser.addoption(
+        DOCKER_FOR_E2E_OPTION,
+        action="store_true",
+        help="Run FDD using the development container image when executing E2E tests",
+    )
     # When changing the most recent Kubernetes version here, also update the most recent Kubernetes version used in CI
     # in .semaphore/semaphore.yml, as these should point to the same version.
-    parser.addoption(E2E_K8S_VERSION_OPTION, action="store",
-                     default="v1.23.13",
-                     help="Run e2e tests against a kind cluster using this Kubernetes version")
+    parser.addoption(
+        E2E_K8S_VERSION_OPTION,
+        action="store",
+        default="v1.23.13",
+        help="Run e2e tests against a kind cluster using this Kubernetes version",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -203,15 +211,22 @@ def use_docker_for_e2e(request):
         container_name = "fdd_{}_{}_{}".format(service_type, k8s_version, uuid())
         test_request.addfinalizer(lambda: subprocess.call(["docker", "stop", container_name]))
         args = [
-            "docker", "run",
-            "-i", "--rm",
-            "-e", "NAMESPACE",
-            "--name", container_name,
+            "docker",
+            "run",
+            "-i",
+            "--rm",
+            "-e",
+            "NAMESPACE",
+            "--name",
+            container_name,
             "--network=kind",
-            "--publish", "{port}:{port}".format(port=port),
-            "--mount", "type=bind,src={},dst={},ro".format(cert_path, cert_path),
+            "--publish",
+            "{port}:{port}".format(port=port),
+            "--mount",
+            "type=bind,src={},dst={},ro".format(cert_path, cert_path),
             # make `kubernetes` resolve to the apiserver's IP to make it possible to validate its TLS cert
-            "--add-host", "kubernetes:{}".format(apiserver_ip),
+            "--add-host",
+            "kubernetes:{}".format(apiserver_ip),
         ]
         return args + ["fiaas/fiaas-deploy-daemon:development"]
 
@@ -222,4 +237,4 @@ def use_docker_for_e2e(request):
 
 
 def _is_macos():
-    return os.uname()[0] == 'Darwin'
+    return os.uname()[0] == "Darwin"

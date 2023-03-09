@@ -29,13 +29,13 @@ from requests.auth import AuthBase
 class DevHoseAuth(AuthBase):
     def __init__(self, key, tenant):
         self._key = base64.b64decode(key.strip())
-        self._auth_context = base64.b64encode(json.dumps({"type": tenant}).encode("utf-8")).decode("utf-8")
+        self._auth_context = base64.b64encode(json.dumps({"type": tenant}).encode("utf-8"))
 
     def __call__(self, r):
         timestamp = time.time()
         nonce = str(uuid.uuid4())
         r.headers["Content-Signature"] = self._calculate_signature(r, timestamp, nonce)
-        r.headers["DevHose-AuthContext"] = self._auth_context
+        r.headers["DevHose-AuthContext"] = self._auth_context.decode("utf-8")
         r.headers["DevHose-Nonce"] = nonce
         r.headers["Date"] = email.utils.formatdate(timestamp)
         return r
@@ -53,7 +53,7 @@ class DevHoseAuth(AuthBase):
                 quote_plus(nonce.encode("utf-8")),
                 str(int(timestamp) * 1000),
                 quote_plus(self._auth_context),
-                quote_plus(r.body.encode("utf-8")),
+                quote_plus(r.body),
                 "",
             )
         )

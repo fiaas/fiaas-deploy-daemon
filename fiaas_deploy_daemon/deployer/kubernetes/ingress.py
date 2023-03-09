@@ -43,7 +43,6 @@ class IngressDeployer(object):
         self._tls_issuer_type_default = self._get_issuer_type_default_ingress(config)
         self._tls_issuer_name_default = config.tls_certificate_issuer
 
-
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
             self._create(app_spec, labels)

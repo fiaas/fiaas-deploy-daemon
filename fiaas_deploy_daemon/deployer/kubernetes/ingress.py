@@ -34,14 +34,15 @@ class IngressDeployer(object):
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
         self._ingress_adapter = ingress_adapter
-        self._tls_issuer_type_default = config.tls_certificate_issuer_type_default
-        self._tls_issuer_name_default = config.tls_certificate_issuer
         self._tls_issuer_overrides = sorted(
             iter(config.tls_certificate_issuer_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
         )
         self._tls_issuer_type_overrides = sorted(
             iter(config.tls_certificate_issuer_type_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
         )
+        self._tls_issuer_type_default = self._get_issuer_type_default_ingress(config)
+        self._tls_issuer_name_default = config.tls_certificate_issuer
+
 
     def deploy(self, app_spec, labels):
         if self._should_have_ingress(app_spec):
@@ -100,33 +101,36 @@ class IngressDeployer(object):
         default_ingress_item = next(ingress_item for ingress_item in self._default_app_spec().ingresses)
         return next(pathmapping.path for pathmapping in default_ingress_item.pathmappings)
 
-    def _get_issuer_type_default_ingress(self):
+    def _get_issuer_type_default_ingress(self, config):
         for ingress_suffix in self._ingress_suffixes:
             for (suffix, issuer_type) in self._tls_issuer_type_overrides:
                 if ingress_suffix and (ingress_suffix == suffix or ingress_suffix.endswith("." + suffix)):
                     return issuer_type
 
-        return self._tls_issuer_type_default
+        return config.tls_certificate_issuer_type_default
 
     def _get_issuer_name_default_ingress(self, app_spec):
         for ingress_suffix in self._ingress_suffixes:
-            for (suffix, issuer_name) in self._tls_issuer_overrides:
-                if ingress_suffix and (ingress_suffix == suffix or ingress_suffix.endswith("." + suffix)):
-                    return issuer_name
+            if ingress_suffix:
+                for (suffix, issuer_name) in self._tls_issuer_overrides:
+                    if ingress_suffix == suffix or ingress_suffix.endswith("." + suffix):
+                        return issuer_name
 
         return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
 
     def _get_issuer_type(self, host):
-        for (suffix, issuer_type) in self._tls_issuer_type_overrides:
-            if host and (host == suffix or host.endswith("." + suffix)):
-                return issuer_type
+        if host:
+            for (suffix, issuer_type) in self._tls_issuer_type_overrides:
+                if (host == suffix or host.endswith("." + suffix)):
+                    return issuer_type
 
         return self._tls_issuer_type_default
 
     def _get_issuer_name(self, host, app_spec):
-        for (suffix, issuer_name) in self._tls_issuer_overrides:
-            if host and (host == suffix or host.endswith("." + suffix)):
-                return issuer_name
+        if host:
+            for (suffix, issuer_name) in self._tls_issuer_overrides:
+                if (host == suffix or host.endswith("." + suffix)):
+                    return issuer_name
 
         return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
 
@@ -143,14 +147,13 @@ class IngressDeployer(object):
         AnnotatedIngress = namedtuple(
             "AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"]
         )
-        tls_issuer_type_default = self._get_issuer_type_default_ingress()
         tls_issuer_name_default = self._get_issuer_name_default_ingress(app_spec)
         default_ingress = AnnotatedIngress(
             name=app_spec.name,
             ingress_items=[],
             annotations={},
             explicit_host=explicit_host,
-            issuer_type=tls_issuer_type_default,
+            issuer_type=self._tls_issuer_type_default,
             issuer_name=tls_issuer_name_default,
             default=True,
         )
@@ -171,7 +174,7 @@ class IngressDeployer(object):
                     default=False,
                 )
                 ingresses.append(annotated_ingresses)
-            elif issuer_type != tls_issuer_type_default or issuer_name != tls_issuer_name_default:
+            elif issuer_type != self._tls_issuer_type_default or issuer_name != tls_issuer_name_default:
                 annotated_ingress = override_issuer_ingresses.setdefault(
                     "{}:{}".format(issuer_type, issuer_name),
                     AnnotatedIngress(

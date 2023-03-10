@@ -49,7 +49,8 @@ LABELS = {"ingress_deployer": "pass through", "app": "testapp", "fiaas/deploymen
 ANNOTATIONS = {"some/annotation": "val"}
 LABEL_SELECTOR_PARAMS = {"labelSelector": "app=testapp,fiaas/deployment_id,fiaas/deployment_id!=12345"}
 INGRESSES_URI = "/apis/networking.k8s.io/v1/namespaces/default/ingresses/"
-DEFAULT_TLS_ISSUER = "certmanager.k8s.io/cluster-issuer"
+DEFAULT_TLS_ISSUER_TYPE = "certmanager.k8s.io/cluster-issuer"
+DEFAULT_TLS_ISSUER = "letsencrypt"
 DEFAULT_TLS_ANNOTATIONS = {"certmanager.k8s.io/cluster-issuer": "letsencrypt"}
 
 
@@ -447,8 +448,10 @@ class TestIngressDeployer(object):
             HostRewriteRule(r"([\w\.\-]+)\.svc.test.example.com=dont-rewrite-suffix-urls.example.com"),
             HostRewriteRule(r"([\w\.\-]+)\.127.0.0.1.xip.io=dont-rewrite-suffix-urls.example.com"),
         ]
-        config.tls_certificate_issuer_type_default = DEFAULT_TLS_ISSUER
+        config.tls_certificate_issuer_type_default = DEFAULT_TLS_ISSUER_TYPE
+        config.tls_certificate_issuer = DEFAULT_TLS_ISSUER
         config.tls_certificate_issuer_type_overrides = {}
+        config.tls_certificate_issuer_overrides = {}
         return config
 
     @pytest.fixture
@@ -604,7 +607,7 @@ class TestIngressDeployer(object):
             get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
             deployer.deploy(app_spec, LABELS)
             ingress_tls_deployer.apply.assert_called_once_with(
-                TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER, use_suffixes=True
+                TypeMatcher(Ingress), app_spec, hosts, DEFAULT_TLS_ISSUER_TYPE, DEFAULT_TLS_ISSUER, use_suffixes=True
             )
 
     @pytest.fixture

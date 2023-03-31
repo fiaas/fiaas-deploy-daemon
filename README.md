@@ -21,7 +21,7 @@ limitations under the License.
 
 [![Build status](https://fiaas-svc.semaphoreci.com/badges/fiaas-deploy-daemon.svg?style=shields)](https://fiaas-svc.semaphoreci.com/projects/fiaas-deploy-daemon)
 
-You need Python 2.7 and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
+You need Python 3.9+ and `pip`(7.x.x or higher)  on your `PATH` to work with fiaas-deploy-daemon.
 
 Supported use-cases
 -------------------
@@ -42,7 +42,6 @@ See the config-module for more information.
 Getting started with developing
 -------------------------------
 
-- First ensure you have the most recent version of setuptools for python2 with `pip install setuptools==44.0.0`. This is required for the following steps to work
 - Use  `$ pip install -r requirements.txt` to install dependencies
 - Make changes to code
 Run tests with `tox`:

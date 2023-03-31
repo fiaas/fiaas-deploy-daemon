@@ -49,7 +49,7 @@ blocks:
           - pip install .[ci]
           - mkdir -p "$HOME/.local/bin"
           - export PATH="$PATH:$HOME/.local/bin"
-          - curl -Lo $HOME/.local/bin/kind https://kind.sigs.k8s.io/dl/v0.11.1/kind-linux-amd64 && chmod +x $HOME/.local/bin/kind
+          - bin/install_e2e_dependencies "$K8S_VERSION"
           - cache restore "${SEMAPHORE_PROJECT_NAME}-${SEMAPHORE_WORKFLOW_ID}-build"
       jobs:
       - name: "e2e test"
@@ -66,9 +66,12 @@ blocks:
           - env_var: K8S_VERSION
             values:
               - v1.15.12
-              - v1.21.2
-              - v1.22.4
-              - v1.23.13
+              - v1.21.14
+              - v1.22.17
+              - v1.23.17
+              - v1.24.12
+              - v1.25.8
+              - v1.26.3
 promotions:
   - name: Push container image
     pipeline_file: push-container-image.yml

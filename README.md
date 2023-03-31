@@ -48,7 +48,7 @@ Getting started with developing
 Run tests with `tox`:
 - `$ tox -e codestyle` checks code style, indentations etc.
 - `$ tox -e test` runs unit tests
-- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker.
+- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker and kind v0.18.0+.
 
 Useful resources:
 
@@ -68,7 +68,7 @@ To run fiaas-deploy-daemon locally and connect it to a local cluster, do the fol
 
 With kind:
 * (See https://kind.sigs.k8s.io/docs/user/quick-start/#installation for how to install and configure kind)
-* Start kind: `$ kind create cluster --image kindest/node:v1.15.6`
+* Start kind: `$ kind create cluster --image kindest/node:v1.26.3`
 * Run `$ bin/run_fdd_against_kind`
 
 With minikube:

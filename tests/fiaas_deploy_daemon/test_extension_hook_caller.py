@@ -116,7 +116,7 @@ class TestExtensionHookCaller(object):
 
     @pytest.mark.usefixtures("session_respond_404")
     def test_return_same_object_when_no_url_in_config(self, session, app_spec, deployment):
-        conf = Configuration()
+        conf = Configuration([])
         extension_hook_caller = ExtensionHookCaller(conf, session)
         obj = copy.deepcopy(deployment)
         extension_hook_caller.apply(obj, app_spec)

@@ -69,7 +69,7 @@ class TestSpecFactory(object):
         if version:
             minimal_config["version"] = version
         factory(UID, NAME, IMAGE, minimal_config, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
-        mock_factory = request.getfuncargvalue(mock_to_call)
+        mock_factory = request.getfixturevalue(mock_to_call)
         mock_factory.assert_called_with(minimal_config, strip_defaults=False)
 
     @pytest.mark.parametrize("version", [1, 2, 3])

@@ -346,19 +346,21 @@ TEST_DATA = {
 
 def pytest_generate_tests(metafunc):
     fixtures = ("filename", "attribute", "value")
+
+    def generate_test_id(test_case):
+
+        filename, attribute, value = test_case
+        return "{}/{}=={}".format(filename, attribute.replace(".", "_"), repr(value).replace(".", "_"))
+
     if (
         metafunc.cls == TestFactory
         and metafunc.function.__name__ == "test"
         and all(fixname in metafunc.fixturenames for fixname in fixtures)
     ):
-        for filename in TEST_DATA:
-            for attribute in TEST_DATA[filename]:
-                value = TEST_DATA[filename][attribute]
-                fixture_args = {"filename": filename, "attribute": attribute, "value": value}
-                metafunc.addcall(
-                    fixture_args,
-                    "{}/{}=={}".format(filename, attribute.replace(".", "_"), repr(value).replace(".", "_")),
-                )
+        test_cases = [(filename, attribute, TEST_DATA[filename][attribute])
+                      for filename in TEST_DATA
+                      for attribute in TEST_DATA[filename]]
+        metafunc.parametrize("filename,attribute,value", test_cases)
 
 
 class TestFactory(object):

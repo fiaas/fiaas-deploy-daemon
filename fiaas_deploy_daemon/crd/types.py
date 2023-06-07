@@ -61,6 +61,7 @@ class FiaasApplication(Model):
 class FiaasApplicationStatusResult(Model):
     result = RequiredField(six.text_type)
     observedGeneration = Field(int, 0)
+    deployment_id = Field(six.text_type)
     logs = ListField(six.text_type)
 
 

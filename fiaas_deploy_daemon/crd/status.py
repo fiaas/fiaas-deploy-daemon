@@ -22,6 +22,7 @@ import pytz
 from blinker import signal
 from py27hash.hash import hash27
 from k8s.client import NotFound
+from k8s.client import ClientError
 from k8s.models.common import ObjectMeta, OwnerReference
 
 from .types import FiaasApplicationStatus, FiaasApplicationStatusInline, FiaasApplicationStatusResult
@@ -55,19 +56,26 @@ def _handle_signal(sender, status, subject):
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
 
-@retry_on_upsert_conflict
 def _save_status_inline(result,subject):
+    # Only save status inline when deployment_id from lifecycle object is the same as in the CRD.
+
     (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
     
     status = FiaasApplicationStatusInline.get(app_name, namespace)
+
     generation = int(status.metadata.generation)
+    observed_deployment_id = status.metadata.labels["fiaas/deployment_id"]
+    if observed_deployment_id == deployment_id:
+        # We only want to get error logs here.
+        logs = _get_error_logs(app_name, namespace, deployment_id, result)
 
-    # We only want to get error logs here.
-    logs = _get_error_logs(app_name, namespace, deployment_id, result)
+        LOG.info("Saving inline result %s for %s/%s generation %s deployment_id %s", result,namespace, app_name, generation, deployment_id)
+        status.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
+        status.save()
+    else:
+        # We are not updating the status because status belong to obsolete deployment_id
+        LOG.info("Not updating inline result %s for %s/%s generation %s deployment_id %s", result,namespace, app_name, generation, deployment_id)
 
-    LOG.info("Saving inline result %s for %s/%s generation %s", result,namespace, app_name, generation)
-    status.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
-    status.save()
 
     
 

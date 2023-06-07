@@ -61,15 +61,13 @@ class CrdResourcesSyncerApiextensionsV1(object):
             scope="Namespaced",
             conversion=CustomResourceConversion(strategy="None"),
         )
+        definition = CustomResourceDefinition.get_or_create(metadata=metadata, spec=spec)
         definition.save()
         LOG.info("Created or updated CustomResourceDefinition with name %s", name)
 
     @classmethod
     def update_crd_resources(cls):
-        object_with_unknown_fields = {
-            "type": "object",
-            "x-kubernetes-preserve-unknown-fields": True,
-        }
+        object_with_unknown_fields = {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
         application_schema_properties = {
             "spec": {
                 "type": "object",

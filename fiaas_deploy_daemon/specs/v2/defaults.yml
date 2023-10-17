@@ -18,16 +18,16 @@ namespace: default # the namespace to use
 admin_access: false # What access the pod has to the k8s api server
 has_secrets: false # if true, the application will get secrets as defined in hiearadata on ops1
 replicas: 2 # The number of instances to run. Ceiling if autoscaler is enabled
-autoscaler: # Autoscaler scales from min_replicas to fiaas.replicas (#replicas must be >1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
+autoscaler: # Autoscaler scales from min_replicas to fiaas.replicas (#replicas must be >1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-a-horizontalpodautoscaler-work. Note that currently, only resource metric scaling is supported, and CPU is the only supported resource metric.
   enabled: false
   min_replicas: 2
   cpu_threshold_percentage: 50
-host: # Optional. External hostname to be exposed on. If defined, Ingresses for {host}/{ports.path} is created. See http://kubernetes.io/docs/user-guide/ingress/
+host: # Optional. External hostname to be exposed on. If defined, Ingresses for {host}/{ports.path} is created. See https://kubernetes.io/docs/concepts/services-networking/ingress
 prometheus:
   enabled: true # if false the pod will not be scraped for metrics by prometheus
   port: http # Name of HTTP port prometheus is served on
   path: /internal-backstage/prometheus # Path to prometheus-metrics
-resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
+resources: # Optional. See: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers
   limits:
     memory: # app will be killed if exceeding these limits
     cpu: # app will have its cpu usage throttled if exceeding this limit

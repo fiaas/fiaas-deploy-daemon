@@ -15,13 +15,13 @@
 ---
 version: 3
 replicas:
-  # Autoscaler scales from replicas.minimum to replicas.maximum (if minimum < maximum and maximum > 1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/user-guide/horizontal-pod-autoscaling/
+  # Autoscaler scales from replicas.minimum to replicas.maximum (if minimum < maximum and maximum > 1). Need fiaas.resources.requests.cpu. Scales up on mean cpu utilisation of >cpu_threshold_percentage. See https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/#how-does-a-horizontalpodautoscaler-work. Note that currently, only resource metric scaling is supported, and CPU is the only supported resource metric.
   minimum: 2 # Set minimum to the same as maximum for no autoscaling
   maximum: 5
   cpu_threshold_percentage: 50
   singleton: true # Whether there should be a maximum of a single running instance at any one time. Only operational if maximum replicas is one. Set to false to have multiple replicas running during deployment, avoiding downtime.
 ingress: # Generate ingress rules for access from outside cluster. To disable, specify as []
-  - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See http://kubernetes.io/docs/user-guide/ingress/
+  - host: # Optional. External hostname to be exposed on. If defined (and at least one http port exists), Ingresses for {host}/{paths[x].path} is created. See https://kubernetes.io/docs/concepts/services-networking/ingress
     paths: # List of paths exposed to which application port
     - path: / # Path the application answers on
       port: http # Name of the port path is served on
@@ -57,7 +57,7 @@ healthchecks: # Healthchecks defined for your application. If omitted and a sing
     success_threshold: 1 # Minimum consecutive successes for the probe to be considered successful after having failed.
     failure_threshold: 3 # Minimum consecutive failures for the probe to be considered failed after having succeeded.
     timeout_seconds: 1 # Number of seconds after which the probe times out.
-resources: # Optional. See: http://kubernetes.io/docs/user-guide/compute-resources/
+resources: # Optional. See: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers
   limits:
     cpu: 400m # app will have its cpu usage throttled if exceeding this limit
     memory: 512Mi # app will be killed if exceeding these limits

@@ -40,7 +40,8 @@ class CrdResourcesSyncerApiextensionsV1(object):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-        schema = CustomResourceValidation(openAPIV3Schema=JSONSchemaProps(type="object", properties=schema_properties))
+        openAPIV3Schema = JSONSchemaProps(type="object", properties=schema_properties)
+        schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
         version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
         spec = CustomResourceDefinitionSpec(
             group=group,
@@ -94,7 +95,27 @@ class CrdResourcesSyncerApiextensionsV1(object):
                             "status": object_with_unknown_fields,
                         },
                     },
-                },
+                }
+            },
+            "status": {
+                "type": "object",
+                "properties": {
+                    "result": {
+                        "type": "string"
+                    },
+                    "observedGeneration": {
+                        "type": "integer"
+                    },
+                    "logs": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "deployment_id": {
+                        "type": "string"
+                    }
+                }
             }
         }
         application_status_schema_properties = {

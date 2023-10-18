@@ -87,6 +87,26 @@ EXPECTED_APPLICATION = {
                                         },
                                     },
                                 },
+                            },
+                            "status": {
+                                "type": "object",
+                                "properties": {
+                                    "result": {
+                                        "type": "string"
+                                    },
+                                    "observedGeneration": {
+                                        "type": "integer"
+                                    },
+                                    "logs": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "deployment_id": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         },
                         "oneOf": [],

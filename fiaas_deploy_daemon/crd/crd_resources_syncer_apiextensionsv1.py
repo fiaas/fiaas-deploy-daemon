@@ -44,8 +44,7 @@ class CrdResourcesSyncerApiextensionsV1(object):
         open_apiv3_schema = JSONSchemaProps(type="object", properties=schema_properties)
         schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
         if kind == "Application":
-            status = {"foo": "bar"}
-            custom_resource_subresources = CustomResourceSubresources(status=status)
+            custom_resource_subresources = CustomResourceSubresources(status={})
             version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema,
                                                          subresources=custom_resource_subresources)
         else:

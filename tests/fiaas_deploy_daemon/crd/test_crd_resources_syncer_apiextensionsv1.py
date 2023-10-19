@@ -47,9 +47,7 @@ EXPECTED_APPLICATION = {
                 "served": True,
                 "storage": True,
                 "subresources": {
-                    "status": {
-                        "foo": "bar"
-                    }
+                    "status": {}
                 },
                 "schema": {
                     "openAPIV3Schema": {

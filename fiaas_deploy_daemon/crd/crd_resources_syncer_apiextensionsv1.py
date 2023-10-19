@@ -103,7 +103,7 @@ class CrdResourcesSyncerApiextensionsV1(object):
                     "result": {
                         "type": "string"
                     },
-                    "observed_generation": {
+                    "observedGeneration": {
                         "type": "integer"
                     },
                     "logs": {

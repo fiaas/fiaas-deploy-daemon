@@ -82,7 +82,7 @@ class CrdWatcher(DaemonThread):
 
     def _deploy(self, application):
         if self._skip_status_event(application):
-            return 
+            return
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
         try:

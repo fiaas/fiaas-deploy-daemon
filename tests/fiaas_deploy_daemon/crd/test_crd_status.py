@@ -35,7 +35,7 @@ from fiaas_deploy_daemon.lifecycle import (
 )
 from fiaas_deploy_daemon.retry import UpsertConflict, CONFLICT_MAX_RETRIES
 from fiaas_deploy_daemon.lifecycle import Subject
-from utils import TypeMatcher, configure_mock_fail_then_success
+from utils import configure_mock_fail_then_success
 
 LAST_UPDATE = now()
 LOG_LINE = "This is a log line from a test."

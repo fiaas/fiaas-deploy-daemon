@@ -57,7 +57,7 @@ def _handle_signal(sender, status, subject):
 
 
 @retry_on_upsert_conflict
-def _save_status_inline(result,subject):
+def _save_status_inline(result, subject):
     (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
 
     app = FiaasApplication.get(app_name, namespace)
@@ -66,7 +66,7 @@ def _save_status_inline(result,subject):
     # We only want to get error logs here.
     logs = _get_error_logs(app_name, namespace, deployment_id, result)
 
-    LOG.info("Saving inline result %s for %s/%s generation %s", result,namespace, app_name, generation)
+    LOG.info("Saving inline result %s for %s/%s generation %s", result, namespace, app_name, generation)
     app.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
     app.save_status()
 
@@ -112,9 +112,11 @@ def _get_logs(app_name, namespace, deployment_id, result):
         else get_final_logs(app_name, namespace, deployment_id)
     )
 
+
 def _get_error_logs(app_name, namespace, deployment_id, result):
-        return get_running_error_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
-           get_final_error_logs(app_name, namespace, deployment_id)
+    return get_running_error_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+       get_final_error_logs(app_name, namespace, deployment_id)
+
 
 def _cleanup(app_name=None, namespace=None):
     statuses = FiaasApplicationStatus.find(app_name, namespace)

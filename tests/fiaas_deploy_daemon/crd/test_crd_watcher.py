@@ -82,6 +82,7 @@ STATUS_EVENT = {
     "type": WatchEvent.MODIFIED,
 }
 
+
 class FakeCrdResourcesSyncer(object):
     @classmethod
     def update_crd_resources(cls):

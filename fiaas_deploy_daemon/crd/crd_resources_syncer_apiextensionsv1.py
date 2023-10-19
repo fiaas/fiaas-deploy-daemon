@@ -40,8 +40,8 @@ class CrdResourcesSyncerApiextensionsV1(object):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-        openAPIV3Schema = JSONSchemaProps(type="object", properties=schema_properties)
-        schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
+        open_apiv3_schema = JSONSchemaProps(type="object", properties=schema_properties)
+        schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
         version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
         spec = CustomResourceDefinitionSpec(
             group=group,

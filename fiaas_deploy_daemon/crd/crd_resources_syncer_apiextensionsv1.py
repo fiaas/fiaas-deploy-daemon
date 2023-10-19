@@ -26,6 +26,7 @@ from k8s.models.apiextensions_v1_custom_resource_definition import (
     CustomResourceDefinitionVersion,
     CustomResourceValidation,
     JSONSchemaProps,
+    CustomResourceSubresources
 )
 
 from ..retry import retry_on_upsert_conflict
@@ -42,7 +43,12 @@ class CrdResourcesSyncerApiextensionsV1(object):
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
         open_apiv3_schema = JSONSchemaProps(type="object", properties=schema_properties)
         schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
-        version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
+        if kind == "application":
+            custom_resource_subresources = CustomResourceSubresources(status={})
+            version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema,
+                                                         subresources=custom_resource_subresources)
+        else:
+            version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
         spec = CustomResourceDefinitionSpec(
             group=group,
             names=names,

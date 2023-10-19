@@ -54,7 +54,6 @@ class FiaasApplication(Model):
         url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/applications/{name}"
         watch_list_url = "/apis/fiaas.schibsted.io/v1/watch/applications"
         watch_list_url_template = "/apis/fiaas.schibsted.io/v1/watch/namespaces/{namespace}/applications"
-        status_url_template = "/apis/fiaas.schibsted.io/v1/namespaces/{namespace}/applications/{name}/status"
 
     # Workaround for https://github.com/kubernetes/kubernetes/issues/44182
     apiVersion = Field(six.text_type, "fiaas.schibsted.io/v1")  # NOQA

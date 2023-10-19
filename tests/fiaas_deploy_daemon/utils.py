@@ -80,10 +80,6 @@ def crd_available(kubernetes, timeout=5):
     app_url = urljoin(
         kubernetes["host-to-container-server"], FiaasApplication._meta.url_template.format(namespace="default", name="")
     )
-    app_status_url = urljoin(
-        kubernetes["host-to-container-server"],
-        FiaasApplication._meta.url_template.format(namespace="default", name=""), "status"
-    )
     status_url = urljoin(
         kubernetes["host-to-container-server"],
         FiaasApplicationStatus._meta.url_template.format(namespace="default", name=""),
@@ -93,7 +89,7 @@ def crd_available(kubernetes, timeout=5):
     session.cert = (kubernetes["client-cert"], kubernetes["client-key"])
 
     def _crd_available():
-        for url in (app_url, status_url, app_status_url):
+        for url in (app_url, status_url):
             plog("Checking if CRDs are available at %s" % url)
             resp = session.get(url, timeout=timeout)
             resp.raise_for_status()

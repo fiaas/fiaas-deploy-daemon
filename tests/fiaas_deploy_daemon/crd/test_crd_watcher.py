@@ -75,6 +75,7 @@ STATUS_EVENT = {
             "image": "example/app",
         },
         "status": {
+            "result": "SUCCEED",
             "observedGeneration": 1,
         },
     },
@@ -301,9 +302,8 @@ class TestWatcher(object):
         assert deploy_queue.qsize() == count
 
     def test_deploy_save_status(self, crd_watcher, deploy_queue, watcher, status_get):
-        watcher.watch.return_value = [WatchEvent(MODIFIED_EVENT, FiaasApplication)]
+        watcher.watch.return_value = [WatchEvent(STATUS_EVENT, FiaasApplication)]
 
         assert deploy_queue.qsize() == 0
         crd_watcher._watch(None)
-        assert deploy_queue.qsize() == 1
-        status_get.assert_not_called()
+        assert deploy_queue.qsize() == 0

@@ -94,7 +94,7 @@ EXPECTED_APPLICATION = {
                                     "result": {
                                         "type": "string"
                                     },
-                                    "observedGeneration": {
+                                    "observed_generation": {
                                         "type": "integer"
                                     },
                                     "logs": {

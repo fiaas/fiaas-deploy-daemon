@@ -608,7 +608,7 @@ class TestE2E(object):
 
         metadata = ObjectMeta(name=name, namespace="default", labels={"fiaas/deployment_id": DEPLOYMENT_ID1})
         spec = FiaasApplicationSpec(application=name, image=IMAGE1, config=fiaas_yml)
-        fiaas_application = FiaasApplication(metadata=metadata, spec=spec)
+        fiaas_application = FiaasApplication(metadata=metadata, spec=spec, status={})
 
         fiaas_application.save()
         app_uid = fiaas_application.metadata.uid

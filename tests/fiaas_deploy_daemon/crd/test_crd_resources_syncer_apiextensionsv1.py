@@ -112,11 +112,7 @@ EXPECTED_APPLICATION = {
                                 }
                             }
                         },
-                        "oneOf": [],
-                        "allOf": [],
                         "required": [],
-                        "x-kubernetes-list-map-keys": [],
-                        "anyOf": [],
                     }
                 },
             }

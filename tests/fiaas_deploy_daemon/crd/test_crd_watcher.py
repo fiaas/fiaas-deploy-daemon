@@ -77,6 +77,7 @@ STATUS_EVENT = {
         "status": {
             "result": "SUCCEED",
             "observedGeneration": 1,
+            "deployment_id": "deployment_id",
         },
     },
     "type": WatchEvent.MODIFIED,

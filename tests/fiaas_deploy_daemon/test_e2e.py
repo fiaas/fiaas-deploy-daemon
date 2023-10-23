@@ -513,7 +513,7 @@ class TestE2E(object):
         )
 
         if not service_account:
-            #Get fiaas_application from server to avoid
+            # Get fiaas_application from server to avoid Conflict error
             fiaas_application = FiaasApplication.get(name)
             # Redeploy, new image, possibly new init-container
             fiaas_application.spec.image = IMAGE2
@@ -636,6 +636,7 @@ class TestE2E(object):
 
         wait_until(_check_two_ingresses, patience=PATIENCE)
 
+        # Get fiaas_application from server to avoid Conflict error
         fiaas_application = FiaasApplication.get(name)
         # Remove 2nd ingress to make sure cleanup works
         fiaas_application.spec.config["ingress"].pop()

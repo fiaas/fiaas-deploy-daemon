@@ -24,9 +24,9 @@ from py27hash.hash import hash27
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta, OwnerReference
 
-from .types import FiaasApplicationStatus
+from .types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationStatusResult
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
-from ..log_extras import get_final_logs, get_running_logs
+from ..log_extras import get_final_error_logs, get_final_logs, get_running_error_logs, get_running_logs
 from ..retry import retry_on_upsert_conflict
 from ..tools import merge_dicts
 
@@ -51,8 +51,25 @@ def _handle_signal(sender, status, subject):
     else:
         status = status.upper()
 
+    _save_status_inline(status, subject)
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
+
+
+@retry_on_upsert_conflict
+def _save_status_inline(result, subject):
+    (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
+
+    app = FiaasApplication.get(app_name, namespace)
+    generation = int(app.metadata.generation)
+
+    # We only want to get error logs here.
+    logs = _get_error_logs(app_name, namespace, deployment_id, result)
+
+    LOG.info("Saving inline result %s for %s/%s generation %s", result, namespace, app_name, generation)
+    app.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs,
+                                              deployment_id=deployment_id)
+    app.save_status()
 
 
 @retry_on_upsert_conflict
@@ -95,6 +112,11 @@ def _get_logs(app_name, namespace, deployment_id, result):
         if result in ["RUNNING", "INITIATED"]
         else get_final_logs(app_name, namespace, deployment_id)
     )
+
+
+def _get_error_logs(app_name, namespace, deployment_id, result):
+    return get_running_error_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+       get_final_error_logs(app_name, namespace, deployment_id)
 
 
 def _cleanup(app_name=None, namespace=None):

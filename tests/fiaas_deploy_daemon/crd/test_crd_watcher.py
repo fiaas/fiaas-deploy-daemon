@@ -39,6 +39,7 @@ ADD_EVENT = {
             "name": "example",
             "namespace": "the-namespace",
             "uid": "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
+            "generation": 1,
         },
         "spec": {
             "application": "example",
@@ -57,6 +58,29 @@ MODIFIED_EVENT = {
 DELETED_EVENT = {
     "object": ADD_EVENT["object"],
     "type": WatchEvent.DELETED,
+}
+
+STATUS_EVENT = {
+    "object": {
+        "metadata": {
+            "labels": {"fiaas/deployment_id": "deployment_id"},
+            "name": "example",
+            "namespace": "the-namespace",
+            "uid": "c1f34517-6f54-11ea-8eaf-0ad3d9992c8c",
+            "generation": 1,
+        },
+        "spec": {
+            "application": "example",
+            "config": {"version": 2, "host": "example.com", "namespace": "default", "annotations": {}},
+            "image": "example/app",
+        },
+        "status": {
+            "result": "SUCCEED",
+            "observedGeneration": 1,
+            "deployment_id": "deployment_id",
+        },
+    },
+    "type": WatchEvent.MODIFIED,
 }
 
 
@@ -278,3 +302,10 @@ class TestWatcher(object):
         assert deploy_queue.qsize() == 0
         crd_watcher._watch(None)
         assert deploy_queue.qsize() == count
+
+    def test_deploy_save_status(self, crd_watcher, deploy_queue, watcher, status_get):
+        watcher.watch.return_value = [WatchEvent(STATUS_EVENT, FiaasApplication)]
+
+        assert deploy_queue.qsize() == 0
+        crd_watcher._watch(None)
+        assert deploy_queue.qsize() == 0

@@ -25,7 +25,7 @@ from requests import Response
 
 from fiaas_deploy_daemon.crd import status
 from fiaas_deploy_daemon.crd.status import _cleanup, OLD_STATUSES_TO_KEEP, LAST_UPDATED_KEY, now
-from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus
+from fiaas_deploy_daemon.crd.types import FiaasApplicationStatus, FiaasApplication
 from fiaas_deploy_daemon.lifecycle import (
     DEPLOY_STATUS_CHANGED,
     STATUS_INITIATED,
@@ -48,6 +48,11 @@ class TestStatusReport(object):
     @pytest.fixture
     def get_or_create(self):
         with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplicationStatus.get_or_create", spec_set=True) as m:
+            yield m
+
+    @pytest.fixture
+    def get_app(self):
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplication.get", spec_set=True) as m:
             yield m
 
     @pytest.fixture
@@ -101,7 +106,7 @@ class TestStatusReport(object):
                     metafunc.addcall({"test_data": test_data}, test_id)
 
     @pytest.mark.usefixtures("post", "put", "find", "logs")
-    def test_action_on_signal(self, request, get, app_spec, test_data, signal):
+    def test_action_on_signal(self, request, get, get_app, app_spec, test_data, signal):
         app_name = "{}-isb5oqum36ylo".format(test_data.result)
         expected_logs = [LOG_LINE]
         if not test_data.new:
@@ -127,6 +132,10 @@ class TestStatusReport(object):
                 "logs": expected_logs,
             }
             get.return_value = get_response
+
+        app_response = mock.create_autospec(FiaasApplication)
+        app_response.metadata.generation = 1
+        get_app.return_value = app_response
 
         # expected data used in expected api response and to configure mocks
         labels = app_spec.labels._replace(status={"status/label": "true"})
@@ -193,6 +202,8 @@ class TestStatusReport(object):
         ignored_mock = request.getfixturevalue(test_data.ignored_mock)
         ignored_mock.assert_not_called()
 
+        app_response.save_status.assert_called_once()
+
     @pytest.mark.parametrize(
         "deployment_id",
         ("fiaas/fiaas-deploy-daemon:latest", "1234123", "The Ultimate Deployment ID", "@${[]}!#%&/()=?"),
@@ -231,7 +242,7 @@ class TestStatusReport(object):
         ),
     )
     @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
-    def test_retry_on_conflict(self, get_or_create, save, app_spec, signal, result, fail_times):
+    def test_retry_on_conflict(self, get_or_create, get_app, save, app_spec, signal, result, fail_times):
         def _fail():
             response = mock.MagicMock(spec=Response)
             response.status_code = 409  # Conflict
@@ -240,6 +251,10 @@ class TestStatusReport(object):
         configure_mock_fail_then_success(save, fail=_fail, fail_times=fail_times)
         application_status = FiaasApplicationStatus(metadata=ObjectMeta(name=app_spec.name, namespace="default"))
         get_or_create.return_value = application_status
+
+        app_response = mock.create_autospec(FiaasApplication)
+        app_response.metadata.generation = 1
+        get_app.return_value = app_response
 
         status.connect_signals()
         lifecycle_subject = _subject_from_app_spec(app_spec)
@@ -253,9 +268,11 @@ class TestStatusReport(object):
         save_calls = min(fail_times + 1, CONFLICT_MAX_RETRIES)
         assert save.call_args_list == [mock.call()] * save_calls
 
+        app_response.save_status.assert_called_once()
+
     @pytest.mark.parametrize("result", (STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED))
     @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
-    def test_fail_on_error(self, get_or_create, save, app_spec, signal, result):
+    def test_fail_on_error(self, get_or_create, get_app, save, app_spec, signal, result):
         response = mock.MagicMock(spec=Response)
         response.status_code = 403
 
@@ -263,6 +280,10 @@ class TestStatusReport(object):
 
         application_status = FiaasApplicationStatus(metadata=ObjectMeta(name=app_spec.name, namespace="default"))
         get_or_create.return_value = application_status
+
+        app_response = mock.create_autospec(FiaasApplication)
+        app_response.metadata.generation = 1
+        get_app.return_value = app_response
 
         status.connect_signals()
         lifecycle_subject = _subject_from_app_spec(app_spec)

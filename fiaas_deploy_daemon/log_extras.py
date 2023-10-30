@@ -36,15 +36,10 @@ class ExtraFilter(logging.Filter):
         return 1
 
 
-class ExtraErrorFilter(logging.Filter):
+class ErrorFilter(logging.Filter):
     def filter(self, record):
-        extras = {}
-        for key in ("app_name", "namespace", "deployment_id"):
-            extras[key] = getattr(_LOG_EXTRAS, key, "")
-        record.extras = extras
-
         return record.levelno >= logging.ERROR
-    
+
 
 class StatusFormatter(logging.Formatter):
     def __init__(self):
@@ -88,7 +83,8 @@ class StatusHandler(logging.Handler):
 class StatusErrorHandler(logging.Handler):
     def __init__(self):
         super(StatusErrorHandler, self).__init__(logging.ERROR)
-        self.addFilter(ExtraErrorFilter())
+        self.addFilter(ExtraFilter())
+        self.addFilter(ErrorFilter())
         self.setFormatter(StatusFormatter())
 
     def emit(self, record):

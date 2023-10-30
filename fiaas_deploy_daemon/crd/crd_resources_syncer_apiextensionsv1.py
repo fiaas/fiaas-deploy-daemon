@@ -25,10 +25,12 @@ from k8s.models.apiextensions_v1_custom_resource_definition import (
     CustomResourceDefinition,
     CustomResourceDefinitionVersion,
     CustomResourceValidation,
+    CustomResourceSubresources,
+    CustomResourceSubresourceStatusEnabled,
     JSONSchemaProps,
+    JSONSchemaPropsStatusEnabled,
 )
 
-from .types import AdditionalCustomResourceSubresources, JSONSchemaPropsForStatus
 from ..retry import retry_on_upsert_conflict
 
 LOG = logging.getLogger(__name__)
@@ -44,12 +46,12 @@ class CrdResourcesSyncerApiextensionsV1(object):
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
         # This might be unnecessary we can enable status on both to save logic
         if kind == "Application":
-            openAPIV3Schema = JSONSchemaPropsForStatus(type="object", properties=schema_properties)
-            subresources = AdditionalCustomResourceSubresources(status={})
+            subresources = CustomResourceSubresources(status=CustomResourceSubresourceStatusEnabled())
+            openAPIV3Schema = JSONSchemaPropsStatusEnabled(type="object", properties=schema_properties)
+            schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
         else:
             openAPIV3Schema = JSONSchemaProps(type="object", properties=schema_properties)
-        schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
-        subresources = AdditionalCustomResourceSubresources(status={})
+            schema = CustomResourceValidation(openAPIV3Schema=openAPIV3Schema)
         version_v1 = CustomResourceDefinitionVersion(
             name="v1", served=True, storage=True, schema=schema, subresources=subresources
         )
@@ -109,7 +111,12 @@ class CrdResourcesSyncerApiextensionsV1(object):
             },
             "status": {
                 "type": "object",
-                "properties": {"result": {"type": "string"}, "observedGeneration": {"type": "integer"}},
+                "properties": {
+                    "result": {"type": "string"},
+                    "observedGeneration": {"type": "integer"},
+                    "deployment_id": {"type": "string"},
+                    "logs": {"type": "array", "items": {"type": "string"}},
+                },
             },
         }
         application_status_schema_properties = {

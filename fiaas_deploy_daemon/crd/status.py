@@ -25,7 +25,7 @@ from k8s.client import NotFound
 from k8s.client import ClientError
 from k8s.models.common import ObjectMeta, OwnerReference
 
-from .types import FiaasApplicationStatus, FiaasApplicationStatusInline, FiaasApplicationStatusResult
+from .types import FiaasApplication, FiaasApplicationStatus
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
 from ..log_extras import get_final_logs, get_running_logs, get_final_error_logs, get_running_error_logs
 from ..retry import retry_on_upsert_conflict
@@ -52,32 +52,44 @@ def _handle_signal(sender, status, subject):
     else:
         status = status.upper()
 
-    _save_status_inline(status, subject)
+    _save_status_application(status, subject)
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
 
-def _save_status_inline(result,subject):
-    # Only save status inline when deployment_id from lifecycle object is the same as in the CRD.
 
+def _save_status_application(result, subject):
     (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
-    
-    status = FiaasApplicationStatusInline.get(app_name, namespace)
+    app = FiaasApplication.get(app_name, namespace)
 
-    generation = int(status.metadata.generation)
-    observed_deployment_id = status.metadata.labels["fiaas/deployment_id"]
+    generation = int(app.metadata.generation)
+    observed_deployment_id = app.metadata.labels["fiaas/deployment_id"]
     if observed_deployment_id == deployment_id:
         # We only want to get error logs here.
         logs = _get_error_logs(app_name, namespace, deployment_id, result)
 
-        LOG.info("Saving inline result %s for %s/%s generation %s deployment_id %s", result,namespace, app_name, generation, deployment_id)
-        status.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs)
-        status.save()
+        LOG.info(
+            "Saving status result %s for %s/%s generation %s deployment_id %s",
+            result,
+            namespace,
+            app_name,
+            generation,
+            deployment_id,
+        )
+        app.status.logs = logs
+        app.status.deployment_id = deployment_id
+        app.status.observedGeneration = generation
+        app.status.result = result
+        app.save_status()
     else:
         # We are not updating the status because status belong to obsolete deployment_id
-        LOG.info("Not updating inline result %s for %s/%s generation %s deployment_id %s", result,namespace, app_name, generation, deployment_id)
-
-
-    
+        LOG.info(
+            "Not saving result. Obsolete %s for %s/%s generation %s deployment_id %s",
+            result,
+            namespace,
+            app_name,
+            generation,
+            deployment_id,
+        )
 
 
 @retry_on_upsert_conflict
@@ -121,9 +133,14 @@ def _get_logs(app_name, namespace, deployment_id, result):
         else get_final_logs(app_name, namespace, deployment_id)
     )
 
+
 def _get_error_logs(app_name, namespace, deployment_id, result):
-        return get_running_error_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
-           get_final_error_logs(app_name, namespace, deployment_id)
+    return (
+        get_running_error_logs(app_name, namespace, deployment_id)
+        if result in ["RUNNING", "INITIATED"]
+        else get_final_error_logs(app_name, namespace, deployment_id)
+    )
+
 
 def _cleanup(app_name=None, namespace=None):
     statuses = FiaasApplicationStatus.find(app_name, namespace)

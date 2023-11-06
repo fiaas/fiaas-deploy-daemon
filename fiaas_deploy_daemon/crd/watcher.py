@@ -77,7 +77,7 @@ class CrdWatcher(DaemonThread):
         observed_generation = int(application.status.observedGeneration)
         deployment_id_status = application.status.deployment_id
         if observed_generation == generation and deployment_id == deployment_id_status:
-            LOG.debug("Event created from status update %s for app %s", deployment_id, app_name)
+            LOG.debug("Skipping watch event created from status update %s for app %s", deployment_id, app_name)
             return True
         return False
 

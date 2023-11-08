@@ -46,6 +46,9 @@ EXPECTED_APPLICATION = {
                 "name": "v1",
                 "served": True,
                 "storage": True,
+                "subresources": {
+                    "status": {}
+                },
                 "schema": {
                     "openAPIV3Schema": {
                         "type": "object",
@@ -87,13 +90,29 @@ EXPECTED_APPLICATION = {
                                         },
                                     },
                                 },
+                            },
+                            "status": {
+                                "type": "object",
+                                "properties": {
+                                    "result": {
+                                        "type": "string"
+                                    },
+                                    "observedGeneration": {
+                                        "type": "integer"
+                                    },
+                                    "logs": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "deployment_id": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         },
-                        "oneOf": [],
-                        "allOf": [],
                         "required": [],
-                        "x-kubernetes-list-map-keys": [],
-                        "anyOf": [],
                     }
                 },
             }

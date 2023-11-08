@@ -491,6 +491,8 @@ class TestE2E(object):
 
         # Check that deployment status is RUNNING
         def _assert_status():
+            app_server = FiaasApplication.get(name)
+            assert app_server.status.result == "RUNNING"
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
             assert status.result == "RUNNING"
             assert len(status.logs) > 0
@@ -511,6 +513,8 @@ class TestE2E(object):
         )
 
         if not service_account:
+            # Get fiaas_application from server to avoid Conflict error
+            fiaas_application = FiaasApplication.get(name)
             # Redeploy, new image, possibly new init-container
             fiaas_application.spec.image = IMAGE2
             fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
@@ -632,6 +636,8 @@ class TestE2E(object):
 
         wait_until(_check_two_ingresses, patience=PATIENCE)
 
+        # Get fiaas_application from server to avoid Conflict error
+        fiaas_application = FiaasApplication.get(name)
         # Remove 2nd ingress to make sure cleanup works
         fiaas_application.spec.config["ingress"].pop()
         if not fiaas_application.spec.config["ingress"]:

@@ -62,14 +62,20 @@ def _save_status_inline(result, subject):
 
     app = FiaasApplication.get(app_name, namespace)
     generation = int(app.metadata.generation)
-
+    try:
+        application_deployment_id = app.metadata.labels["fiaas/deployment_id"]
+    except (AttributeError, KeyError, TypeError):
+        raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
     # We only want to get error logs here.
-    logs = _get_error_logs(app_name, namespace, deployment_id, result)
+    if deployment_id == application_deployment_id:
+        logs = _get_error_logs(app_name, namespace, deployment_id, result)
 
-    LOG.info("Saving inline result %s for %s/%s generation %s", result, namespace, app_name, generation)
-    app.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs,
-                                              deployment_id=deployment_id)
-    app.save_status()
+        LOG.info("Saving inline result %s for %s/%s generation %s", result, namespace, app_name, generation)
+        app.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs,
+                                                  deployment_id=deployment_id)
+        app.save_status()
+    else:
+        LOG.debug("Skipping saving status for application %s with different deployment_id", app_name)
 
 
 @retry_on_upsert_conflict

@@ -82,8 +82,6 @@ class CrdWatcher(DaemonThread):
         return False
 
     def _deploy(self, application):
-        if self._skip_status_event(application):
-            return
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
         try:
@@ -91,6 +89,8 @@ class CrdWatcher(DaemonThread):
             set_extras(app_name=app_name, namespace=application.metadata.namespace, deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
+        if self._skip_status_event(application):
+            return
         if self._already_deployed(app_name, application.metadata.namespace, deployment_id):
             LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)
             return

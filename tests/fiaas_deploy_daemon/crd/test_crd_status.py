@@ -135,6 +135,7 @@ class TestStatusReport(object):
 
         app_response = mock.create_autospec(FiaasApplication)
         app_response.metadata.generation = 1
+        app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
 
         # expected data used in expected api response and to configure mocks
@@ -254,6 +255,7 @@ class TestStatusReport(object):
 
         app_response = mock.create_autospec(FiaasApplication)
         app_response.metadata.generation = 1
+        app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
 
         status.connect_signals()

@@ -256,7 +256,7 @@ class Configuration(Namespace):
         parser.add_argument(
             "--deployment-max-surge",
             help="maximum number of extra pods that can be scheduled above the desired "
-            "number of pods during an update",
+                 "number of pods during an update",
             default="25%",
             type=_int_or_unicode,
         )
@@ -271,7 +271,7 @@ class Configuration(Namespace):
             "--ready-check-timeout-multiplier",
             type=int,
             help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this "
-            + "number of seconds  (default: %(default)s)",
+                 + "number of seconds  (default: %(default)s)",
             default=10,
         )
         parser.add_argument(
@@ -393,6 +393,10 @@ class Configuration(Namespace):
         )
         tls_parser.add_argument(
             "--tls-certificate-ready", help="Check whether certificates are ready", default=False, action="store_true"
+        )
+        tls_parser.add_argument(
+            "--include-status-in-app", help="Include status subresource in application CRD", default=False,
+            action="store_true"
         )
 
         parser.parse_args(args, namespace=self)

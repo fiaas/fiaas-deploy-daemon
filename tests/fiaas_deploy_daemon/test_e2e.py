@@ -182,12 +182,13 @@ class TestE2E(object):
             "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls",
             "default_off",
-            "--enable-crd-support",
+            "--enable-crd-support"
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
         if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
+            args.append("--include-status-in-app")
         if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")
         args = docker_args + args

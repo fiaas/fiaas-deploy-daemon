@@ -169,6 +169,7 @@ class TestBootstrapE2E(object):
         ]
         if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
+            args.append("--include-status-in-app")
         if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")
 

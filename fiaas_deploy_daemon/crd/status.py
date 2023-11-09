@@ -35,8 +35,11 @@ OLD_STATUSES_TO_KEEP = 10
 LOG = logging.getLogger(__name__)
 
 
-def connect_signals():
-    signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal)
+def connect_signals(include_status_in_app):
+    if include_status_in_app:
+        signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal_with_status)
+    else:
+        signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal_without_status)
 
 
 def now():
@@ -45,7 +48,17 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(sender, status, subject):
+def _handle_signal_without_status(sender, status, subject):
+    if status == STATUS_STARTED:
+        status = "RUNNING"
+    else:
+        status = status.upper()
+
+    _save_status(status, subject)
+    _cleanup(subject.app_name, subject.namespace)
+
+
+def _handle_signal_with_status(sender, status, subject):
     if status == STATUS_STARTED:
         status = "RUNNING"
     else:

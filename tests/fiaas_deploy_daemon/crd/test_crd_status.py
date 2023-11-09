@@ -146,7 +146,7 @@ class TestStatusReport(object):
         app_spec = app_spec._replace(name=test_data.result, labels=labels, annotations=annotations)
 
         # setup status signals
-        status.connect_signals()
+        status.connect_signals(True)
 
         # setup expected API call resulting from status update
         expected_call = {
@@ -265,7 +265,7 @@ class TestStatusReport(object):
         app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
 
-        status.connect_signals()
+        status.connect_signals(True)
         lifecycle_subject = _subject_from_app_spec(app_spec)
 
         try:
@@ -295,7 +295,7 @@ class TestStatusReport(object):
         app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
 
-        status.connect_signals()
+        status.connect_signals(True)
         lifecycle_subject = _subject_from_app_spec(app_spec)
 
         with pytest.raises(ClientError):
@@ -313,7 +313,7 @@ class TestStatusReport(object):
         app_response.save_status.side_effect = ClientError("No", response=response)
         get_app.return_value = app_response
 
-        status.connect_signals()
+        status.connect_signals(True)
         lifecycle_subject = _subject_from_app_spec(app_spec)
 
         with pytest.raises(ClientError):
@@ -327,7 +327,7 @@ class TestStatusReport(object):
 
         get_app.side_effect = ClientError("No", response=response)
 
-        status.connect_signals()
+        status.connect_signals(True)
         lifecycle_subject = _subject_from_app_spec(app_spec)
 
         with pytest.raises(ClientError):

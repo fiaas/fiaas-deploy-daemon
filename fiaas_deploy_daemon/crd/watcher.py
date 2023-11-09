@@ -68,6 +68,19 @@ class CrdWatcher(DaemonThread):
         else:
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
 
+    # When we receive update event on FiaasApplication
+    # don't deploy if it's a status update
+    def _skip_status_event(self, application):
+        app_name = application.spec.application
+        deployment_id = application.metadata.labels["fiaas/deployment_id"]
+        generation = int(application.metadata.generation)
+        observed_generation = int(application.status.observedGeneration)
+        deployment_id_status = application.status.deployment_id
+        if observed_generation == generation and deployment_id == deployment_id_status:
+            LOG.debug("Skipping watch event created from status update %s for app %s", deployment_id, app_name)
+            return True
+        return False
+
     def _deploy(self, application):
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
@@ -76,6 +89,8 @@ class CrdWatcher(DaemonThread):
             set_extras(app_name=app_name, namespace=application.metadata.namespace, deployment_id=deployment_id)
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
+        if self._skip_status_event(application):
+            return
         if self._already_deployed(app_name, application.metadata.namespace, deployment_id):
             LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)
             return

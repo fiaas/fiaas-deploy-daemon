@@ -135,5 +135,5 @@ class CrdResourcesSyncerApiextensionsV1(object):
             "application-statuses",
             ("status", "appstatus", "fs"),
             "fiaas.schibsted.io",
-            open_apiv3_schema = JSONSchemaProps(type="object", properties=application_status_schema_properties)
+            JSONSchemaProps(type="object", properties=application_status_schema_properties)
         )

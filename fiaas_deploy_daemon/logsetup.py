@@ -22,7 +22,7 @@ import logging
 import sys
 
 from fiaas_deploy_daemon.log_extras import StatusHandler
-from .log_extras import ExtraFilter
+from .log_extras import ExtraFilter, StatusErrorHandler
 
 
 class FiaasFormatter(logging.Formatter):
@@ -103,6 +103,7 @@ def init_logging(config):
         root.setLevel(logging.DEBUG)
     root.addHandler(_create_default_handler(config))
     root.addHandler(StatusHandler())
+    root.addHandler(StatusErrorHandler())
     _set_special_levels()
 
 

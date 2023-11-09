@@ -39,21 +39,13 @@ LOG = logging.getLogger(__name__)
 class CrdResourcesSyncerApiextensionsV1(object):
     @staticmethod
     @retry_on_upsert_conflict
-    def _create_or_update(kind, plural, short_names, group, schema_properties):
+    def _create_or_update(kind, plural, short_names, group, open_apiv3_schema, subresources=None):
         name = "%s.%s" % (plural, group)
         metadata = ObjectMeta(name=name)
         names = CustomResourceDefinitionNames(kind=kind, plural=plural, shortNames=short_names)
-        if kind == "Application":
-            open_apiv3_schema = JSONSchemaPropsStatusEnabled(type="object", properties=schema_properties)
-            schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
-            custom_resource_subresources = CustomResourceSubresources(status=CustomResourceSubresourceStatusEnabled())
-            version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema,
-                                                         subresources=custom_resource_subresources)
-        else:
-            open_apiv3_schema = JSONSchemaProps(type="object", properties=schema_properties)
-            schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
-            version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema)
-
+        schema = CustomResourceValidation(openAPIV3Schema=open_apiv3_schema)
+        version_v1 = CustomResourceDefinitionVersion(name="v1", served=True, storage=True, schema=schema,
+                                                     subresources=subresources)
         spec = CustomResourceDefinitionSpec(
             group=group,
             names=names,
@@ -134,12 +126,14 @@ class CrdResourcesSyncerApiextensionsV1(object):
             "logs": {"type": "array", "items": {"type": "string"}},
         }
         cls._create_or_update(
-            "Application", "applications", ("app", "fa"), "fiaas.schibsted.io", application_schema_properties
+            "Application", "applications", ("app", "fa"), "fiaas.schibsted.io",
+            JSONSchemaPropsStatusEnabled(type="object", properties=application_schema_properties),
+            CustomResourceSubresources(status=CustomResourceSubresourceStatusEnabled())
         )
         cls._create_or_update(
             "ApplicationStatus",
             "application-statuses",
             ("status", "appstatus", "fs"),
             "fiaas.schibsted.io",
-            application_status_schema_properties,
+            open_apiv3_schema = JSONSchemaProps(type="object", properties=application_status_schema_properties)
         )

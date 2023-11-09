@@ -88,6 +88,7 @@ class TestConfig(object):
             "enable_deprecated_tls_entry_per_host",
             "disable_crd_creation",
             "datadog_activate_sleep",
+            "include_status_in_app",
         ),
     )
     def test_flags(self, key):

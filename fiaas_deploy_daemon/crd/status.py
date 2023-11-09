@@ -24,9 +24,9 @@ from py27hash.hash import hash27
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta, OwnerReference
 
-from .types import FiaasApplicationStatus
+from .types import FiaasApplication, FiaasApplicationStatus, FiaasApplicationStatusResult
 from ..lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED
-from ..log_extras import get_final_logs, get_running_logs
+from ..log_extras import get_final_error_logs, get_final_logs, get_running_error_logs, get_running_logs
 from ..retry import retry_on_upsert_conflict
 from ..tools import merge_dicts
 
@@ -35,8 +35,11 @@ OLD_STATUSES_TO_KEEP = 10
 LOG = logging.getLogger(__name__)
 
 
-def connect_signals():
-    signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal)
+def connect_signals(include_status_in_app):
+    if include_status_in_app:
+        signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal_with_status)
+    else:
+        signal(DEPLOY_STATUS_CHANGED).connect(_handle_signal_without_status)
 
 
 def now():
@@ -45,7 +48,7 @@ def now():
     return now.isoformat()
 
 
-def _handle_signal(sender, status, subject):
+def _handle_signal_without_status(sender, status, subject):
     if status == STATUS_STARTED:
         status = "RUNNING"
     else:
@@ -53,6 +56,39 @@ def _handle_signal(sender, status, subject):
 
     _save_status(status, subject)
     _cleanup(subject.app_name, subject.namespace)
+
+
+def _handle_signal_with_status(sender, status, subject):
+    if status == STATUS_STARTED:
+        status = "RUNNING"
+    else:
+        status = status.upper()
+
+    _save_status_inline(status, subject)
+    _save_status(status, subject)
+    _cleanup(subject.app_name, subject.namespace)
+
+
+@retry_on_upsert_conflict
+def _save_status_inline(result, subject):
+    (uid, app_name, namespace, deployment_id, repository, labels, annotations) = subject
+
+    app = FiaasApplication.get(app_name, namespace)
+    generation = int(app.metadata.generation)
+    try:
+        application_deployment_id = app.metadata.labels["fiaas/deployment_id"]
+    except (AttributeError, KeyError, TypeError):
+        raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
+    # We only want to get error logs here.
+    if deployment_id == application_deployment_id:
+        logs = _get_error_logs(app_name, namespace, deployment_id, result)
+
+        LOG.info("Saving inline result %s for %s/%s generation %s", result, namespace, app_name, generation)
+        app.status = FiaasApplicationStatusResult(observedGeneration=generation, result=result, logs=logs,
+                                                  deployment_id=deployment_id)
+        app.save_status()
+    else:
+        LOG.debug("Skipping saving status for application %s with different deployment_id", app_name)
 
 
 @retry_on_upsert_conflict
@@ -95,6 +131,11 @@ def _get_logs(app_name, namespace, deployment_id, result):
         if result in ["RUNNING", "INITIATED"]
         else get_final_logs(app_name, namespace, deployment_id)
     )
+
+
+def _get_error_logs(app_name, namespace, deployment_id, result):
+    return get_running_error_logs(app_name, namespace, deployment_id) if result in [u"RUNNING", u"INITIATED"] else \
+       get_final_error_logs(app_name, namespace, deployment_id)
 
 
 def _cleanup(app_name=None, namespace=None):

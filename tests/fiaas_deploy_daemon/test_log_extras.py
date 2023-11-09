@@ -18,9 +18,11 @@ import logging
 
 import pytest
 
-from fiaas_deploy_daemon.log_extras import StatusHandler, set_extras, get_final_logs
+from fiaas_deploy_daemon.log_extras import StatusHandler, set_extras, get_final_logs, StatusErrorHandler, \
+    get_final_error_logs
 
 TEST_MESSAGE = "This is a test log message"
+TEST_MESSAGE_ERROR = "This is a test log error message"
 
 
 class TestLogExtras(object):
@@ -35,6 +37,21 @@ class TestLogExtras(object):
         assert len(logs) == 1
         log_message = logs[0]
         assert TEST_MESSAGE in log_message
+        assert app_spec.name in log_message
+        assert app_spec.namespace in log_message
+
+    def test_status_log_has_extra_and_error(self, app_spec):
+        set_extras(app_spec)
+        logger = logging.getLogger("test.log.extras")
+        logger.addHandler(StatusErrorHandler())
+        logger.warning(TEST_MESSAGE)
+        logger.error(TEST_MESSAGE_ERROR)
+        logs = get_final_error_logs(
+            app_name=app_spec.name, namespace=app_spec.namespace, deployment_id=app_spec.deployment_id
+        )
+        assert len(logs) == 1
+        log_message = logs[0]
+        assert TEST_MESSAGE_ERROR in log_message
         assert app_spec.name in log_message
         assert app_spec.namespace in log_message
 

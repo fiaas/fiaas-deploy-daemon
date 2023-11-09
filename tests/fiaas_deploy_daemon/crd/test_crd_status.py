@@ -105,8 +105,9 @@ class TestStatusReport(object):
                     test_id = "{} status on {}".format(action, result)
                     metafunc.addcall({"test_data": test_data}, test_id)
 
+    @pytest.mark.parametrize("same_deployment_id", (True, False))
     @pytest.mark.usefixtures("post", "put", "find", "logs")
-    def test_action_on_signal(self, request, get, get_app, app_spec, test_data, signal):
+    def test_action_on_signal(self, request, get, get_app, app_spec, test_data, signal, same_deployment_id):
         app_name = "{}-isb5oqum36ylo".format(test_data.result)
         expected_logs = [LOG_LINE]
         if not test_data.new:
@@ -135,7 +136,8 @@ class TestStatusReport(object):
 
         app_response = mock.create_autospec(FiaasApplication)
         app_response.metadata.generation = 1
-        app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
+        if same_deployment_id:
+            app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
 
         # expected data used in expected api response and to configure mocks
@@ -202,8 +204,13 @@ class TestStatusReport(object):
         called_mock.assert_called_once_with(url, expected_call)
         ignored_mock = request.getfixturevalue(test_data.ignored_mock)
         ignored_mock.assert_not_called()
-
-        app_response.save_status.assert_called_once()
+        if same_deployment_id:
+            assert app_response.status.result == test_data.result
+            assert app_response.status.observedGeneration == app_response.metadata.generation
+            assert app_response.status.deployment_id == app_spec.deployment_id
+            app_response.save_status.assert_called_once()
+        else:
+            app_response.save_status.assert_not_called()
 
     @pytest.mark.parametrize(
         "deployment_id",
@@ -274,7 +281,7 @@ class TestStatusReport(object):
 
     @pytest.mark.parametrize("result", (STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED))
     @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
-    def test_fail_on_error(self, get_or_create, get_app, save, app_spec, signal, result):
+    def test_fail_on_save_error(self, get_or_create, get_app, save, app_spec, signal, result):
         response = mock.MagicMock(spec=Response)
         response.status_code = 403
 
@@ -285,7 +292,40 @@ class TestStatusReport(object):
 
         app_response = mock.create_autospec(FiaasApplication)
         app_response.metadata.generation = 1
+        app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
         get_app.return_value = app_response
+
+        status.connect_signals()
+        lifecycle_subject = _subject_from_app_spec(app_spec)
+
+        with pytest.raises(ClientError):
+            signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
+
+    @pytest.mark.parametrize("result", (STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED))
+    @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
+    def test_fail_on_save_status_error(self, get, get_app, save, app_spec, signal, result):
+        response = mock.MagicMock(spec=Response)
+        response.status_code = 403
+
+        app_response = mock.create_autospec(FiaasApplication)
+        app_response.metadata.generation = 1
+        app_response.metadata.labels = {"fiaas/deployment_id": app_spec.deployment_id}
+        app_response.save_status.side_effect = ClientError("No", response=response)
+        get_app.return_value = app_response
+
+        status.connect_signals()
+        lifecycle_subject = _subject_from_app_spec(app_spec)
+
+        with pytest.raises(ClientError):
+            signal(DEPLOY_STATUS_CHANGED).send(status=result, subject=lifecycle_subject)
+
+    @pytest.mark.parametrize("result", (STATUS_INITIATED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED))
+    @pytest.mark.usefixtures("get", "post", "put", "find", "logs")
+    def test_fail_on_get_app_error(self, get_or_create, get_app, save, app_spec, signal, result):
+        response = mock.MagicMock(spec=Response)
+        response.status_code = 403
+
+        get_app.side_effect = ClientError("No", response=response)
 
         status.connect_signals()
         lifecycle_subject = _subject_from_app_spec(app_spec)

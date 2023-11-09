@@ -491,9 +491,9 @@ class TestE2E(object):
 
         # Check that deployment status is RUNNING
         def _assert_status():
-            app_server = FiaasApplication.get(name)
-            assert app_server.status.result == "RUNNING"
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status_inline = FiaasApplication.get(name).status.result
+            assert status_inline == "RUNNING"
             assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
@@ -620,6 +620,8 @@ class TestE2E(object):
         # Check that deployment status is RUNNING
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status_inline = FiaasApplication.get(name).status.result
+            assert status_inline == "RUNNING"
             assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)

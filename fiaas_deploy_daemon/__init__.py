@@ -205,7 +205,7 @@ def main():
     try:
         log.info("fiaas-deploy-daemon starting with configuration {!r}".format(cfg))
         if cfg.enable_crd_support:
-            crd_binding = CustomResourceDefinitionBindings(cfg.use_apiextensionsv1_crd)
+            crd_binding = CustomResourceDefinitionBindings(cfg.use_apiextensionsv1_crd, cfg.include_status_in_app)
         else:
             crd_binding = DisabledCustomResourceDefinitionBindings()
         binding_specs = [

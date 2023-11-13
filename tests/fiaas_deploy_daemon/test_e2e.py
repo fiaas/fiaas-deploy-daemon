@@ -182,12 +182,13 @@ class TestE2E(object):
             "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls",
             "default_off",
-            "--enable-crd-support",
+            "--enable-crd-support"
         ]
         if service_account:
             args.append("--enable-service-account-per-app")
         if use_apiextensionsv1_crd(k8s_version):
             args.append("--use-apiextensionsv1-crd")
+            args.append("--include-status-in-app")
         if use_networkingv1_ingress(k8s_version):
             args.append("--use-networkingv1-ingress")
         args = docker_args + args
@@ -492,6 +493,8 @@ class TestE2E(object):
         # Check that deployment status is RUNNING
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status_inline = FiaasApplication.get(name).status.result
+            assert status_inline == "RUNNING"
             assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
@@ -511,6 +514,8 @@ class TestE2E(object):
         )
 
         if not service_account:
+            # Get fiaas_application from server to avoid Conflict error
+            fiaas_application = FiaasApplication.get(name)
             # Redeploy, new image, possibly new init-container
             fiaas_application.spec.image = IMAGE2
             fiaas_application.metadata.labels["fiaas/deployment_id"] = DEPLOYMENT_ID2
@@ -616,6 +621,8 @@ class TestE2E(object):
         # Check that deployment status is RUNNING
         def _assert_status():
             status = FiaasApplicationStatus.get(create_name(name, DEPLOYMENT_ID1))
+            status_inline = FiaasApplication.get(name).status.result
+            assert status_inline == "RUNNING"
             assert status.result == "RUNNING"
             assert len(status.logs) > 0
             assert any("Saving result RUNNING for default/{}".format(name) in line for line in status.logs)
@@ -632,6 +639,8 @@ class TestE2E(object):
 
         wait_until(_check_two_ingresses, patience=PATIENCE)
 
+        # Get fiaas_application from server to avoid Conflict error
+        fiaas_application = FiaasApplication.get(name)
         # Remove 2nd ingress to make sure cleanup works
         fiaas_application.spec.config["ingress"].pop()
         if not fiaas_application.spec.config["ingress"]:

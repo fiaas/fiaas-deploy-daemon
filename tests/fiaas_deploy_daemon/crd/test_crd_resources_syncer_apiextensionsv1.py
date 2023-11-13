@@ -46,6 +46,9 @@ EXPECTED_APPLICATION = {
                 "name": "v1",
                 "served": True,
                 "storage": True,
+                "subresources": {
+                    "status": {}
+                },
                 "schema": {
                     "openAPIV3Schema": {
                         "type": "object",
@@ -87,13 +90,29 @@ EXPECTED_APPLICATION = {
                                         },
                                     },
                                 },
+                            },
+                            "status": {
+                                "type": "object",
+                                "properties": {
+                                    "result": {
+                                        "type": "string"
+                                    },
+                                    "observedGeneration": {
+                                        "type": "integer"
+                                    },
+                                    "logs": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "deployment_id": {
+                                        "type": "string"
+                                    }
+                                }
                             }
                         },
-                        "oneOf": [],
-                        "allOf": [],
                         "required": [],
-                        "x-kubernetes-list-map-keys": [],
-                        "anyOf": [],
                     }
                 },
             }
@@ -157,7 +176,7 @@ class TestCrdResourcesSyncerV1(object):
 
         post.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
 
-        CrdResourcesSyncerApiextensionsV1.update_crd_resources()
+        CrdResourcesSyncerApiextensionsV1.update_crd_resources(True)
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1/customresourcedefinitions/", EXPECTED_APPLICATION),
@@ -174,7 +193,7 @@ class TestCrdResourcesSyncerV1(object):
         get.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
         put.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
 
-        CrdResourcesSyncerApiextensionsV1.update_crd_resources()
+        CrdResourcesSyncerApiextensionsV1.update_crd_resources(True)
 
         calls = [
             mock.call(

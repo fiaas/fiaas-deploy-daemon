@@ -69,7 +69,7 @@ class TestCrdResourcesSyncerV1beta1(object):
 
         post.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
 
-        CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
+        CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources(True)
 
         calls = [
             mock.call("/apis/apiextensions.k8s.io/v1beta1/customresourcedefinitions/", EXPECTED_APPLICATION),
@@ -86,7 +86,7 @@ class TestCrdResourcesSyncerV1beta1(object):
         get.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
         put.side_effect = [make_response(EXPECTED_APPLICATION), make_response(EXPECTED_STATUS)]
 
-        CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
+        CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources(True)
 
         calls = [
             mock.call(

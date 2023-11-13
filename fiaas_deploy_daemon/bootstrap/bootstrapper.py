@@ -71,7 +71,7 @@ class Bootstrapper(object):
             from ..crd.status import connect_signals
         else:
             raise InvalidConfigurationException("Custom Resource Definition support must be enabled when bootstrapping")
-        connect_signals()
+        connect_signals(config.include_status_in_app)
         signal(DEPLOY_STATUS_CHANGED).connect(self._store_status)
 
     def run(self):

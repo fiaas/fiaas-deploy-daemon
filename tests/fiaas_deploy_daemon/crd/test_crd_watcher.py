@@ -86,7 +86,7 @@ STATUS_EVENT = {
 
 class FakeCrdResourcesSyncer(object):
     @classmethod
-    def update_crd_resources(cls):
+    def update_crd_resources(cls, include_status_in_app):
         pass
 
 

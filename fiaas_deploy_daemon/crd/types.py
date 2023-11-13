@@ -41,6 +41,13 @@ class FiaasApplicationSpec(Model):
     additional_annotations = Field(AdditionalLabelsOrAnnotations)
 
 
+class FiaasApplicationStatusResult(Model):
+    result = RequiredField(six.text_type)
+    observedGeneration = Field(int, 0)  # NOQA
+    logs = ListField(six.text_type)
+    deployment_id = Field(six.text_type)
+
+
 class FiaasApplication(Model):
     class Meta:
         list_url = "/apis/fiaas.schibsted.io/v1/applications"
@@ -54,6 +61,7 @@ class FiaasApplication(Model):
 
     metadata = Field(ObjectMeta)
     spec = Field(FiaasApplicationSpec)
+    status = Field(FiaasApplicationStatusResult)
 
 
 class FiaasApplicationStatus(Model):

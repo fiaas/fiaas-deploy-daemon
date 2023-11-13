@@ -59,7 +59,7 @@ class CrdResourcesSyncerApiextensionsV1(object):
         LOG.info("Created or updated CustomResourceDefinition with name %s", name)
 
     @classmethod
-    def update_crd_resources(cls):
+    def update_crd_resources(cls, include_status_in_app):
         object_with_unknown_fields = {"type": "object", "x-kubernetes-preserve-unknown-fields": True}
         application_schema_properties = {
             "spec": {
@@ -125,11 +125,17 @@ class CrdResourcesSyncerApiextensionsV1(object):
             "result": {"type": "string"},
             "logs": {"type": "array", "items": {"type": "string"}},
         }
-        cls._create_or_update(
-            "Application", "applications", ("app", "fa"), "fiaas.schibsted.io",
-            JSONSchemaPropsStatusEnabled(type="object", properties=application_schema_properties),
-            CustomResourceSubresources(status=CustomResourceSubresourceStatusEnabled())
-        )
+        if include_status_in_app:
+            cls._create_or_update(
+                "Application", "applications", ("app", "fa"), "fiaas.schibsted.io",
+                JSONSchemaPropsStatusEnabled(type="object", properties=application_schema_properties),
+                CustomResourceSubresources(status=CustomResourceSubresourceStatusEnabled())
+            )
+        else:
+            cls._create_or_update(
+                "Application", "applications", ("app", "fa"), "fiaas.schibsted.io",
+                JSONSchemaProps(type="object", properties=application_schema_properties),
+            )
         cls._create_or_update(
             "ApplicationStatus",
             "application-statuses",

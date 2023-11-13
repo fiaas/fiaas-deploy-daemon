@@ -302,6 +302,10 @@ class Configuration(Namespace):
             action="store_true",
             default=False,
         )
+        parser.add_argument(
+            "--include-status-in-app", help="Include status subresource in application CRD", default=False,
+            action="store_true"
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(
             "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"
@@ -393,10 +397,6 @@ class Configuration(Namespace):
         )
         tls_parser.add_argument(
             "--tls-certificate-ready", help="Check whether certificates are ready", default=False, action="store_true"
-        )
-        tls_parser.add_argument(
-            "--include-status-in-app", help="Include status subresource in application CRD", default=False,
-            action="store_true"
         )
 
         parser.parse_args(args, namespace=self)

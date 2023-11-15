@@ -16,6 +16,8 @@
 # limitations under the License.
 from prometheus_client import Counter, Gauge, Histogram
 
+from fiaas_deploy_daemon.specs.models import AppSpec
+
 
 class Bookkeeper(object):
     """Measures time, fails and successes"""
@@ -25,12 +27,12 @@ class Bookkeeper(object):
     success_counter = Counter("deployer_success", "Deploy successful", ["app"])
     deploy_histogram = Histogram("deployer_time_to_deploy", "Time spent on each deploy")
 
-    def time(self, app_spec):
+    def time(self, app_spec: AppSpec):
         self.deploy_gauge.labels(app_spec.name).inc()
         return self.deploy_histogram.time()
 
-    def failed(self, app_spec):
+    def failed(self, app_spec: AppSpec):
         self.error_counter.labels(app_spec.name).inc()
 
-    def success(self, app_spec):
+    def success(self, app_spec: AppSpec):
         self.success_counter.labels(app_spec.name).inc()

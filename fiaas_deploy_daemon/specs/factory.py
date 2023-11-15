@@ -20,13 +20,15 @@ import logging
 
 from prometheus_client import Counter
 
+from fiaas_deploy_daemon.specs.models import AppSpec
+
 LOG = logging.getLogger(__name__)
 
 
 class SpecFactory(object):
     def __init__(self, factory, transformers, config):
-        self._factory = factory
-        self._transformers = transformers
+        self._factory: BaseFactory = factory
+        self._transformers: dict[int, BaseTransformer] = transformers
         self._config = config
         self._supported_versions = [factory.version] + list(transformers.keys())
         self._fiaas_counter = Counter("fiaas_yml_version", "The version of fiaas.yml used", ["version", "app_name"])
@@ -43,7 +45,7 @@ class SpecFactory(object):
         namespace,
         additional_labels,
         additional_annotations,
-    ):
+    ) -> AppSpec:
         """Create an app_spec from app_config"""
         fiaas_version = app_config.get("version", 1)
         self._fiaas_counter.labels(fiaas_version, name).inc()
@@ -82,7 +84,7 @@ class SpecFactory(object):
             current_version = app_config.get("version", 1)
         return app_config
 
-    def _validate(self, app_spec):
+    def _validate(self, app_spec: AppSpec):
         if app_spec.datadog.enabled and self._config.datadog_container_image is None:
             raise InvalidConfiguration("Requested datadog sidecar, but datadog-container-image is undefined")
 
@@ -94,7 +96,7 @@ class BaseFactory(object):
 
     def __call__(
         self, name, image, teams, tags, app_config, deployment_id, namespace, additional_labels, additional_annotations
-    ):
+    ) -> AppSpec:
         raise NotImplementedError("Subclass must override __call__")
 
 

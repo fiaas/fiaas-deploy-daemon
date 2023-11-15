@@ -19,21 +19,28 @@
 import base64
 import hashlib
 import logging
+from collections import namedtuple
 from itertools import chain
+from typing import Union
 
+from k8s.models.ingress import IngressTLS as V1Beta1IngressTLS
+from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
+
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
 from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
-from collections import namedtuple
 
 LOG = logging.getLogger(__name__)
 
 
 class IngressDeployer(object):
-    def __init__(self, config, default_app_spec, ingress_adapter):
+    def __init__(self, config: Configuration, default_app_spec, ingress_adapter):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
-        self._ingress_adapter = ingress_adapter
+        self._ingress_adapter: Union[NetworkingV1IngressAdapter, V1Beta1IngressAdapter] = ingress_adapter
         self._tls_issuer_overrides = sorted(
             iter(config.tls_certificate_issuer_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
         )
@@ -102,7 +109,7 @@ class IngressDeployer(object):
 
     def _get_issuer_type_default_ingress(self, config):
         for ingress_suffix in self._ingress_suffixes:
-            for (suffix, issuer_type) in self._tls_issuer_type_overrides:
+            for suffix, issuer_type in self._tls_issuer_type_overrides:
                 if ingress_suffix and (ingress_suffix == suffix or ingress_suffix.endswith("." + suffix)):
                     return issuer_type
 
@@ -111,27 +118,35 @@ class IngressDeployer(object):
     def _get_issuer_name_default_ingress(self, app_spec):
         for ingress_suffix in self._ingress_suffixes:
             if ingress_suffix:
-                for (suffix, issuer_name) in self._tls_issuer_overrides:
+                for suffix, issuer_name in self._tls_issuer_overrides:
                     if ingress_suffix == suffix or ingress_suffix.endswith("." + suffix):
                         return issuer_name
 
-        return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
+        return (
+            app_spec.ingress_tls.certificate_issuer
+            if app_spec.ingress_tls.certificate_issuer
+            else self._tls_issuer_name_default
+        )
 
     def _get_issuer_type(self, host):
         if host:
-            for (suffix, issuer_type) in self._tls_issuer_type_overrides:
-                if (host == suffix or host.endswith("." + suffix)):
+            for suffix, issuer_type in self._tls_issuer_type_overrides:
+                if host == suffix or host.endswith("." + suffix):
                     return issuer_type
 
         return self._tls_issuer_type_default
 
     def _get_issuer_name(self, host, app_spec):
         if host:
-            for (suffix, issuer_name) in self._tls_issuer_overrides:
-                if (host == suffix or host.endswith("." + suffix)):
+            for suffix, issuer_name in self._tls_issuer_overrides:
+                if host == suffix or host.endswith("." + suffix):
                     return issuer_name
 
-        return app_spec.ingress_tls.certificate_issuer if app_spec.ingress_tls.certificate_issuer else self._tls_issuer_name_default
+        return (
+            app_spec.ingress_tls.certificate_issuer
+            if app_spec.ingress_tls.certificate_issuer
+            else self._tls_issuer_name_default
+        )
 
     def _group_ingresses(self, app_spec):
         """Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
@@ -144,7 +159,8 @@ class IngressDeployer(object):
         ingress_items += self._expand_default_hosts(app_spec)
 
         AnnotatedIngress = namedtuple(
-            "AnnotatedIngress", ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"]
+            "AnnotatedIngress",
+            ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"],
         )
         tls_issuer_name_default = self._get_issuer_name_default_ingress(app_spec)
         default_ingress = AnnotatedIngress(
@@ -239,12 +255,12 @@ def deduplicate_in_order(iterator):
 
 
 class IngressTLSDeployer(object):
-    def __init__(self, config, ingress_tls):
+    def __init__(self, config: Configuration, ingress_tls):
         self._use_ingress_tls = config.use_ingress_tls
         self._cert_issuer = config.tls_certificate_issuer
         self._shortest_suffix = sorted(config.ingress_suffixes, key=len)[0] if config.ingress_suffixes else None
         self.enable_deprecated_tls_entry_per_host = config.enable_deprecated_tls_entry_per_host
-        self.ingress_tls = ingress_tls
+        self.ingress_tls: Union[V1Beta1IngressTLS, StableIngressTLS] = ingress_tls
 
     def apply(self, ingress, app_spec, hosts, issuer_type, issuer_name, use_suffixes=True):
         if self._should_have_ingress_tls(app_spec):

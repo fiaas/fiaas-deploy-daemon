@@ -16,32 +16,41 @@
 
 
 import logging
+from queue import Queue
+from typing import Union
 
 from k8s.base import WatchEvent
 from k8s.client import NotFound
 from k8s.watcher import Watcher
 from yaml import YAMLError
 
-from .status import create_name
-from .types import FiaasApplication, FiaasApplicationStatus
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1 import CrdResourcesSyncerApiextensionsV1
+from fiaas_deploy_daemon.crd.crd_resources_syncer_apiextensionsv1beta1 import CrdResourcesSyncerApiextensionsV1Beta1
+from fiaas_deploy_daemon.lifecycle import Lifecycle
+
 from ..base_thread import DaemonThread
 from ..deployer import DeployerEvent
 from ..log_extras import set_extras
-from ..specs.factory import InvalidConfiguration
+from ..specs.factory import InvalidConfiguration, SpecFactory
+from .status import create_name
+from .types import FiaasApplication, FiaasApplicationStatus
 
 LOG = logging.getLogger(__name__)
 
 
 class CrdWatcher(DaemonThread):
-    def __init__(self, spec_factory, deploy_queue, config, lifecycle, crd_resources_syncer):
+    def __init__(self, spec_factory, deploy_queue, config: Configuration, lifecycle, crd_resources_syncer):
         super(CrdWatcher, self).__init__()
-        self._spec_factory = spec_factory
-        self._deploy_queue = deploy_queue
+        self._spec_factory: SpecFactory = spec_factory
+        self._deploy_queue: Queue = deploy_queue
         self._watcher = Watcher(FiaasApplication)
-        self._lifecycle = lifecycle
+        self._lifecycle: Lifecycle = lifecycle
         self.namespace = config.namespace
         self.enable_deprecated_multi_namespace_support = config.enable_deprecated_multi_namespace_support
-        self.crd_resources_syncer = crd_resources_syncer
+        self.crd_resources_syncer: Union[
+            CrdResourcesSyncerApiextensionsV1, CrdResourcesSyncerApiextensionsV1Beta1
+        ] = crd_resources_syncer
         self.disable_crd_creation = config.disable_crd_creation
 
     def __call__(self):
@@ -60,7 +69,7 @@ class CrdWatcher(DaemonThread):
         except Exception:
             LOG.exception("Error while watching for changes on FiaasApplications")
 
-    def _handle_watch_event(self, event):
+    def _handle_watch_event(self, event: WatchEvent):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
         elif event.type == WatchEvent.DELETED:
@@ -70,7 +79,7 @@ class CrdWatcher(DaemonThread):
 
     # When we receive update event on FiaasApplication
     # don't deploy if it's a status update
-    def _skip_status_event(self, application):
+    def _skip_status_event(self, application: FiaasApplication):
         app_name = application.spec.application
         deployment_id = application.metadata.labels["fiaas/deployment_id"]
         generation = int(application.metadata.generation)
@@ -81,7 +90,7 @@ class CrdWatcher(DaemonThread):
             return True
         return False
 
-    def _deploy(self, application):
+    def _deploy(self, application: FiaasApplication):
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
         try:
@@ -124,7 +133,7 @@ class CrdWatcher(DaemonThread):
             LOG.exception("Failed to create app spec from fiaas config file")
             self._lifecycle.failed(lifecycle_subject)
 
-    def _delete(self, application):
+    def _delete(self, application: FiaasApplication):
         app_spec = self._spec_factory(
             uid=application.metadata.uid,
             name=application.spec.application,

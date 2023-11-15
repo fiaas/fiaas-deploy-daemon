@@ -17,10 +17,21 @@
 
 
 import logging
+from queue import Queue
+from typing import Union
 
-from .kubernetes.ready_check import ReadyCheck
+from fiaas_deploy_daemon.config import Configuration
+from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
+from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
+from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
+
 from ..base_thread import DaemonThread
 from ..log_extras import set_extras
+from ..specs.models import AppSpec
+from .bookkeeper import Bookkeeper
+from .kubernetes.ready_check import ReadyCheck
+from .scheduler import Scheduler
 
 LOG = logging.getLogger(__name__)
 
@@ -31,15 +42,17 @@ class Deployer(DaemonThread):
     Mainly focused on bookkeeping, and leaving the hard work to the framework-adapter.
     """
 
-    def __init__(self, deploy_queue, bookkeeper, adapter, scheduler, lifecycle, ingress_adapter, config):
+    def __init__(
+        self, deploy_queue: Queue, bookkeeper, adapter, scheduler: Scheduler, lifecycle, ingress_adapter, config
+    ):
         super(Deployer, self).__init__()
         self._queue = _make_gen(deploy_queue.get)
-        self._bookkeeper = bookkeeper
-        self._adapter = adapter
-        self._scheduler = scheduler
-        self._lifecycle = lifecycle
-        self._ingress_adapter = ingress_adapter
-        self._config = config
+        self._bookkeeper: Bookkeeper = bookkeeper
+        self._adapter: K8s = adapter
+        self._scheduler: Scheduler = scheduler
+        self._lifecycle: Lifecycle = lifecycle
+        self._ingress_adapter: Union[NetworkingV1IngressAdapter, V1Beta1IngressAdapter] = ingress_adapter
+        self._config: Configuration = config
 
     def __call__(self):
         for event in self._queue:
@@ -52,7 +65,7 @@ class Deployer(DaemonThread):
             else:
                 raise ValueError("Unknown DeployerEvent action {}".format(event.action))
 
-    def _update(self, app_spec, lifecycle_subject):
+    def _update(self, app_spec: AppSpec, lifecycle_subject: Subject):
         try:
             self._lifecycle.start(lifecycle_subject)
             with self._bookkeeper.time(app_spec):
@@ -77,7 +90,7 @@ class Deployer(DaemonThread):
             self._lifecycle.failed(lifecycle_subject)
             self._bookkeeper.failed(app_spec)
 
-    def _delete(self, app_spec):
+    def _delete(self, app_spec: AppSpec):
         self._adapter.delete(app_spec)
         LOG.info("Completed removal of %r", app_spec)
 

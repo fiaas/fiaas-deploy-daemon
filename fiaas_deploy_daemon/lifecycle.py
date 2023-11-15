@@ -37,16 +37,18 @@ class Lifecycle(object):
     def change(self, status, subject):
         self.state_change_signal.send(status=status, subject=subject)
 
-    def initiate(self, uid, app_name, namespace, deployment_id, repository=None, labels=None, annotations=None):
+    def initiate(
+        self, uid, app_name, namespace, deployment_id, repository=None, labels=None, annotations=None
+    ) -> Subject:
         subject = Subject(uid, app_name, namespace, deployment_id, repository, labels, annotations)
         self.state_change_signal.send(status=STATUS_INITIATED, subject=subject)
         return subject
 
-    def start(self, subject):
+    def start(self, subject: Subject):
         self.change(STATUS_STARTED, subject)
 
-    def success(self, subject):
+    def success(self, subject: Subject):
         self.change(STATUS_SUCCESS, subject)
 
-    def failed(self, subject):
+    def failed(self, subject: Subject):
         self.change(STATUS_FAILED, subject)

@@ -55,6 +55,6 @@ rules:
   - update
   - watch
 {{- if .Values.rbac.role.enableCertificates }}
-{{- include "fiaas-deploy-daemon.RoleCertificateRules" . }}
+{{ include "fiaas-deploy-daemon.RoleCertificateRules" . }}
 {{- end }}
 {{- end }}

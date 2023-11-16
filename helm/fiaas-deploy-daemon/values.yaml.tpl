@@ -45,6 +45,7 @@ rbac:
     create: true
     labels: {}
     annotations: {}
+    enableCertificates: false
   roleBinding:
     create: true
     labels: {}

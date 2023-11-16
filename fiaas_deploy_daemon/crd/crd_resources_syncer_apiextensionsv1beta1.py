@@ -42,7 +42,7 @@ class CrdResourcesSyncerApiextensionsV1Beta1(object):
         LOG.info("Created or updated CustomResourceDefinition with name %s", name)
 
     @classmethod
-    def update_crd_resources(cls, include_status_in_app):
+    def update_crd_resources(cls):
         cls._create_or_update("Application", "applications", ("app", "fa"), "fiaas.schibsted.io")
         cls._create_or_update(
             "ApplicationStatus", "application-statuses", ("status", "appstatus", "fs"), "fiaas.schibsted.io"

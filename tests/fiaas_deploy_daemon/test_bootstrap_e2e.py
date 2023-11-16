@@ -196,9 +196,9 @@ class TestBootstrapE2E(object):
 
     def test_bootstrap_crd(self, request, kubernetes, k8s_version, use_docker_for_e2e):
         if use_apiextensionsv1_crd(k8s_version):
-            CrdResourcesSyncerApiextensionsV1.update_crd_resources(True)
+            CrdResourcesSyncerApiextensionsV1.update_crd_resources()
         else:
-            CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources(True)
+            CrdResourcesSyncerApiextensionsV1Beta1.update_crd_resources()
         wait_until(crd_available(kubernetes), "CRD resources was created", patience=PATIENCE)
 
         def prepare_test_case(test_case):

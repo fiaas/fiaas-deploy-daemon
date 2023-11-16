@@ -26,8 +26,9 @@ from .watcher import CrdWatcher
 
 
 class CustomResourceDefinitionBindings(pinject.BindingSpec):
-    def __init__(self, use_apiextensionsv1_crd):
+    def __init__(self, use_apiextensionsv1_crd, include_status_in_app):
         self.use_apiextensionsv1_crd = use_apiextensionsv1_crd
+        self.include_status_in_app = include_status_in_app
 
     def configure(self, bind, require):
         require("config")
@@ -38,7 +39,7 @@ class CustomResourceDefinitionBindings(pinject.BindingSpec):
             bind("crd_resources_syncer", to_class=CrdResourcesSyncerApiextensionsV1)
         else:
             bind("crd_resources_syncer", to_class=CrdResourcesSyncerApiextensionsV1Beta1)
-        connect_signals()
+        connect_signals(self.include_status_in_app)
 
 
 class DisabledCustomResourceDefinitionBindings(pinject.BindingSpec):

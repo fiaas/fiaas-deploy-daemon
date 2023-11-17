@@ -15,6 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from dataclasses import dataclass
 
 from unittest import mock
 import pytest
@@ -344,21 +345,15 @@ TEST_DATA = {
 }
 
 
-def pytest_generate_tests(metafunc):
-    fixtures = ("filename", "attribute", "value")
-    if (
-        metafunc.cls == TestFactory
-        and metafunc.function.__name__ == "test"
-        and all(fixname in metafunc.fixturenames for fixname in fixtures)
-    ):
-        for filename in TEST_DATA:
-            for attribute in TEST_DATA[filename]:
-                value = TEST_DATA[filename][attribute]
-                fixture_args = {"filename": filename, "attribute": attribute, "value": value}
-                metafunc.addcall(
-                    fixture_args,
-                    "{}/{}=={}".format(filename, attribute.replace(".", "_"), repr(value).replace(".", "_")),
-                )
+@dataclass
+class SpecAttributeTestCase:
+    filename: str
+    attribute: str
+    value: any
+
+    @property
+    def test_id(self):
+        return "{}/{}=={}".format(self.filename, self.attribute.replace(".", "_"), repr(self.value).replace(".", "_"))
 
 
 class TestFactory(object):
@@ -472,12 +467,21 @@ class TestFactory(object):
         assert isinstance(actual, _Lookup) is False  # _Lookup objects should not leak to AppSpec
         assert actual == value
 
-    def test(self, load_app_config_testdata, factory, filename, attribute, value):
+    @pytest.mark.parametrize(
+        "testcase",
+        (
+            SpecAttributeTestCase(filename, attribute, TEST_DATA[filename][attribute])
+            for filename in TEST_DATA
+            for attribute in TEST_DATA[filename]
+        ),
+        ids=lambda testcase: testcase.test_id
+    )
+    def test(self, load_app_config_testdata, factory, testcase):
         app_spec = factory(
             UID,
             NAME,
             IMAGE,
-            load_app_config_testdata(filename),
+            load_app_config_testdata(testcase.filename),
             ["IO"],
             ["foo"],
             "deployment_id",
@@ -486,8 +490,8 @@ class TestFactory(object):
             None,
         )
         assert app_spec is not None
-        code = "app_spec.%s" % attribute
+        code = "app_spec.%s" % testcase.attribute
         assert app_spec.secrets is not None
         actual = eval(code)
         assert isinstance(actual, _Lookup) is False  # _Lookup objects should not leak to AppSpec
-        assert actual == value
+        assert actual == testcase.value

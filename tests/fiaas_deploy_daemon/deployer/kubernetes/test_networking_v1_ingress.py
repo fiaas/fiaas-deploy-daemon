@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass
 from unittest import mock
 import pytest
 from k8s.models.networking_v1_ingress import Ingress, IngressTLS
@@ -168,10 +169,16 @@ def ingress(rules=None, metadata=None, expose=False, tls=None):
     return expected_ingress
 
 
+@dataclass
+class IngressTestcase:
+    test_id: str
+    app_spec: AppSpec
+    expected_ingress: dict
+
+
 TEST_DATA = (
-    # (test_case_name, provided_app_spec, expected_ingress)
-    ("only_default_hosts", app_spec(), ingress()),
-    (
+    IngressTestcase("only_default_hosts", app_spec(), ingress()),
+    IngressTestcase(
         "single_explicit_host",
         app_spec(
             ingresses=[
@@ -189,7 +196,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "single_explicit_host_multiple_paths",
         app_spec(
             ingresses=[
@@ -224,7 +231,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "multiple_explicit_hosts",
         app_spec(
             ingresses=[
@@ -246,7 +253,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "multiple_explicit_hosts_multiple_paths",
         app_spec(
             ingresses=[
@@ -310,7 +317,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "rewrite_host_simple",
         app_spec(
             ingresses=[
@@ -328,7 +335,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "rewrite_host_regex_substitution",
         app_spec(
             ingresses=[
@@ -348,7 +355,7 @@ TEST_DATA = (
             ],
         ),
     ),
-    (
+    IngressTestcase(
         "custom_labels_and_annotations",
         app_spec(
             labels=LabelAndAnnotationSpec(
@@ -384,7 +391,7 @@ TEST_DATA = (
             )
         ),
     ),
-    (
+    IngressTestcase(
         "regex_path",
         app_spec(
             ingresses=[
@@ -472,28 +479,18 @@ class TestIngressDeployer(object):
         default_app_spec = Mock(return_value=app_spec())
         return default_app_spec
 
-    def pytest_generate_tests(self, metafunc):
-        fixtures = ("app_spec", "expected_ingress")
-        if (
-            metafunc.cls == self.__class__
-            and metafunc.function.__name__ == "test_ingress_deploy"
-            and all(fixname in metafunc.fixturenames for fixname in fixtures)
-        ):
-            for test_id, app_spec, expected_ingress in TEST_DATA:
-                params = {"app_spec": app_spec, "expected_ingress": expected_ingress}
-                metafunc.addcall(params, test_id)
-
+    @pytest.mark.parametrize("testcase", TEST_DATA, ids=lambda itc: itc.test_id)
     @pytest.mark.usefixtures("get")
-    def test_ingress_deploy(self, post, delete, deployer, app_spec, expected_ingress, owner_references, extension_hook):
+    def test_ingress_deploy(self, post, delete, deployer, owner_references, extension_hook, testcase):
         mock_response = create_autospec(Response)
-        mock_response.json.return_value = expected_ingress
+        mock_response.json.return_value = testcase.expected_ingress
         post.return_value = mock_response
 
-        deployer.deploy(app_spec, LABELS)
+        deployer.deploy(testcase.app_spec, LABELS)
 
-        pytest.helpers.assert_any_call(post, INGRESSES_URI, expected_ingress)
-        owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
-        extension_hook.apply.assert_called_once_with(TypeMatcher(Ingress), app_spec)
+        pytest.helpers.assert_any_call(post, INGRESSES_URI, testcase.expected_ingress)
+        owner_references.apply.assert_called_once_with(TypeMatcher(Ingress), testcase.app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Ingress), testcase.app_spec)
         delete.assert_called_once_with(INGRESSES_URI, body=None, params=LABEL_SELECTOR_PARAMS)
 
     @pytest.fixture
@@ -569,7 +566,7 @@ class TestIngressDeployer(object):
         ),
     )
     def test_remove_existing_ingress_if_not_needed(self, request, delete, post, deployer, spec_name):
-        app_spec = request.getfuncargvalue(spec_name)
+        app_spec = request.getfixturevalue(spec_name)
 
         deployer.deploy(app_spec, LABELS)
 

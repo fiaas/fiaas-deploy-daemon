@@ -87,7 +87,7 @@ class TestStatusReport(object):
     def pytest_generate_tests(self, metafunc):
         if metafunc.cls == self.__class__ and metafunc.function.__name__ == "test_action_on_signal":
             TestData = namedtuple(
-                "TestData", ("signal_name", "action", "status", "result", "new", "called_mock", "ignored_mock")
+                "TestData", ("signal_name", "action", "status", "result", "new", "called_mock", "ignored_mock", "test_id")
             )
             name2result = {
                 STATUS_STARTED: "RUNNING",
@@ -96,14 +96,19 @@ class TestStatusReport(object):
                 STATUS_INITIATED: "INITIATED",
             }
             action2data = {"create": (True, "post", "put"), "update": (False, "put", "post")}
-            for result in (STATUS_STARTED, STATUS_FAILED, STATUS_SUCCESS, STATUS_INITIATED):
-                for action in ("create", "update"):
-
-                    test_data = TestData(
-                        DEPLOY_STATUS_CHANGED, action, result, name2result[result], *action2data[action]
-                    )
-                    test_id = "{} status on {}".format(action, result)
-                    metafunc.addcall({"test_data": test_data}, test_id)
+            test_cases = [
+                TestData(
+                    DEPLOY_STATUS_CHANGED,
+                    action,
+                    result,
+                    name2result[result],
+                    *action2data[action],
+                    "{} status on {}".format(action, result)
+                )
+                for result in (STATUS_STARTED, STATUS_FAILED, STATUS_SUCCESS, STATUS_INITIATED)
+                for action in ("create", "update")
+            ]
+            metafunc.parametrize("test_data", test_cases, ids=lambda tc: tc.test_id)
 
     @pytest.mark.parametrize("same_deployment_id", (True, False))
     @pytest.mark.usefixtures("post", "put", "find", "logs")

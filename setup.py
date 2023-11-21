@@ -65,12 +65,12 @@ FLAKE8_REQ = [
 ]
 
 TESTS_REQ = [
-    "pytest-xdist == 1.27.0",
-    "pytest-sugar == 0.9.2",
-    "pytest-html == 1.22.0",
-    "pytest-cov == 2.7.1",
-    "pytest-helpers-namespace == 2019.1.8",
-    "pytest == 3.10.1",
+    "pytest-xdist == 3.3.1",
+    "pytest-sugar == 0.9.7",
+    "pytest-html == 3.2.0",
+    "pytest-cov == 4.1.0",
+    "pytest-helpers-namespace == 2021.12.29",
+    "pytest == 7.4.2",
     "requests-file == 1.4.3",
     "callee == 0.3",
 ]

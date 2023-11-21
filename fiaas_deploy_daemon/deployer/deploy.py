@@ -18,12 +18,10 @@
 
 import logging
 from queue import Queue
-from typing import Union
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
+from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressAdapterInterface
 from fiaas_deploy_daemon.lifecycle import Lifecycle, Subject
 
 from ..base_thread import DaemonThread
@@ -51,7 +49,7 @@ class Deployer(DaemonThread):
         self._adapter: K8s = adapter
         self._scheduler: Scheduler = scheduler
         self._lifecycle: Lifecycle = lifecycle
-        self._ingress_adapter: Union[NetworkingV1IngressAdapter, V1Beta1IngressAdapter] = ingress_adapter
+        self._ingress_adapter: IngressAdapterInterface = ingress_adapter
         self._config: Configuration = config
 
     def __call__(self):

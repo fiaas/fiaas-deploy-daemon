@@ -19,6 +19,7 @@
 import base64
 import hashlib
 import logging
+from abc import ABC, abstractmethod
 from collections import namedtuple
 from itertools import chain
 from typing import Union
@@ -27,12 +28,34 @@ from k8s.models.ingress import IngressTLS as V1Beta1IngressTLS
 from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
 from fiaas_deploy_daemon.config import Configuration
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_networkingv1 import NetworkingV1IngressAdapter
-from fiaas_deploy_daemon.deployer.kubernetes.ingress_v1beta1 import V1Beta1IngressAdapter
-from fiaas_deploy_daemon.specs.models import IngressItemSpec, IngressPathMappingSpec
+from fiaas_deploy_daemon.specs.models import AppSpec, IngressItemSpec, IngressPathMappingSpec
 from fiaas_deploy_daemon.tools import merge_dicts
 
 LOG = logging.getLogger(__name__)
+
+
+AnnotatedIngress = namedtuple(
+    "AnnotatedIngress",
+    ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"],
+)
+
+
+class IngressAdapterInterface(ABC):
+    @abstractmethod
+    def create_ingress(self, app_spec: AppSpec, annotated_ingress: AnnotatedIngress, labels: dict[str, str]):
+        ...
+
+    @abstractmethod
+    def delete_unused(self, app_spec: AppSpec, labels: dict[str, str]):
+        ...
+
+    @abstractmethod
+    def delete_list(self, app_spec: AppSpec):
+        ...
+
+    @abstractmethod
+    def find(self, name, namespace):
+        ...
 
 
 class IngressDeployer(object):
@@ -40,7 +63,7 @@ class IngressDeployer(object):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
-        self._ingress_adapter: Union[NetworkingV1IngressAdapter, V1Beta1IngressAdapter] = ingress_adapter
+        self._ingress_adapter: IngressAdapterInterface = ingress_adapter
         self._tls_issuer_overrides = sorted(
             iter(config.tls_certificate_issuer_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
         )
@@ -158,10 +181,6 @@ class IngressDeployer(object):
         ]
         ingress_items += self._expand_default_hosts(app_spec)
 
-        AnnotatedIngress = namedtuple(
-            "AnnotatedIngress",
-            ["name", "ingress_items", "annotations", "explicit_host", "issuer_type", "issuer_name", "default"],
-        )
         tls_issuer_name_default = self._get_issuer_name_default_ingress(app_spec)
         default_ingress = AnnotatedIngress(
             name=app_spec.name,

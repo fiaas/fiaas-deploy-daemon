@@ -24,10 +24,10 @@ from k8s.base import Equality, Inequality, Exists
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
-from .ingress import deduplicate_in_order
+from .ingress import IngressAdapterInterface, deduplicate_in_order
 
 
-class V1Beta1IngressAdapter(object):
+class V1Beta1IngressAdapter(IngressAdapterInterface):
     def __init__(self, ingress_tls_deployer, owner_references, extension_hook):
         self._ingress_tls_deployer = ingress_tls_deployer
         self._owner_references = owner_references

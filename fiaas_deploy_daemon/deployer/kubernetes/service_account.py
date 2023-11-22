@@ -19,25 +19,26 @@
 import logging
 
 from k8s.client import NotFound
+from k8s.models.common import ObjectMeta
 from k8s.models.service_account import ServiceAccount
 
-from k8s.models.common import ObjectMeta
+from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
+from fiaas_deploy_daemon.specs.models import AppSpec
 from fiaas_deploy_daemon.tools import merge_dicts
-
 
 LOG = logging.getLogger(__name__)
 
 
 class ServiceAccountDeployer(object):
     def __init__(self, config, owner_references):
-        self._owner_references = owner_references
+        self._owner_references: OwnerReferences = owner_references
 
-    def deploy(self, app_spec, labels):
+    def deploy(self, app_spec: AppSpec, labels):
         self._create(app_spec, labels)
 
     @retry_on_upsert_conflict
-    def _create(self, app_spec, labels):
+    def _create(self, app_spec: AppSpec, labels):
         LOG.info("Creating/updating serviceAccount for %s with labels: %s", app_spec.name, labels)
         service_account_name = app_spec.name
         namespace = app_spec.namespace

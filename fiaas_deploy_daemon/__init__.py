@@ -27,11 +27,13 @@ from queue import Queue
 import pinject
 import requests
 from k8s import config as k8s_config
+from prometheus_client import Info
 
 from .config import Configuration
 from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
 from .deployer import DeployerBindings
 from .deployer.kubernetes import K8sAdapterBindings
+from .extension_hook_caller import ExtensionHookCaller
 from .lifecycle import Lifecycle
 from .logsetup import init_logging
 from .secrets import resolve_secrets
@@ -39,12 +41,10 @@ from .specs import SpecBindings
 from .tools import log_request_response
 from .usage_reporting import UsageReportingBindings
 from .web import WebBindings
-from .extension_hook_caller import ExtensionHookCaller
-from prometheus_client import Info
 
 
 class MainBindings(pinject.BindingSpec):
-    def __init__(self, config):
+    def __init__(self, config: Configuration):
         self._config = config
         self._deploy_queue = Queue()
 
@@ -55,7 +55,7 @@ class MainBindings(pinject.BindingSpec):
         bind("lifecycle", to_class=Lifecycle)
         bind("extension_hook", to_class=ExtensionHookCaller)
 
-    def provide_session(self, config):
+    def provide_session(self, config: Configuration):
         session = requests.Session()
         if config.proxy:
             session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
@@ -63,7 +63,7 @@ class MainBindings(pinject.BindingSpec):
             session.hooks["response"].append(log_request_response)
         return session
 
-    def provide_secrets(self, config):
+    def provide_secrets(self, config: Configuration):
         return resolve_secrets(config.secrets_directory)
 
 
@@ -97,7 +97,7 @@ class Main(object):
         self._webapp.run("0.0.0.0", self._config.port)
 
 
-def init_k8s_client(config, log):
+def init_k8s_client(config: Configuration, log: logging.Logger):
     if config.client_cert:
         k8s_config.cert = (config.client_cert, config.client_key)
 
@@ -122,7 +122,7 @@ def init_k8s_client(config, log):
     k8s_config.debug = config.debug
 
 
-def thread_dump_logger(log):
+def thread_dump_logger(log: logging.Logger):
     def _dump_threads(signum, frame):
         log.info("Received signal %s, dumping thread stacks", signum)
         thread_names = {t.ident: t.name for t in threading.enumerate()}
@@ -188,7 +188,7 @@ def warn_if_env_variable_config(config, log):
         )
 
 
-def expose_fdd_version(config):
+def expose_fdd_version(config: Configuration):
     i = Info("fiaas_fdd_version", "The tag of the running fiaas-deploy-daemon docker image.")
     i.info({"fiaas_fdd_version": config.version})
 

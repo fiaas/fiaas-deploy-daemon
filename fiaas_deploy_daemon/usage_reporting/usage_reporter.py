@@ -18,6 +18,7 @@
 
 import collections
 import logging
+from typing import Optional
 
 import backoff
 import requests
@@ -25,8 +26,10 @@ from blinker import signal
 from prometheus_client import Counter, Histogram
 
 from fiaas_deploy_daemon.base_thread import DaemonThread
-from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_STARTED, STATUS_SUCCESS, STATUS_FAILED
+from fiaas_deploy_daemon.lifecycle import DEPLOY_STATUS_CHANGED, STATUS_FAILED, STATUS_STARTED, STATUS_SUCCESS
 from fiaas_deploy_daemon.tools import IterableQueue
+from fiaas_deploy_daemon.usage_reporting.dev_hose_auth import DevHoseAuth
+from fiaas_deploy_daemon.usage_reporting.transformer import DevhoseDeploymentEventTransformer
 
 LOG = logging.getLogger(__name__)
 
@@ -53,11 +56,11 @@ def _failure_handler(details):
 class UsageReporter(DaemonThread):
     def __init__(self, config, usage_transformer, session, usage_auth):
         super(UsageReporter, self).__init__()
-        self._session = session
-        self._transformer = usage_transformer
+        self._session: requests.Session = session
+        self._transformer: DevhoseDeploymentEventTransformer = usage_transformer
         self._event_queue = IterableQueue()
         self._usage_reporting_endpoint = config.usage_reporting_endpoint
-        self._usage_auth = usage_auth
+        self._usage_auth: Optional[DevHoseAuth] = usage_auth
         if self._usage_reporting_endpoint and self._usage_auth:
             LOG.info("Usage reporting enabled, sending events to %s", self._usage_reporting_endpoint)
             signal(DEPLOY_STATUS_CHANGED).connect(self._handle_signal)
@@ -79,7 +82,7 @@ class UsageReporter(DaemonThread):
         for event in self._event_queue:
             self._handle_event(event)
 
-    def _handle_event(self, event):
+    def _handle_event(self, event: UsageEvent):
         data = self._transformer(event.status, event.app_name, event.namespace, event.deployment_id, event.repository)
         try:
             self._send_data(data)

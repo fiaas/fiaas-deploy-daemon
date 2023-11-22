@@ -16,8 +16,8 @@
 # limitations under the License.
 import time
 from queue import PriorityQueue
-
 from time import monotonic as time_monotonic
+from typing import Callable
 
 from ..base_thread import DaemonThread
 
@@ -26,8 +26,8 @@ class Scheduler(DaemonThread):
     def __init__(self, time_func=time_monotonic, delay_func=time.sleep):
         super(Scheduler, self).__init__()
         self._tasks = PriorityQueue()
-        self._time_func = time_func
-        self._delay_func = delay_func
+        self._time_func: Callable[[], float] = time_func
+        self._delay_func: Callable[[float], None] = delay_func
 
     def __call__(self, *args, **kwargs):
         while True:
@@ -39,6 +39,6 @@ class Scheduler(DaemonThread):
                 self.add(task)
             self._delay_func(1)
 
-    def add(self, task, delay=1):
+    def add(self, task: Callable[[], bool], delay=1):
         execute_at = self._time_func() + delay
         self._tasks.put((execute_at, task))

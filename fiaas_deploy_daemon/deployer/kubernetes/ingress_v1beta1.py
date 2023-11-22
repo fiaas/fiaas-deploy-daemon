@@ -24,10 +24,10 @@ from k8s.base import Equality, Inequality, Exists
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
-from .ingress import deduplicate_in_order
+from .ingress import IngressAdapterInterface, deduplicate_in_order
 
 
-class V1Beta1IngressAdapter(object):
+class V1Beta1IngressAdapter(IngressAdapterInterface):
     def __init__(self, ingress_tls_deployer, owner_references, extension_hook):
         self._ingress_tls_deployer = ingress_tls_deployer
         self._owner_references = owner_references
@@ -60,7 +60,12 @@ class V1Beta1IngressAdapter(object):
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
         self._ingress_tls_deployer.apply(
-            ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, annotated_ingress.issuer_name, use_suffixes=use_suffixes
+            ingress,
+            app_spec,
+            hosts_for_tls,
+            annotated_ingress.issuer_type,
+            annotated_ingress.issuer_name,
+            use_suffixes=use_suffixes,
         )
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)

@@ -22,36 +22,41 @@ from k8s.models.common import ObjectMeta
 from k8s.models.deployment import (
     Deployment,
     DeploymentSpec,
-    PodTemplateSpec,
-    LabelSelector,
     DeploymentStrategy,
+    LabelSelector,
+    PodTemplateSpec,
     RollingUpdateDeployment,
 )
 from k8s.models.pod import (
-    ContainerPort,
-    EnvVar,
-    HTTPGetAction,
-    TCPSocketAction,
-    ExecAction,
-    HTTPHeader,
-    Container,
-    PodSpec,
-    VolumeMount,
-    Volume,
-    ResourceRequirements,
-    Probe,
     ConfigMapEnvSource,
     ConfigMapVolumeSource,
+    Container,
+    ContainerPort,
     EmptyDirVolumeSource,
     EnvFromSource,
+    EnvVar,
     EnvVarSource,
-    Lifecycle,
+    ExecAction,
     Handler,
-    ResourceFieldSelector,
+    HTTPGetAction,
+    HTTPHeader,
+    Lifecycle,
     ObjectFieldSelector,
+    PodSpec,
+    Probe,
+    ResourceFieldSelector,
+    ResourceRequirements,
+    TCPSocketAction,
+    Volume,
+    VolumeMount,
 )
 
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import should_have_autoscaler
+from fiaas_deploy_daemon.deployer.kubernetes.deployment.datadog import DataDog
+from fiaas_deploy_daemon.deployer.kubernetes.deployment.prometheus import Prometheus
+from fiaas_deploy_daemon.deployer.kubernetes.deployment.secrets import Secrets
+from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
+from fiaas_deploy_daemon.extension_hook_caller import ExtensionHookCaller
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
@@ -63,15 +68,15 @@ class DeploymentDeployer(object):
     DATADOG_PRE_STOP_DELAY = 5
 
     def __init__(self, config, datadog, prometheus, deployment_secrets, owner_references, extension_hook):
-        self._datadog = datadog
-        self._prometheus = prometheus
-        self._secrets = deployment_secrets
-        self._owner_references = owner_references
-        self._extension_hook = extension_hook
+        self._datadog: DataDog = datadog
+        self._prometheus: Prometheus = prometheus
+        self._secrets: Secrets = deployment_secrets
+        self._owner_references: OwnerReferences = owner_references
+        self._extension_hook: ExtensionHookCaller = extension_hook
         self._pre_stop_delay = config.pre_stop_delay
         self._legacy_fiaas_env = _build_fiaas_env(config)
         self._global_env = _build_global_env(config.global_env)
-        self._lifecycle = None
+        self._lifecycle: Lifecycle = None
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
         if self._pre_stop_delay > 0:

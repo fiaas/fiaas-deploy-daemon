@@ -24,6 +24,7 @@ from k8s.models.pod import (
     Lifecycle,
     SecretKeySelector,
 )
+from k8s.models.deployment import Deployment
 
 
 class DataDog(object):
@@ -35,7 +36,7 @@ class DataDog(object):
         self._datadog_global_tags = config.datadog_global_tags
         self._datadog_activate_sleep = config.datadog_activate_sleep
 
-    def apply(self, deployment, app_spec, besteffort_qos_is_required, pre_stop_delay):
+    def apply(self, deployment: Deployment, app_spec, besteffort_qos_is_required, pre_stop_delay):
         if app_spec.datadog.enabled:
             containers = deployment.spec.template.spec.containers
             main_container = containers[0]

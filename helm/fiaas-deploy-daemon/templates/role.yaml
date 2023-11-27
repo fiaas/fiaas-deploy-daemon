@@ -32,6 +32,17 @@ rules:
   - update
   - watch
 - apiGroups:
+  - fiaas.schibsted.io
+  resources:
+  - applications/status
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
   - ""
   - apps
   - autoscaling

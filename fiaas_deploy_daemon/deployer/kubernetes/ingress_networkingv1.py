@@ -16,31 +16,33 @@
 # limitations under the License.
 
 
+from k8s.base import Equality, Exists, Inequality
 from k8s.client import NotFound
 from k8s.models.common import ObjectMeta
 from k8s.models.networking_v1_ingress import (
-    Ingress,
-    IngressSpec,
-    IngressRule,
-    HTTPIngressRuleValue,
     HTTPIngressPath,
+    HTTPIngressRuleValue,
+    Ingress,
     IngressBackend,
+    IngressRule,
     IngressServiceBackend,
+    IngressSpec,
     ServiceBackendPort,
 )
-from k8s.base import Equality, Inequality, Exists
 
+from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
+from fiaas_deploy_daemon.extension_hook_caller import ExtensionHookCaller
 from fiaas_deploy_daemon.retry import retry_on_upsert_conflict
 from fiaas_deploy_daemon.tools import merge_dicts
 
-from .ingress import deduplicate_in_order
+from .ingress import IngressAdapterInterface, IngressTLSDeployer, deduplicate_in_order
 
 
-class NetworkingV1IngressAdapter(object):
+class NetworkingV1IngressAdapter(IngressAdapterInterface):
     def __init__(self, ingress_tls_deployer, owner_references, extension_hook):
-        self._ingress_tls_deployer = ingress_tls_deployer
-        self._owner_references = owner_references
-        self._extension_hook = extension_hook
+        self._ingress_tls_deployer: IngressTLSDeployer = ingress_tls_deployer
+        self._owner_references: OwnerReferences = owner_references
+        self._extension_hook: ExtensionHookCaller = extension_hook
 
     @retry_on_upsert_conflict
     def create_ingress(self, app_spec, annotated_ingress, labels):
@@ -69,7 +71,12 @@ class NetworkingV1IngressAdapter(object):
 
         hosts_for_tls = [rule.host for rule in per_host_ingress_rules]
         self._ingress_tls_deployer.apply(
-            ingress, app_spec, hosts_for_tls, annotated_ingress.issuer_type, annotated_ingress.issuer_name, use_suffixes=use_suffixes
+            ingress,
+            app_spec,
+            hosts_for_tls,
+            annotated_ingress.issuer_type,
+            annotated_ingress.issuer_name,
+            use_suffixes=use_suffixes,
         )
         self._owner_references.apply(ingress, app_spec)
         self._extension_hook.apply(ingress, app_spec)

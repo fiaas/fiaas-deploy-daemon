@@ -23,6 +23,7 @@ import sys
 
 from fiaas_deploy_daemon.log_extras import StatusHandler
 from .log_extras import ExtraFilter, StatusErrorHandler
+from .config import Configuration
 
 
 class FiaasFormatter(logging.Formatter):
@@ -88,7 +89,7 @@ class FiaasFormatter(logging.Formatter):
         }
 
 
-def init_logging(config):
+def init_logging(config: Configuration):
     """Set up logging system, according to FINN best practice for cloud
 
     - Always logs to stdout
@@ -107,7 +108,7 @@ def init_logging(config):
     _set_special_levels()
 
 
-def _create_default_handler(config):
+def _create_default_handler(config: Configuration):
     handler = logging.StreamHandler(sys.stdout)
     handler.addFilter(ExtraFilter())
     if _json_format(config):
@@ -125,9 +126,9 @@ def _set_special_levels():
         kafka_logger.setLevel(logging.INFO)
 
 
-def _json_format(config):
+def _json_format(config: Configuration):
     return config.log_format == "json"
 
 
-def _plain_format(config):
+def _plain_format(config: Configuration):
     return config.log_format == "plain"

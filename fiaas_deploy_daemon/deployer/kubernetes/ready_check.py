@@ -24,6 +24,8 @@ from k8s.models.certificate import Certificate
 from k8s.models.deployment import Deployment
 from time import monotonic as time_monotonic
 
+from .ingress import IngressAdapterInterface
+
 LOG = logging.getLogger(__name__)
 
 
@@ -40,7 +42,7 @@ class ReadyCheck(object):
         )
         self._fail_after = time_monotonic() + self._fail_after_seconds
         self._should_check_ingress = config.tls_certificate_ready
-        self._ingress_adapter = ingress_adapter
+        self._ingress_adapter: IngressAdapterInterface = ingress_adapter
 
     def __call__(self):
         if self._ready():

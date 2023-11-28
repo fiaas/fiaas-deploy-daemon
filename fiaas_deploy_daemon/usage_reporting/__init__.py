@@ -41,4 +41,6 @@ class UsageReportingBindings(pinject.BindingSpec):
             LOG.debug("Usage auth enabled")
             return DevHoseAuth(key, tenant)
         LOG.debug("Usage auth disabled")
+        # Not allowed to return None from provider functions.
+        # False works well as a replacement.
         return False

@@ -11,12 +11,12 @@ import pytest
 
 @pytest.fixture
 def health_check():
-    yield mock.create_autospec(HealthCheck)
+    yield mock.create_autospec(HealthCheck, spec_set=True)
 
 
 @pytest.fixture()
 def spec_factory():
-    yield mock.create_autospec(SpecFactory)
+    yield mock.create_autospec(SpecFactory, spec_set=True)
 
 
 @pytest.fixture

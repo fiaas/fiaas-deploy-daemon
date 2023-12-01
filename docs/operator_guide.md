@@ -195,6 +195,18 @@ Used to create a serviceaccount for each deployed application, using the applica
 By default fiaas-deploy-daemon updates the Application and ApplicationStatus CRDs on startup. CRDs are cluster scoped, so it is only necessary for one fiaas-deploy-daemon instance in a cluster to manage the CRDs. This flag can be used to disable updating of the CRDs per fiaas-deploy-daemon instance when not needed.
 It is a good idea to keep the flag enabled on at least one fiaas-deploy-daemon instance in a cluster, otherwise you have to manually ensure that the Application and ApplicationStatus CRDs are present and up to date in the cluster.
 
+### include-status-in-app
+
+By default, fiaas-deploy-daemon will create an ApplicationStatus resource to hold the status/result when a deploy is triggered by an Application resource's `fiaas/deployment_id` label being updated.
+
+When `include-status-in-app` enabled, the `status` subresource of Application resources triggering deploys will be updated with `result` and `logs`, in addition to the updates to ApplicationStatus resources as the deploy progresses. While the structure is similar to the ApplicationStatus resource, there are some differences:
+
+- `.status.deployment_id` will be set to the value of the `fiaas/deployment_id` label, and `.status.observedGeneration` will be set to the value of `.metadata.generation` on the Application resource update which triggered the deploy. External systems triggering deploys and observing the current state should use these fields to correlate results to the related update/`deployment_id`.
+- If multiple deploys are triggered by updates to the same Application resource in close succession, updates to the `.status` key for in-progress deploys other than the most recently triggered deploy *for the same application* may not be written to the `.status` key of the Application resource. ApplicationStatus resources corresponding to these deploys will however be updated as usual. See [#211 (comment)](https://github.com/fiaas/fiaas-deploy-daemon/pull/211#discussion_r1377335846) for more details.
+- The `.status.logs` key will only contain log entries logged with `ERROR` level (if any).
+
+This feature is disabled by default.
+
 Deploying an application
 ------------------------
 

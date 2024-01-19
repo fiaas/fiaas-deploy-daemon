@@ -27,6 +27,7 @@ from .deployment import DeploymentDeployer
 from .ingress import IngressDeployer
 from .service import ServiceDeployer
 from .service_account import ServiceAccountDeployer
+from .pod_disruption_budget import PodDisruptionBudgetDeployer
 
 LOG = logging.getLogger(__name__)
 
@@ -35,7 +36,8 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster"""
 
     def __init__(
-        self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, service_account_deployer
+        self, config, service_deployer, deployment_deployer, ingress_deployer,
+        autoscaler, service_account_deployer, pod_disruption_budget_deployer
     ):
         self._version = config.version
         self._enable_service_account_per_app = config.enable_service_account_per_app
@@ -44,6 +46,7 @@ class K8s(object):
         self._ingress_deployer: IngressDeployer = ingress_deployer
         self._autoscaler_deployer: AutoscalerDeployer = autoscaler
         self._service_account_deployer: ServiceAccountDeployer = service_account_deployer
+        self._pod_disruption_budget_deployer: PodDisruptionBudgetDeployer = pod_disruption_budget_deployer
 
     def deploy(self, app_spec: AppSpec):
         if _besteffort_qos_is_required(app_spec):
@@ -56,12 +59,14 @@ class K8s(object):
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
         self._autoscaler_deployer.deploy(app_spec, labels)
+        self._pod_disruption_budget_deployer.deploy(app_spec, selector, labels)
 
     def delete(self, app_spec: AppSpec):
         self._ingress_deployer.delete(app_spec)
         self._autoscaler_deployer.delete(app_spec)
         self._service_deployer.delete(app_spec)
         self._deployment_deployer.delete(app_spec)
+        self._pod_disruption_budget_deployer.delete(app_spec)
 
     def _make_labels(self, app_spec: AppSpec):
         labels = {

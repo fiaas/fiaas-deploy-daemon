@@ -216,6 +216,7 @@ class TestDeploymentDeployer(object):
             service_account={},
             pod=pod_labels,
             status={},
+            pod_disruption_budget={},
         )
         annotations = LabelAndAnnotationSpec(
             deployment=deploy_annotations,
@@ -225,6 +226,7 @@ class TestDeploymentDeployer(object):
             service_account={},
             pod=pod_annotations,
             status={},
+            pod_disruption_budget={},
         )
 
         if generic_toggle:

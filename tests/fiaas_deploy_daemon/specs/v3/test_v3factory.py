@@ -428,6 +428,8 @@ class TestFactory(object):
                 },
             ),
             ("labels_and_annotations", "labels.status", {"global/label": "true", "status/label": "true"}),
+            ("labels_and_annotations", "labels.pod_disruption_budget", {"global/label": "true", "pod-disruption-budget/label": "true"}),
+            ("labels_and_annotations", "annotations.pod_disruption_budget", {"global/annotation": "true", "pod-disruption-budget/annotation": "true"}),
         ),
     )
     def test_additional_labels_and_annotations(self, load_app_config_testdata, factory, filename, attribute, value):

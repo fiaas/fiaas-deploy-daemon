@@ -31,6 +31,7 @@ class AdditionalLabelsOrAnnotations(Model):
     service_account = Field(dict)
     pod = Field(dict)
     status = Field(dict)
+    pod_disruption_budget = Field(dict)
 
 
 class FiaasApplicationSpec(Model):

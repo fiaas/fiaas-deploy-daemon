@@ -27,6 +27,7 @@ from .ingress_networkingv1 import NetworkingV1IngressAdapter
 from .service import ServiceDeployer
 from .service_account import ServiceAccountDeployer
 from .owner_references import OwnerReferences
+from .pod_disruption_budget import PodDisruptionBudgetDeployer
 from k8s.models.ingress import IngressTLS as V1Beta1IngressTLS
 from k8s.models.networking_v1_ingress import IngressTLS as StableIngressTLS
 
@@ -43,6 +44,7 @@ class K8sAdapterBindings(pinject.BindingSpec):
         bind("autoscaler", to_class=AutoscalerDeployer)
         bind("ingress_tls_deployer", to_class=IngressTLSDeployer)
         bind("owner_references", to_class=OwnerReferences)
+        bind("pod_disruption_budget_deployer", to_class=PodDisruptionBudgetDeployer)
 
         if self.use_networkingv1_ingress:
             bind("ingress_adapter", to_class=NetworkingV1IngressAdapter)

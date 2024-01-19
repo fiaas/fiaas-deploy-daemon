@@ -279,7 +279,7 @@ class TestDevhoseDeploymentEventTransformer(object):
     )
     def test_transformation(self, transformer, app_spec, statuses, timestamps, expected, annotations):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 7))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 8))
         with mock.patch("fiaas_deploy_daemon.usage_reporting.transformer._timestamp") as timestamp:
             timestamp.side_effect = timestamps
             for status in statuses:

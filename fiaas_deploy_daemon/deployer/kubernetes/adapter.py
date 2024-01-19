@@ -36,7 +36,8 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster"""
 
     def __init__(
-        self, config, service_deployer, deployment_deployer, ingress_deployer, autoscaler, service_account_deployer, pod_disruption_budget_deployer
+        self, config, service_deployer, deployment_deployer, ingress_deployer,
+        autoscaler, service_account_deployer, pod_disruption_budget_deployer
     ):
         self._version = config.version
         self._enable_service_account_per_app = config.enable_service_account_per_app

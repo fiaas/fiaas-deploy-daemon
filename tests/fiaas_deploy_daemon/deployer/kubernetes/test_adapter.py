@@ -64,7 +64,9 @@ class TestK8s(object):
 
     @pytest.fixture
     def k8s(
-        self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer, pod_disruption_budget_deployer
+        self, service_deployer, deployment_deployer, ingress_deployer,
+        autoscaler_deployer, service_account_deployer,
+        pod_disruption_budget_deployer
     ):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION

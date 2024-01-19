@@ -23,6 +23,7 @@ from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeploye
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
+from fiaas_deploy_daemon.deployer.kubernetes.pod_disruption_budget import PodDisruptionBudgetDeployer
 from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
 
 FIAAS_VERSION = "1"
@@ -52,6 +53,10 @@ class TestK8s(object):
         return mock.create_autospec(AutoscalerDeployer)
 
     @pytest.fixture(autouse=True)
+    def pod_disruption_budget_deployer(self):
+        return mock.create_autospec(PodDisruptionBudgetDeployer)
+
+    @pytest.fixture(autouse=True)
     def resource_quota_list(self):
         with mock.patch("k8s.models.resourcequota.ResourceQuota.list") as mockk:
             mockk.return_value = []
@@ -59,7 +64,7 @@ class TestK8s(object):
 
     @pytest.fixture
     def k8s(
-        self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer
+        self, service_deployer, deployment_deployer, ingress_deployer, autoscaler_deployer, service_account_deployer, pod_disruption_budget_deployer
     ):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
@@ -70,6 +75,7 @@ class TestK8s(object):
             ingress_deployer,
             autoscaler_deployer,
             service_account_deployer,
+            pod_disruption_budget_deployer,
         )
 
     def test_make_labels(self, k8s, app_spec):
@@ -186,6 +192,7 @@ class TestK8s(object):
         autoscaler_deployer,
         service_account_deployer,
         service_account_per_app_enabled,
+        pod_disruption_budget_deployer,
     ):
 
         config = mock.create_autospec(Configuration([]), spec_set=True)
@@ -198,6 +205,7 @@ class TestK8s(object):
             ingress_deployer,
             autoscaler_deployer,
             service_account_deployer,
+            pod_disruption_budget_deployer,
         )
 
         labels = k8s._make_labels(app_spec)

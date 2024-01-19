@@ -47,6 +47,8 @@ class PodDisruptionBudgetDeployer(object):
             name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations
         )
 
+        # Conservative default to ensure that we don't block evictions.
+        # See https://github.com/fiaas/fiaas-deploy-daemon/issues/220 for discussion.
         max_unavailable = 1
         spec = PodDisruptionBudgetSpec(
             selector=LabelSelector(matchLabels=selector),

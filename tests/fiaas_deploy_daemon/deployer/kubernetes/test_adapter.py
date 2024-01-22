@@ -182,6 +182,14 @@ class TestK8s(object):
 
         pytest.helpers.assert_any_call(service_deployer.deploy, app_spec, selector, labels)
 
+    def test_pass_to_pod_disruption_budget(self, app_spec, k8s, pod_disruption_budget_deployer, resource_quota_list):
+        selector = _make_selector(app_spec)
+        labels = k8s._make_labels(app_spec)
+
+        k8s.deploy(app_spec)
+
+        pytest.helpers.assert_any_call(pod_disruption_budget_deployer.deploy, app_spec, selector, labels)
+
     @pytest.mark.parametrize("service_account_per_app_enabled", (True, False))
     def test_pass_to_service_account(
         self,

@@ -37,6 +37,8 @@ class PodDisruptionBudgetDeployer(object):
     @retry_on_upsert_conflict
     def deploy(self, app_spec: AppSpec, selector: dict[str, any], labels: dict[str, any]):
         if app_spec.autoscaler.min_replicas == 1 or app_spec.autoscaler.max_replicas == 1:
+            # delete possible existing pdb
+            self.delete(app_spec)
             return
 
         custom_annotations = {}

@@ -41,12 +41,13 @@ class PodDisruptionBudgetDeployer(object):
             self.delete(app_spec)
             return
 
-        custom_annotations = {}
         custom_labels = labels
         custom_labels = merge_dicts(app_spec.labels.pod_disruption_budget, custom_labels)
-        custom_annotations = merge_dicts(app_spec.annotations.pod_disruption_budget, custom_annotations)
         metadata = ObjectMeta(
-            name=app_spec.name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations
+            name=app_spec.name,
+            namespace=app_spec.namespace,
+            labels=custom_labels,
+            annotations=app_spec.annotations.pod_disruption_budget
         )
 
         # Conservative default to ensure that we don't block evictions.

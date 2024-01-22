@@ -59,16 +59,18 @@ class TestPodDisruptionBudgetDeployer(object):
         owner_references.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
         extension_hook.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
 
-    def test_no_pdb_gives_no_post(self, deployer, post, app_spec):
+    def test_no_pdb_gives_no_post(self, deployer: PodDisruptionBudgetDeployer, delete, post, app_spec):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=1, cpu_threshold_percentage=50)
         )
         deployer.deploy(app_spec, SELECTOR, LABELS)
+        delete.assert_called_with(PDB_API + app_spec.name)
         pytest.helpers.assert_no_calls(post)
 
-    def test_no_pdb_gives_no_put(self, deployer, put, app_spec):
+    def test_no_pdb_gives_no_put(self, deployer, delete, put, app_spec):
         app_spec = app_spec._replace(
             autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=1, cpu_threshold_percentage=50)
         )
         deployer.deploy(app_spec, SELECTOR, LABELS)
+        delete.assert_called_with(PDB_API + app_spec.name)
         pytest.helpers.assert_no_calls(put)

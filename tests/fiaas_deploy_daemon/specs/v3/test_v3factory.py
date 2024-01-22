@@ -428,6 +428,16 @@ class TestFactory(object):
                 },
             ),
             ("labels_and_annotations", "labels.status", {"global/label": "true", "status/label": "true"}),
+            (
+                "labels_and_annotations",
+                "labels.pod_disruption_budget",
+                {"global/label": "true", "pod-disruption-budget/label": "true"}
+            ),
+            (
+                "labels_and_annotations",
+                "annotations.pod_disruption_budget",
+                {"global/annotation": "true", "pod-disruption-budget/annotation": "true"}
+            ),
         ),
     )
     def test_additional_labels_and_annotations(self, load_app_config_testdata, factory, filename, attribute, value):
@@ -439,6 +449,7 @@ class TestFactory(object):
             service={"service/label": "true"},
             pod={"pod/label": "true", "s": "override"},
             status={"status/label": "true"},
+            pod_disruption_budget={"pod-disruption-budget/label": "true"},
         )
         additional_annotations = AdditionalLabelsOrAnnotations(
             _global={"global/annotation": "true"},
@@ -448,6 +459,7 @@ class TestFactory(object):
             service={"service/annotation": "true"},
             pod={"pod/annotation": "true", "z": "override"},
             status={"status/annotation": "true"},
+            pod_disruption_budget={"pod-disruption-budget/annotation": "true"},
         )
         app_spec = factory(
             UID,

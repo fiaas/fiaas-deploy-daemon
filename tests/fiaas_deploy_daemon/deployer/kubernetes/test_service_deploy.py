@@ -98,6 +98,7 @@ class TestServiceDeployer(object):
             service_account={},
             pod={},
             status={},
+            pod_disruption_budget={},
         )
         annotations = LabelAndAnnotationSpec(
             deployment={},
@@ -107,6 +108,7 @@ class TestServiceDeployer(object):
             service_account={},
             pod={},
             status={},
+            pod_disruption_budget={},
         )
         app_spec_custom_labels_and_annotations = app_spec._replace(labels=labels, annotations=annotations)
 

@@ -84,6 +84,7 @@ annotations: # Annotations to be set on generated objects
   ingress: {}
   service: {}
   pod: {}
+  pod_disruption_budget: {}
 labels: # Labels to be set on generated objects
   deployment: {}
   horizontal_pod_autoscaler: {}
@@ -91,6 +92,7 @@ labels: # Labels to be set on generated objects
   ingress: {}
   service: {}
   pod: {}
+  pod_disruption_budget: {}
 secrets_in_environment: false # If a Secret of the same name exists, it is exposed to the pod as environment variables
 admin_access: false # What access the pod has to the k8s api server
 extensions:

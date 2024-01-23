@@ -270,6 +270,7 @@ labels:
   ingress: {}
   service: {}
   pod: {}
+  pod_disruption_budget: {}
 ```
 
 The labels are organized under the Kubernetes resource they will be applied to. To specify custom labels, set
@@ -301,6 +302,7 @@ annotations:
   ingress: {}
   service: {}
   pod: {}
+  pod_disruption_budget: {}
 ```
 
 Like labels, annotations are organized under the Kubernetes resource they will be applied to. To specify custom

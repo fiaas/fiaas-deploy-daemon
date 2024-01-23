@@ -48,12 +48,14 @@ rules:
   - autoscaling
   - extensions
   - networking.k8s.io
+  - policy
   resources:
   - configmaps
   - deployments
   - horizontalpodautoscalers
   - ingresses
   - pods
+  - poddisruptionbudgets
   - resourcequotas
   - services
   - serviceaccounts

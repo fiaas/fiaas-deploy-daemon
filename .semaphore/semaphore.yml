@@ -65,9 +65,10 @@ blocks:
           # E2E_K8S_VERSION_OPTION in tests/conftest.py; it should point to the most recent version used in CI.
           - env_var: K8S_VERSION
             values:
-              - v1.24.12
-              - v1.25.8
-              - v1.26.3
+              - v1.24.15
+              - v1.25.11
+              - v1.26.6
+              - v1.27.3
 promotions:
   - name: Push container image
     pipeline_file: push-container-image.yml

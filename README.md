@@ -67,7 +67,7 @@ To run fiaas-deploy-daemon locally and connect it to a local cluster, do the fol
 
 With kind:
 * (See https://kind.sigs.k8s.io/docs/user/quick-start/#installation for how to install and configure kind)
-* Start kind: `$ kind create cluster --image kindest/node:v1.26.3`
+* Start kind: `$ kind create cluster --image kindest/node:v1.27.3`
 * Run `$ bin/run_fdd_against_kind`
 
 With minikube:
@@ -82,7 +82,7 @@ If you need to test some behavior manually you can deploy applications into mini
 
 #### Deploying an application via CustomResourceDefinition
 
-In Kubernetes 1.7 and later you can deploy applications by creating a Application CustomResource
+You can deploy applications by creating a Application CustomResource
 
 ```yaml
 apiVersion: fiaas.schibsted.io/v1

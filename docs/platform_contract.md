@@ -23,7 +23,7 @@ The [Operators guide](operator_guide.md) documents what cluster operators need t
 
 ## Supported kubernetes versions
 
-We are currently testing Kubernetes version 1.9.0 and above. FIAAS may work on older versions, but is not tested.
+We are currently testing Kubernetes version 1.24.12 and above. FIAAS may work on older versions, but is not tested.
 
 ## Notable kubernetes features in use
 

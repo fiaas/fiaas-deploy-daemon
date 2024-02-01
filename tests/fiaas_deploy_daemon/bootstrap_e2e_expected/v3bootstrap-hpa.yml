@@ -34,7 +34,7 @@ spec:
   maxReplicas: 5
   minReplicas: 2
   scaleTargetRef:
-    apiVersion: extensions/v1beta1
+    apiVersion: extensions/v1
     kind: Deployment
     name: specs-v3-data-examples-v3bootstrap
   targetCPUUtilizationPercentage: 50

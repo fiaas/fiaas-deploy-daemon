@@ -143,6 +143,10 @@ the application already exists, the application will run under that service acco
 but FIAAS will not overwrite/manage the service account.
 """
 
+ENABLE_ROLE_BINDING_CREATION = """
+Create a role binding for each deployed application, using the application name.
+"""
+
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -285,6 +289,9 @@ class Configuration(Namespace):
             "--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP, action="store_true", default=False
         )
         parser.add_argument(
+            "--enable-role-binding-creation", help=ENABLE_ROLE_BINDING_CREATION, action="store_true", default=False
+        )
+        parser.add_argument(
             "--use-networkingv1-ingress",
             help="use ingress from apiversion networking.k8s.io instead of extensions/v1beta1",
             action="store_true",
@@ -305,6 +312,22 @@ class Configuration(Namespace):
         parser.add_argument(
             "--include-status-in-app", help="Include status subresource in application CRD", default=False,
             action="store_true"
+        )
+        parser.add_argument(
+            "--list-of-roles",
+            help="list of roles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_roles",
+        )
+        parser.add_argument(
+            "--list-of-cluster-roles",
+            help="list of clusterroles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_cluster_roles",
         )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(

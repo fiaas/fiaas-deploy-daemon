@@ -32,6 +32,7 @@ class AdditionalLabelsOrAnnotations(Model):
     pod = Field(dict)
     status = Field(dict)
     pod_disruption_budget = Field(dict)
+    role_binding = Field(dict)
 
 
 class FiaasApplicationSpec(Model):

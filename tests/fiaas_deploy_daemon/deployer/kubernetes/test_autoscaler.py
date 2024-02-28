@@ -117,6 +117,7 @@ class TestAutoscalerDeployer(object):
             status={},
             service_account={},
             pod_disruption_budget={},
+            role_binding={},
         )
         annotations = LabelAndAnnotationSpec(
             deployment={},
@@ -127,6 +128,7 @@ class TestAutoscalerDeployer(object):
             status={},
             service_account={},
             pod_disruption_budget={},
+            role_binding={},
         )
         app_spec = app_spec._replace(labels=labels, annotations=annotations)
 

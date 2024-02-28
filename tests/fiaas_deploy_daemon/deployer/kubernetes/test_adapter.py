@@ -235,7 +235,7 @@ class TestK8s(object):
         else:
             service_account_deployer.deploy.assert_not_called()
 
-    @pytest.mark.parametrize("enable_role_binding_creation", (True, False))
+    @pytest.mark.parametrize("enable_service_account_per_app", (True, False))
     def test_pass_to_role_binding(
         self,
         app_spec,
@@ -246,14 +246,14 @@ class TestK8s(object):
         ingress_deployer,
         autoscaler_deployer,
         service_account_deployer,
-        enable_role_binding_creation,
+        enable_service_account_per_app,
         pod_disruption_budget_deployer,
         role_binding_deployer
     ):
 
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
-        config.enable_role_binding_creation = enable_role_binding_creation
+        config.enable_service_account_per_app = enable_service_account_per_app
         k8s = K8s(
             config,
             service_deployer,
@@ -265,9 +265,11 @@ class TestK8s(object):
             role_binding_deployer
         )
 
+        labels = k8s._make_labels(app_spec)
+
         k8s.deploy(app_spec)
 
-        if enable_role_binding_creation:
-            pytest.helpers.assert_any_call(role_binding_deployer.deploy, app_spec)
+        if enable_service_account_per_app:
+            pytest.helpers.assert_any_call(role_binding_deployer.deploy, app_spec, labels)
         else:
             role_binding_deployer.deploy.assert_not_called()

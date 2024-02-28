@@ -143,10 +143,6 @@ the application already exists, the application will run under that service acco
 but FIAAS will not overwrite/manage the service account.
 """
 
-ENABLE_ROLE_BINDING_CREATION = """
-Create role bindings for the deployed application, one per role or role binding provided, using the application name.
-"""
-
 
 class Configuration(Namespace):
     VALID_LOG_FORMAT = ("plain", "json")
@@ -287,9 +283,6 @@ class Configuration(Namespace):
         parser.add_argument("--extension-hook-url", help=EXTENSION_HOOK_URL_HELP, default=None)
         parser.add_argument(
             "--enable-service-account-per-app", help=ENABLE_SERVICE_ACCOUNT_PER_APP, action="store_true", default=False
-        )
-        parser.add_argument(
-            "--enable-role-binding-creation", help=ENABLE_ROLE_BINDING_CREATION, action="store_true", default=False
         )
         parser.add_argument(
             "--use-networkingv1-ingress",

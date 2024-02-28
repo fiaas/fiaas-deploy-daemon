@@ -111,7 +111,6 @@ LabelAndAnnotationSpec = namedtuple(
         "status",
         "pod_disruption_budget",
         "role_binding",
-
     ],
 )
 

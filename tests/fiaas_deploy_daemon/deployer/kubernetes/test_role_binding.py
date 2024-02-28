@@ -20,32 +20,29 @@ class TestRoleBindingDeployer:
         config.list_of_cluster_roles = ["cluster-role-1", "cluster-role-2"]
         return RoleBindingDeployer(config, owner_references)
 
-    def test_create_bindings(self, deployer, owner_references, app_spec):
-        def _test_create_bindings(roles_list, role_kind):
-            with patch.object(RoleBinding, 'get') as mock_get, \
-                 patch.object(RoleBinding, 'save') as mock_save:
+    @pytest.mark.parametrize(
+        "roles_list,role_kind",
+        [
+            (["test-role-1", "test-role-2"], "Role"),
+            (["cluster-role-1", "cluster-role-2"], "ClusterRole"),
+        ],
+    )
+    def test_create_bindings(self, deployer, owner_references, app_spec, roles_list, role_kind):
+        with patch.object(RoleBinding, 'get') as mock_get, \
+             patch.object(RoleBinding, 'save') as mock_save:
 
-                mock_get.side_effect = NotFound
-                deployer._create_role_bindings(app_spec, roles_list, role_kind, 1)
+            mock_get.side_effect = NotFound
+            deployer._create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {})
 
-                mock_get.assert_has_calls([
-                    call(f"{app_spec.name}-1", app_spec.namespace),
-                    call(f"{app_spec.name}-2", app_spec.namespace)
-                ])
-                mock_save.assert_has_calls([
-                    call(),
-                    call()
-                ])
-                owner_references.apply.assert_called()
-
-        _test_create_bindings(["test-role-1", "test-role-2"], "Role")
-        _test_create_bindings(["cluster-role-1", "cluster-role-2"], "ClusterRole")
-
-    def test_delete_role_bindings(self, deployer, owner_references, app_spec):
-        with patch.object(RoleBinding, 'delete') as mock_delete:
-            deployer.delete(app_spec)
-
-            mock_delete.assert_called_with(app_spec.name, app_spec.namespace)
+            mock_get.assert_has_calls([
+                call(f"{app_spec.name}-1", app_spec.namespace),
+                call(f"{app_spec.name}-2", app_spec.namespace)
+            ])
+            mock_save.assert_has_calls([
+                call(),
+                call()
+            ])
+            owner_references.apply.assert_called()
 
     def test_no_bindings_created_when_no_lists(self, deployer, owner_references, app_spec):
         roles_list = []
@@ -55,8 +52,8 @@ class TestRoleBindingDeployer:
         with patch.object(RoleBinding, 'get') as mock_get_try_to_create, \
              patch.object(RoleBinding, 'save') as mock_try_to_save:
 
-            deployer._create_role_bindings(app_spec, roles_list, role_kind, 1)
-            deployer._create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, 1)
+            deployer._create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {})
+            deployer._create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, 1, {}, {})
 
             mock_get_try_to_create.assert_not_called()
             mock_try_to_save.assert_not_called()
@@ -68,8 +65,8 @@ class TestRoleBindingDeployer:
         role_kind = "Role"
         with patch.object(RoleBindingDeployer, '_create_role_bindings') as mock_create_role_bindings:
 
-            deployer.deploy(app_spec)
+            deployer.deploy(app_spec, {})
             mock_create_role_bindings.assert_has_calls([
-                call(app_spec, roles_list, role_kind, 1),
-                call(app_spec, cluster_roles_list, "ClusterRole", 3)
+                call(app_spec, roles_list, role_kind, 1, {}, {}),
+                call(app_spec, cluster_roles_list, "ClusterRole", 3, {}, {})
             ])

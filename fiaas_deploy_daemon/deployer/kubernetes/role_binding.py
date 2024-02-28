@@ -27,7 +27,7 @@ class RoleBindingDeployer:
         else:
             service_account_name = "default"
 
-        for i, role_name in enumerate(roles_list):
+        for role_name in roles_list:
             role_binding_name = f"{app_spec.name}-{counter}"
             try:
                 role_binding = RoleBinding.get(role_binding_name, namespace)
@@ -53,9 +53,3 @@ class RoleBindingDeployer:
             RoleBinding.delete(f"{app_spec.name}", app_spec.namespace)
         except NotFound:
             pass
-
-    def _owned_by_fiaas(self, service_account):
-        return any(
-            ref.apiVersion == "fiaas.schibsted.io/v1" and ref.kind == "Application"
-            for ref in service_account.metadata.ownerReferences
-        )

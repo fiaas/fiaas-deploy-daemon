@@ -144,7 +144,7 @@ but FIAAS will not overwrite/manage the service account.
 """
 
 ENABLE_ROLE_BINDING_CREATION = """
-Create a role binding for each deployed application, using the application name.
+Create role bindings for the deployed application, one per role or role binding provided, using the application name.
 """
 
 

@@ -27,7 +27,7 @@ class RoleBindingDeployer:
         else:
             service_account_name = "default"
 
-        for i, role_name in enumerate(roles_list):
+        for role_name in roles_list:
             role_binding_name = f"{app_spec.name}-{counter}"
             try:
                 role_binding = RoleBinding.get(role_binding_name, namespace)

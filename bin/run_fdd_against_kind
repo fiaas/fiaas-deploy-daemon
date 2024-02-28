@@ -35,13 +35,6 @@ ARGS=(
 '--enable-service-account-per-app'
 '--use-networkingv1-ingress'
 '--use-apiextensionsv1-crd'
-'--enable-role-binding-creation'
-'--list-of-roles' 'RoleA'
-'--list-of-roles' 'RoleB'
-'--list-of-roles' 'RoleC'
-'--list-of-cluster-roles' 'RoleF'
-'--list-of-cluster-roles' 'RoleG'
-
 )
 
 (set -ux; fiaas-deploy-daemon "${ARGS[@]}")

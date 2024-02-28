@@ -49,6 +49,7 @@ rules:
   - extensions
   - networking.k8s.io
   - policy
+  - rbac.authorization.k8s.io
   resources:
   - configmaps
   - deployments
@@ -57,6 +58,7 @@ rules:
   - pods
   - poddisruptionbudgets
   - resourcequotas
+  - rolebindings
   - services
   - serviceaccounts
   verbs:

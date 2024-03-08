@@ -98,8 +98,8 @@ def app_spec(**kwargs):
         teams=["foo"],
         tags=["bar"],
         deployment_id="test_app_deployment_id",
-        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, ANNOTATIONS.copy(), {}, {}, {}, {}, {}),
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, ANNOTATIONS.copy(), {}, {}, {}, {}, {}, {}),
         ingresses=[
             IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})
         ],
@@ -367,6 +367,7 @@ TEST_DATA = (
                 pod={},
                 status={},
                 pod_disruption_budget={},
+                role_binding={},
             ),
             annotations=LabelAndAnnotationSpec(
                 deployment={},
@@ -377,6 +378,7 @@ TEST_DATA = (
                 pod={},
                 status={},
                 pod_disruption_budget={},
+                role_binding={},
             ),
         ),
         ingress(

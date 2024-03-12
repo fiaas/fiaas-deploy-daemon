@@ -306,6 +306,22 @@ class Configuration(Namespace):
             "--include-status-in-app", help="Include status subresource in application CRD", default=False,
             action="store_true"
         )
+        parser.add_argument(
+            "--list-of-roles",
+            help="list of roles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_roles",
+        )
+        parser.add_argument(
+            "--list-of-cluster-roles",
+            help="list of clusterroles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_cluster_roles",
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(
             "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"

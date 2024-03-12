@@ -91,8 +91,8 @@ def app_spec():
         teams=["foo"],
         tags=["bar"],
         deployment_id="test_app_deployment_id",
-        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}),
-        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}),
+        labels=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}, {}),
+        annotations=LabelAndAnnotationSpec({}, {}, {}, {}, {}, {}, {}, {}, {}),
         ingresses=[
             IngressItemSpec(host=None, pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={})
         ],

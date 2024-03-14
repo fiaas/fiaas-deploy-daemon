@@ -21,6 +21,7 @@ from requests import Response
 from utils import TypeMatcher
 
 from fiaas_deploy_daemon import ExtensionHookCaller
+from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.pod_disruption_budget import PodDisruptionBudgetDeployer
 from fiaas_deploy_daemon.specs.models import (
     AutoscalerSpec,
@@ -37,9 +38,15 @@ class TestPodDisruptionBudgetDeployer(object):
         return create_autospec(ExtensionHookCaller, spec_set=True, instance=True)
 
     @pytest.fixture
-    def deployer(self, owner_references, extension_hook):
-        return PodDisruptionBudgetDeployer(owner_references, extension_hook)
+    def deployer(self, owner_references, extension_hook, config):
+        return PodDisruptionBudgetDeployer(owner_references, extension_hook, config)
 
+    @pytest.fixture
+    def config(self):
+        config = create_autospec(Configuration([]), spec_set=True)
+        config.pdb_max_unavailable = 1
+        return config
+    
     @pytest.mark.usefixtures("get")
     def test_new_pdb(self, deployer, post, app_spec, owner_references, extension_hook):
         expected_pdb = {

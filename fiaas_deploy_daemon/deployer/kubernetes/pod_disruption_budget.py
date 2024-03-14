@@ -30,9 +30,10 @@ LOG = logging.getLogger(__name__)
 
 
 class PodDisruptionBudgetDeployer(object):
-    def __init__(self, owner_references, extension_hook):
+    def __init__(self, owner_references, extension_hook, config):
         self._owner_references = owner_references
         self._extension_hook = extension_hook
+        self.max_unavailable = config.pdb_max_unavailable
 
     @retry_on_upsert_conflict
     def deploy(self, app_spec: AppSpec, selector: dict[str, any], labels: dict[str, any]):
@@ -52,7 +53,7 @@ class PodDisruptionBudgetDeployer(object):
 
         # Conservative default to ensure that we don't block evictions.
         # See https://github.com/fiaas/fiaas-deploy-daemon/issues/220 for discussion.
-        max_unavailable = 1
+        max_unavailable = self.max_unavailable
         spec = PodDisruptionBudgetSpec(
             selector=LabelSelector(matchLabels=selector),
             maxUnavailable=max_unavailable

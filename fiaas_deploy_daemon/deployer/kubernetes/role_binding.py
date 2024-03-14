@@ -84,7 +84,7 @@ class RoleBindingDeployer:
 
     def _clean_not_needed_role_bindings(self, role_bindings: list[RoleBinding]):
         for role_binding in role_bindings:
-            if not self._check_if_match(role_binding):
+            if not self._check_if_matches(role_binding):
                 if self._owned_by_fiaas(role_binding):
                     RoleBinding.delete(role_binding.metadata.name, role_binding.metadata.namespace)
                     role_bindings.remove(role_binding)
@@ -96,6 +96,6 @@ class RoleBindingDeployer:
         )
 
     # Check if matches the role_binding with any role or clusterRole in the list_of_roles or list_of_cluster_roles
-    def _check_if_match(self, role_binding):
+    def _check_if_matches(self, role_binding):
         return (not (role_binding.roleRef.kind == "Role" and role_binding.roleRef.name in self._list_of_roles)
                 and not (role_binding.roleRef.kind == "ClusterRole" and role_binding.roleRef.name in self._list_of_cluster_roles))

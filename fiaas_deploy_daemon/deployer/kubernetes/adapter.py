@@ -28,6 +28,7 @@ from .ingress import IngressDeployer
 from .service import ServiceDeployer
 from .service_account import ServiceAccountDeployer
 from .pod_disruption_budget import PodDisruptionBudgetDeployer
+from .role_binding import RoleBindingDeployer
 
 LOG = logging.getLogger(__name__)
 
@@ -37,7 +38,8 @@ class K8s(object):
 
     def __init__(
         self, config, service_deployer, deployment_deployer, ingress_deployer,
-        autoscaler, service_account_deployer, pod_disruption_budget_deployer
+        autoscaler, service_account_deployer, pod_disruption_budget_deployer,
+        role_binding_deployer
     ):
         self._version = config.version
         self._enable_service_account_per_app = config.enable_service_account_per_app
@@ -47,6 +49,7 @@ class K8s(object):
         self._autoscaler_deployer: AutoscalerDeployer = autoscaler
         self._service_account_deployer: ServiceAccountDeployer = service_account_deployer
         self._pod_disruption_budget_deployer: PodDisruptionBudgetDeployer = pod_disruption_budget_deployer
+        self._role_binding_deployer: RoleBindingDeployer = role_binding_deployer
 
     def deploy(self, app_spec: AppSpec):
         if _besteffort_qos_is_required(app_spec):
@@ -55,6 +58,7 @@ class K8s(object):
         labels = self._make_labels(app_spec)
         if self._enable_service_account_per_app is True:
             self._service_account_deployer.deploy(app_spec, labels)
+            self._role_binding_deployer.deploy(app_spec, labels)
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
         self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))

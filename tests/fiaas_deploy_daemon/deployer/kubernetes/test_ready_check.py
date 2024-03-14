@@ -152,7 +152,7 @@ class TestReadyCheck(object):
         config,
     ):
         if annotations:
-            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 8))
+            app_spec = app_spec._replace(annotations=LabelAndAnnotationSpec(*[annotations] * 9))
 
         self._create_response(get, requested, replicas, available, updated)
 

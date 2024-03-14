@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import create_autospec, patch, call
 from k8s.client import NotFound
+from k8s.models.common import ObjectMeta, OwnerReference
 from k8s.models.role_binding import RoleBinding
 from fiaas_deploy_daemon.deployer.kubernetes.role_binding import RoleBindingDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.owner_references import OwnerReferences
@@ -20,6 +21,10 @@ class TestRoleBindingDeployer:
         config.list_of_cluster_roles = ["cluster-role-1", "cluster-role-2"]
         return RoleBindingDeployer(config, owner_references)
 
+    @pytest.fixture
+    def role_binding(self):
+        return create_autospec(RoleBinding, spec_set=True, instance=True)
+
     @pytest.mark.parametrize(
         "roles_list,role_kind",
         [
@@ -27,7 +32,7 @@ class TestRoleBindingDeployer:
             (["cluster-role-1", "cluster-role-2"], "ClusterRole"),
         ],
     )
-    def test_create_bindings(self, deployer, owner_references, app_spec, roles_list, role_kind):
+    def test_create_bindings_with_empty_role_bindings(self, deployer, owner_references, app_spec, roles_list, role_kind):
         with patch.object(RoleBinding, 'get') as mock_get, \
              patch.object(RoleBinding, 'save') as mock_save:
 
@@ -75,3 +80,43 @@ class TestRoleBindingDeployer:
                 call(app_spec, roles_list, role_kind, 1, {}, {}, []),
                 call(app_spec, cluster_roles_list, "ClusterRole", 1, {}, {}, [])
             ])
+
+    def test_create_bindings_with_role_in_role_bindings_not_owned_by_fiaas(self, deployer, owner_references, app_spec, role_binding):
+        with patch.object(RoleBinding, 'get') as mock_get:
+            role_binding.roleRef.kind = "Role"
+            role_binding.roleRef.name = "RoleA"
+
+            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+
+            mock_get.assert_not_called()
+            role_binding.save.assert_not_called()
+            owner_references.apply.assert_not_called()
+    
+
+
+    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas(self, deployer, owner_references, app_spec, role_binding):
+        with patch.object(RoleBinding, 'get') as mock_get:
+            role_binding.roleRef.kind = "Role"
+            role_binding.roleRef.name = "RoleA"
+            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1",kind="Application")])
+
+            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+
+            mock_get.assert_not_called()
+            role_binding.save.assert_called()
+            owner_references.apply.assert_called()
+
+    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas_as_cluster_role(self, deployer, owner_references, app_spec, role_binding):
+        with patch.object(RoleBinding, 'get') as mock_get, \
+             patch.object(RoleBinding, 'save') as mock_save:
+            role_binding.roleRef.kind = "ClusterRole"
+            role_binding.roleRef.name = "RoleA"
+            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1",kind="Application")])
+            mock_get.side_effect = NotFound
+
+            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+
+            mock_get.assert_called()
+            role_binding.save.assert_not_called()
+            mock_save.assert_called()
+            owner_references.apply.assert_called()

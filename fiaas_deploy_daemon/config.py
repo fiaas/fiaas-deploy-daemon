@@ -306,6 +306,12 @@ class Configuration(Namespace):
             "--include-status-in-app", help="Include status subresource in application CRD", default=False,
             action="store_true"
         )
+        parser.add_argument(
+            "--pdb-max-unavailable",
+            help="The maximum number of pods that can be unavailable after an eviction",
+            default="1",
+            type=_int_or_unicode
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(
             "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"

@@ -32,7 +32,7 @@ class TestRoleBindingDeployer:
              patch.object(RoleBinding, 'save') as mock_save:
 
             mock_get.side_effect = NotFound
-            deployer._create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
 
             mock_get.assert_has_calls([
                 call(f"{app_spec.name}-1", app_spec.namespace),
@@ -52,8 +52,8 @@ class TestRoleBindingDeployer:
         with patch.object(RoleBinding, 'get') as mock_get_try_to_create, \
              patch.object(RoleBinding, 'save') as mock_try_to_save:
 
-            deployer._create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
-            deployer._create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, 1, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, 1, {}, {}, [])
 
             mock_get_try_to_create.assert_not_called()
             mock_try_to_save.assert_not_called()
@@ -64,7 +64,7 @@ class TestRoleBindingDeployer:
         cluster_roles_list = ["cluster-role-1", "cluster-role-2"]
         role_kind = "Role"
         with patch.object(RoleBinding, 'find') as mock_find, \
-             patch.object(RoleBindingDeployer, '_create_role_bindings') as mock_create_role_bindings:
+             patch.object(RoleBindingDeployer, '_update_or_create_role_bindings') as mock_create_role_bindings:
 
             mock_find.return_value = []
 

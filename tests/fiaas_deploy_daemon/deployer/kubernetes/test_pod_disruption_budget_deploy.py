@@ -46,7 +46,7 @@ class TestPodDisruptionBudgetDeployer(object):
         config = create_autospec(Configuration([]), spec_set=True)
         config.pdb_max_unavailable = 1
         return config
-    
+
     @pytest.mark.usefixtures("get")
     def test_new_pdb(self, deployer, post, app_spec, owner_references, extension_hook):
         expected_pdb = {

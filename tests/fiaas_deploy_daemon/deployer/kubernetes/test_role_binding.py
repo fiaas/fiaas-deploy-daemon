@@ -91,14 +91,12 @@ class TestRoleBindingDeployer:
             mock_get.assert_not_called()
             role_binding.save.assert_not_called()
             owner_references.apply.assert_not_called()
-    
-
 
     def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas(self, deployer, owner_references, app_spec, role_binding):
         with patch.object(RoleBinding, 'get') as mock_get:
             role_binding.roleRef.kind = "Role"
             role_binding.roleRef.name = "RoleA"
-            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1",kind="Application")])
+            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
 
             deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
 
@@ -106,12 +104,13 @@ class TestRoleBindingDeployer:
             role_binding.save.assert_called()
             owner_references.apply.assert_called()
 
-    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas_as_cluster_role(self, deployer, owner_references, app_spec, role_binding):
+    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas_as_cluster_role(self, deployer, owner_references, app_spec,
+                                                                                       role_binding):
         with patch.object(RoleBinding, 'get') as mock_get, \
              patch.object(RoleBinding, 'save') as mock_save:
             role_binding.roleRef.kind = "ClusterRole"
             role_binding.roleRef.name = "RoleA"
-            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1",kind="Application")])
+            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
             mock_get.side_effect = NotFound
 
             deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])

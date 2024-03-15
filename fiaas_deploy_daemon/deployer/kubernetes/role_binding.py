@@ -44,10 +44,11 @@ class RoleBindingDeployer:
                     role_binding_name = role_binding.metadata.name
                 else:
                     LOG.info(
-                        "Aborting the creation of a roleBinding for Application: %s with %s: %s",
+                        "Aborting the creation of a roleBinding for Application: %s with %s: %s, role is already bound by %s",
                         app_spec.name,
                         role_kind,
-                        role_name
+                        role_name,
+                        role_binding.metadata.name
                     )
                     break
             else:

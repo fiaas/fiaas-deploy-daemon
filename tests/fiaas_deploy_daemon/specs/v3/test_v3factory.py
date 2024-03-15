@@ -450,6 +450,7 @@ class TestFactory(object):
             pod={"pod/label": "true", "s": "override"},
             status={"status/label": "true"},
             pod_disruption_budget={"pod-disruption-budget/label": "true"},
+            role_binding={"role-binding/label": "true"},
         )
         additional_annotations = AdditionalLabelsOrAnnotations(
             _global={"global/annotation": "true"},
@@ -460,6 +461,7 @@ class TestFactory(object):
             pod={"pod/annotation": "true", "z": "override"},
             status={"status/annotation": "true"},
             pod_disruption_budget={"pod-disruption-budget/annotation": "true"},
+            role_binding={"role-binding/annotation": "true"},
         )
         app_spec = factory(
             UID,

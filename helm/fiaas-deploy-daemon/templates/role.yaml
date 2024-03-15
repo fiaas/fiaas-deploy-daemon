@@ -49,6 +49,7 @@ rules:
   - extensions
   - networking.k8s.io
   - policy
+  - rbac.authorization.k8s.io
   resources:
   - configmaps
   - deployments
@@ -59,6 +60,7 @@ rules:
   - resourcequotas
   - services
   - serviceaccounts
+  - rolebindings
   verbs:
   - create
   - delete

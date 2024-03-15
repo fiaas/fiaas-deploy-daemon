@@ -602,6 +602,7 @@ annotations:
   service_account: {}
   pod: {}
   pod_disruption_budget: {}
+  role_binding: {}
 ```
 
 The annotations are organized under the Kubernetes resource they will be applied to. To specify custom anotations, set
@@ -637,6 +638,7 @@ labels:
   service_account: {}
   pod: {}
   pod_disruption_budget: {}
+  role_binding: {}
 ```
 
 The labels are organized under the Kubernetes resource they will be applied to. To specify custom labels, set

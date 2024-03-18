@@ -54,6 +54,8 @@ class PodDisruptionBudgetDeployer(object):
         # Conservative default to ensure that we don't block evictions.
         # See https://github.com/fiaas/fiaas-deploy-daemon/issues/220 for discussion.
         max_unavailable = self.max_unavailable
+        if max_unavailable >= app_spec.autoscaler.max_replicas:
+            max_unavailable = 1
         spec = PodDisruptionBudgetSpec(
             selector=LabelSelector(matchLabels=selector),
             maxUnavailable=max_unavailable

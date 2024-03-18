@@ -22,8 +22,18 @@ class TestRoleBindingDeployer:
         return RoleBindingDeployer(config, owner_references)
 
     @pytest.fixture
-    def role_binding(self):
-        return create_autospec(RoleBinding, spec_set=True, instance=True)
+    def cr_A_role_binding(self):
+        role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        role_binding.roleRef.kind = "ClusterRole"
+        role_binding.roleRef.name = "RoleA"
+        return role_binding
+    
+    @pytest.fixture
+    def r_A_role_binding(self):
+        role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        role_binding.roleRef.kind = "Role"
+        role_binding.roleRef.name = "RoleA"
+        return role_binding
 
     @pytest.mark.parametrize(
         "roles_list,role_kind",
@@ -33,16 +43,10 @@ class TestRoleBindingDeployer:
         ],
     )
     def test_create_bindings_with_empty_role_bindings(self, deployer, owner_references, app_spec, roles_list, role_kind):
-        with patch.object(RoleBinding, 'get') as mock_get, \
-             patch.object(RoleBinding, 'save') as mock_save:
+        with patch.object(RoleBinding, 'save') as mock_save:
 
-            mock_get.side_effect = NotFound
-            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, {}, {}, [])
 
-            mock_get.assert_has_calls([
-                call(f"{app_spec.name}-1", app_spec.namespace),
-                call(f"{app_spec.name}-2", app_spec.namespace)
-            ])
             mock_save.assert_has_calls([
                 call(),
                 call()
@@ -54,13 +58,11 @@ class TestRoleBindingDeployer:
         cluster_roles_list = []
         role_kind = "Role"
         cluster_role_kind = "ClusterRole"
-        with patch.object(RoleBinding, 'get') as mock_get_try_to_create, \
-             patch.object(RoleBinding, 'save') as mock_try_to_save:
+        with patch.object(RoleBinding, 'save') as mock_try_to_save:
 
-            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, 1, {}, {}, [])
-            deployer._update_or_create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, 1, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, roles_list, role_kind, {}, {}, [])
+            deployer._update_or_create_role_bindings(app_spec, cluster_roles_list, cluster_role_kind, {}, {}, [])
 
-            mock_get_try_to_create.assert_not_called()
             mock_try_to_save.assert_not_called()
             owner_references.apply.assert_not_called()
 
@@ -77,45 +79,79 @@ class TestRoleBindingDeployer:
 
             mock_find.assert_called()
             mock_create_role_bindings.assert_has_calls([
-                call(app_spec, roles_list, role_kind, 1, {}, {}, []),
-                call(app_spec, cluster_roles_list, "ClusterRole", 1, {}, {}, [])
+                call(app_spec, roles_list, role_kind, {}, {}, []),
+                call(app_spec, cluster_roles_list, "ClusterRole", {}, {}, [])
             ])
 
-    def test_create_bindings_with_role_in_role_bindings_not_owned_by_fiaas(self, deployer, owner_references, app_spec, role_binding):
-        with patch.object(RoleBinding, 'get') as mock_get:
-            role_binding.roleRef.kind = "Role"
-            role_binding.roleRef.name = "RoleA"
+    def test_create_bindings_with_role_in_role_bindings_not_owned_by_fiaas(self, deployer, owner_references, app_spec, r_A_role_binding):    
 
-            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+        deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", {}, {}, [r_A_role_binding])
 
-            mock_get.assert_not_called()
-            role_binding.save.assert_not_called()
-            owner_references.apply.assert_not_called()
+        r_A_role_binding.save.assert_not_called()
+        owner_references.apply.assert_not_called()
 
-    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas(self, deployer, owner_references, app_spec, role_binding):
-        with patch.object(RoleBinding, 'get') as mock_get:
-            role_binding.roleRef.kind = "Role"
-            role_binding.roleRef.name = "RoleA"
-            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
+    def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas(self, deployer, owner_references, app_spec, r_A_role_binding):  
+        r_A_role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
 
-            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+        deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", {}, {}, [r_A_role_binding])
 
-            mock_get.assert_not_called()
-            role_binding.save.assert_called()
-            owner_references.apply.assert_called()
+        r_A_role_binding.save.assert_called()
+        owner_references.apply.assert_called()
 
     def test_create_bindings_with_role_in_role_bindings_owned_by_fiaas_as_cluster_role(self, deployer, owner_references, app_spec,
-                                                                                       role_binding):
-        with patch.object(RoleBinding, 'get') as mock_get, \
-             patch.object(RoleBinding, 'save') as mock_save:
-            role_binding.roleRef.kind = "ClusterRole"
-            role_binding.roleRef.name = "RoleA"
-            role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
-            mock_get.side_effect = NotFound
+                                                                                       cr_A_role_binding):
+        with patch.object(RoleBinding, 'save') as mock_save:
+            
+            cr_A_role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
 
-            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", 1, {}, {}, [role_binding])
+            deployer._update_or_create_role_bindings(app_spec, ["RoleA"], "Role", {}, {}, [cr_A_role_binding])
 
-            mock_get.assert_called()
+            cr_A_role_binding.save.assert_not_called()
+            mock_save.assert_called()
+            owner_references.apply.assert_called()
+    
+    def test_create_bindings_with_multiple_cases(self, deployer, owner_references, app_spec, r_A_role_binding, cr_A_role_binding):
+        with patch.object(RoleBinding, 'save') as mock_save:
+        
+            cr_A_role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
+            r_A_role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
+            role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+            role_binding.roleRef.kind = "Role"
+            role_binding.roleRef.name = "RoleC"
+            
+            deployer._update_or_create_role_bindings(app_spec, ["RoleA", "RoleB", "RoleC"], "Role", {}, {}, [cr_A_role_binding, r_A_role_binding, role_binding])
+
+            cr_A_role_binding.save.assert_not_called()
+            r_A_role_binding.save.assert_called()
             role_binding.save.assert_not_called()
             mock_save.assert_called()
             owner_references.apply.assert_called()
+
+    def clean_role_bindings_should_delete_roles_not_in_role_list(self, deployer):
+        r_role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        r_role_binding.roleRef.kind = "Role"
+        r_role_binding.roleRef.name = "test-role-1"
+        cr_role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        cr_role_binding.roleRef.kind = "ClusterRole"
+        cr_role_binding.roleRef.name = "test-role-1"
+        r2_role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        r2_role_binding.roleRef.kind = "Role"
+        r2_role_binding.roleRef.name = "test-role-3"
+        cr2_role_binding = create_autospec(RoleBinding, spec_set=True, instance=True)
+        cr2_role_binding.roleRef.kind = "ClusterRole"
+        cr2_role_binding.roleRef.name = "test-role-3"
+        cr2_role_binding.metadata = ObjectMeta(ownerReferences=[OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
+
+        role_bindings = [r_role_binding, cr_role_binding, r2_role_binding, cr2_role_binding]
+
+        deployer._clean_not_needed_role_bindings(role_bindings)
+
+        assert len(role_bindings) == 2
+        assert r_role_binding in role_bindings
+        assert cr_role_binding in role_bindings
+        assert r2_role_binding not in role_bindings
+        assert cr2_role_binding not in role_bindings
+        r_role_binding.delete.assert_not_called()
+        cr_role_binding.delete.assert_not_called()
+        r2_role_binding.delete.assert_not_called()
+        cr2_role_binding.delete.assert_called()

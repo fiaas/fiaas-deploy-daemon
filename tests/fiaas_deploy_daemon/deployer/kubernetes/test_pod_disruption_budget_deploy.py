@@ -81,3 +81,57 @@ class TestPodDisruptionBudgetDeployer(object):
         deployer.deploy(app_spec, SELECTOR, LABELS)
         delete.assert_called_with(PDB_API + app_spec.name)
         pytest.helpers.assert_no_calls(put)
+
+    @pytest.mark.usefixtures("get")
+    def test_setting_max_int(self, deployer, post, app_spec, owner_references, extension_hook):
+        app_spec = app_spec._replace(
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=4, max_replicas=6, cpu_threshold_percentage=50)
+        )
+        deployer.max_unavailable = 2
+        expected_pdb = {
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "spec": {
+                "maxUnavailable": 2,
+                "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+            },
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_pdb
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        pytest.helpers.assert_any_call(post, PDB_API, expected_pdb)
+        owner_references.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
+
+    def test_no_pdb_max_over_min(self, deployer: PodDisruptionBudgetDeployer, delete, post, app_spec):
+        app_spec = app_spec._replace(
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=1, max_replicas=4, cpu_threshold_percentage=50)
+        )
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+        delete.assert_called_with(PDB_API + app_spec.name)
+        pytest.helpers.assert_no_calls(post)
+
+    @pytest.mark.usefixtures("get")
+    def test_setting_max_str(self, deployer, post, app_spec, owner_references, extension_hook):
+        app_spec = app_spec._replace(
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=4, max_replicas=6, cpu_threshold_percentage=50)
+        )
+        deployer.max_unavailable = "20%"
+        expected_pdb = {
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "spec": {
+                "maxUnavailable": "20%",
+                "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+            },
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_pdb
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        pytest.helpers.assert_any_call(post, PDB_API, expected_pdb)
+        owner_references.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)

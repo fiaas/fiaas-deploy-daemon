@@ -278,7 +278,7 @@ specify any other secrets configuration.
 ### RoleBinding and ClusterRole Configuration (--list-of-cluster-roles --list-of-roles)
 
 Enables the creation of a `RoleBinding`. If provided a list-of-cluster-roles, it will generate the `RoleBinding` with the kind `ClusterRole`. If provided a list-of-roles, it will generate the `RoleBinding` with the kind `Role`.
-This is useful for when you wish all applications to have read access to specific resources.
+This is useful for when you wish all applications to have read access to specific resources. Also you will need to include the roles and rolebinding in the values.yaml file, under the keys `rbac.roleBinding.roles` and `rbac.roleBinding.clusterRoles`
 
 ##### List of ClusterRoles and Roles for Role Binding
 

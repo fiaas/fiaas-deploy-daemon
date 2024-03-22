@@ -68,7 +68,7 @@ rules:
     verbs:
     - bind
     resourceNames:
-    {{- range $clusterRole := .Values.rbac.roleBinding.cluserRoles }}
+    {{- range $clusterRole := .Values.rbac.roleBinding.clusterRoles }}
     - {{ $clusterRole }}
     {{- end}}
 ---

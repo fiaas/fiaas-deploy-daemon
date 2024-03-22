@@ -50,6 +50,8 @@ rbac:
     create: true
     labels: {}
     annotations: {}
+    roles: []
+    clusterRoles: []
   clusterRole:
     create: true
     labels: {}

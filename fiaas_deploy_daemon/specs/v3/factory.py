@@ -221,6 +221,7 @@ class Factory(BaseFactory):
             "pod": dict(labels_annotations_lookup["pod"]),
             "status": {},
             "pod_disruption_budget": dict(labels_annotations_lookup["pod_disruption_budget"]),
+            "role_binding": dict(labels_annotations_lookup["role_binding"]),
         }
         if overrides:
             globals = _get_value("_global", overrides)

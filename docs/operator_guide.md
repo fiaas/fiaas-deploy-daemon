@@ -207,6 +207,10 @@ When `include-status-in-app` enabled, the `status` subresource of Application re
 
 This feature is disabled by default.
 
+### pdb-max-unavailable
+
+By default, PDB will be set with maxUnavailable = 1 in case the deployment has more than 1 replica. This parameter allows to change that value either with another int value or with a string percentage (i.e. "20%"). Recommendation is some low value like 10% to avoid issues. Also in case of a number, something below min_replicas should be used to allow evictions.
+
 Deploying an application
 ------------------------
 

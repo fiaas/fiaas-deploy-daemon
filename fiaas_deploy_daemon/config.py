@@ -307,6 +307,22 @@ class Configuration(Namespace):
             action="store_true"
         )
         parser.add_argument(
+            "--list-of-roles",
+            help="list of roles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_roles",
+        )
+        parser.add_argument(
+            "--list-of-cluster-roles",
+            help="list of clusterroles",
+            default=[],
+            action="append",
+            type=str,
+            dest="list_of_cluster_roles",
+        )
+        parser.add_argument(
             "--pdb-max-unavailable",
             help="The maximum number of pods that can be unavailable after an eviction",
             default="1",

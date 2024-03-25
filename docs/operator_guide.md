@@ -279,6 +279,17 @@ specified as `extensions.secrets.foosecrets.annotations` will be added to the po
 Using the special value 'default' for the 'type' will mean the image will be attached when an application doesn't
 specify any other secrets configuration.
 
+### RoleBinding and ClusterRole Configuration (--list-of-cluster-roles --list-of-roles)
+
+Enables the creation of a `RoleBinding`. If provided a list-of-cluster-roles, it will generate the `RoleBinding` with the kind `ClusterRole`. If provided a list-of-roles, it will generate the `RoleBinding` with the kind `Role`.
+This is useful for when you wish all applications to have read access to specific resources. Also you will need to include the roles and rolebindings in the values.yaml file, under the keys `rbac.roleBinding.roles` and `rbac.roleBinding.clusterRoles`
+
+##### List of ClusterRoles and Roles for Role Binding
+
+- `--list-of-cluster-roles=["A", "B"]`: This flag allows the creation of `RoleBinding` objects with `ClusterRole` kind for the specified cluster-level roles.
+
+- `--list-of-roles=["A", "B"]`: This flag allows the creation of `RoleBinding` objects with `Role` kind for the specified namespace-level roles.
+
 #### Strongbox
 
 In AWS you have the option of using [Strongbox](https://https://github.com/schibsted/strongbox) for your secrets. If you wish to use Strongbox, the configuration option `strongbox-init-container-image` should be set to an image that can get secrets from Strongbox. This option is very similar to the previous variant, except that Strongbox gets a few more pieces of information from the application configuration. The application must specify an IAM role, and can select AWS region and a list of secret groups to get secrets from.

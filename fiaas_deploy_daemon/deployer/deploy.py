@@ -19,6 +19,9 @@
 import logging
 from queue import Queue
 
+from k8s.client import K8sClientException
+from requests.exceptions import RetryError
+
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressAdapterInterface
@@ -85,7 +88,13 @@ class Deployer(DaemonThread):
             LOG.info("Completed deployment of %r", app_spec)
         except Exception:
             LOG.exception("Error while deploying %s: ", app_spec.name)
-            self._lifecycle.failed(lifecycle_subject)
+            try:
+                self._lifecycle.failed(lifecycle_subject)
+            except (K8sClientException, RetryError):
+                # K8sClientException: any unhandled server or client error (non-200 responses).
+                # RetryError: request which received server error (e.g. 409 or 5xx response) was retried, and
+                # exponential retries were exhausted.
+                LOG.exception("Error while saving status for %s: ", app_spec.name)
             self._bookkeeper.failed(app_spec)
 
     def _delete(self, app_spec: AppSpec):

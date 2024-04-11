@@ -18,6 +18,8 @@ from queue import Queue
 
 from unittest import mock
 import pytest
+from k8s.client import ClientError, ServerError
+from requests.exceptions import RetryError
 
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer import DeployerEvent
@@ -124,3 +126,31 @@ class TestDeploy(object):
         scheduler.add.assert_called_with(
             ReadyCheck(app_spec, bookkeeper, lifecycle, lifecycle_subject, ingress_adapter, config)
         )
+
+    @pytest.mark.parametrize(
+        "exception_class",
+        (
+            ClientError,
+            ServerError,
+            RetryError,
+        ),
+    )
+    def test_handle_exception_in_failure_exception_handler(
+        self, bookkeeper, adapter, scheduler, ingress_adapter, config, app_spec, lifecycle_subject, exception_class
+    ):
+        adapter.deploy.side_effect = exception_class("a Kubernetes resource update failed")
+
+        lifecycle = mock.create_autospec(Lifecycle, spec_set=True)
+        lifecycle.failed.side_effect = exception_class(
+            "ApplicationStatus resource update while reporting the failed deployment also failed"
+        )
+
+        # lifecycle needs to be a mock; duplicate the deployer fixture here
+        deployer = Deployer(Queue(), bookkeeper, adapter, scheduler, lifecycle, ingress_adapter, config)
+        deployer._queue = [DeployerEvent("UPDATE", app_spec, lifecycle_subject)]
+
+        # verify that the exceptions set up above do not flow out of deployer; the test will fail if either does
+        deployer()
+
+        adapter.deploy.assert_called_once()
+        lifecycle.failed.assert_called_once()

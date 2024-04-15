@@ -307,6 +307,18 @@ class TestDeploymentDeployer(object):
         owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
         extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
 
+    @pytest.mark.parametrize("enable_service_links, expected_result", [
+        (True, None),
+        (False, False),
+        (None, None)  # If enable_service_links is None, it should default to None
+    ])
+    def test_enable_service_links(
+        self, enable_service_links, expected_result, config, datadog, prometheus, secrets, owner_references, extension_hook
+    ):
+        config.enable_service_links = enable_service_links
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
+        assert deployer._enable_service_links == expected_result
+
     def test_deploy_clears_alpha_beta_annotations(
         self, put, get, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook
     ):

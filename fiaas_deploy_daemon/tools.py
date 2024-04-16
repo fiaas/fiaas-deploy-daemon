@@ -16,7 +16,7 @@
 # limitations under the License.
 import logging
 from queue import Queue
-from collections import Iterator
+from collections.abc import Iterator
 
 from k8s import config
 from requests_toolbelt.utils.dump import dump_all

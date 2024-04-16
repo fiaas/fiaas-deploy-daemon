@@ -103,7 +103,7 @@ def test_warn_if_env_variable_config(monkeypatch, config_flags):
         "effect. Please switch to configuring via a config file/ConfigMap or command-line flags. See "
         "https://github.com/fiaas/fiaas-deploy-daemon/issues/12 for more information."
     )
-    log.warn.assert_called_once_with(expected_log_message, expected_env_keys)
+    log.warning.assert_called_once_with(expected_log_message, expected_env_keys)
 
 
 def test_dont_warn_if_no_env_config():
@@ -112,4 +112,4 @@ def test_dont_warn_if_no_env_config():
     log = mock.MagicMock(spec=logging.Logger)
     warn_if_env_variable_config(config, log)
 
-    log.warn.assert_not_called()
+    log.warning.assert_not_called()

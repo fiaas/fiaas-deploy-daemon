@@ -92,7 +92,7 @@ if __name__ == "__main__":
         include_package_data=True,
         # Requirements
         install_requires=GENERIC_REQ + WEB_REQ + DEPLOY_REQ,
-        setup_requires=["pytest-runner", "wheel", "setuptools_git >= 0.3"],
+        setup_requires=["pytest-runner", "wheel", "setuptools_git >= 1.2"],
         extras_require={
             "dev": TESTS_REQ + FLAKE8_REQ + DEV_TOOLS,
             "ci": DEV_TOOLS,

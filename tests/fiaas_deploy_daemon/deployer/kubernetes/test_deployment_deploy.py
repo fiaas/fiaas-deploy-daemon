@@ -288,6 +288,29 @@ class TestDeploymentDeployer(object):
         assert ("VERSION" not in env_keys) == config.disable_deprecated_managed_env_vars
 
     @pytest.mark.usefixtures("get")
+    def test_disable_service_links(
+        self, post, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook
+    ):
+        # Modify config to disable service links
+        config.enable_service_links = False
+        expected_deployment = create_expected_deployment(config, app_spec)
+        expected_deployment["spec"]["template"]["spec"]["enableServiceLinks"] = False
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_deployment
+        post.side_effect = None
+        post.return_value = mock_response
+
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
+
+        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
+        datadog.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec, False, 6)
+        prometheus.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
+        secrets.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
+        owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
+
+    @pytest.mark.usefixtures("get")
     def test_deploy_new_deployment(
         self, post, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook
     ):
@@ -318,6 +341,7 @@ class TestDeploymentDeployer(object):
         config.enable_service_links = enable_service_links
         deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
         assert deployer._enable_service_links == expected_result
+        # Check the podspec to see if the service links are enabled
 
     def test_deploy_clears_alpha_beta_annotations(
         self, put, get, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook

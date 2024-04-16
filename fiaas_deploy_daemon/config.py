@@ -328,6 +328,7 @@ class Configuration(Namespace):
             default="1",
             type=_int_or_unicode
         )
+        # Logic is inverted due to ConfigArgParse not supporting boolean flags with negation
         parser.add_argument(
             "--disable-service-links",
             dest="enable_service_links",

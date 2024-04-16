@@ -75,12 +75,12 @@ def should_have_autoscaler(app_spec):
     if not _autoscaler_enabled(app_spec.autoscaler):
         return False
     if not _enough_replicas_wanted(app_spec):
-        LOG.warn(
+        LOG.warning(
             "Can't enable autoscaler for %s with only %d max replicas", app_spec.name, app_spec.autoscaler.max_replicas
         )
         return False
     if not _request_cpu_is_set(app_spec):
-        LOG.warn("Can't enable autoscaler for %s without CPU requests", app_spec.name)
+        LOG.warning("Can't enable autoscaler for %s without CPU requests", app_spec.name)
         return False
     return True
 

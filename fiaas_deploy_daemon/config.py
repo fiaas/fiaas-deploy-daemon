@@ -328,6 +328,15 @@ class Configuration(Namespace):
             default="1",
             type=_int_or_unicode
         )
+        parser.add_argument(
+            "--disable-service-links",
+            dest="enable_service_links",
+            help=(
+                "Disable service links in the podspec. Recommended "
+                " for new installations. Existing installations may need to skip this."
+                ),
+            action="store_false"
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(
             "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"

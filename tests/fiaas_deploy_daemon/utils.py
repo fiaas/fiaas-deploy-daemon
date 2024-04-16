@@ -101,8 +101,10 @@ def crd_available(kubernetes, timeout=5):
 def use_apiextensionsv1_crd(k8s_version):
     return parse(k8s_version[1:]) >= parse("1.21.0")
 
+
 def use_networkingv1_ingress(k8s_version):
     return parse(k8s_version[1:]) >= parse("1.21.0")
+
 
 def read_yml(yml_path):
     with open(yml_path, "r") as fobj:

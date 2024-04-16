@@ -57,6 +57,7 @@ class TestConfig(object):
         assert config.enable_deprecated_tls_entry_per_host is False
         assert config.disable_deprecated_managed_env_vars is False
         assert config.tls_certificate_ready is False
+        assert config.enable_service_links is True
 
     @pytest.mark.parametrize(
         "arg,key",
@@ -99,21 +100,24 @@ class TestConfig(object):
         assert getattr(config, key) is True
 
     @pytest.mark.parametrize(
-        "key,attr,value",
+        "key,attr,value,expected_value",
         [
-            ("environment", "environment", "gke"),
-            ("proxy", "proxy", "http://proxy.example.com"),
-            ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"]),
-            ("strongbox-init-container-image", "strongbox_init_container_image", "fiaas/strongbox-image-test:123"),
-            ("extension-hook-url", "extension_hook_url", "hook-service-url"),
+            ("environment", "environment", "gke", "gke"),
+            ("proxy", "proxy", "http://proxy.example.com", "http://proxy.example.com"),
+            ("ingress-suffix", "ingress_suffixes", [r"1\.example.com", "2.example.com"], [r"1\.example.com", "2.example.com"]),
+            ("strongbox-init-container-image", "strongbox_init_container_image",
+             "fiaas/strongbox-image-test:123", "fiaas/strongbox-image-test:123"),
+            ("extension-hook-url", "extension_hook_url", "hook-service-url", "hook-service-url"),
+            ("disable-service-links", "enable_service_links", True, False),
+            ("disable-service-links", "enable_service_links", False, True),
         ],
     )
-    def test_config_from_file(self, key, attr, value, tmpdir):
+    def test_config_from_file(self, key, attr, value, expected_value, tmpdir):
         config_file = tmpdir.join("config.yaml")
         with config_file.open("w") as fobj:
             pyaml.dump({key: value}, fobj, safe=True, default_style='"')
         config = Configuration(["--config-file", config_file.strpath])
-        assert getattr(config, attr) == value
+        assert getattr(config, attr) == expected_value
 
     def test_host_rewrite_rules(self):
         args = ("pattern=value", r"(\d+)\.example\.com=$1.example.net", "www.([a-z]+.com)={env}.$1")

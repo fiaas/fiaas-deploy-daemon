@@ -71,7 +71,7 @@ TESTS_REQ = [
     "pytest-helpers-namespace == 2021.12.29",
     "pytest == 7.4.2",
     "requests-file == 1.4.3",
-    "callee == 0.3",
+    "callee == 0.3.1",
 ]
 
 DEV_TOOLS = [

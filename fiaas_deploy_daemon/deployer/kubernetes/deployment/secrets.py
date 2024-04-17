@@ -121,7 +121,7 @@ class GenericInitSecrets(KubernetesSecrets):
         self._automount_service_account_token = False
         if config.strongbox_init_container_image is not None:
             if "strongbox" in self._available_secrets_containers:
-                LOG.warn(
+                LOG.warning(
                     "Image %s for strongbox-init-container-image will be ignored.\
                      secret-init-container strongbox=%s will be used instead",
                     config.strongbox_init_container_image,
@@ -132,7 +132,7 @@ class GenericInitSecrets(KubernetesSecrets):
 
         if config.secrets_init_container_image is not None:
             if "default" in self._available_secrets_containers:
-                LOG.warn(
+                LOG.warning(
                     "Image %s for secrets-init-container-image will be ignored.\
                      secret-init-container default=%s will be used instead",
                     config.secrets_init_container_image,

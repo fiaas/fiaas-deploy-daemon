@@ -14,7 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import collections
+import collections.abc
 from itertools import zip_longest
 
 from .factory import InvalidConfiguration
@@ -32,7 +32,7 @@ class _Lookup(object):
         default_value = self.get_default_value(key)
         if isinstance(default_value, (list, tuple)):
             return _LookupList(config_value, default_value)
-        if isinstance(default_value, collections.Mapping):
+        if isinstance(default_value, collections.abc.Mapping):
             return LookupMapping(config_value, default_value)
         if config_value is None:
             return default_value
@@ -54,7 +54,7 @@ class _Lookup(object):
         return "%s(config=%r, defaults=%r)" % (self.__class__.__name__, self._config, self._defaults)
 
 
-class LookupMapping(_Lookup, collections.Mapping):
+class LookupMapping(_Lookup, collections.abc.Mapping):
     def _get_value(self, col, key):
         default_value = col.get(key)
         return default_value
@@ -66,7 +66,7 @@ class LookupMapping(_Lookup, collections.Mapping):
         return iter(self._defaults) if _len(self._defaults) > _len(self._config) else iter(self._config)
 
 
-class _LookupList(_Lookup, collections.Sequence):
+class _LookupList(_Lookup, collections.abc.Sequence):
     def __getitem__(self, idx):
         if self._config is not None:
             if idx >= len(self._config):
@@ -89,7 +89,7 @@ class _LookupList(_Lookup, collections.Sequence):
         return col[idx]
 
     def __eq__(self, other):
-        if not isinstance(other, collections.Sequence):
+        if not isinstance(other, collections.abc.Sequence):
             return NotImplemented
         for self_i, other_i in zip_longest(self, other, fillvalue=object()):
             if self_i != other_i:

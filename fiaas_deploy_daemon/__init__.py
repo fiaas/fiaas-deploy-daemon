@@ -110,7 +110,7 @@ def init_k8s_client(config: Configuration, log: logging.Logger):
             k8s_config.use_in_cluster_config()
         except IOError as e:
             if not config.client_cert:
-                log.warn("No apiserver auth config was specified, and in-cluster config could not be set up: " + str(e))
+                log.warning("No apiserver auth config was specified, and in-cluster config could not be set up: %s", str(e))
 
     # if api_cert or debug is explicitly set, override in-cluster config setting (if used)
     if config.api_cert:
@@ -179,7 +179,7 @@ def warn_if_env_variable_config(config, log):
     environ_keys = set(os.environ.keys())
     possible_config_env_variables = sorted(configuration_env_variable_keys & environ_keys)
     if len(possible_config_env_variables) > 0:
-        log.warn(
+        log.warning(
             "found configuration environment variables %s. The ability to configure fiaas-deploy-daemon via environment variables "
             + "has been removed. If you are trying to use these environment variables to configure fiaas-deploy-daemon, "
             + "that configuration will not take effect. Please switch to configuring via a config file/ConfigMap or command-line "

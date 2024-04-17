@@ -110,7 +110,7 @@ def init_k8s_client(config: Configuration, log: logging.Logger):
             k8s_config.use_in_cluster_config()
         except IOError as e:
             if not config.client_cert:
-                log.warning("No apiserver auth config was specified, and in-cluster config could not be set up: " + str(e))
+                log.warning("No apiserver auth config was specified, and in-cluster config could not be set up: %s", str(e))
 
     # if api_cert or debug is explicitly set, override in-cluster config setting (if used)
     if config.api_cert:

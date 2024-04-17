@@ -86,6 +86,8 @@ class DeploymentDeployer(object):
         self._max_unavailable = config.deployment_max_unavailable
         self._disable_deprecated_managed_env_vars = config.disable_deprecated_managed_env_vars
         self._enable_service_account_per_app = config.enable_service_account_per_app
+        # We set enable_service_links to None, when not explicitly disabled, because we want to use the default value in kubernetes.
+        self._enable_service_links = False if config.enable_service_links is False else None
 
     @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
@@ -131,6 +133,7 @@ class DeploymentDeployer(object):
             serviceAccountName=service_account_name,
             automountServiceAccountToken=automount_service_account_token,
             terminationGracePeriodSeconds=self._grace_period,
+            enableServiceLinks=self._enable_service_links,
         )
 
         pod_labels = merge_dicts(app_spec.labels.pod, _add_status_label(labels))

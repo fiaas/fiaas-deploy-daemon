@@ -16,7 +16,7 @@
 # limitations under the License.
 
 
-import collections
+import collections.abc
 import pkgutil
 
 import yaml
@@ -162,7 +162,7 @@ def _set(d, keys, value):
 
 
 def _flatten(d):
-    if isinstance(d, collections.Mapping):
+    if isinstance(d, collections.abc.Mapping):
         return {k: _flatten(v) for k, v in list(d.items())}
     return d
 
@@ -172,7 +172,7 @@ def _remove_intersect(dict1, dict2):
     keys_dict1 = set(dict1.keys())
     keys_dict2 = set(dict2.keys())
     for k in keys_dict1 & keys_dict2:
-        if all(isinstance(x, collections.Mapping) for x in [dict1[k], dict2[k]]):
+        if all(isinstance(x, collections.abc.Mapping) for x in [dict1[k], dict2[k]]):
             dict1[k].update(_remove_intersect(dict1[k], dict2[k]))
         elif all(_single_dict_list(x) for x in [dict1[k], dict2[k]]):
             dict1[k] = [item for item in [_remove_intersect(x, y) for x, y in zip(dict1[k], dict2[k])] if item]
@@ -181,4 +181,4 @@ def _remove_intersect(dict1, dict2):
 
 
 def _single_dict_list(x):
-    return isinstance(x, collections.Sequence) and len(x) == 1 and isinstance(x[0], collections.Mapping)
+    return isinstance(x, collections.abc.Sequence) and len(x) == 1 and isinstance(x[0], collections.abc.Mapping)

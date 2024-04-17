@@ -32,7 +32,7 @@ import json
 import pytest
 import requests
 import yaml
-from distutils.version import StrictVersion
+from packaging.version import parse
 from k8s.models.autoscaler import HorizontalPodAutoscaler
 from k8s.models.deployment import Deployment
 from k8s.models.service import Service
@@ -99,11 +99,11 @@ def crd_available(kubernetes, timeout=5):
 
 
 def use_apiextensionsv1_crd(k8s_version):
-    return StrictVersion(k8s_version[1:]) >= StrictVersion("1.21.0")
+    return parse(k8s_version[1:]) >= parse("1.21.0")
 
 
 def use_networkingv1_ingress(k8s_version):
-    return StrictVersion(k8s_version[1:]) >= StrictVersion("1.21.0")
+    return parse(k8s_version[1:]) >= parse("1.21.0")
 
 
 def read_yml(yml_path):

@@ -70,7 +70,7 @@ class Factory(BaseFactory):
         if (
             app_config.get("extensions")
             and app_config["extensions"].get("tls")
-            and type(app_config["extensions"]["tls"]) == bool
+            and isinstance(app_config["extensions"]["tls"], bool)
         ):
             app_config["extensions"]["tls"] = {"enabled": app_config["extensions"]["tls"]}
         lookup = LookupMapping(config=app_config, defaults=self._defaults)

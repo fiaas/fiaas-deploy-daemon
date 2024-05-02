@@ -110,7 +110,7 @@ class TestRoleBindingDeployer:
             owner_references.apply.assert_called()
 
     def test_create_bindings_with_multiple_cases(self, deployer, owner_references, app_spec, r_a_role_binding, cr_a_role_binding):
-        with patch.object(RoleBinding, 'save') as mock_save:
+        with patch.object(RoleBinding, 'save', autospec=True) as mock_save:
             cr_a_role_binding.metadata = ObjectMeta(ownerReferences=[
                 OwnerReference(apiVersion="fiaas.schibsted.io/v1", kind="Application")])
             r_a_role_binding.metadata = ObjectMeta(ownerReferences=[

@@ -33,7 +33,7 @@ GENERIC_REQ = [
     "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)
     "six >= 1.12.0",
     "dnspython == 1.16.0",
-    "k8s == 0.25.0",
+    "k8s == 0.26.0",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.10.1",
     "backoff == 1.8.0",
@@ -60,23 +60,23 @@ FLAKE8_REQ = [
     "flake8-print == 3.1.4",
     "flake8-comprehensions == 1.4.1",
     "pep8-naming == 0.11.1",
-    "flake8 == 3.9.0",
+    "flake8 == 7.0.0",
 ]
 
 TESTS_REQ = [
-    "pytest-xdist == 3.3.1",
-    "pytest-sugar == 0.9.7",
+    "pytest-xdist == 3.6.1",
+    "pytest-sugar == 1.0.0",
     "pytest-html == 4.1.1",
-    "pytest-cov == 4.1.0",
+    "pytest-cov == 5.0.0",
     "pytest-helpers-namespace == 2021.12.29",
-    "pytest == 7.4.2",
+    "pytest == 8.2.0",
     "requests-file == 1.4.3",
     "callee == 0.3.1",
 ]
 
 DEV_TOOLS = [
-    "tox==3.14.5",
-    "virtualenv==20.13.0",
+    "tox==4.14.2",
+    "virtualenv==20.26.0",
     "black ~= 22.0",
 ]
 

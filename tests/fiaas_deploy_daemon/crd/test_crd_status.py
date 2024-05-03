@@ -52,7 +52,7 @@ class TestStatusReport(object):
 
     @pytest.fixture
     def get_app(self):
-        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplication.get", spec_set=True) as m:
+        with mock.patch("fiaas_deploy_daemon.crd.status.FiaasApplication.get", autospec=True) as m:
             yield m
 
     @pytest.fixture

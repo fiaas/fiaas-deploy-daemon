@@ -16,9 +16,8 @@
 import logging
 import struct
 from base64 import b32encode
-from datetime import datetime
+from datetime import datetime, timezone
 
-import pytz
 from blinker import signal
 from py27hash.hash import hash27
 from k8s.client import NotFound
@@ -43,9 +42,7 @@ def connect_signals(include_status_in_app):
 
 
 def now():
-    now = datetime.utcnow()
-    now = pytz.utc.localize(now)
-    return now.isoformat()
+    return datetime.now(timezone.utc).isoformat()
 
 
 def _handle_signal_without_status(sender, status, subject):

@@ -99,7 +99,7 @@ def _add_argument_diff(actual, expected, indent=0, acc=None):
     if not acc:
         acc = ["Actual vs Expected"]
         first = True
-    if type(actual) != type(expected):
+    if not isinstance(actual, type(expected)):
         acc.append("{}{!r} {} {!r}".format(" " * indent * 2, actual, "==" if actual == expected else "!=", expected))
     elif isinstance(actual, dict):
         for k in set(list(actual.keys()) + list(expected.keys())):

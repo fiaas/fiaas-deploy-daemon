@@ -26,7 +26,7 @@ blocks:
       - name: docker
       prologue:
         commands:
-          - sem-version python 3.9
+          - sem-version python 3.12
           - checkout
           - docker login --username "${DOCKER_USERNAME}" --password-stdin <<< "${DOCKER_PASSWORD}"
           - pip install .[ci]
@@ -44,7 +44,7 @@ blocks:
     task:
       prologue:
         commands:
-          - sem-version python 3.9
+          - sem-version python 3.12
           - checkout
           - pip install .[ci]
           - mkdir -p "$HOME/.local/bin"

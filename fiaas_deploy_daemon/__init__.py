@@ -60,7 +60,7 @@ class MainBindings(pinject.BindingSpec):
     def provide_session(self, config: Configuration):
         session = requests.Session()
         if config.extension_hook_url is not None:
-            retries = Retry(total=5, backoff_factor=0.1)
+            retries = Retry(total=5, backoff_factor=0.1, connect=5)
             session.mount(config.extension_hook_url, HTTPAdapter(max_retries=retries))
         if config.proxy:
             session.proxies = {scheme: config.proxy for scheme in ("http", "https")}

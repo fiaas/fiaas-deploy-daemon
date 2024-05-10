@@ -28,6 +28,8 @@ import pinject
 import requests
 from k8s import config as k8s_config
 from prometheus_client import Info
+from requests.adapters import HTTPAdapter
+
 
 from .config import Configuration
 from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
@@ -57,6 +59,7 @@ class MainBindings(pinject.BindingSpec):
 
     def provide_session(self, config: Configuration):
         session = requests.Session()
+        session.mount(config.extension_hook_url, HTTPAdapter(max_retries=5))
         if config.proxy:
             session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
         if config.debug:

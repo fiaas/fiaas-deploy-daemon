@@ -28,7 +28,7 @@ import pinject
 import requests
 from k8s import config as k8s_config
 from prometheus_client import Info
-from requests.adapters import HTTPAdapter
+from requests.adapters import HTTPAdapter, Retry
 
 
 from .config import Configuration
@@ -59,7 +59,9 @@ class MainBindings(pinject.BindingSpec):
 
     def provide_session(self, config: Configuration):
         session = requests.Session()
-        session.mount(config.extension_hook_url, HTTPAdapter(max_retries=5))
+        if config.extension_hook_ulr is not None:
+            retries = Retry(total=5, backoff_factor=0.1)
+            session.mount(config.extension_hook_url, HTTPAdapter(max_retries=retries))
         if config.proxy:
             session.proxies = {scheme: config.proxy for scheme in ("http", "https")}
         if config.debug:

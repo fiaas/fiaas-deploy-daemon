@@ -30,7 +30,6 @@ from k8s import config as k8s_config
 from prometheus_client import Info
 from requests.adapters import HTTPAdapter, Retry
 
-
 from .config import Configuration
 from .crd import CustomResourceDefinitionBindings, DisabledCustomResourceDefinitionBindings
 from .deployer import DeployerBindings

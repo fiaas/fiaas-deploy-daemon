@@ -33,7 +33,7 @@ GENERIC_REQ = [
     "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)
     "six >= 1.12.0",
     "dnspython == 1.16.0",
-    "k8s == 0.27.0",
+    "k8s == 0.27.1",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.10.1",
     "backoff == 1.8.0",

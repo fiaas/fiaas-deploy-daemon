@@ -67,7 +67,7 @@ To run fiaas-deploy-daemon locally and connect it to a local cluster, do the fol
 
 With kind:
 * (See https://kind.sigs.k8s.io/docs/user/quick-start/#installation for how to install and configure kind)
-* Start kind: `$ kind create cluster --image kindest/node:v1.29.1`
+* Start kind: `$ kind create cluster --image kindest/node:v1.31.0`
 * Run `$ bin/run_fdd_against_kind`
 
 With minikube:

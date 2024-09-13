@@ -2,7 +2,7 @@
 set -euo pipefail
 
 K8S_VERSION="$1"
-KIND_VERSION=v0.18.0
+KIND_VERSION=v0.24.0
 
 curl -Lo "$HOME/.local/bin/kind" "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
 chmod +x "$HOME/.local/bin/kind"

@@ -12,13 +12,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM python:3.12-alpine as common
-MAINTAINER fiaas@googlegroups.com
+
+
+# build image with ./bin/docker_build
+
+FROM python:3.12-alpine AS common
+LABEL org.opencontainers.image.authors="fiaas@googlegroups.com"
 # Install any binary package dependencies here
 RUN apk --no-cache add \
     yaml
 
-FROM common as build
+FROM common AS build
 # Install build tools, and build wheels of all dependencies
 RUN apk --no-cache add \
     build-base \
@@ -31,10 +35,16 @@ WORKDIR /fiaas-deploy-daemon
 
 RUN pip wheel . --no-cache-dir --wheel-dir=/wheels/ --find-links=/links/
 
-FROM common as production
+FROM common AS production
+
 # Get rid of all build dependencies, install application using only pre-built binary wheels
 COPY --from=build /wheels/ /wheels/
 RUN pip install --no-index --find-links=/wheels/ --only-binary all /wheels/fiaas_deploy_daemon*.whl
+
+RUN addgroup -g 1001 -S fiaas && \
+    adduser -u 1001 -S fiaas -G fiaas
+
+USER fiaas
 
 EXPOSE 5000
 CMD ["fiaas-deploy-daemon"]

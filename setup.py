@@ -33,7 +33,7 @@ GENERIC_REQ = [
     "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)
     "six >= 1.12.0",
     "dnspython == 1.16.0",
-    "k8s == 0.27.1",
+    "k8s == 0.27.3",
     "appdirs == 1.4.3",
     "requests-toolbelt == 0.10.1",
     "backoff == 1.8.0",
@@ -52,7 +52,7 @@ WEB_REQ = [
 
 DEPLOY_REQ = [
     "urllib3 == 1.26.17",
-    "requests == 2.31.0",
+    "requests == 2.32.3",
     "ipaddress == 1.0.22",  # Required by requests for resolving IP address in SSL cert
 ]
 

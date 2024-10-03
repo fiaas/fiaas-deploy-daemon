@@ -313,6 +313,7 @@ healthchecks:
     initial_delay_seconds: 10
     period_seconds: 10
     success_threshold: 1 # For liveness, 1 is the only valid value. For readiness, it can be higher
+    failure_threshold: 3
     timeout_seconds: 1
 ```
 

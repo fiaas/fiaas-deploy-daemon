@@ -6,9 +6,9 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-
 [tool.setuptools.packages.find]
-exclude = ["tests"]
+exclude = ["tests*"]
+namespaces = false # only consider directories with __init__.py as packages (old setuptools setup.py behaviour)
 
 [project]
 name = "fiaas-deploy-daemon"

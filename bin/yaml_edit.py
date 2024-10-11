@@ -88,7 +88,7 @@ def process_file(editor, filepath):
     yaml = YAML()
     yaml.preserve_quotes = True
     with open(filepath) as fobj:
-        data = yaml.load(fobj)
+        data = yaml.safe_load(fobj)
     try:
         data = editor.edit(data)
     except KeyError:

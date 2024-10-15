@@ -23,7 +23,7 @@ requires-python = ">= 3.12"
 dependencies = [
     "ConfigArgParse == 0.14.0",
     "prometheus_client == 0.7.1",
-    "PyYAML == 5.1.2",
+    "PyYAML == 6.0.2",
     "pyaml == 19.4.1",
     "pinject == 0.14.1",
     "decorator < 5.0.0",  # 5.0.0 and later drops py2 support (transitive dep from pinject)

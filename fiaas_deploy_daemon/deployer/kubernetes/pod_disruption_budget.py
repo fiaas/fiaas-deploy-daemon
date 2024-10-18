@@ -34,6 +34,7 @@ class PodDisruptionBudgetDeployer(object):
         self._owner_references = owner_references
         self._extension_hook = extension_hook
         self.max_unavailable = config.pdb_max_unavailable
+        self.unhealthy_pod_eviction_policy = config.pdb_unhealthy_pod_eviction_policy
 
     @retry_on_upsert_conflict
     def deploy(self, app_spec: AppSpec, selector: dict[str, any], labels: dict[str, any]):
@@ -58,7 +59,8 @@ class PodDisruptionBudgetDeployer(object):
 
         spec = PodDisruptionBudgetSpec(
             selector=LabelSelector(matchLabels=selector),
-            maxUnavailable=max_unavailable
+            maxUnavailable=max_unavailable,
+            unhealthyPodEvictionPolicy=self.unhealthy_pod_eviction_policy
         )
 
         pdb = PodDisruptionBudget.get_or_create(metadata=metadata, spec=spec)

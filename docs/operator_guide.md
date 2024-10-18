@@ -211,6 +211,13 @@ This feature is disabled by default.
 
 By default, PDB will be set with maxUnavailable = 1 in case the deployment has more than 1 replica. This parameter allows to change that value either with another int value or with a string percentage (i.e. "20%"). Recommendation is some low value like 10% to avoid issues. Also in case of a number, something below min_replicas should be used to allow evictions.
 
+### pdb-unhealthy-pod-eviction-policy
+This option is useful for avoiding operational problems, with node rotations, when there exists deployments with only unhealthy pods. This can be useful in dev clusters which have deployment with only unhealthy pods or in production clusters where the applications tolerate unhealthy pods being disrupted, while new pods are being started.
+
+This option Controls when unhealthy running pods can be evicted. The default 'IfHealthyBudget' allows eviction only if enough healthy pods are available to maintain the desired count of healthy pods. 'AlwaysAllow' permits eviction of unhealthy running pods even if doing so would leave fewer pods than desired temporarily.
+
+[Kubernetes documentation is available here.](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy)
+
 ### disable-service-links
 
 By default, [enableServiceLinks](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#podspec-v1-core) is set to true, which means that environment variables are automatically created for each service in the same namespace. This parameter allows you to disable this feature by setting disable-service-links to true. This can be useful in scenarios where you have a large number of services and you want to reduce the number of environment variables that are automatically created. For new installations, it's recommended to disable this feature to streamline the environment setup. However, for existing installations, proceed with caution when disabling this feature. This is due to potential compatibility issues, as some services might rely on these automatically created environment variables for communication.

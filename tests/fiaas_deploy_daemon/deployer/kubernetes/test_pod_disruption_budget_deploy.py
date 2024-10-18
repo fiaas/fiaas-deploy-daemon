@@ -43,8 +43,7 @@ class TestPodDisruptionBudgetDeployer(object):
 
     @pytest.fixture
     def config(self):
-        config = create_autospec(Configuration([]), spec_set=True)
-        config.pdb_max_unavailable = 1
+        config = Configuration([])
         return config
 
     @pytest.mark.usefixtures("get")
@@ -54,6 +53,7 @@ class TestPodDisruptionBudgetDeployer(object):
             "spec": {
                 "maxUnavailable": 1,
                 "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+                "unhealthyPodEvictionPolicy": "IfHealthyBudget",
             },
         }
         mock_response = create_autospec(Response)
@@ -101,6 +101,7 @@ class TestPodDisruptionBudgetDeployer(object):
             "spec": {
                 "maxUnavailable": 2,
                 "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+                "unhealthyPodEvictionPolicy": "IfHealthyBudget",
             },
         }
         mock_response = create_autospec(Response)
@@ -132,6 +133,31 @@ class TestPodDisruptionBudgetDeployer(object):
             "spec": {
                 "maxUnavailable": "20%",
                 "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+                "unhealthyPodEvictionPolicy": "IfHealthyBudget",
+            },
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_pdb
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, SELECTOR, LABELS)
+
+        pytest.helpers.assert_any_call(post, PDB_API, expected_pdb)
+        owner_references.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
+        extension_hook.apply.assert_called_once_with(TypeMatcher(PodDisruptionBudget), app_spec)
+
+    @pytest.mark.usefixtures("get")
+    def test_setting_unhealthy_policy(self, deployer, post, app_spec, owner_references, extension_hook):
+        app_spec = app_spec._replace(
+            autoscaler=AutoscalerSpec(enabled=True, min_replicas=4, max_replicas=6, cpu_threshold_percentage=50)
+        )
+        deployer.unhealthy_pod_eviction_policy = "AlwaysAllow"
+        expected_pdb = {
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+            "spec": {
+                "maxUnavailable": 1,
+                "selector": {"matchExpressions": [], "matchLabels": {"app": "testapp"}},
+                "unhealthyPodEvictionPolicy": "AlwaysAllow",
             },
         }
         mock_response = create_autospec(Response)

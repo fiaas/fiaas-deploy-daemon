@@ -328,6 +328,16 @@ class Configuration(Namespace):
             default="1",
             type=_int_or_unicode
         )
+        parser.add_argument(
+            "--pdb-unhealthy-pod-eviction-policy",
+            help=(
+                "The policy for unhealthy pods. IfHealthyBudget will only evict pods if the there "
+                "are enough healthy pods to maintain the budget. AlwaysAllow will allow "
+                "disruptions of unhealthy pods, even when the budget is not met."
+            ),
+            default="IfHealthyBudget",
+            choices=("IfHealthyBudget", "AlwaysAllow"),
+        )
         # Logic is inverted due to ConfigArgParse not supporting boolean flags with negation
         parser.add_argument(
             "--disable-service-links",

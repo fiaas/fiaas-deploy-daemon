@@ -72,6 +72,8 @@ class CrdWatcher(DaemonThread):
     def _handle_watch_event(self, event: WatchEvent):
         if event.type in (WatchEvent.ADDED, WatchEvent.MODIFIED):
             self._deploy(event.object)
+        elif event.type == WatchEvent.DELETED:
+            self._delete(event.object)
         else:
             raise ValueError("Unknown WatchEvent type {}".format(event.type))
 
@@ -130,6 +132,10 @@ class CrdWatcher(DaemonThread):
         except (InvalidConfiguration, YAMLError):
             LOG.exception("Failed to create app spec from fiaas config file")
             self._lifecycle.failed(lifecycle_subject)
+
+    def _delete(self, application: FiaasApplication):
+        app_name = application.spec.application
+        LOG.info("Deleting %s. No specific action, we leave automatic garbage collection to Kubernetes", app_name)
 
     def _already_deployed(self, app_name, namespace, deployment_id):
         try:

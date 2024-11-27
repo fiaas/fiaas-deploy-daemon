@@ -65,12 +65,6 @@ class K8s(object):
         self._autoscaler_deployer.deploy(app_spec, labels)
         self._pod_disruption_budget_deployer.deploy(app_spec, selector, labels)
 
-    def delete(self, app_spec: AppSpec):
-        self._ingress_deployer.delete(app_spec)
-        self._autoscaler_deployer.delete(app_spec)
-        self._service_deployer.delete(app_spec)
-        self._deployment_deployer.delete(app_spec)
-
     def _make_labels(self, app_spec: AppSpec):
         labels = {
             "app": app_spec.name,

@@ -55,11 +55,6 @@ MODIFIED_EVENT = {
     "type": WatchEvent.MODIFIED,
 }
 
-DELETED_EVENT = {
-    "object": ADD_EVENT["object"],
-    "type": WatchEvent.DELETED,
-}
-
 STATUS_EVENT = {
     "object": {
         "metadata": {
@@ -156,7 +151,6 @@ class TestWatcher(object):
             (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
             (MODIFIED_EVENT, "UPDATE", None, None),
             (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-            (DELETED_EVENT, "DELETE", None, None),
         ],
     )
     def test_deploy(

@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-
+import datetime
 import logging
 from queue import Queue
 from typing import Union
@@ -90,6 +90,22 @@ class CrdWatcher(DaemonThread):
             return True
         return False
 
+    def _skip_update_of_deleted_application(self, application: FiaasApplication):
+        # metadata.deletionTimestamp is set when a resource is deleted with propagationPolicy: orphan or
+        # propagationPolicy: foreground. The resource may be updated after this, for example finalizers may be set or
+        # removed. If the application resource is in the process of being deleted, deploy should be skipped otherwise
+        # it may interfere with the deletion process done by the garbage collector.
+        deletion_timestamp = application.metadata.deletionTimestamp
+        if isinstance(deletion_timestamp, datetime.datetime) and deletion_timestamp <= datetime.datetime.now(
+            tz=datetime.timezone.utc
+        ):
+            LOG.warning(
+                "Skipping update watch event for app %s; it was marked for deletion at %s",
+                application.spec.application,
+                deletion_timestamp,
+            )
+            return True
+
     def _deploy(self, application: FiaasApplication):
         app_name = application.spec.application
         LOG.debug("Deploying %s", app_name)
@@ -99,6 +115,8 @@ class CrdWatcher(DaemonThread):
         except (AttributeError, KeyError, TypeError):
             raise ValueError("The Application {} is missing the 'fiaas/deployment_id' label".format(app_name))
         if self._skip_status_event(application):
+            return
+        if self._skip_update_of_deleted_application(application):
             return
         if self._already_deployed(app_name, application.metadata.namespace, deployment_id):
             LOG.debug("Have already deployed %s for app %s", deployment_id, app_name)

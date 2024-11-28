@@ -224,8 +224,10 @@ class TestWatcher(object):
             assert deployer_event == DeployerEvent(deployer_event_type, app_spec, None)
         assert deploy_queue.empty()
 
-    def test_delete(self, deploy_queue, watcher):
+    def test_delete(self, crd_watcher, deploy_queue, watcher):
         watcher.watch.return_value = [WatchEvent(DELETED_EVENT, FiaasApplication)]
+
+        crd_watcher._watch(None)
 
         assert deploy_queue.empty()
 

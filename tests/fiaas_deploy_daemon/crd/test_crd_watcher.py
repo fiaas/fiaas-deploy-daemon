@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+import copy
 from queue import Queue
 
 from unittest import mock
@@ -307,6 +308,15 @@ class TestWatcher(object):
 
     def test_deploy_save_status(self, crd_watcher, deploy_queue, watcher, status_get):
         watcher.watch.return_value = [WatchEvent(STATUS_EVENT, FiaasApplication)]
+
+        assert deploy_queue.qsize() == 0
+        crd_watcher._watch(None)
+        assert deploy_queue.qsize() == 0
+
+    def test_deploy_skip_deleted_app(self, crd_watcher, deploy_queue, watcher, status_get):
+        event = copy.deepcopy(MODIFIED_EVENT)
+        event['object']['metadata']['deletionTimestamp'] = '2000-01-01T00:00:00Z'
+        watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         assert deploy_queue.qsize() == 0
         crd_watcher._watch(None)

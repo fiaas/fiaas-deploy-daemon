@@ -57,13 +57,9 @@ class AutoscalerDeployer(object):
             self._extension_hook.apply(autoscaler, app_spec)
             autoscaler.save()
         else:
-            try:
-                LOG.info("Deleting any pre-existing autoscaler for %s", app_spec.name)
-                HorizontalPodAutoscaler.delete(app_spec.name, app_spec.namespace)
-            except NotFound:
-                pass
+            self._delete(app_spec)
 
-    def delete(self, app_spec):
+    def _delete(self, app_spec):
         LOG.info("Deleting autoscaler for %s", app_spec.name)
         try:
             HorizontalPodAutoscaler.delete(app_spec.name, app_spec.namespace)

@@ -16,6 +16,7 @@
 # limitations under the License.
 
 
+import copy
 from queue import Queue
 
 from unittest import mock
@@ -156,7 +157,6 @@ class TestWatcher(object):
             (ADD_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
             (MODIFIED_EVENT, "UPDATE", None, None),
             (MODIFIED_EVENT, "UPDATE", {"deployment": {"fiaas/source-repository": "xyz"}}, "xyz"),
-            (DELETED_EVENT, "DELETE", None, None),
         ],
     )
     def test_deploy(
@@ -179,11 +179,7 @@ class TestWatcher(object):
         app_name = spec["application"]
         uid = event["object"]["metadata"]["uid"]
         namespace = event["object"]["metadata"]["namespace"]
-        deployment_id = (
-            event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
-            if deployer_event_type != "DELETE"
-            else "deletion"
-        )
+        deployment_id = event["object"]["metadata"]["labels"]["fiaas/deployment_id"]
 
         app_spec = app_spec._replace(name=app_name, namespace=namespace, deployment_id=deployment_id)
         spec_factory.return_value = app_spec
@@ -227,6 +223,13 @@ class TestWatcher(object):
             assert deployer_event == DeployerEvent(deployer_event_type, app_spec, lifecycle_subject)
         else:
             assert deployer_event == DeployerEvent(deployer_event_type, app_spec, None)
+        assert deploy_queue.empty()
+
+    def test_delete(self, crd_watcher, deploy_queue, watcher):
+        watcher.watch.return_value = [WatchEvent(DELETED_EVENT, FiaasApplication)]
+
+        crd_watcher._watch(None)
+
         assert deploy_queue.empty()
 
     @pytest.mark.parametrize("namespace", [None, "default"])
@@ -305,6 +308,15 @@ class TestWatcher(object):
 
     def test_deploy_save_status(self, crd_watcher, deploy_queue, watcher, status_get):
         watcher.watch.return_value = [WatchEvent(STATUS_EVENT, FiaasApplication)]
+
+        assert deploy_queue.qsize() == 0
+        crd_watcher._watch(None)
+        assert deploy_queue.qsize() == 0
+
+    def test_deploy_skip_deleted_app(self, crd_watcher, deploy_queue, watcher, status_get):
+        event = copy.deepcopy(MODIFIED_EVENT)
+        event['object']['metadata']['deletionTimestamp'] = '2000-01-01T00:00:00Z'
+        watcher.watch.return_value = [WatchEvent(event, FiaasApplication)]
 
         assert deploy_queue.qsize() == 0
         crd_watcher._watch(None)

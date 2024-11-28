@@ -134,21 +134,8 @@ class CrdWatcher(DaemonThread):
             self._lifecycle.failed(lifecycle_subject)
 
     def _delete(self, application: FiaasApplication):
-        app_spec = self._spec_factory(
-            uid=application.metadata.uid,
-            name=application.spec.application,
-            image=application.spec.image,
-            app_config=application.spec.config,
-            teams=[],
-            tags=[],
-            deployment_id="deletion",
-            namespace=application.metadata.namespace,
-            additional_labels=application.spec.additional_labels,
-            additional_annotations=application.spec.additional_annotations,
-        )
-        set_extras(app_spec)
-        self._deploy_queue.put(DeployerEvent("DELETE", app_spec, lifecycle_subject=None))
-        LOG.debug("Queued delete for %s", application.spec.application)
+        app_name = application.spec.application
+        LOG.info("Deleting %s. No specific action, we leave automatic garbage collection to Kubernetes", app_name)
 
     def _already_deployed(self, app_name, namespace, deployment_id):
         try:

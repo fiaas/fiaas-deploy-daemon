@@ -184,14 +184,6 @@ class DeploymentDeployer(object):
         self._extension_hook.apply(deployment, app_spec)
         deployment.save()
 
-    def delete(self, app_spec):
-        LOG.info("Deleting deployment for %s", app_spec.name)
-        try:
-            body = {"kind": "DeleteOptions", "apiVersion": "v1", "propagationPolicy": "Foreground"}
-            Deployment.delete(app_spec.name, app_spec.namespace, body=body)
-        except NotFound:
-            pass
-
     def _make_volumes(self, app_spec):
         volumes = []
         volumes.append(

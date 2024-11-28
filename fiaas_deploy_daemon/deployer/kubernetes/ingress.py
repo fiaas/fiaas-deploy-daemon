@@ -79,10 +79,6 @@ class IngressDeployer(object):
         else:
             self._ingress_adapter.delete_unused(app_spec, labels)
 
-    def delete(self, app_spec):
-        LOG.info("Deleting ingresses for %s", app_spec.name)
-        self._ingress_adapter.delete_list(app_spec)
-
     def _create(self, app_spec, labels):
         LOG.info("Creating/updating ingresses for %s", app_spec.name)
         custom_labels = merge_dicts(app_spec.labels.ingress, labels)

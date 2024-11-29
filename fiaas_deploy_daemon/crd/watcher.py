@@ -96,9 +96,7 @@ class CrdWatcher(DaemonThread):
         # removed. If the application resource is in the process of being deleted, deploy should be skipped otherwise
         # it may interfere with the deletion process done by the garbage collector.
         deletion_timestamp = application.metadata.deletionTimestamp
-        if isinstance(deletion_timestamp, datetime.datetime) and deletion_timestamp <= datetime.datetime.now(
-            tz=datetime.timezone.utc
-        ):
+        if isinstance(deletion_timestamp, datetime.datetime):
             LOG.warning(
                 "Skipping update watch event for app %s; it was marked for deletion at %s",
                 application.spec.application,

@@ -256,7 +256,7 @@ class Configuration(Namespace):
         parser.add_argument(
             "--deployment-max-surge",
             help="maximum number of extra pods that can be scheduled above the desired "
-                 "number of pods during an update",
+            "number of pods during an update",
             default="25%",
             type=_int_or_unicode,
         )
@@ -271,7 +271,7 @@ class Configuration(Namespace):
             "--ready-check-timeout-multiplier",
             type=int,
             help="Multiply default ready check timeout (replicas * initialDelaySeconds) with this "
-                 + "number of seconds  (default: %(default)s)",
+            + "number of seconds  (default: %(default)s)",
             default=10,
         )
         parser.add_argument(
@@ -303,8 +303,10 @@ class Configuration(Namespace):
             default=False,
         )
         parser.add_argument(
-            "--include-status-in-app", help="Include status subresource in application CRD", default=False,
-            action="store_true"
+            "--include-status-in-app",
+            help="Include status subresource in application CRD",
+            default=False,
+            action="store_true",
         )
         parser.add_argument(
             "--list-of-roles",
@@ -326,7 +328,7 @@ class Configuration(Namespace):
             "--pdb-max-unavailable",
             help="The maximum number of pods that can be unavailable after an eviction",
             default="1",
-            type=_int_or_unicode
+            type=_int_or_unicode,
         )
         parser.add_argument(
             "--pdb-unhealthy-pod-eviction-policy",
@@ -345,8 +347,16 @@ class Configuration(Namespace):
             help=(
                 "Disable service links in the podspec. Recommended "
                 " for new installations. Existing installations may need to skip this."
-                ),
-            action="store_false"
+            ),
+            action="store_false",
+        )
+        parser.add_argument(
+            "--dns-search-domains",
+            help="list of extra dns search domains",
+            default=[],
+            action="append",
+            type=str,
+            dest="search_domains",
         )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(

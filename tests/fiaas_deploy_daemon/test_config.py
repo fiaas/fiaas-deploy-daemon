@@ -58,6 +58,7 @@ class TestConfig(object):
         assert config.disable_deprecated_managed_env_vars is False
         assert config.tls_certificate_ready is False
         assert config.enable_service_links is True
+        assert config.search_domains == []
 
     @pytest.mark.parametrize(
         "arg,key",

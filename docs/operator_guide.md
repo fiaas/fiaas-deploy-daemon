@@ -91,7 +91,7 @@ Used when collecting metrics to DataDog. See [Metrics](#metrics).
 
 ### datadog-activate-sleep
 
-Flag to set a Lifecycle in the datadog container with a preStop that will execute a sleep of the pre-stop-delay of the main container plus 5 seconds.  
+Flag to set a Lifecycle in the datadog container with a preStop that will execute a sleep of the pre-stop-delay of the main container plus 5 seconds.
 
 ### pre-stop-delay
 
@@ -222,6 +222,9 @@ This option Controls when unhealthy running pods can be evicted. The default 'If
 
 By default, [enableServiceLinks](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#podspec-v1-core) is set to true, which means that environment variables are automatically created for each service in the same namespace. This parameter allows you to disable this feature by setting disable-service-links to true. This can be useful in scenarios where you have a large number of services and you want to reduce the number of environment variables that are automatically created. For new installations, it's recommended to disable this feature to streamline the environment setup. However, for existing installations, proceed with caution when disabling this feature. This is due to potential compatibility issues, as some services might rely on these automatically created environment variables for communication.
 
+### dns-search-domains
+
+Additional search domains to put in the pod spec `dnsConfig.searches`. Empty by default.
 
 Deploying an application
 ------------------------

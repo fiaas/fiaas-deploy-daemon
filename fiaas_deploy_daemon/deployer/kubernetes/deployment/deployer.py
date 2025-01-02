@@ -92,7 +92,7 @@ class DeploymentDeployer(object):
         self._enable_service_account_per_app = config.enable_service_account_per_app
         # We set enable_service_links to None, when not explicitly disabled, because we want to use the default value in kubernetes.
         self._enable_service_links = False if config.enable_service_links is False else None
-        self._search_domains = config.search_domains
+        self._dns_search_domains = config.dns_search_domains
 
     @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
@@ -128,9 +128,9 @@ class DeploymentDeployer(object):
         ]
 
         dns_config = None
-        if self._search_domains:
+        if self._dns_search_domains:
             dns_config = PodDNSConfig(
-                searches=self._search_domains,
+                searches=self._dns_search_domains,
             )
 
         automount_service_account_token = app_spec.admin_access

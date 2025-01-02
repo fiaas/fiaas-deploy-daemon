@@ -511,7 +511,7 @@ class TestDeploymentDeployer(object):
     def test_search_domains(
         self, post, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook
     ):
-        config.search_domains = ["example.com", "example.org"]
+        config.dns_search_domains = ["example.com", "example.org"]
         expected_deployment = create_expected_deployment(config, app_spec)
         expected_deployment["spec"]["template"]["spec"]["dnsConfig"] = {
             "searches": ["example.com", "example.org"],

@@ -356,7 +356,7 @@ class Configuration(Namespace):
             default=[],
             action="append",
             type=str,
-            dest="search_domains",
+            dest="dns_search_domains",
         )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(

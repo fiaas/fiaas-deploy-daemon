@@ -330,13 +330,20 @@ class TestDeploymentDeployer(object):
         owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
         extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
 
-    @pytest.mark.parametrize("enable_service_links, expected_result", [
-        (True, None),
-        (False, False),
-        (None, None)  # If enable_service_links is None, it should default to None
-    ])
+    @pytest.mark.parametrize(
+        "enable_service_links, expected_result",
+        [(True, None), (False, False), (None, None)],  # If enable_service_links is None, it should default to None
+    )
     def test_enable_service_links(
-        self, enable_service_links, expected_result, config, datadog, prometheus, secrets, owner_references, extension_hook
+        self,
+        enable_service_links,
+        expected_result,
+        config,
+        datadog,
+        prometheus,
+        secrets,
+        owner_references,
+        extension_hook,
     ):
         config.enable_service_links = enable_service_links
         deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
@@ -499,6 +506,25 @@ class TestDeploymentDeployer(object):
         prometheus.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         secrets.apply.assert_called_once_with(DeploymentMatcher(), app_spec)
         extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
+
+    @pytest.mark.usefixtures("get")
+    def test_search_domains(
+        self, post, config, app_spec, datadog, prometheus, secrets, owner_references, extension_hook
+    ):
+        config.dns_search_domains = ["example.com", "example.org"]
+        expected_deployment = create_expected_deployment(config, app_spec)
+        expected_deployment["spec"]["template"]["spec"]["dnsConfig"] = {
+            "searches": ["example.com", "example.org"],
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_deployment
+        post.side_effect = None
+        post.return_value = mock_response
+
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
+
+        pytest.helpers.assert_any_call(post, DEPLOYMENTS_URI, expected_deployment)
 
 
 def create_expected_deployment(

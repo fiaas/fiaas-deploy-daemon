@@ -30,7 +30,7 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 
 {{- define "fiaas-deploy-daemon.RoleCertificateRules" -}}
 - apiGroups:
-  - cert-manager.io/v1
+  - cert-manager.io
   resources:
   - certificates
   verbs:

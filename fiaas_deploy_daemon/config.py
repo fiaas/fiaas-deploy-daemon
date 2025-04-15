@@ -155,6 +155,7 @@ class Configuration(Namespace):
         self._parse_args(args)
         self._resolve_env()
         self.namespace = self._resolve_namespace()
+        self.ingress_host_pairs = self._parse_ingress_host_pairs(self.ingress_host_pair)
 
     def _parse_args(self, args):
         parser = configargparse.ArgParser(
@@ -358,6 +359,14 @@ class Configuration(Namespace):
             type=str,
             dest="dns_search_domains",
         )
+        parser.add_argument(
+            "--ingress-host-pair",
+            help="Pairs of hosts to map to each other",
+            default=[],
+            action="append",
+            type=str,
+            dest="ingress_host_pair",
+        )
         usage_reporting_parser = parser.add_argument_group("Usage Reporting", USAGE_REPORTING_LONG_HELP)
         usage_reporting_parser.add_argument(
             "--usage-reporting-cluster-name", help="Name of the cluster where the fiaas-deploy-daemon instance resides"
@@ -493,6 +502,18 @@ class Configuration(Namespace):
                 path=namespace_file_path, env_var=namespace_env_variable
             )
         )
+
+    @staticmethod
+    def _parse_ingress_host_pairs(host_pair_args):
+        host_pairs = {}
+        for host_pair in host_pair_args if host_pair_args else []:
+            try:
+                host1, host2 = host_pair.split("=", 1)
+                host_pairs[host1] = host2
+                host_pairs[host2] = host1  # Add the reverse mapping too
+            except ValueError:
+                raise InvalidConfigurationException(f"Invalid host pair: {host_pair}, format should be host1=host2")
+        return host_pairs
 
     def __repr__(self):
         return "Configuration({})".format(

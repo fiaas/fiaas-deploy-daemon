@@ -1037,6 +1037,130 @@ class TestIngressDeployer(object):
             assert expected_host_groups == sorted(host_groups)
             assert expected_ingress_names == sorted(ingress_names)
 
+    @pytest.fixture
+    def deployer_with_host_pairs(self, config, default_app_spec, ingress_adapter):
+        config.ingress_host_pairs = {
+            "foo.example.com": "bar.example.com",
+            "bar.example.com": "foo.example.com",
+            "dev1.example.com": "dev2.example.com",
+            "dev2.example.com": "dev1.example.com",
+        }
+        return IngressDeployer(config, default_app_spec, ingress_adapter)
+
+    @pytest.mark.usefixtures("delete")
+    def test_host_pairs_creates_paired_ingresses(self, post, deployer_with_host_pairs, ingress_tls_deployer, app_spec):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            app_spec.ingresses[:] = [
+                IngressItemSpec(
+                    host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}
+                )
+            ]
+
+            deployer_with_host_pairs.deploy(app_spec, LABELS)
+
+            # Verify that both hosts are included in the ingress items
+            host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
+            expected_hosts = [
+                "bar.example.com",
+                "foo.example.com",
+                "testapp.127.0.0.1.xip.io",
+                "testapp.svc.test.example.com",
+            ]
+            assert sorted(host_groups[0]) == expected_hosts
+
+    @pytest.mark.usefixtures("delete")
+    def test_host_pairs_no_duplicate_when_both_hosts_specified(
+        self, post, deployer_with_host_pairs, ingress_tls_deployer, app_spec
+    ):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            app_spec.ingresses[:] = [
+                IngressItemSpec(
+                    host="foo.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}
+                ),
+                IngressItemSpec(
+                    host="bar.example.com", pathmappings=[IngressPathMappingSpec(path="/", port=80)], annotations={}
+                ),
+            ]
+
+            deployer_with_host_pairs.deploy(app_spec, LABELS)
+
+            # Verify that both hosts are included but no duplicates are created
+            host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
+            expected_hosts = [
+                "bar.example.com",
+                "foo.example.com",
+                "testapp.127.0.0.1.xip.io",
+                "testapp.svc.test.example.com",
+            ]
+            assert sorted(host_groups[0]) == expected_hosts
+
+    @pytest.mark.usefixtures("delete")
+    def test_host_pairs_with_multiple_paths(self, post, deployer_with_host_pairs, ingress_tls_deployer, app_spec):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            app_spec.ingresses[:] = [
+                IngressItemSpec(
+                    host="dev1.example.com",
+                    pathmappings=[
+                        IngressPathMappingSpec(path="/api", port=80),
+                        IngressPathMappingSpec(path="/app", port=8080),
+                    ],
+                    annotations={},
+                )
+            ]
+
+            # Add a second port for the test
+            app_spec.ports.append(PortSpec(protocol="http", name="second-port", port=8080, target_port=8080))
+
+            deployer_with_host_pairs.deploy(app_spec, LABELS)
+
+            # Extract ingress rules to verify paths are copied to paired host
+            ingress_rules = []
+            for call in get_or_create.call_args_list:
+                kwargs = call[1]
+                for rule in kwargs["spec"].rules:
+                    ingress_rules.append((rule.host, [path.path for path in rule.http.paths]))
+
+            # Verify both hosts have identical path mappings
+            dev1_paths = next((paths for host, paths in ingress_rules if host == "dev1.example.com"), None)
+            dev2_paths = next((paths for host, paths in ingress_rules if host == "dev2.example.com"), None)
+
+            assert dev1_paths is not None
+            assert dev2_paths is not None
+            assert set(dev1_paths) == set(dev2_paths) == {"/api", "/app"}
+
+    @pytest.mark.usefixtures("delete")
+    def test_host_pairs_with_annotations(self, post, deployer_with_host_pairs, ingress_tls_deployer, app_spec):
+        with mock.patch("k8s.models.ingress.Ingress.get_or_create") as get_or_create:
+            get_or_create.return_value = mock.create_autospec(Ingress, spec_set=True)
+            app_spec.ingresses[:] = [
+                IngressItemSpec(
+                    host="dev1.example.com",
+                    pathmappings=[IngressPathMappingSpec(path="/", port=80)],
+                    annotations={"custom.annotation": "value"},
+                )
+            ]
+
+            deployer_with_host_pairs.deploy(app_spec, LABELS)
+
+            # Since this has annotations, it should be in its own ingress group
+            # and the paired host should be in a separate ingress with the same annotations
+            host_groups = [sorted(call.args[2]) for call in ingress_tls_deployer.apply.call_args_list]
+
+            # Each host should be in its own ingress group
+            assert any(group == ["dev1.example.com"] for group in host_groups)
+            assert any(group == ["dev2.example.com"] for group in host_groups)
+
+            # Check that annotations are present in both ingresses
+            for call in get_or_create.call_args_list:
+                kwargs = call[1]
+                if any(rule.host == "dev1.example.com" for rule in kwargs["spec"].rules):
+                    assert kwargs["metadata"].annotations.get("custom.annotation") == "value"
+                if any(rule.host == "dev2.example.com" for rule in kwargs["spec"].rules):
+                    assert kwargs["metadata"].annotations.get("custom.annotation") == "value"
+
 
 class TestIngressTLSDeployer(object):
     HOSTS = ["host1", "host2", "host3", "this.host.is.so.long.that.it.is.impossible.to.use.as.the.common.name"]

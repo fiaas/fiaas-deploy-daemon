@@ -218,6 +218,19 @@ This option Controls when unhealthy running pods can be evicted. The default 'If
 
 [Kubernetes documentation is available here.](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#unhealthy-pod-eviction-policy)
 
+### ingress-host-pair
+
+Defines pairs of hosts that should have identical ingress configurations. When an application specifies one of the hosts in its configuration, an identical ingress will be created for the paired host automatically.
+
+This flag can be specified multiple times to define multiple host pairs. Each specification should follow the format `host1=host2`. When a pair is specified, both the forward and reverse mappings are created automatically (meaning you only need to specify each pair once, not both directions).
+
+Example usage:
+```
+--ingress-host-pair prod.example.com=staging.example.com
+```
+
+With this configuration, if an application specifies `prod.example.com` as its host, an identical ingress will also be created for `staging.example.com` with the same path mappings, ports, and annotations. Similarly, if `staging.example.com` is specified, an ingress for `prod.example.com` will be created automatically.
+
 ### disable-service-links
 
 By default, [enableServiceLinks](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#podspec-v1-core) is set to true, which means that environment variables are automatically created for each service in the same namespace. This parameter allows you to disable this feature by setting disable-service-links to true. This can be useful in scenarios where you have a large number of services and you want to reduce the number of environment variables that are automatically created. For new installations, it's recommended to disable this feature to streamline the environment setup. However, for existing installations, proceed with caution when disabling this feature. This is due to potential compatibility issues, as some services might rely on these automatically created environment variables for communication.

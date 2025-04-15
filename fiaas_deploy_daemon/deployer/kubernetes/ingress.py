@@ -63,6 +63,7 @@ class IngressDeployer(object):
         self._default_app_spec = default_app_spec
         self._ingress_suffixes = config.ingress_suffixes
         self._host_rewrite_rules = config.host_rewrite_rules
+        self._host_pairs = config.ingress_host_pairs or {}
         self._ingress_adapter: IngressAdapterInterface = ingress_adapter
         self._tls_issuer_overrides = sorted(
             iter(config.tls_certificate_issuer_overrides.items()), key=lambda k_v: len(k_v[0]), reverse=True
@@ -169,13 +170,20 @@ class IngressDeployer(object):
 
     def _group_ingresses(self, app_spec):
         """Group the ingresses so that those with annotations are individual, and so that those using non-default TLS-issuers
-        are separated
+        are separated. Additionally, ensure that for specific hosts, an identical ingress is created on a paired host.
         """
         explicit_host = _has_explicitly_set_host(app_spec.ingresses)
         ingress_items = [
             item._replace(host=self._apply_host_rewrite_rules(item.host)) for item in app_spec.ingresses if item.host
         ]
         ingress_items += self._expand_default_hosts(app_spec)
+
+        # Ensure paired hosts have identical ingresses
+        for ingress_item in list(ingress_items):
+            paired_host = self._host_pairs.get(ingress_item.host)
+            if paired_host and not any(item.host == paired_host for item in ingress_items):
+                paired_ingress_item = ingress_item._replace(host=paired_host)
+                ingress_items.append(paired_ingress_item)
 
         tls_issuer_name_default = self._get_issuer_name_default_ingress(app_spec)
         default_ingress = AnnotatedIngress(

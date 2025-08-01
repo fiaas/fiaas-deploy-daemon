@@ -24,6 +24,7 @@ import pytest
 from callee import InstanceOf, Attrs, List
 
 from fiaas_deploy_daemon.log_extras import StatusHandler, ExtraFilter, set_extras
+from fiaas_deploy_daemon.log_metrics import MetricsHandler
 from fiaas_deploy_daemon.logsetup import init_logging, FiaasFormatter, _create_default_handler
 
 TEST_MESSAGE = "This is a test log message"
@@ -58,7 +59,11 @@ class TestLogSetup(object):
         init_logging(_FakeConfig())
 
         root_logger.addHandler.assert_has_calls(
-            (mock.call(self._describe_stream_handler(logging.Formatter)), mock.call(self._describe_status_handler())),
+            (
+                mock.call(self._describe_stream_handler(logging.Formatter)),
+                mock.call(self._describe_status_handler()),
+                mock.call(InstanceOf(MetricsHandler)),
+            ),
             any_order=True,
         )
         root_logger.setLevel.assert_called_with(logging.INFO)
@@ -66,7 +71,11 @@ class TestLogSetup(object):
     def test_output_json(self, root_logger):
         init_logging(_FakeConfig("json"))
         root_logger.addHandler.assert_has_calls(
-            (mock.call(self._describe_stream_handler(FiaasFormatter)), mock.call(self._describe_status_handler())),
+            (
+                mock.call(self._describe_stream_handler(FiaasFormatter)),
+                mock.call(self._describe_status_handler()),
+                mock.call(InstanceOf(MetricsHandler)),
+            ),
             any_order=True,
         )
 

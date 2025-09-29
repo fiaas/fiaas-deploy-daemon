@@ -43,6 +43,7 @@ class AppSpec(
             "singleton",
             "ingress_tls",
             "secrets",
+            "statefulset",
             "app_config",
         ],
     )
@@ -141,5 +142,32 @@ IngressTLSSpec = namedtuple(
     [
         "enabled",
         "certificate_issuer",
+    ],
+)
+
+StatefulSetUpdateStrategySpec = namedtuple("StatefulSetUpdateStrategySpec", ["type", "rolling_update_partition"])
+
+StatefulSetVolumeClaimResourcesSpec = namedtuple("StatefulSetVolumeClaimResourcesSpec", ["requests", "limits"])
+
+StatefulSetVolumeClaimSpec = namedtuple(
+    "StatefulSetVolumeClaimSpec",
+    [
+        "name",
+        "mount_path",
+        "storage_class_name",
+        "access_modes",
+        "annotations",
+        "resources",
+    ],
+)
+
+StatefulSetSpec = namedtuple(
+    "StatefulSetSpec",
+    [
+        "enabled",
+        "service_name",
+        "pod_management_policy",
+        "update_strategy",
+        "volume_claims",
     ],
 )

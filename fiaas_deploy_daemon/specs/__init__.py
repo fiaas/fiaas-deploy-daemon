@@ -31,7 +31,7 @@ class SpecBindings(pinject.BindingSpec):
         bind("default_app_spec", to_class=DefaultAppSpec)
 
     def provide_factory(self):
-        from .v3 import Factory
+        from .v4 import Factory
 
         return Factory()
 

@@ -25,6 +25,7 @@ from ...specs.models import AppSpec, ResourcesSpec, ResourceRequirementSpec
 from .autoscaler import AutoscalerDeployer
 from .deployment import DeploymentDeployer
 from .ingress import IngressDeployer
+from .statefulset import StatefulSetDeployer
 from .service import ServiceDeployer
 from .service_account import ServiceAccountDeployer
 from .pod_disruption_budget import PodDisruptionBudgetDeployer
@@ -37,14 +38,22 @@ class K8s(object):
     """Adapt from an AppSpec to the necessary definitions for a kubernetes cluster"""
 
     def __init__(
-        self, config, service_deployer, deployment_deployer, ingress_deployer,
-        autoscaler, service_account_deployer, pod_disruption_budget_deployer,
-        role_binding_deployer
+        self,
+        config,
+        service_deployer,
+        deployment_deployer,
+        statefulset_deployer,
+        ingress_deployer,
+        autoscaler,
+        service_account_deployer,
+        pod_disruption_budget_deployer,
+        role_binding_deployer,
     ):
         self._version = config.version
         self._enable_service_account_per_app = config.enable_service_account_per_app
         self._service_deployer: ServiceDeployer = service_deployer
         self._deployment_deployer: DeploymentDeployer = deployment_deployer
+        self._statefulset_deployer: StatefulSetDeployer = statefulset_deployer
         self._ingress_deployer: IngressDeployer = ingress_deployer
         self._autoscaler_deployer: AutoscalerDeployer = autoscaler
         self._service_account_deployer: ServiceAccountDeployer = service_account_deployer
@@ -52,7 +61,8 @@ class K8s(object):
         self._role_binding_deployer: RoleBindingDeployer = role_binding_deployer
 
     def deploy(self, app_spec: AppSpec):
-        if _besteffort_qos_is_required(app_spec):
+        besteffort_required = _besteffort_qos_is_required(app_spec)
+        if besteffort_required:
             app_spec = _remove_resource_requirements(app_spec)
         selector = _make_selector(app_spec)
         labels = self._make_labels(app_spec)
@@ -61,7 +71,10 @@ class K8s(object):
             self._role_binding_deployer.deploy(app_spec, labels)
         self._service_deployer.deploy(app_spec, selector, labels)
         self._ingress_deployer.deploy(app_spec, labels)
-        self._deployment_deployer.deploy(app_spec, selector, labels, _besteffort_qos_is_required(app_spec))
+        if app_spec.statefulset.enabled:
+            self._statefulset_deployer.deploy(app_spec, selector, labels, besteffort_required)
+        else:
+            self._deployment_deployer.deploy(app_spec, selector, labels, besteffort_required)
         self._autoscaler_deployer.deploy(app_spec, labels)
         self._pod_disruption_budget_deployer.deploy(app_spec, selector, labels)
 

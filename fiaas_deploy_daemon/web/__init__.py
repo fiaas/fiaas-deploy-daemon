@@ -73,7 +73,7 @@ def metrics():
 @web.route("/defaults")
 @defaults_histogram.time()
 def defaults():
-    return _render_defaults("fiaas_deploy_daemon.specs.v3", "defaults.yml")
+    return _render_defaults(_latest_defaults_module(), "defaults.yml")
 
 
 @web.route("/defaults/<int:version>")
@@ -125,6 +125,25 @@ def _render_defaults(*args):
         return resp
     else:
         abort(404)
+
+
+def _latest_defaults_module():
+    import importlib
+
+    from fiaas_deploy_daemon import specs
+
+    latest = None
+    for module_info in pkgutil.iter_modules(specs.__path__):
+        if module_info.ispkg and module_info.name.startswith("v"):
+            version = int(module_info.name[1:])
+            if latest is None or version > latest[0]:
+                latest = (version, module_info.name)
+
+    if latest is None:
+        raise RuntimeError("No spec versions available")
+
+    importlib.import_module(f"{specs.__name__}.{latest[1]}")
+    return f"{specs.__name__}.{latest[1]}"
 
 
 class WebBindings(pinject.BindingSpec):

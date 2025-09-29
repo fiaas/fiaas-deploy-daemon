@@ -52,14 +52,14 @@ class TestEndpoints:
             assert metric_name in resp.data
 
     def test_defaults(self, client):
-        defaults_raw = pkgutil.get_data("fiaas_deploy_daemon.specs.v3", "defaults.yml")
+        defaults_raw = pkgutil.get_data("fiaas_deploy_daemon.specs.v4", "defaults.yml")
 
         resp = client.get("/defaults")
 
         assert resp.status_code == 200
         assert resp.data == defaults_raw
 
-    @pytest.mark.parametrize("version", ("2", "3"))
+    @pytest.mark.parametrize("version", ("2", "3", "4"))
     def test_defaults_versioned(self, client, version):
         defaults_raw = pkgutil.get_data(f"fiaas_deploy_daemon.specs.v{version}", "defaults.yml")
 
@@ -89,9 +89,9 @@ class TestEndpoints:
 
     def test_transform_post(self, spec_factory, client):
         app_config = "version: 2"
-        expected_response = b"version: 3\n"
+        expected_response = b"version: 4\n"
 
-        spec_factory.transform.return_value = {"version": 3}
+        spec_factory.transform.return_value = {"version": 4}
 
         resp = client.post("/transform", data=app_config)
 

@@ -42,6 +42,8 @@ from fiaas_deploy_daemon.specs.models import (
     IngressPathMappingSpec,
     StrongboxSpec,
     IngressTLSSpec,
+    StatefulSetSpec,
+    StatefulSetUpdateStrategySpec,
 )
 
 from utils import TypeMatcher
@@ -107,6 +109,13 @@ def app_spec(**kwargs):
         singleton=False,
         ingress_tls=IngressTLSSpec(enabled=False, certificate_issuer=None),
         secrets=[],
+        statefulset=StatefulSetSpec(
+            enabled=False,
+            service_name=None,
+            pod_management_policy="OrderedReady",
+            update_strategy=StatefulSetUpdateStrategySpec(type="RollingUpdate", rolling_update_partition=None),
+            volume_claims=[],
+        ),
         app_config={},
     )
 

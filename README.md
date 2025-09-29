@@ -97,7 +97,7 @@ spec:
   application: example
   image: nginx:1.13.0
   config:
-    version: 3
+    version: 4
     ingress:
       - host: example.com
     metrics:

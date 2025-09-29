@@ -23,7 +23,13 @@ from k8s.models.service import Service
 from fiaas_deploy_daemon import ExtensionHookCaller
 from fiaas_deploy_daemon.config import Configuration
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
-from fiaas_deploy_daemon.specs.models import LabelAndAnnotationSpec
+from fiaas_deploy_daemon.specs.models import (
+    LabelAndAnnotationSpec,
+    StatefulSetSpec,
+    StatefulSetUpdateStrategySpec,
+    StatefulSetVolumeClaimResourcesSpec,
+    StatefulSetVolumeClaimSpec,
+)
 
 from utils import TypeMatcher
 
@@ -167,6 +173,44 @@ class TestServiceDeployer(object):
         post.return_value = mock_response
 
         deployer.deploy(app_spec_multiple_thrift_ports, SELECTOR, LABELS)
+
+        pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
+
+    @pytest.mark.usefixtures("get")
+    def test_headless_service_for_statefulset(self, deployer, post, app_spec):
+        claim = StatefulSetVolumeClaimSpec(
+            name="data",
+            mount_path="/data",
+            storage_class_name=None,
+            access_modes=["ReadWriteOnce"],
+            annotations={},
+            resources=StatefulSetVolumeClaimResourcesSpec(requests={"storage": "1Gi"}, limits=None),
+        )
+        statefulset_spec = StatefulSetSpec(
+            enabled=True,
+            service_name=None,
+            pod_management_policy="OrderedReady",
+            update_strategy=StatefulSetUpdateStrategySpec(type="RollingUpdate", rolling_update_partition=None),
+            volume_claims=[claim],
+        )
+        app_spec = app_spec._replace(statefulset=statefulset_spec)
+
+        expected_service = {
+            "spec": {
+                "selector": SELECTOR,
+                "type": "ClusterIP",
+                "loadBalancerSourceRanges": [],
+                "ports": [{"protocol": "TCP", "targetPort": 8080, "name": "http", "port": 80}],
+                "sessionAffinity": "None",
+                "clusterIP": "None",
+            },
+            "metadata": pytest.helpers.create_metadata("testapp", labels=LABELS),
+        }
+        mock_response = create_autospec(Response)
+        mock_response.json.return_value = expected_service
+        post.return_value = mock_response
+
+        deployer.deploy(app_spec, SELECTOR, LABELS)
 
         pytest.helpers.assert_any_call(post, SERVICES_URI, expected_service)
 

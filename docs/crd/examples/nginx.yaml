@@ -28,7 +28,7 @@ spec:
       service_account:
         eks.amazonaws.com/role-arn: arn:aws:iam::123456789012:role/iam_role
         abc: "test1"
-    version: 3
+    version: 4
     replicas:
       maximum: 2
       minimum: 1

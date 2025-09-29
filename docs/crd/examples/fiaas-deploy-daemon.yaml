@@ -23,7 +23,7 @@ spec:
   application: fiaas-deploy-daemon
   image: fiaas/fiaas-deploy-daemon:20190812124040-967aba3
   config:
-    version: 3
+    version: 4
     admin_access: true
     replicas:
       maximum: 1

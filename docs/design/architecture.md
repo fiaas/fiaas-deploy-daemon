@@ -45,7 +45,7 @@ This allows for a wide range of use-cases, some specific to a single site and ou
 
 Extensions in the cluster needs to be registered, by creating a FiaasExtension object, with details about how it integrates with the rest of the platform, a name and possibly other identifying details like maintainer and code repo.
 
-Extensions would typically require some configuration for each application. In the case of pure Operators, the configuration would most likely be in the form of custom annotations that are applied to objects as they are created, and then picked up by the Operator. This is supported in v3 of the fiaas.yml specification, with custom annotations propagated directly from the configuration to the objects.
+Extensions would typically require some configuration for each application. In the case of pure Operators, the configuration would most likely be in the form of custom annotations that are applied to objects as they are created, and then picked up by the Operator. This is supported in v4 of the fiaas.yml specification, with custom annotations propagated directly from the configuration to the objects.
 
 When an extension needs configuration that can't be applied as annotations on existing objects, we need a place to put that configuration. Configuration of an extension happens in a `extensions` section in the fiaas.yml file of a project (which is exposed in the cluster as a TPR). Each extension needs to register using a unique name, which would typically be the name of the FiaasExtension object. The extension would then find its configuration under `extensions.<name>` in the configuration. When linting, anything under `extensions` are ignored by the platform itself, except that we will issue warnings (or even errors?) if there is configuration for a non-existing extension.
 
@@ -125,4 +125,3 @@ This could be implemented as a custom ingress annotation that is parsed by the i
 ### Case 6: Monitoring Directives (SLA SLO SLI)
 
 This is a case for an extension that might be promoted to the root configuration, depending on where the company is moving. It could be implemented as a combination pre-create hook and operator, with a linting hook as an optional extra. The pre-create hook would read the configuration and modify the object in some way that allows the operator to set up extra monitoring. It might also be possible to do without the pre-create hook, because when the operator finds an object it needs to act on it can look up the configuration itself, from the TPR that belongs to the application.
-

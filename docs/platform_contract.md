@@ -29,11 +29,12 @@ We are currently testing Kubernetes version 1.25.11 and above. FIAAS may work on
 
 | **FIAAS field** | **kubernetes entity** |
 |-----------------|-----------------------|
-| [replicas](/docs/v3_spec.md#replicas) | [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) if `max > min` |
-| [ingress](/docs/v3_spec.md#ingress) | [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) |
-| [healthchecks](/docs/v3_spec.md#healthchecks) | [pod live-/ready-ness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/) |
-| [resources](/docs/v3_spec.md#resources) | [pod resources](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/) |
-| [metrics](/docs/v3_spec.md#metrics) | Resolves to annotations [example configuration](https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml) |
+| [replicas](/docs/v4_spec.md#replicas) | [HorizontalPodAutoscaler](https://kubernetes.io/docs/tasks/run-application/horizontal-pod-autoscale/) if `max > min` |
+| [ingress](/docs/v4_spec.md#ingress) | [ingress](https://kubernetes.io/docs/concepts/services-networking/ingress/) |
+| [healthchecks](/docs/v4_spec.md#healthchecks) | [pod live-/ready-ness probe](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-probes/) |
+| [resources](/docs/v4_spec.md#resources) | [pod resources](https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/) |
+| [metrics](/docs/v4_spec.md#metrics) | Resolves to annotations [example configuration](https://github.com/prometheus/prometheus/blob/master/documentation/examples/prometheus-kubernetes.yml) |
+| [statefulset](/docs/v4_spec.md#statefulset) | [StatefulSet with volumeClaimTemplates](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/) |
 
 ## What applications can expect
 
@@ -75,7 +76,7 @@ Currently those are exposed both under the name given by the operator, but also 
 
 ## What FIAAS expects from the application
 
-In order to deploy an application, FIAAS needs three pieces of information: The name of the application, a container image, and a [FIAAS configuration](v3_spec.md).
+In order to deploy an application, FIAAS needs three pieces of information: The name of the application, a container image, and a [FIAAS configuration](v4_spec.md).
 
 Once deployed, the application is expected to send logs to stdout (as indicated by the `LOG_STDOUT` environment variable). It is expected to have a liveness check and a readiness check as defined in the configuration.
 

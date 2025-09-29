@@ -63,7 +63,15 @@ class ServiceDeployer(object):
         metadata = ObjectMeta(
             name=service_name, namespace=app_spec.namespace, labels=custom_labels, annotations=custom_annotations
         )
-        spec = ServiceSpec(selector=selector, ports=ports, type=self._service_type)
+        service_type = "ClusterIP" if app_spec.statefulset.enabled else self._service_type
+        spec_args = {
+            "selector": selector,
+            "ports": ports,
+            "type": service_type,
+        }
+        if app_spec.statefulset.enabled:
+            spec_args["clusterIP"] = "None"
+        spec = ServiceSpec(**spec_args)
         svc = Service.get_or_create(metadata=metadata, spec=spec)
         self._owner_references.apply(svc, app_spec)
         self._extension_hook.apply(svc, app_spec)

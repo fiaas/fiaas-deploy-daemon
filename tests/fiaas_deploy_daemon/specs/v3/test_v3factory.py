@@ -91,6 +91,12 @@ TEST_DATA = {
         "strongbox.iam_role": None,
         "strongbox.groups": None,
         "strongbox.aws_region": "eu-west-1",
+        "statefulset.enabled": False,
+        "statefulset.service_name": None,
+        "statefulset.pod_management_policy": "OrderedReady",
+        "statefulset.update_strategy.type": "RollingUpdate",
+        "statefulset.update_strategy.rolling_update_partition": None,
+        "statefulset.volume_claims": [],
     },
     "autoscaling_disabled": {
         "autoscaler.enabled": False,

@@ -41,8 +41,10 @@ from ..models import (
     StrongboxSpec,
     IngressTLSSpec,
     SecretsSpec,
+    StatefulSetSpec,
+    StatefulSetUpdateStrategySpec,
 )
-from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK
+from ..v2.transformer import RESOURCE_UNDEFINED_UGLYHACK, _normalize_resource_value
 from ...tools import merge_dicts
 
 
@@ -100,6 +102,7 @@ class Factory(BaseFactory):
                 certificate_issuer=lookup["extensions"]["tls"]["certificate_issuer"],
             ),
             secrets=self._secrets_specs(lookup["extensions"]["secrets"]),
+            statefulset=self._statefulset_spec(),
             app_config=app_config,
         )
         return app_spec
@@ -126,14 +129,24 @@ class Factory(BaseFactory):
 
     @staticmethod
     def _resource_requirements_spec(resource_lookup):
-        cpu = None if resource_lookup["cpu"] == RESOURCE_UNDEFINED_UGLYHACK else resource_lookup["cpu"]
-        memory = None if resource_lookup["memory"] == RESOURCE_UNDEFINED_UGLYHACK else resource_lookup["memory"]
+        cpu = _normalize_resource_value(resource_lookup["cpu"])
+        memory = _normalize_resource_value(resource_lookup["memory"])
         return ResourceRequirementSpec(cpu=cpu, memory=memory)
 
     @staticmethod
     def _prometheus_spec(prometheus_lookup):
         return PrometheusSpec(
             enabled=prometheus_lookup["enabled"], port=prometheus_lookup["port"], path=prometheus_lookup["path"]
+        )
+
+    @staticmethod
+    def _statefulset_spec():
+        return StatefulSetSpec(
+            enabled=False,
+            service_name=None,
+            pod_management_policy="OrderedReady",
+            update_strategy=StatefulSetUpdateStrategySpec(type="RollingUpdate", rolling_update_partition=None),
+            volume_claims=[],
         )
 
     @staticmethod

@@ -68,6 +68,8 @@ class AutoscalerDeployer(object):
 
 
 def should_have_autoscaler(app_spec):
+    if getattr(app_spec.statefulset, "enabled", False):
+        return False
     if not _autoscaler_enabled(app_spec.autoscaler):
         return False
     if not _enough_replicas_wanted(app_spec):

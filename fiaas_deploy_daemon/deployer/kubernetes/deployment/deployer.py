@@ -96,6 +96,13 @@ class DeploymentDeployer(object):
 
     @retry_on_upsert_conflict(max_value_seconds=5, max_tries=5)
     def deploy(self, app_spec, selector, labels, besteffort_qos_is_required):
+        if getattr(app_spec.statefulset, "enabled", False):
+            LOG.info("StatefulSet requested for %s; deleting existing deployment if present", app_spec.name)
+            try:
+                Deployment.delete(app_spec.name, app_spec.namespace)
+            except NotFound:
+                pass
+            return
         LOG.info("Creating new deployment for %s", app_spec.name)
         deployment_labels = merge_dicts(app_spec.labels.deployment, labels)
         metadata = ObjectMeta(

@@ -37,6 +37,11 @@ This is unexpected behavior, so by setting the undefined fields to this value, t
 should leave the fields unset and not apply the defaults.
 """
 
+def _normalize_resource_value(value):
+    if value is RESOURCE_UNDEFINED_UGLYHACK or type(value) is object:
+        return None
+    return value
+
 
 class Transformer(BaseTransformer):
     COPY_MAPPING = {

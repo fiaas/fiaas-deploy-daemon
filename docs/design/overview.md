@@ -43,7 +43,7 @@ Contains all the transforms from AppSpec internal representation to Kubernetes r
 Implements a synchronous signaling mechanism which is used to trigger actions between different parts of the application as parts of the process of deploying an application. This is mainly used to keep ApplicationStatus updated when a deployment completes, and to trigger usage reporting.
 
 - `fiaas_deploy_daemon/specs`
-Transforms of fiaas.yml to the internal AppSpec representation. Supports multiple versions by transforming older versions (v2) to the latest version (v3).
+Transforms of fiaas.yml to the internal AppSpec representation. Supports multiple versions by transforming older versions (v2/v3) to the latest version (v4).
 
 - `fiaas_deploy_daemon/usage_reporting`
 Trigger calls to a HTTP endpoint for different parts of the deployment lifecycle (start, success, failure).

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-version: 3
+version: 4
 admin_access: true
 replicas:
   maximum: 1
@@ -30,3 +30,13 @@ healthchecks:
 metrics:
   prometheus:
     path: /internal-backstage/prometheus
+
+# Uncomment to deploy as a StatefulSet with a persistent volume
+#statefulset:
+#  enabled: true
+#  volume_claims:
+#    - name: data
+#      mount_path: /var/lib/app
+#      resources:
+#        requests:
+#          storage: 5Gi

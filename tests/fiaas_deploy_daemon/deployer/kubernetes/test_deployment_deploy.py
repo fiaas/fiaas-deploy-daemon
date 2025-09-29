@@ -37,6 +37,10 @@ from fiaas_deploy_daemon.specs.models import (
     ExecCheckSpec,
     HealthCheckSpec,
     LabelAndAnnotationSpec,
+    StatefulSetSpec,
+    StatefulSetUpdateStrategySpec,
+    StatefulSetVolumeClaimResourcesSpec,
+    StatefulSetVolumeClaimSpec,
 )
 from fiaas_deploy_daemon.tools import merge_dicts
 
@@ -329,6 +333,42 @@ class TestDeploymentDeployer(object):
         secrets.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
         owner_references.apply.assert_called_with(TypeMatcher(Deployment), app_spec)
         extension_hook.apply.assert_called_once_with(TypeMatcher(Deployment), app_spec)
+
+    @mock.patch("fiaas_deploy_daemon.deployer.kubernetes.deployment.deployer.Deployment")
+    def test_deployment_deleted_when_statefulset_enabled(
+        self,
+        mock_deployment,
+        config,
+        app_spec,
+        datadog,
+        prometheus,
+        secrets,
+        owner_references,
+        extension_hook,
+    ):
+        statefulset_spec = StatefulSetSpec(
+            enabled=True,
+            service_name=None,
+            pod_management_policy="OrderedReady",
+            update_strategy=StatefulSetUpdateStrategySpec(type="RollingUpdate", rolling_update_partition=None),
+            volume_claims=[
+                StatefulSetVolumeClaimSpec(
+                    name="data",
+                    mount_path="/data",
+                    storage_class_name=None,
+                    access_modes=["ReadWriteOnce"],
+                    annotations={},
+                    resources=StatefulSetVolumeClaimResourcesSpec(requests={"storage": "1Gi"}, limits=None),
+                )
+            ],
+        )
+        app_spec = app_spec._replace(statefulset=statefulset_spec)
+
+        deployer = DeploymentDeployer(config, datadog, prometheus, secrets, owner_references, extension_hook)
+        deployer.deploy(app_spec, SELECTOR, LABELS, False)
+
+        mock_deployment.delete.assert_called_with(app_spec.name, app_spec.namespace)
+        mock_deployment.get_or_create.assert_not_called()
 
     @pytest.mark.parametrize(
         "enable_service_links, expected_result",

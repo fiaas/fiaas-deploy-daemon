@@ -22,6 +22,7 @@ from .datadog import DataDog
 from .deployer import DeploymentDeployer
 from .prometheus import Prometheus
 from .secrets import Secrets, KubernetesSecrets, GenericInitSecrets
+from ..statefulset import StatefulSetDeployer
 
 
 class DeploymentBindings(pinject.BindingSpec):
@@ -32,3 +33,4 @@ class DeploymentBindings(pinject.BindingSpec):
         bind("generic_init_secrets", to_class=GenericInitSecrets)
         bind("deployment_secrets", to_class=Secrets)
         bind("deployment_deployer", to_class=DeploymentDeployer)
+        bind("statefulset_deployer", to_class=StatefulSetDeployer)

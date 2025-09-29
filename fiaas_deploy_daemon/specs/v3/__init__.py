@@ -17,3 +17,4 @@
 
 
 from .factory import Factory  # NOQA
+from .transformer import Transformer  # NOQA

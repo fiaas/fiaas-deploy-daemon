@@ -38,7 +38,7 @@ In order for FIAAS to function in a cluster, some basics needs to be in place
 
 In addition, some conventions might be useful to know about:
 
-* In fiaas.yml v3, the default paths for probes and metrics starts with `/_/`. As a cluster operator, it might be useful to configure your cluster to disallow public access to any path that starts with this prefix.
+* In fiaas.yml v3 and later, the default paths for probes and metrics starts with `/_/`. As a cluster operator, it might be useful to configure your cluster to disallow public access to any path that starts with this prefix.
 
 How to set configuration options
 --------------------------------
@@ -467,7 +467,7 @@ releaseChannelMetadata:
 # https://github.com/fiaas/releases/blob/master/fiaas-deploy-daemon/stable.json. Change it to suit your requirements
 # if necessary.
 releaseChannelMetadataSpecContentAsYAML: |-
-  version: 3
+  version: 4
   admin_access: true
   replicas:
     maximum: 1

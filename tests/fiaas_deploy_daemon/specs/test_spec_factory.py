@@ -39,12 +39,16 @@ class TestSpecFactory(object):
         return create_autospec(BaseTransformer, spec_set=True, return_value={"version": 3})
 
     @pytest.fixture
-    def v3(self, app_spec):
-        return create_autospec(BaseFactory, spec_set=True, version=3, return_value=app_spec)
+    def v3(self):
+        return create_autospec(BaseTransformer, spec_set=True, return_value={"version": 4})
 
     @pytest.fixture
-    def transformers(self, v1, v2):
-        return {1: v1, 2: v2}
+    def v4(self, app_spec):
+        return create_autospec(BaseFactory, spec_set=True, version=4, return_value=app_spec)
+
+    @pytest.fixture
+    def transformers(self, v1, v2, v3):
+        return {1: v1, 2: v2, 3: v3}
 
     @pytest.fixture
     def config(self):
@@ -53,8 +57,8 @@ class TestSpecFactory(object):
         return config
 
     @pytest.fixture
-    def factory(self, v3, transformers, config):
-        return SpecFactory(v3, transformers, config)
+    def factory(self, v4, transformers, config):
+        return SpecFactory(v4, transformers, config)
 
     @pytest.mark.parametrize(
         "version,mock_to_call",
@@ -62,6 +66,7 @@ class TestSpecFactory(object):
             (None, "v1"),
             (1, "v1"),
             (2, "v2"),
+            (3, "v3"),
         ],
     )
     def test_dispatch_to_correct_transformer(self, request, factory, version, mock_to_call):
@@ -72,31 +77,31 @@ class TestSpecFactory(object):
         mock_factory = request.getfixturevalue(mock_to_call)
         mock_factory.assert_called_with(minimal_config, strip_defaults=False)
 
-    @pytest.mark.parametrize("version", [1, 2, 3])
-    def test_parsed_by_current_version(self, factory, version, v3):
+    @pytest.mark.parametrize("version", [1, 2, 3, 4])
+    def test_parsed_by_current_version(self, factory, version, v4):
         factory(UID, NAME, IMAGE, {"version": version}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
-        v3.assert_called_with(UID, NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE, None, None)
+        v4.assert_called_with(UID, NAME, IMAGE, TEAMS, TAGS, ANY, DEPLOYMENT_ID, NAMESPACE, None, None)
 
     def test_raise_invalid_config_if_version_not_supported(self, factory):
         with pytest.raises(InvalidConfiguration):
             factory(UID, NAME, IMAGE, {"version": 999}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
-    def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v3, app_spec):
+    def test_raise_invalid_config_if_datadog_undefined_and_requested(self, factory, v4, app_spec):
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
-        v3.return_value = app_spec._replace(datadog=datadog_spec)
+        v4.return_value = app_spec._replace(datadog=datadog_spec)
         with pytest.raises(InvalidConfiguration):
-            factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+            factory(UID, NAME, IMAGE, {"version": 4}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
 
-    def test_accept_config_if_datadog_defined_and_requested(self, factory, v3, app_spec, config):
+    def test_accept_config_if_datadog_defined_and_requested(self, factory, v4, app_spec, config):
         config.datadog_container_image = "datadog"
         datadog_spec = app_spec.datadog._replace(enabled=True, tags={})
         expected = app_spec._replace(datadog=datadog_spec)
-        v3.return_value = expected
-        actual = factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+        v4.return_value = expected
+        actual = factory(UID, NAME, IMAGE, {"version": 4}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
         assert actual == expected
 
     @pytest.mark.parametrize("exception", (AttributeError, KeyError, IndexError, ValueError, TypeError, NameError))
-    def test_parse_errors_raises_invalid_config(self, factory, v3, exception):
-        v3.side_effect = exception
+    def test_parse_errors_raises_invalid_config(self, factory, v4, exception):
+        v4.side_effect = exception
         with pytest.raises(InvalidConfiguration):
-            factory(UID, NAME, IMAGE, {"version": 3}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)
+            factory(UID, NAME, IMAGE, {"version": 4}, TEAMS, TAGS, DEPLOYMENT_ID, NAMESPACE, None, None)

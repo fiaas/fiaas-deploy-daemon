@@ -5,7 +5,7 @@ LOG = logging.getLogger(__name__)
 
 class DefaultAppSpec(object):
     DEFAULT_APP_CONFIG = {
-        "version": 3,
+        "version": 4,
     }
 
     def __init__(self, spec_factory):

@@ -1,0 +1,113 @@
+
+# Copyright 2017-2024 The FIAAS Authors
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+version: 4
+replicas:
+  minimum: 2
+  maximum: 5
+  cpu_threshold_percentage: 50
+  singleton: true
+ingress:
+  - host:
+    paths:
+    - path: /
+      port: http
+    annotations: {}
+healthchecks:
+  liveness:
+    execute:
+      command:
+    http:
+      path: /_/health
+      port: http
+      http_headers: {}
+    tcp:
+      port:
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    failure_threshold: 3
+    timeout_seconds: 1
+  readiness:
+    execute:
+      command:
+    http:
+      path: /_/ready
+      port: http
+      http_headers: {}
+    tcp:
+      port:
+    initial_delay_seconds: 10
+    period_seconds: 10
+    success_threshold: 1
+    failure_threshold: 3
+    timeout_seconds: 1
+resources:
+  limits:
+    cpu: 400m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+metrics:
+  prometheus:
+    enabled: true
+    port: http
+    path: /_/metrics
+  datadog:
+    enabled: false
+    tags: {}
+ports:
+  - protocol: http
+    name: http
+    port: 80
+    target_port: 8080
+annotations:
+  deployment: {}
+  horizontal_pod_autoscaler: {}
+  service_account: {}
+  ingress: {}
+  service: {}
+  pod: {}
+  pod_disruption_budget: {}
+  role_binding: {}
+labels:
+  deployment: {}
+  horizontal_pod_autoscaler: {}
+  service_account: {}
+  ingress: {}
+  service: {}
+  pod: {}
+  pod_disruption_budget: {}
+  role_binding: {}
+secrets_in_environment: false
+admin_access: false
+statefulset:
+  enabled: false
+  service_name:
+  pod_management_policy: OrderedReady
+  update_strategy:
+    type: RollingUpdate
+    rolling_update_partition:
+  volume_claims: []
+extensions:
+  strongbox:
+    iam_role:
+    aws_region: eu-west-1
+    groups: []
+  tls:
+    enabled: false
+    certificate_issuer:
+  secrets: {}

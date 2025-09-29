@@ -21,11 +21,19 @@ from fiaas_deploy_daemon.deployer.kubernetes.adapter import K8s, _make_selector
 from fiaas_deploy_daemon.deployer.kubernetes.autoscaler import AutoscalerDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.deployment import DeploymentDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.ingress import IngressDeployer
+from fiaas_deploy_daemon.deployer.kubernetes.statefulset import StatefulSetDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service import ServiceDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.service_account import ServiceAccountDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.pod_disruption_budget import PodDisruptionBudgetDeployer
 from fiaas_deploy_daemon.deployer.kubernetes.role_binding import RoleBindingDeployer
-from fiaas_deploy_daemon.specs.models import ResourcesSpec, ResourceRequirementSpec
+from fiaas_deploy_daemon.specs.models import (
+    ResourcesSpec,
+    ResourceRequirementSpec,
+    StatefulSetSpec,
+    StatefulSetUpdateStrategySpec,
+    StatefulSetVolumeClaimResourcesSpec,
+    StatefulSetVolumeClaimSpec,
+)
 
 FIAAS_VERSION = "1"
 TEAMS = "foo"
@@ -44,6 +52,10 @@ class TestK8s(object):
     @pytest.fixture(autouse=True)
     def deployment_deployer(self):
         return mock.create_autospec(DeploymentDeployer)
+
+    @pytest.fixture(autouse=True)
+    def statefulset_deployer(self):
+        return mock.create_autospec(StatefulSetDeployer)
 
     @pytest.fixture(autouse=True)
     def ingress_deployer(self):
@@ -69,16 +81,24 @@ class TestK8s(object):
 
     @pytest.fixture
     def k8s(
-        self, service_deployer, deployment_deployer, ingress_deployer,
-        autoscaler_deployer, service_account_deployer,
-        pod_disruption_budget_deployer, role_binding_deployer
+        self,
+        service_deployer,
+        deployment_deployer,
+        statefulset_deployer,
+        ingress_deployer,
+        autoscaler_deployer,
+        service_account_deployer,
+        pod_disruption_budget_deployer,
+        role_binding_deployer,
     ):
         config = mock.create_autospec(Configuration([]), spec_set=True)
         config.version = FIAAS_VERSION
+        config.enable_service_account_per_app = False
         return K8s(
             config,
             service_deployer,
             deployment_deployer,
+            statefulset_deployer,
             ingress_deployer,
             autoscaler_deployer,
             service_account_deployer,
@@ -138,6 +158,7 @@ class TestK8s(object):
         app_spec,
         k8s,
         deployment_deployer,
+        statefulset_deployer,
         resource_quota_list,
         resource_quota_specs,
         expect_strip_resources,
@@ -172,6 +193,7 @@ class TestK8s(object):
         pytest.helpers.assert_any_call(
             deployment_deployer.deploy, expected_app_spec, selector, labels, expect_strip_resources
         )
+        statefulset_deployer.deploy.assert_not_called()
 
     def test_pass_to_ingress(self, app_spec, k8s, ingress_deployer, resource_quota_list):
         labels = k8s._make_labels(app_spec)
@@ -179,6 +201,39 @@ class TestK8s(object):
         k8s.deploy(app_spec)
 
         pytest.helpers.assert_any_call(ingress_deployer.deploy, app_spec, labels)
+
+    def test_pass_to_statefulset(
+        self,
+        app_spec,
+        k8s,
+        deployment_deployer,
+        statefulset_deployer,
+        resource_quota_list,
+    ):
+        claim = StatefulSetVolumeClaimSpec(
+            name="data",
+            mount_path="/data",
+            storage_class_name=None,
+            access_modes=["ReadWriteOnce"],
+            annotations={},
+            resources=StatefulSetVolumeClaimResourcesSpec(requests={"storage": "1Gi"}, limits=None),
+        )
+        statefulset_spec = StatefulSetSpec(
+            enabled=True,
+            service_name=None,
+            pod_management_policy="OrderedReady",
+            update_strategy=StatefulSetUpdateStrategySpec(type="RollingUpdate", rolling_update_partition=None),
+            volume_claims=[claim],
+        )
+        app_spec = app_spec._replace(statefulset=statefulset_spec)
+
+        selector = _make_selector(app_spec)
+        labels = k8s._make_labels(app_spec)
+
+        k8s.deploy(app_spec)
+
+        deployment_deployer.deploy.assert_not_called()
+        pytest.helpers.assert_any_call(statefulset_deployer.deploy, app_spec, selector, labels, False)
 
     def test_pass_to_service(self, app_spec, k8s, service_deployer, resource_quota_list):
         selector = _make_selector(app_spec)
@@ -204,6 +259,7 @@ class TestK8s(object):
         service_deployer,
         resource_quota_list,
         deployment_deployer,
+        statefulset_deployer,
         ingress_deployer,
         autoscaler_deployer,
         service_account_deployer,
@@ -219,6 +275,7 @@ class TestK8s(object):
             config,
             service_deployer,
             deployment_deployer,
+            statefulset_deployer,
             ingress_deployer,
             autoscaler_deployer,
             service_account_deployer,
@@ -243,6 +300,7 @@ class TestK8s(object):
         service_deployer,
         resource_quota_list,
         deployment_deployer,
+        statefulset_deployer,
         ingress_deployer,
         autoscaler_deployer,
         service_account_deployer,
@@ -258,6 +316,7 @@ class TestK8s(object):
             config,
             service_deployer,
             deployment_deployer,
+            statefulset_deployer,
             ingress_deployer,
             autoscaler_deployer,
             service_account_deployer,

@@ -107,6 +107,8 @@ def app_spec(**kwargs):
         ],
         strongbox=StrongboxSpec(enabled=False, iam_role=None, aws_region="eu-west-1", groups=None),
         singleton=False,
+        deployment_max_surge=None,
+        deployment_max_unavailable=None,
         ingress_tls=IngressTLSSpec(enabled=False, certificate_issuer=None),
         secrets=[],
         app_config={},

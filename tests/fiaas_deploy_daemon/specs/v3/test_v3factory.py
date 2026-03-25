@@ -91,6 +91,12 @@ TEST_DATA = {
         "strongbox.iam_role": None,
         "strongbox.groups": None,
         "strongbox.aws_region": "eu-west-1",
+        "deployment_max_surge": None,
+        "deployment_max_unavailable": None,
+    },
+    "strategy_per_app": {
+        "deployment_max_surge": "50%",
+        "deployment_max_unavailable": 1,
     },
     "autoscaling_disabled": {
         "autoscaler.enabled": False,

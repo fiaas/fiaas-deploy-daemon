@@ -41,6 +41,8 @@ class AppSpec(
             "ingresses",
             "strongbox",
             "singleton",
+            "deployment_max_surge",
+            "deployment_max_unavailable",
             "ingress_tls",
             "secrets",
             "app_config",

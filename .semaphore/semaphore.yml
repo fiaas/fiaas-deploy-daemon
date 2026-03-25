@@ -17,7 +17,7 @@ name: fiaas-deploy-daemon CI build
 agent:
   machine:
     type: e1-standard-4
-    os_image: ubuntu2004
+    os_image: ubuntu2204
 blocks:
   - name: "Run unit tests, build container image"
     dependencies: []
@@ -69,7 +69,7 @@ blocks:
               - v1.29.8
               - v1.30.10
               - v1.31.6
-              - v1.32.3
+              - v1.32.8
 promotions:
   - name: Push container image
     pipeline_file: push-container-image.yml

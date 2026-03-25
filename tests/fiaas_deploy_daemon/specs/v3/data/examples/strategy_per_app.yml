@@ -1,0 +1,5 @@
+---
+version: 3
+replicas:
+  max_surge: "50%"
+  max_unavailable: 1

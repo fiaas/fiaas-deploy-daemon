@@ -171,8 +171,12 @@ class DeploymentDeployer(object):
             except NotFound:
                 pass
 
+        max_surge = app_spec.deployment_max_surge if app_spec.deployment_max_surge is not None else self._max_surge
+        max_unavailable = (
+            app_spec.deployment_max_unavailable if app_spec.deployment_max_unavailable is not None else self._max_unavailable
+        )
         deployment_strategy = DeploymentStrategy(
-            rollingUpdate=RollingUpdateDeployment(maxUnavailable=self._max_unavailable, maxSurge=self._max_surge)
+            rollingUpdate=RollingUpdateDeployment(maxUnavailable=max_unavailable, maxSurge=max_surge)
         )
         if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
             deployment_strategy = DeploymentStrategy(

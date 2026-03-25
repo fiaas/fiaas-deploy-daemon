@@ -612,8 +612,8 @@ def create_expected_deployment(
     )
     pod_annotations = _none_if_empty(merge_dicts(pod_annotations, init_container_annotations))
 
-    max_surge = "25%"
-    max_unavailable = 0
+    max_surge = app_spec.deployment_max_surge if app_spec.deployment_max_surge is not None else "25%"
+    max_unavailable = app_spec.deployment_max_unavailable if app_spec.deployment_max_unavailable is not None else 0
     if app_spec.autoscaler.max_replicas == 1 and app_spec.singleton:
         max_surge = 0
         max_unavailable = 1

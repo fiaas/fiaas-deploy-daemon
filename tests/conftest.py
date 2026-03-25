@@ -195,7 +195,7 @@ def pytest_addoption(parser):
     parser.addoption(
         E2E_K8S_VERSION_OPTION,
         action="store",
-        default="v1.31.0",
+        default="v1.32.8",
         help="Run e2e tests against a kind cluster using this Kubernetes version",
     )
 

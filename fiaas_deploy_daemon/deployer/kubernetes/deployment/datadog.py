@@ -19,10 +19,10 @@ from k8s.models.pod import (
     Container,
     EnvVar,
     EnvVarSource,
-    ExecAction,
     Handler,
     Lifecycle,
     SecretKeySelector,
+    SleepAction,
 )
 from k8s.models.deployment import Deployment
 
@@ -73,7 +73,7 @@ class DataDog(object):
 
         lifecycle = None
         if pre_stop_delay > 0 and self._datadog_activate_sleep:
-            lifecycle = Lifecycle(preStop=Handler(_exec=ExecAction(command=["sleep", str(pre_stop_delay)])))
+            lifecycle = Lifecycle(preStop=Handler(sleep=SleepAction(seconds=pre_stop_delay)))
 
         return Container(
             name=self.DATADOG_CONTAINER_NAME,

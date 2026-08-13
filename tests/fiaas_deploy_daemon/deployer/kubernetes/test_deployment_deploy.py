@@ -589,7 +589,7 @@ def create_expected_deployment(
             "name": app_spec.name,
             "image": image,
             "volumeMounts": expected_volume_mounts,
-            "lifecycle": {"preStop": {"exec": {"command": ["sleep", "1"]}}},
+            "lifecycle": {"preStop": {"sleep": {"seconds": 1}}},
             "command": [],
             "args": [],
             "env": create_environment_variables(

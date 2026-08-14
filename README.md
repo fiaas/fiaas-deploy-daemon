@@ -47,7 +47,7 @@ Getting started with developing
 Run tests with `tox`:
 - `$ tox -e codestyle` checks code style, indentations etc.
 - `$ tox -e test` runs unit tests
-- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker and kind v0.18.0+.
+- `$ tox -e integration_test` runs end-to-end/integration tests. These tests require docker and kind v0.32.0+.
 
 Useful resources:
 

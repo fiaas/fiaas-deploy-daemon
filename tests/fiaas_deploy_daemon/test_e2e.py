@@ -182,6 +182,8 @@ class TestE2E(object):
             "use-issuer.example.com=certmanager.k8s.io/issuer",
             "--use-ingress-tls",
             "default_off",
+            "--pre-stop-delay",
+            "1",
             "--enable-crd-support"
         ]
         if service_account:

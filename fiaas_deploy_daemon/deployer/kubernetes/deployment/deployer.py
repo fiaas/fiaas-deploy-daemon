@@ -48,6 +48,7 @@ from k8s.models.pod import (
     Probe,
     ResourceFieldSelector,
     ResourceRequirements,
+    SleepAction,
     TCPSocketAction,
     Volume,
     VolumeMount,
@@ -84,7 +85,7 @@ class DeploymentDeployer(object):
         self._grace_period = self.MINIMUM_GRACE_PERIOD
         self._use_in_memory_emptydirs = config.use_in_memory_emptydirs
         if self._pre_stop_delay > 0:
-            self._lifecycle = Lifecycle(preStop=Handler(_exec=ExecAction(command=["sleep", str(self._pre_stop_delay)])))
+            self._lifecycle = Lifecycle(preStop=Handler(sleep=SleepAction(seconds=self._pre_stop_delay)))
             self._grace_period += self._pre_stop_delay
         self._max_surge = config.deployment_max_surge
         self._max_unavailable = config.deployment_max_unavailable

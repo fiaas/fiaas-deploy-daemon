@@ -91,7 +91,7 @@ Used when collecting metrics to DataDog. See [Metrics](#metrics).
 
 ### datadog-activate-sleep
 
-Flag to set a Lifecycle in the datadog container with a preStop that will execute a sleep of the pre-stop-delay of the main container plus 5 seconds.
+Flag to set a Lifecycle in the datadog container with a preStop that sleeps for the pre-stop-delay of the main container plus 5 seconds.
 
 ### pre-stop-delay
 
@@ -103,7 +103,7 @@ The second chain is the termination of the pod. This starts by executing any pre
 
 The upshot of this is that applications that quickly react to SIGTERM and exits cleanly might still be receiving traffic, leading to disconnects or connection refused for the clients until the ingress controller catches up.
 
-As a way to mitigate this, the pre-stop-delay introduces a sleep in the shutdown sequence of applications, which will allow other cluster components time to take the instance out of rotation before it shuts down. This requires that a `sleep` binary is available in the running container. The value to use depends on a number of components in your cluster, so you should tune it to your needs.
+As a way to mitigate this, the pre-stop-delay introduces a sleep in the shutdown sequence of applications, which will allow other cluster components time to take the instance out of rotation before it shuts down. This uses the native Kubernetes `sleep` lifecycle action, which is handled by the kubelet, so it works with distroless and other images that have no shell or `sleep` binary. The value to use depends on a number of components in your cluster, so you should tune it to your needs.
 
 
 
@@ -233,7 +233,7 @@ With this configuration, if an application specifies `prod.example.com` as its h
 
 ### disable-service-links
 
-By default, [enableServiceLinks](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.29/#podspec-v1-core) is set to true, which means that environment variables are automatically created for each service in the same namespace. This parameter allows you to disable this feature by setting disable-service-links to true. This can be useful in scenarios where you have a large number of services and you want to reduce the number of environment variables that are automatically created. For new installations, it's recommended to disable this feature to streamline the environment setup. However, for existing installations, proceed with caution when disabling this feature. This is due to potential compatibility issues, as some services might rely on these automatically created environment variables for communication.
+By default, [enableServiceLinks](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.33/#podspec-v1-core) is set to true, which means that environment variables are automatically created for each service in the same namespace. This parameter allows you to disable this feature by setting disable-service-links to true. This can be useful in scenarios where you have a large number of services and you want to reduce the number of environment variables that are automatically created. For new installations, it's recommended to disable this feature to streamline the environment setup. However, for existing installations, proceed with caution when disabling this feature. This is due to potential compatibility issues, as some services might rely on these automatically created environment variables for communication.
 
 ### dns-search-domains
 

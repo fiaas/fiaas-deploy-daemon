@@ -23,7 +23,9 @@ The [Operators guide](operator_guide.md) documents what cluster operators need t
 
 ## Supported kubernetes versions
 
-We are currently testing Kubernetes version 1.25.11 and above. FIAAS may work on older versions, but is not tested.
+We are currently testing Kubernetes version 1.33 and above. FIAAS requires 1.33 or newer: the
+graceful-shutdown `preStop` hook uses the native `sleep` lifecycle action, which older API servers
+and kubelets silently discard.
 
 ## Notable kubernetes features in use
 

@@ -127,6 +127,10 @@ spec:
             optional: true
         image: IMAGE
         imagePullPolicy: IfNotPresent
+        lifecycle:
+          preStop:
+            sleep:
+              seconds: 1
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -173,7 +177,7 @@ spec:
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       serviceAccountName: default
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 31
       volumes:
       - name: v3-data-examples-multiple-hosts-multiple-paths-secret
         secret:

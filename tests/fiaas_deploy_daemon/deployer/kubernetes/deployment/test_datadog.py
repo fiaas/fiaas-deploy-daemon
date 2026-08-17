@@ -138,7 +138,7 @@ class TestDataDog(object):
 
         datadog.apply(deployment, app_spec, False, 5)
 
-        expected = {"preStop": {"exec": {"command": ["sleep", "5"]}}}
+        expected = {"preStop": {"sleep": {"seconds": 5}}}
 
         assert expected == deployment.as_dict()["spec"]["template"]["spec"]["containers"][-1]["lifecycle"]
 
